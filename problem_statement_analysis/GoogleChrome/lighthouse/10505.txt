@@ -1,0 +1,14 @@
+### Answer 1
+**Wrong Behavior**: Lighthouse reports no performance score and shows a NO_TTI_CPU_IDLE_PERIOD error.
+**Cause**: The page has a slow First Contentful Paint (FCP) but becomes idle immediately after it. This behavior might confuse Lighthouse's timing calculations, leading it to incorrectly identify a lack of CPU idle period necessary for Time to Interactive (TTI). The specific timing of the FCP delay (1700ms in this case) seems to trigger this issue, suggesting that the timing threshold for detecting CPU idle periods might be too strict or not accounting for such immediate idle states after a delayed FCP.
+
+### Answer 2
+**Wrong Behavior**: The error occurs inconsistently in the CLI version, happening only about 1 in 4 times.
+**Cause**: The inconsistency in the CLI version could be due to variations in network conditions, system load, or other environmental factors that affect the timing of the page load and CPU idle detection. The `delayFcpMs` parameter might not always result in the same timing conditions due to these variables, leading to the error appearing sporadically.
+
+### Answer 3
+**Wrong Behavior**: Adding a 400ms loop after setting the body HTML prevents the error from occurring.
+**Cause**: The 400ms loop introduces additional CPU activity after the FCP, which might help Lighthouse more accurately detect the transition from a busy state to an idle state. This suggests that Lighthouse's algorithm for identifying CPU idle periods might be too sensitive to immediate transitions from busy to idle states, and the loop provides a more gradual transition that the algorithm can better handle.
+
+### Conclusion
+**Summary**: The primary issue is related to Lighthouse's detection of CPU idle periods after a delayed FCP. The algorithm might be too strict or not robust enough to handle immediate transitions from busy to idle states, leading to the NO_TTI_CPU_IDLE_PERIOD error. The inconsistency in the CLI version is likely due to environmental factors affecting timing. Introducing a delay or additional CPU activity after the FCP can help mitigate the issue by providing a more gradual transition that the algorithm can better detect. Improving the algorithm's sensitivity to these transitions could resolve the problem.

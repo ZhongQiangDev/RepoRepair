@@ -1,0 +1,14 @@
+### Answer 1
+**Wrong Behavior**: The bfcache audit fails due to an unload handler in the main frame, even though the `no-unload-listeners` audit passes.
+**Cause**: The unload listener is added by an extension's content script that runs in an isolated execution context. This makes the listener invisible to the `no-unload-listeners` audit and the DevTools Elements panel, as they only check the main execution context.
+
+### Answer 2
+**Wrong Behavior**: The `no-unload-listeners` audit passes despite the presence of an unload listener.
+**Cause**: The audit does not account for listeners added in isolated execution contexts, such as those created by extension content scripts. It only checks the main execution context, missing listeners added by extensions.
+
+### Answer 3
+**Wrong Behavior**: Users cannot detect the unload listener using `getEventListeners(window)` in the console.
+**Cause**: The `getEventListeners(window)` function only checks the main execution context. To see listeners added by extensions, users need to switch to the appropriate execution context in the DevTools console dropdown.
+
+### Conclusion
+**Summary**: The primary issue is that unload listeners added by extensions in isolated execution contexts are not detected by the `no-unload-listeners` audit or visible in the DevTools Elements panel. This invisibility leads to the bfcache audit failing while the `no-unload-listeners` audit passes, creating a confusing and hard-to-debug situation. To address this, Lighthouse could cycle through all execution contexts when running the `no-unload-listeners` audit and provide a top-level extension warning if content scripts from extensions are detected.

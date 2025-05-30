@@ -1,0 +1,10 @@
+### Answer 1
+**Wrong Behavior**: The `VectorSource.getExtent()` returns `[Infinity, Infinity, -Infinity, -Infinity]` which is incorrect.
+**Cause**: The `success` callback is being called before the features are added to the `VectorSource`. In the `xhr` function, the `success(features)` call (marked as ②) is executed before `source.addFeatures(features)` (marked as ①). This means that when the `featuresloadend` event is triggered, the features are not yet added to the `VectorSource`, leading to an incorrect extent calculation.
+
+### Answer 2
+**Wrong Behavior**: The `featuresloadend` event is triggered before the features are fully loaded and added to the `VectorSource`.
+**Cause**: The order of operations in the `xhr` function is incorrect. The `success` callback should be called after the features are added to the `VectorSource` to ensure that the event is triggered only when the features are fully loaded and added. This would allow the `VectorSource.getExtent()` method to calculate the correct extent.
+
+### Conclusion
+**Summary**: The primary issue is the incorrect order of operations in the `xhr` function. The `success` callback is being called before the features are added to the `VectorSource`, leading to an incorrect extent calculation and premature triggering of the `featuresloadend` event. To fix this, the `success(features)` call should be moved after `source.addFeatures(features)` to ensure that the features are fully loaded and added before the event is triggered and the extent is calculated.

@@ -1,0 +1,14 @@
+### Answer 1
+**Wrong Behavior**: The figure does not render when `fig-cap: !expr caption` evaluates to `character(0)`.
+**Cause**: The `fig-cap` parameter in Quarto expects a non-empty string for the figure caption. When `caption` is set to `character(0)`, it results in an empty value, which the rendering engine interprets as the absence of a caption. This causes the figure to be omitted from the output.
+
+### Answer 2
+**Wrong Behavior**: The figure disappears from the output when `caption` is set to `character(0)`.
+**Cause**: The `knitr::include_graphics` function, when used in conjunction with `fig-cap`, relies on the caption being a valid, non-empty string. When `caption` is `character(0)`, the function does not receive a valid caption, leading to the figure being excluded from the rendered document.
+
+### Answer 3
+**Wrong Behavior**: The issue was originally encountered with a mistaken `sprintf` call.
+**Cause**: The `sprintf` function can return `character(0)` if the format string or arguments are incorrect, leading to an empty character vector. This empty vector, when used as the caption, results in the same behavior as directly setting `caption = character(0)`.
+
+### Conclusion
+**Summary**: The primary issue is that `fig-cap` in Quarto requires a non-empty string for the figure caption. When `caption` is set to `character(0)`, either directly or as a result of a mistaken `sprintf` call, the figure is not rendered because the caption is interpreted as absent. This behavior needs to be addressed by ensuring that `caption` always contains a valid, non-empty string.

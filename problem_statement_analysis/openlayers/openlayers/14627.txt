@@ -1,0 +1,10 @@
+### Answer 1
+**Wrong Behavior**: `applyTransform` for an empty extent results in an extent with `NaN` values.
+**Cause**: The `fromEPSG4326` function, which is returned by `getTransform('EPSG:4326', 'EPSG:3857')`, uses `Math.tan` in its calculations. When the input extent contains `Infinity` values (as in an empty extent), `Math.tan` returns `NaN`, leading to the extent containing `NaN` values.
+
+### Answer 2
+**Wrong Behavior**: Using an extent with `NaN` values as a parameter to `fit` throws an error.
+**Cause**: The `fit` method expects a valid extent with numerical values. When it receives an extent with `NaN` values, it cannot properly calculate the view parameters, resulting in an error.
+
+### Conclusion
+**Summary**: The primary issue stems from the `fromEPSG4326` function not handling `Infinity` values correctly, leading to `NaN` values in the transformed extent. This, in turn, causes the `fit` method to fail when it encounters the invalid extent. To resolve this, the `fromEPSG4326` function should be modified to handle `Infinity` values appropriately, ensuring that the transformed extent remains valid. Additionally, the `fit` method should include checks to handle or reject invalid extents gracefully.

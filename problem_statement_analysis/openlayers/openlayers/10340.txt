@@ -1,0 +1,14 @@
+### Answer 1
+**Wrong Behavior**: Drawn circles and other custom geometry do not have the expected shape/size in the view when `useGeographic` is specified.
+**Cause**: The `useGeographic` option is designed to work with geographic coordinates (latitude and longitude) rather than Cartesian coordinates. When drawing shapes like circles, the algorithm assumes a flat, Cartesian space, which leads to distortions when applied to a geographic coordinate system, especially at higher latitudes where the curvature of the Earth becomes more pronounced.
+
+### Answer 2
+**Wrong Behavior**: Regular shapes produced by `createRegularPolygon` can be far from regular.
+**Cause**: The `createRegularPolygon` function likely generates vertices based on a fixed angular increment in a Cartesian space. When these vertices are then projected onto a geographic coordinate system, the distances between the vertices become distorted due to the varying scale of the geographic projection, particularly at higher latitudes. This results in shapes that are not regular.
+
+### Answer 3
+**Wrong Behavior**: If the view projection is not parallel to WGS84, using `createBox` to draw a box is not possible as expected.
+**Cause**: The `createBox` function probably assumes a specific projection (likely WGS84) when calculating the box's dimensions and orientation. When the view projection is different, the box's coordinates are not correctly transformed, leading to a misalignment or distortion of the box shape. This is because the function does not account for the differences in scale and orientation between the assumed projection and the actual view projection.
+
+### Conclusion
+**Summary**: The issues arise from the mismatch between the assumptions made by the drawing functions (Cartesian space and specific projections) and the actual geographic coordinate system and view projections being used. To fix these problems, the drawing functions need to be adapted to handle geographic coordinates and different projections correctly, possibly by incorporating projection transformations or providing options to specify the desired behavior in different projections.

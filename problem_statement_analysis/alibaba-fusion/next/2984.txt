@@ -1,0 +1,14 @@
+### Answer 1
+**Wrong Behavior**: The `CascaderSelect` component modifies the properties passed by the user, leading to an error when using `immer`.
+**Cause**: The component directly mutates the props object, which is not allowed when using `immer` as it expects the data to be immutable. This mutation likely occurs in the `setCache` method at line 190 of `cascader.js`, where the component attempts to add a property to an object that is not extensible.
+
+### Answer 2
+**Wrong Behavior**: The error message indicates that a property cannot be added to an object because it is not extensible.
+**Cause**: The object in question has been marked as non-extensible, possibly due to the use of `Object.preventExtensions()` or similar methods. When the `CascaderSelect` component tries to add a new property to this object, it triggers the `TypeError`.
+
+### Answer 3
+**Wrong Behavior**: The error occurs during the component's lifecycle, specifically in the `updateCache` method.
+**Cause**: The `updateCache` method (line 211) is part of the component's logic that updates the internal state based on the props. If the props are being modified directly, it can lead to issues when the component tries to update its state, especially when using libraries like `immer` that enforce immutability.
+
+### Conclusion
+**Summary**: The primary issue is that the `CascaderSelect` component is directly modifying the props object, which is not allowed when using `immer`. This mutation causes a `TypeError` because the object is not extensible. To resolve this, the component should avoid directly mutating the props and instead create a new object or use immutability helpers provided by `immer`. Additionally, reviewing the `setCache` and `updateCache` methods to ensure they handle immutable data correctly will help prevent such errors.

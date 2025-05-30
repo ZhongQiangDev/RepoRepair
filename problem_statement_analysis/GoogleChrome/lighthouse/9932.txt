@@ -1,0 +1,14 @@
+### Answer 1
+**Wrong Behavior**: Non-network URLs (like data URIs) are being treated as actual network requests with server response time.
+**Cause**: The code does not differentiate between network URLs and non-network URLs (like data URIs). As a result, it assigns server response time and RTT values to non-network URLs, which should not have these values.
+
+### Answer 2
+**Wrong Behavior**: The simulator is including server response time for data URIs.
+**Cause**: The `_initializeConnections` function is processing all records, including those with data URIs, and assigning server response time and RTT values. This is likely due to the lack of a check to identify and handle data URIs separately.
+
+### Answer 3
+**Wrong Behavior**: The RTT for data URIs is being set to a non-zero value.
+**Cause**: The `additionalRttByOrigin` and `serverResponseTimeByOrigin` maps are being used to set RTT and server response time for all origins, including data URIs. Since data URIs do not involve network requests, they should not have a non-zero RTT.
+
+### Conclusion
+**Summary**: The main issue is that the code does not properly differentiate between network URLs and non-network URLs (like data URIs). This results in non-network URLs being treated as network requests with server response time and RTT values. To fix this, the code should include a check to identify data URIs and handle them separately, ensuring they do not have server response time or non-zero RTT values. This can be achieved by adding a condition in the `_initializeConnections` function to skip processing data URIs or setting their RTT and server response time to zero.

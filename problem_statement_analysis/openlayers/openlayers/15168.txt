@@ -1,0 +1,10 @@
+### Answer 1
+**Wrong Behavior**: Vertically, the pixels are correctly aligned with their expected centers, but horizontally, there is a misalignment.
+**Cause**: The raster reprojection in OpenLayers assumes that the target pixels are square, which leads to a misalignment when the source pixels cover an area of 3km by 2km. This assumption causes the pixels to be stretched or compressed to fit into a square shape, leading to the observed misalignment.
+
+### Answer 2
+**Wrong Behavior**: The resulting projected column extends too far to the east, making the 5×5 source image look like a 7×5 image in the result.
+**Cause**: The source projection is Lambert Conformal Conic, and the target projection is Web Mercator. When the source pixels are projected into the target projection, the assumption of square pixels causes the first column of pixels of the source image to be repeated twice. This repetition leads to the extended column and the distorted image.
+
+### Conclusion
+**Summary**: The main issue is the assumption in OpenLayers that the target pixels are square, which causes misalignment and distortion when the source pixels cover an area of 3km by 2km. This assumption leads to the pixels being stretched or compressed to fit into a square shape, causing the observed misalignment. Additionally, the difference in projections between the source and target images can cause the first column of pixels to be repeated, leading to an extended column and a distorted image. To fix these issues, OpenLayers should allow for non-square target pixels and provide a way to preserve the amount of source pixels in the projection result.

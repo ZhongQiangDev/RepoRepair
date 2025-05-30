@@ -1,0 +1,14 @@
+### Answer 1
+**Wrong Behavior**: Increased render error rate and latency.
+**Cause**: The `loadPage-defaultPass` timing has seen a significant jump, indicating that the page loading process is taking longer than usual. This is likely due to the recent changes in the codebase, specifically the pull request "core(driver): waitForFCP when tracing" (https://github.com/GoogleChrome/lighthouse/pull/6944). This change may have introduced additional waiting time for the First Contentful Paint (FCP), causing more sites to hit the 35s maxWaitForLoad timeout and subsequently the 60s render timeout.
+
+### Answer 2
+**Wrong Behavior**: The `lh:runner:auditing` timing remains flat.
+**Cause**: The `lh:runner:auditing` timing does not seem to be affected by the recent changes, suggesting that the issue is isolated to the page loading process. This indicates that the problem is not related to the auditing process itself but rather to the way pages are being loaded and rendered.
+
+### Answer 3
+**Wrong Behavior**: NO_FCP is the most commonly seen LighthouseError.
+**Cause**: The increase in NO_FCP errors is likely due to the changes introduced in the pull request "core(driver): waitForFCP when tracing". This change may have made the system more strict in waiting for the FCP, causing more sites to fail to meet the FCP criteria within the allowed time frame.
+
+### Conclusion
+**Summary**: The main issue appears to be the recent changes in the codebase, specifically the pull request "core(driver): waitForFCP when tracing", which has introduced additional waiting time for the First Contentful Paint (FCP). This has caused more sites to hit the 35s maxWaitForLoad timeout and subsequently the 60s render timeout, leading to an increase in render error rate and latency. The `lh:runner:auditing` timing remains unaffected, indicating that the issue is isolated to the page loading process. The increase in NO_FCP errors further supports this conclusion, as the system is now more strict in waiting for the FCP. To address this issue, a potential threshold on how long to hold out for FCP could be considered.

@@ -1,0 +1,10 @@
+### Answer 1
+**Wrong Behavior**: The code fails with an error "Cannot read property 'y' of undefined" when running on the first screen with 250% scaling and an odd width.
+**Cause**: The issue arises from the calculation of `avgRangeLength` and `rangeTo` in the LTTB algorithm. When the screen scaling is not 100% and the width is odd, the `bucketWidth` calculation can lead to fractional values. This results in `avgRangeStart` and `avgRangeEnd` being calculated incorrectly, leading to a negative `avgRangeLength` or `rangeTo` exceeding the length of the data array. Consequently, the loop tries to access an undefined index in the `data` array, causing the error.
+
+### Answer 2
+**Wrong Behavior**: The problem only occurs on the first screen with 250% scaling and an odd width, but not on the second screen with 100% scaling.
+**Cause**: The discrepancy is likely due to how Windows handles screen scaling. When the scaling is set to 250%, the operating system scales the display, which can introduce rounding errors in the calculations related to screen dimensions and pixel positions. This can cause the `bucketWidth` to be slightly off, leading to the issues described above. On the second screen with 100% scaling, these rounding errors do not occur, and the calculations remain accurate.
+
+### Conclusion
+**Summary**: The primary issue is with the LTTB algorithm's calculation of `bucketWidth`, `avgRangeStart`, `avgRangeEnd`, and `avgRangeLength`. When the screen scaling is not 100% and the width is odd, the calculations can result in fractional values that lead to incorrect index access in the `data` array. This is exacerbated by how Windows handles screen scaling, introducing rounding errors that affect the calculations. To resolve this, the algorithm should be adjusted to handle fractional `bucketWidth` values more robustly, ensuring that `avgRangeLength` is always positive and `rangeTo` does not exceed the length of the `data` array. Additionally, considering the impact of screen scaling on the calculations can help in making the algorithm more resilient to different display settings.
