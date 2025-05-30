@@ -1,0 +1,49 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that Lighthouse does not handle Out-of-Process Iframes (OOPIFs) correctly. Specifically, it seems that Lighthouse is only analyzing requests from the main frame and not from iframes, which could lead to incomplete or inaccurate analysis results.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause behind this behavior is likely related to how Lighthouse discovers and communicates with different targets (such as iframes) within the browser. The problem description mentions that Chrome DevTools uses `Target.sendMessageToTarget` to send `Network.enable` to discovered targets and receives data via `Target.receivedMessageFromTarget`. However, Lighthouse does not seem to perform similar target discovery and communication, which suggests that it might be missing the necessary logic to handle iframes properly.
+
+### 3. Examine Each File One by One and Determine Relevant Functions/Classes
+
+#### `lighthouse-core/runner.js`
+
+This file contains the `Runner` class, which orchestrates the entire Lighthouse run. It is responsible for gathering artifacts, running audits, and constructing the final Lighthouse Result (LHR) object. Since the issue is related to handling iframes, the gather phase is particularly relevant. The `_gatherArtifactsFromBrowser` method establishes a connection and collects artifacts using the `GatherRunner`, which might need to be inspected for handling iframes.
+
+```
+lighthouse-core/runner.js
+class: Runner
+```
+
+#### `lighthouse-core/computed/main-resource.js`
+
+This file contains the `MainResource` class, which identifies the main resource of a webpage. While this class is important for determining the main document, it does not directly handle iframes or target discovery. Therefore, it is not directly relevant to the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `lighthouse-core/gather/gatherers/chrome-console-messages.js`
+
+This file contains the `ChromeConsoleMessages` class, which collects console log messages from the Chrome browser. Although it sets up event listeners for console log entries, it does not handle network requests or target discovery for iframes. Therefore, it is not directly relevant to the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `lighthouse-core/lib/lh-error.js`
+
+This file contains the `LighthouseError` class, which provides specialized error handling for Lighthouse. It is not directly related to handling iframes or target discovery, so it is not relevant to the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+### Summary of Relevant Locations
+
+```
+lighthouse-core/runner.js
+class: Runner
+```

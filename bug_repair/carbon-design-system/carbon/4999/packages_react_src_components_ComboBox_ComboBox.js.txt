@@ -1,0 +1,40 @@
+The issue is that the `key` prop for the `ListBox.MenuItem` components is being set to the result of `itemToString(item)`, which can lead to duplicate keys if multiple items have the same string representation. To fix this, we should use a unique identifier, such as the `id` property of each item, as the `key` prop.
+
+Here's the *SEARCH/REPLACE* edit to fix the issue:
+
+```javascript
+###packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+                    <ListBox.MenuItem
+                      key={itemToString(item)}
+                      isActive={selectedItem === item}
+                      isHighlighted={
+                        highlightedIndex === index ||
+                        (selectedItem && selectedItem.id === item.id) ||
+                        false
+                      }
+                      {...getItemProps({ item, index })}>
+                      {itemToElement ? (
+                        <ItemToElement key={itemToString(item)} {...item} />
+                      ) : (
+                        itemToString(item)
+                      )}
+                    </ListBox.MenuItem>
+=======
+                    <ListBox.MenuItem
+                      key={item.id} // Use the unique id as the key
+                      isActive={selectedItem === item}
+                      isHighlighted={
+                        highlightedIndex === index ||
+                        (selectedItem && selectedItem.id === item.id) ||
+                        false
+                      }
+                      {...getItemProps({ item, index })}>
+                      {itemToElement ? (
+                        <ItemToElement key={item.id} {...item} /> // Also update the key for ItemToElement
+                      ) : (
+                        itemToString(item)
+                      )}
+                    </ListBox.MenuItem>
+>>>>>>> REPLACE
+```

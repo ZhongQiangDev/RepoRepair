@@ -1,0 +1,60 @@
+The issue described is that the `max` value is not being updated in real-time when it changes. This is likely due to the fact that the `max` and `min` values in the state are not being updated correctly when the props change.
+
+To fix this, we need to ensure that the `max` and `min` values in the state are updated whenever the corresponding props change. We can do this by modifying the `getDerivedStateFromProps` method.
+
+Here's the fix:
+
+```javascript
+### src/number-picker/number-picker.jsx
+<<<<<<< SEARCH
+    static getDerivedStateFromProps(nextProps, prevState) {
+        // 用户键入非法值后render逻辑，未触发onChange，业务组件无感知，不强制受控value
+        if (prevState.onlyDisplay) {
+            return {
+                value: prevState.value,
+                displayValue: prevState.displayValue,
+                onlyDisplay: false,
+            };
+        }
+        // 一般受控render逻辑
+        if ('value' in nextProps && `${nextProps.value}` !== `${prevState.value}`) {
+            let { value, max, min, stringMode } = nextProps;
+            value = value === undefined || value === null ? '' : stringMode ? `${value}` : value;
+            return {
+                value,
+                displayValue: value,
+                max: max !== MAX_SAFE_INTEGER ? max : prevState.max,
+                min: min !== MIN_SAFE_INTEGER ? min : prevState.min,
+            };
+        }
+
+        return null;
+    }
+=======
+    static getDerivedStateFromProps(nextProps, prevState) {
+        // 用户键入非法值后render逻辑，未触发onChange，业务组件无感知，不强制受控value
+        if (prevState.onlyDisplay) {
+            return {
+                value: prevState.value,
+                displayValue: prevState.displayValue,
+                onlyDisplay: false,
+            };
+        }
+        // 一般受控render逻辑
+        if ('value' in nextProps || nextProps.max !== prevState.max || nextProps.min !== prevState.min) {
+            let { value, max, min, stringMode } = nextProps;
+            value = value === undefined || value === null ? '' : stringMode ? `${value}` : value;
+            return {
+                value,
+                displayValue: value,
+                max: max === MAX_SAFE_INTEGER && stringMode ? Infinity : max,
+                min: min === MIN_SAFE_INTEGER && stringMode ? -Infinity : min,
+            };
+        }
+
+        return null;
+    }
+>>>>>>> REPLACE
+```
+
+This change ensures that the `max` and `min` values in the state are updated whenever the corresponding props change, which should resolve the issue of the `max` value not being updated in real-time.

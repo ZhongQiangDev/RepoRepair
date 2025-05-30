@@ -1,0 +1,75 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that stacked line charts in Chart.js always begin at zero on the y-axis, even when the `beginAtZero` option is set to `false`. This behavior is incorrect because it does not take into account the stacking of data points when calculating the minimum y-axis tick.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how the y-axis scale is configured and how the minimum value for the y-axis is determined when stacking is enabled. When stacking is enabled, the minimum value of the y-axis should be calculated based on the stacked data points rather than starting from zero. The problem might be in the logic that calculates the y-axis range or in the way the stacked data is processed.
+
+### 3. Examine Each File One by One
+
+#### --- src/controllers/controller.line.js ---
+```
+src/controllers/controller.line.js
+function: getStartAndCountOfVisiblePoints
+class: LineController
+```
+The `LineController` class and the `getStartAndCountOfVisiblePoints` function are relevant because they manage the rendering and updating of line chart datasets. However, they do not directly handle the y-axis scale configuration or the calculation of the y-axis range.
+
+#### --- src/core/core.datasetController.js ---
+```
+src/core/core.datasetController.js
+function: applyStack
+class: DatasetController
+function: updateStacks
+function: isStacked
+```
+The `applyStack`, `updateStacks`, `isStacked` functions and `DatasetController` class are relevant because they handle the stacking of datasets. The `applyStack` function processes the stacked values, `updateStacks` updates the stack values for each data point, `isStacked` checks if a scale is stacked and `DatasetController` manages and controls the data and rendering of a specific dataset within a chart. These functions and classes are crucial for ensuring that the stacking logic is correctly applied.
+
+#### --- src/core/core.scale.js ---
+```
+src/core/core.scale.js
+function: getUserBounds
+function: getPixelForGridLine
+```
+The `getUserBounds` function is relevant because it retrieves the minimum and maximum values defined by the user for the scale. The `getPixelForGridLine` function calculates the pixel position for grid lines, which is related to the y-axis tick positions. These functions may need to be adjusted to correctly handle stacked data.
+
+#### --- src/scales/scale.linear.js ---
+```
+src/scales/scale.linear.js
+class: LinearScale
+```
+The `LinearScale` class is relevant because it provides methods to determine data limits, compute tick limits, and convert between data values and pixel positions. The `determineDataLimits` method calculates the minimum and maximum values of the data, which should take stacking into account.
+
+#### --- src/scales/scale.linearbase.js ---
+```
+src/scales/scale.linearbase.js
+class: LinearScaleBase
+function: generateTicks
+function: handleTickRangeOptions
+```
+The `LinearScaleBase` class and the `generateTicks` and `handleTickRangeOptions` functions are relevant because they handle the generation of ticks and the adjustment of the minimum and maximum values of the scale. The `handleTickRangeOptions` function adjusts the scale range based on options like `beginAtZero`, which needs to be correctly applied when stacking is enabled.
+
+### Summary of Relevant Locations
+```
+src/controllers/controller.line.js
+function: getStartAndCountOfVisiblePoints
+class: LineController
+
+src/core/core.datasetController.js
+function: applyStack
+function: updateStacks
+function: isStacked
+
+src/core/core.scale.js
+function: getUserBounds
+function: getPixelForGridLine
+
+src/scales/scale.linear.js
+class: LinearScale
+
+src/scales/scale.linearbase.js
+class: LinearScaleBase
+function: generateTicks
+function: handleTickRangeOptions
+```

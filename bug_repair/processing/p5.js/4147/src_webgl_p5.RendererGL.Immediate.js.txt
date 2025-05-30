@@ -1,0 +1,144 @@
+The issue described is that the vertex colors are not being applied correctly in p5.js version 0.9.0 when using the `WEBGL` renderer. The problem seems to be related to how the vertex colors are being handled in the `vertex` method and how they are being passed to the shader in the `_drawFillImmediateMode` method.
+
+The issue is likely due to the fact that the `vertex` method is not updating the `curFillColor` property correctly when a new color is specified for each vertex. This results in all vertices being rendered with the same color, which is the last color specified.
+
+To fix this, we need to ensure that the `curFillColor` property is updated with the color specified for each vertex. We can do this by modifying the `vertex` method to accept a color parameter and update the `curFillColor` property accordingly.
+
+Here is the proposed fix:
+
+```javascript
+### src/webgl/p5.RendererGL.Immediate.js
+<<<<<<< SEARCH
+p5.RendererGL.prototype.vertex = function(x, y) {
+  let z, u, v;
+
+  // default to (x, y) mode: all other arugments assumed to be 0.
+  z = u = v = 0;
+
+  if (arguments.length === 3) {
+    // (x, y, z) mode: (u, v) assumed to be 0.
+    z = arguments[2];
+  } else if (arguments.length === 4) {
+    // (x, y, u, v) mode: z assumed to be 0.
+    u = arguments[2];
+    v = arguments[3];
+  } else if (arguments.length === 5) {
+    // (x, y, z, u, v) mode
+    z = arguments[2];
+    u = arguments[3];
+    v = arguments[4];
+  }
+  if (this.immediateMode._testIfCoplanar == null) {
+    this.immediateMode._testIfCoplanar = z;
+  } else if (this.immediateMode._testIfCoplanar !== z) {
+    this.immediateMode._isCoplanar = false;
+  }
+  const vert = new p5.Vector(x, y, z);
+  this.immediateMode.vertices.push(vert);
+  const vertexColor = this.curFillColor || [0.5, 0.5, 0.5, 1.0];
+  this.immediateMode.vertexColors.push(
+    vertexColor[0],
+    vertexColor[1],
+    vertexColor[2],
+    vertexColor[3]
+  );
+
+  if (this.textureMode === constants.IMAGE) {
+    if (this._tex !== null) {
+      if (this._tex.width > 0 && this._tex.height > 0) {
+        u /= this._tex.width;
+        v /= this._tex.height;
+      }
+    } else if (this._tex === null && arguments.length >= 4) {
+      // Only throw this warning if custom uv's have  been provided
+      console.warn(
+        'You must first call texture() before using' +
+          ' vertex() with image based u and v coordinates'
+      );
+    }
+  }
+
+  this.immediateMode.uvCoords.push(u, v);
+
+  this.immediateMode._bezierVertex[0] = x;
+  this.immediateMode._bezierVertex[1] = y;
+  this.immediateMode._bezierVertex[2] = z;
+
+  this.immediateMode._quadraticVertex[0] = x;
+  this.immediateMode._quadraticVertex[1] = y;
+  this.immediateMode._quadraticVertex[2] = z;
+
+  return this;
+};
+=======
+p5.RendererGL.prototype.vertex = function(x, y, color) {
+  let z, u, v;
+
+  // default to (x, y) mode: all other arguments assumed to be 0.
+  z = u = v = 0;
+
+  if (arguments.length === 3) {
+    // (x, y, z) mode: (u, v) assumed to be 0.
+    z = arguments[2];
+  } else if (arguments.length === 4) {
+    // (x, y, u, v) mode: z assumed to be 0.
+    u = arguments[2];
+    v = arguments[3];
+  } else if (arguments.length === 5) {
+    // (x, y, z, u, v) mode
+    z = arguments[2];
+    u = arguments[3];
+    v = arguments[4];
+  }
+  if (this.immediateMode._testIfCoplanar == null) {
+    this.immediateMode._testIfCoplanar = z;
+  } else if (this.immediateMode._testIfCoplanar !== z) {
+    this.immediateMode._isCoplanar = false;
+  }
+  const vert = new p5.Vector(x, y, z);
+  this.immediateMode.vertices.push(vert);
+  
+  // Update curFillColor with the specified color for this vertex
+  if (color) {
+    this.curFillColor = color;
+  }
+  
+  const vertexColor = this.curFillColor || [0.5, 0.5, 0.5, 1.0];
+  this.immediateMode.vertexColors.push(
+    vertexColor[0],
+    vertexColor[1],
+    vertexColor[2],
+    vertexColor[3]
+  );
+
+  if (this.textureMode === constants.IMAGE) {
+    if (this._tex !== null) {
+      if (this._tex.width > 0 && this._tex.height > 0) {
+        u /= this._tex.width;
+        v /= this._tex.height;
+      }
+    } else if (this._tex === null && arguments.length >= 4) {
+      // Only throw this warning if custom uv's have been provided
+      console.warn(
+        'You must first call texture() before using' +
+          ' vertex() with image based u and v coordinates'
+      );
+    }
+  }
+
+  this.immediateMode.uvCoords.push(u, v);
+
+  this.immediateMode._bezierVertex[0] = x;
+  this.immediateMode._bezierVertex[1] = y;
+  this.immediateMode._bezierVertex[2] = z;
+
+  this.immediateMode._quadraticVertex[0] = x;
+  this.immediateMode._quadraticVertex[1] = y;
+  this.immediateMode._quadraticVertex[2] = z;
+
+  return this;
+};
+>>>>>>> REPLACE
+```
+
+This fix updates the `vertex` method to accept a color parameter and updates the `curFillColor` property accordingly. This should ensure that the correct color is applied to each vertex.

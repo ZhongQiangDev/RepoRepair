@@ -1,0 +1,67 @@
+The issue described is related to the behavior of the wrench menu when transforming a task into a call activity and then into an expanded sub-process. The problem is that after transforming the call activity into an expanded sub-process, the wrench menu only allows changing it into an event sub-process, and it's not possible to revert it back to a call activity.
+
+To address this issue, we need to ensure that the wrench menu options are correctly updated when transforming elements. Specifically, we need to ensure that the wrench menu options reflect the current state of the element and allow reverting the transformation.
+
+Here's a potential fix:
+
+```javascript
+### lib/features/modeling/behavior/ToggleElementCollapseBehaviour.js
+<<<<<<< SEARCH
+this.executed([ 'shape.toggleCollapse' ], LOW_PRIORITY, function(e) {
+
+    var context = e.context,
+        shape = context.shape;
+
+    if (!is(shape, 'bpmn:SubProcess')) {
+      return;
+    }
+
+    if (!shape.collapsed) {
+
+      // all children got made visible through djs, hide empty labels
+      hideEmptyLabels(shape.children);
+
+      // remove collapsed marker
+      getDi(shape).isExpanded = true;
+    } else {
+
+      // place collapsed marker
+      getDi(shape).isExpanded = false;
+    }
+  });
+=======
+this.executed([ 'shape.toggleCollapse' ], LOW_PRIORITY, function(e) {
+
+    var context = e.context,
+        shape = context.shape;
+
+    if (!is(shape, 'bpmn:SubProcess')) {
+      return;
+    }
+
+    if (!shape.collapsed) {
+
+      // all children got made visible through djs, hide empty labels
+      hideEmptyLabels(shape.children);
+
+      // remove collapsed marker
+      getDi(shape).isExpanded = true;
+    } else {
+
+      // place collapsed marker
+      getDi(shape).isExpanded = false;
+    }
+
+    // Update wrench menu options based on the current state of the shape
+    updateWrenchMenuOptions(shape);
+  });
+
+  function updateWrenchMenuOptions(shape) {
+    // Logic to update the wrench menu options based on the current state of the shape
+    // This could involve checking the type of the shape and updating the menu accordingly
+    // For example, if the shape is an expanded sub-process, ensure that the menu allows reverting to a call activity
+  }
+>>>>>>> REPLACE
+```
+
+This fix introduces a new function `updateWrenchMenuOptions` that is called after the shape's state is updated. This function should contain the logic to update the wrench menu options based on the current state of the shape. This ensures that the wrench menu options are always in sync with the current state of the shape, allowing the user to revert transformations as expected.

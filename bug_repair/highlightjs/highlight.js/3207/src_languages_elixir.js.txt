@@ -1,0 +1,152 @@
+The issue described is related to the incorrect highlighting of function captures in Elixir code. The problem seems to be that the current regex patterns used for highlighting are not correctly identifying the function capture syntax `&function_name/arity`.
+
+To fix this, we need to add a new rule specifically for function captures in the `ELIXIR_DEFAULT_CONTAINS` array. This rule should match the `&function_name/arity` pattern and apply the correct highlighting.
+
+Here's the proposed fix:
+
+```javascript
+### src/languages/elixir.js
+<<<<<<< SEARCH
+    const ELIXIR_DEFAULT_CONTAINS = [
+      STRING,
+      UPCASE_SIGIL,
+      LOWERCASE_SIGIL,
+      hljs.HASH_COMMENT_MODE,
+      CLASS,
+      FUNCTION,
+      {
+        begin: '::'
+      },
+      {
+        className: 'symbol',
+        begin: ':(?![\\s:])',
+        contains: [
+          STRING,
+          {
+            begin: ELIXIR_METHOD_RE
+          }
+        ],
+        relevance: 0
+      },
+      {
+        className: 'symbol',
+        begin: ELIXIR_IDENT_RE + ':(?!:)',
+        relevance: 0
+      },
+      NUMBER,
+      {
+        className: 'variable',
+        begin: '(\\$\\W)|((\\$|@@?)(\\w+))'
+      },
+      {
+        begin: '->'
+      },
+      { // regexp container
+        begin: '(' + hljs.RE_STARTERS_RE + ')\\s*',
+        contains: [
+          hljs.HASH_COMMENT_MODE,
+          {
+            // to prevent false regex triggers for the division function:
+            // /:
+            begin: /\/: (?=\d+\s*[,\]])/,
+            relevance: 0,
+            contains: [NUMBER]
+          },
+          {
+            className: 'regexp',
+            illegal: '\\n',
+            contains: [
+              hljs.BACKSLASH_ESCAPE,
+              SUBST
+            ],
+            variants: [
+              {
+                begin: '/',
+                end: '/[a-z]*'
+              },
+              {
+                begin: '%r\\[',
+                end: '\\][a-z]*'
+              }
+            ]
+          }
+        ],
+        relevance: 0
+      }
+    ];
+=======
+    const ELIXIR_DEFAULT_CONTAINS = [
+      STRING,
+      UPCASE_SIGIL,
+      LOWERCASE_SIGIL,
+      hljs.HASH_COMMENT_MODE,
+      CLASS,
+      FUNCTION,
+      {
+        begin: '::'
+      },
+      {
+        className: 'symbol',
+        begin: ':(?![\\s:])',
+        contains: [
+          STRING,
+          {
+            begin: ELIXIR_METHOD_RE
+          }
+        ],
+        relevance: 0
+      },
+      {
+        className: 'symbol',
+        begin: ELIXIR_IDENT_RE + ':(?!:)',
+        relevance: 0
+      },
+      NUMBER,
+      {
+        className: 'variable',
+        begin: '(\\$\\W)|((\\$|@@?)(\\w+))'
+      },
+      {
+        begin: '->'
+      },
+      { // regexp container
+        begin: '(' + hljs.RE_STARTERS_RE + ')\\s*',
+        contains: [
+          hljs.HASH_COMMENT_MODE,
+          {
+            // to prevent false regex triggers for the division function:
+            // /:
+            begin: /\/: (?=\d+\s*[,\]])/,
+            relevance: 0,
+            contains: [NUMBER]
+          },
+          {
+            className: 'regexp',
+            illegal: '\\n',
+            contains: [
+              hljs.BACKSLASH_ESCAPE,
+              SUBST
+            ],
+            variants: [
+              {
+                begin: '/',
+                end: '/[a-z]*'
+              },
+              {
+                begin: '%r\\[',
+                end: '\\][a-z]*'
+              }
+            ]
+          }
+        ],
+        relevance: 0
+      },
+      {
+        className: 'function',
+        begin: '&\\s*' + ELIXIR_IDENT_RE + '/\\d+'
+      }
+    ];
+>>>>>>> REPLACE
+```
+
+This edit adds a new rule to the `ELIXIR_DEFAULT_CONTAINS` array that matches the function capture syntax `&function_name/arity` and applies the correct highlighting. The new rule uses the `ELIXIR_IDENT_RE` regex to match the function name and ensures that the `/` is followed by a digit to correctly identify the arity.

@@ -1,0 +1,49 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that the sizes listed under the Critical Request Chain (CRC) are incorrect. Specifically, all requests in the CRC are listed as having the same size (38.18KB), which does not match the actual sizes of the resources as shown in the network tab.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how the sizes of the requests are being calculated or displayed in the CRC. The sizes should reflect the actual transfer sizes of the resources, but instead, they are all showing the same value. This suggests a problem in the logic that calculates or retrieves the transfer sizes for the requests.
+
+### 3. Examine Each File One by One
+
+#### lighthouse-core/audits/critical-request-chains.js
+
+This file contains the `CriticalRequestChains` class, which is responsible for analyzing the critical request chains. The `audit` method performs the audit and generates the audit product, which includes the sizes of the requests. The `_getLongestChain` method calculates the longest chain in terms of duration, length, and transfer size. The `flattenRequests` method simplifies the tree structure of critical request nodes.
+
+```
+lighthouse-core/audits/critical-request-chains.js
+class: CriticalRequestChains
+```
+
+#### lighthouse-core/gather/computed/critical-request-chains.js
+
+This file contains the `CriticalRequestChains` class, which analyzes network records to identify critical request chains. The `compute_` method processes network records and builds a tree of critical request chains, including details about the requests such as transfer size.
+
+```
+lighthouse-core/gather/computed/critical-request-chains.js
+class: CriticalRequestChains
+```
+
+#### lighthouse-core/report/v2/renderer/crc-details-renderer.js
+
+This file contains the `CriticalRequestChainRenderer` class, which renders the visual representation of the critical request chain tree. The `createChainNode` method generates the DOM elements for a single node in the critical request chain, including the transfer size of the request. The `render` method populates the summary information and builds the tree structure.
+
+```
+lighthouse-core/report/v2/renderer/crc-details-renderer.js
+class: CriticalRequestChainRenderer
+```
+
+### Summary of Relevant Locations
+
+```
+lighthouse-core/audits/critical-request-chains.js
+class: CriticalRequestChains
+
+lighthouse-core/gather/computed/critical-request-chains.js
+class: CriticalRequestChains
+
+lighthouse-core/report/v2/renderer/crc-details-renderer.js
+class: CriticalRequestChainRenderer
+```

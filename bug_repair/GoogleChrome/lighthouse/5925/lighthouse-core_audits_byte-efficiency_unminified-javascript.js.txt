@@ -1,0 +1,31 @@
+The issue described is that Lighthouse overestimates the savings for minified JavaScript when esprima fails to parse the script correctly due to the presence of carriage returns and whitespace in the copyright notice. The solution involves handling the parsing errors more gracefully and ensuring that the script is not flagged as unminified when it already is.
+
+Here's the proposed fix:
+
+```javascript
+###lighthouse-core/audits/byte-efficiency/unminified-javascript.js
+<<<<<<< SEARCH
+    const tokens = (esprima.tokenize(scriptContent, {tolerant: true}));
+    if (!tokens.length && tokens.errors && tokens.errors.length) {
+      throw tokens.errors[0];
+    }
+=======
+    let tokens;
+    try {
+      tokens = esprima.tokenize(scriptContent, {tolerant: true});
+      if (!tokens.length && tokens.errors && tokens.errors.length) {
+        throw tokens.errors[0];
+      }
+    } catch (err) {
+      // If parsing fails, assume the script is already minified and skip it.
+      return {
+        url: networkRecord.url,
+        totalBytes: 0,
+        wastedBytes: 0,
+        wastedPercent: 0,
+      };
+    }
+>>>>>>> REPLACE
+```
+
+This change ensures that if esprima fails to parse the script, the script is assumed to be already minified, and it is not flagged as unminified in the Lighthouse report. This should resolve the issue of overestimating savings for minified scripts.

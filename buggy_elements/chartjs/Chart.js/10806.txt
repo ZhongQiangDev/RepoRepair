@@ -1,0 +1,62 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when a pie chart is provided with an array containing a single non-zero value (385) while the rest are zeros, and the `hoverOffset` option is used, the chart displays an unexpected border or part of the initial circle when hovering over the slice. This behavior is not expected as the border of the initial circle should not appear under any circumstances when using `hoverOffset`.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely arises from how the `hoverOffset` is applied to the arc when the pie chart has a single non-zero value. The `hoverOffset` might be causing the arc to expand in a way that reveals parts of the initial circle or border that should be hidden. This could be due to incorrect calculations of the arc's geometry or improper handling of the `hoverOffset` in the rendering logic.
+
+### 3. Examine Each File One by One
+
+#### --- src/controllers/controller.pie.js ---
+```
+src/controllers/controller.pie.js
+class: PieController
+```
+The `PieController` class is directly responsible for rendering pie charts. The issue might be related to how it handles the `hoverOffset` when rendering arcs with a single non-zero value.
+
+#### --- src/core/core.animations.js ---
+```
+This file contains no relevant functions/classes.
+```
+The animation-related functions and classes in this file are not directly related to the rendering of pie chart arcs or the `hoverOffset` behavior.
+
+#### --- src/core/core.controller.js ---
+```
+This file contains no relevant functions/classes.
+```
+The `Chart` class and related functions in this file manage general chart operations but do not specifically handle pie chart rendering or `hoverOffset`.
+
+#### --- src/core/core.interaction.js ---
+```
+This file contains no relevant functions/classes.
+```
+The interaction-related functions in this file are for handling user interactions like clicks and hovers but do not directly affect the rendering of pie chart arcs.
+
+#### --- src/elements/element.arc.ts ---
+```
+src/elements/element.arc.ts
+class: ArcElement
+function: drawArc
+function: drawBorder
+function: clipArc
+function: pathArc
+```
+The `ArcElement` class and its related functions are crucial for rendering arcs in pie charts. The `drawArc`, `drawBorder`, `clipArc`, and `pathArc` functions are likely involved in the incorrect rendering when `hoverOffset` is applied. Specifically:
+- `drawArc` might not be correctly adjusting the arc's geometry for `hoverOffset`.
+- `drawBorder` might be drawing the border incorrectly when the arc is expanded.
+- `clipArc` might not be properly clipping the arc to avoid showing parts of the initial circle.
+- `pathArc` might be generating the arc path incorrectly when `hoverOffset` is applied.
+
+### Summary of Relevant Locations
+```
+src/controllers/controller.pie.js
+class: PieController
+
+src/elements/element.arc.ts
+class: ArcElement
+function: drawArc
+function: drawBorder
+function: clipArc
+function: pathArc
+```

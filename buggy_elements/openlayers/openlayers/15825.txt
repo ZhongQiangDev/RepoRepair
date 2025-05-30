@@ -1,0 +1,65 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that tiles near the antimeridian (180° longitude) are not rendered when using a stereographic projection with a GeoTIFF source in a WebGLTileLayer. This results in black gaps in the rendered map, and the size of these gaps depends on the source tile size and zoom level.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from how the stereographic projection handles coordinates near the antimeridian. Stereographic projections can introduce discontinuities or artifacts near the antimeridian due to the way they map the Earth's surface onto a plane. When tiles are reprojected into the stereographic projection, the coordinates near the antimeridian may not be correctly handled, leading to missing tiles.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### src/ol/proj.js
+
+```
+src/ol/proj.js
+function: createSafeCoordinateTransform
+function: transformExtent
+function: transform
+```
+
+**Reasoning:** The `createSafeCoordinateTransform` function handles coordinate wrapping and clamping, which is crucial for dealing with global projections like stereographic projections. The `transformExtent` and `transform` functions are responsible for transforming coordinates and extents between different projections, which could be relevant to the issue of missing tiles near the antimeridian.
+
+#### src/ol/source/GeoTIFF.js
+
+```
+src/ol/source/GeoTIFF.js
+class: GeoTIFFSource
+function: getBoundingBox
+function: getOrigin
+```
+
+**Reasoning:** The `GeoTIFFSource` class manages the GeoTIFF data sources, and its methods like `getBoundingBox` and `getOrigin` are involved in determining the spatial extent and origin of the GeoTIFF images. These methods could be relevant if there are issues with how the GeoTIFF data is being interpreted or transformed into the stereographic projection.
+
+#### src/ol/tilegrid/TileGrid.js
+
+```
+src/ol/tilegrid/TileGrid.js
+class: TileGrid
+```
+
+**Reasoning:** The `TileGrid` class manages tile coordinates, resolutions, and extents. If there are issues with how tiles are being generated or managed in the stereographic projection, this class could be relevant.
+
+#### src/ol/webgl/BaseTileRepresentation.js
+
+```
+src/ol/webgl/BaseTileRepresentation.js
+class: BaseTileRepresentation
+```
+
+**Reasoning:** The `BaseTileRepresentation` class is responsible for managing tile state and rendering in a WebGL context. If there are issues with how tiles are being uploaded or rendered, this class could be relevant.
+
+#### src/ol/layer/VectorTile.js
+
+```
+This file contains no relevant functions/classes.
+```
+
+**Reasoning:** The `VectorTileLayer` class is designed for vector tile data, not raster tiles like those used with GeoTIFF sources. Therefore, it is unlikely to be directly relevant to the issue described.
+
+#### src/ol/style/Icon.js, src/ol/style/Stroke.js, src/ol/style/Style.js
+
+```
+These files contain no relevant functions/classes.
+```
+
+**Reasoning:** These files deal with styling and rendering of vector features and do not directly relate to the handling of GeoTIFF tiles or stereographic projections. Therefore, they are not relevant to the described issue.

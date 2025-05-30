@@ -1,0 +1,31 @@
+The issue described is related to duplicate Pool IDs when copying and pasting a Pool in the BPMN diagram. The provided code snippet is responsible for copying and pasting elements, including Pools. The problem seems to be that the `id` attribute of the copied Pool is not being properly updated, leading to duplicate IDs.
+
+To fix this, we need to ensure that when a Pool is copied, its `id` is generated uniquely for the new Pool. This can be done by modifying the `copyPaste.pasteElement` event handler to generate a new unique ID for the copied Pool.
+
+Here's the proposed fix:
+
+```javascript
+###lib/features/copy-paste/BpmnCopyPaste.js
+<<<<<<< SEARCH
+    newBusinessObject = bpmnFactory.create(oldBusinessObject.$type);
+
+    descriptor.businessObject = moddleCopy.copyElement(
+      oldBusinessObject,
+      newBusinessObject
+    );
+=======
+    newBusinessObject = bpmnFactory.create(oldBusinessObject.$type, { id: bpmnFactory.nextId() });
+
+    descriptor.businessObject = moddleCopy.copyElement(
+      oldBusinessObject,
+      newBusinessObject
+    );
+
+    // Ensure the new Pool has a unique ID
+    if (is(newBusinessObject, 'bpmn:Pool')) {
+      newBusinessObject.id = bpmnFactory.nextId('Pool_');
+    }
+>>>>>>> REPLACE
+```
+
+This change ensures that when a Pool is copied, it gets a new unique ID, preventing the duplicate ID issue. The `bpmnFactory.nextId()` function is used to generate a new unique ID, and for Pools, we specifically use `bpmnFactory.nextId('Pool_')` to ensure the ID starts with "Pool_" as is typical for Pool elements.

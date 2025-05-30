@@ -1,0 +1,77 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that the rendering of vector contexts in tile layers breaks down when the view rotation is close to 90 and 270 degrees. This affects the stroke width, text scale, and precision of geometry. The issue is observed when comparing the vector context rendering on a tile layer with the expected behavior seen in a vector layer.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely lies in how the vector context is handled for tile layers versus vector layers. Specifically, the transformations and scaling applied during rendering may not be correctly accounting for the view rotation, leading to inconsistencies in stroke width, text scale, and geometry precision. The problem may be related to how the rotation is applied in the rendering pipeline, particularly in the transformation matrices used for rendering.
+
+### 3. Examine Each File One by One
+
+#### `src/ol/render.js`
+
+This file contains functions that are directly involved in rendering and transformations, which are likely relevant to the issue.
+
+```
+src/ol/render.js
+function: getVectorContext
+function: toContext
+function: getRenderPixel
+```
+
+- `getVectorContext`: This function creates a `CanvasImmediateRenderer` object used for immediate mode rendering on a canvas. It calculates transforms and applies the view state's rotation, which could be a source of the issue.
+- `toContext`: This function initializes a canvas context for drawing geometries, including setting up transformations and scaling. It might need to be adjusted to handle rotations correctly.
+- `getRenderPixel`: This function applies an inverse pixel transformation, which could be affected by the rotation issue.
+
+#### `src/ol/renderer/canvas/TileLayer.js`
+
+This file contains the `CanvasTileLayerRenderer` class, which is responsible for rendering tile layers. It is relevant because the issue is observed in tile layers.
+
+```
+src/ol/renderer/canvas/TileLayer.js
+class: CanvasTileLayerRenderer
+```
+
+- `CanvasTileLayerRenderer`: This class manages tile loading, rendering, and transformations. It may need to be inspected to ensure it correctly handles rotations during rendering.
+
+#### `src/ol/renderer/canvas/VectorImageLayer.js`
+
+This file contains the `CanvasVectorImageLayerRenderer` class, which is responsible for rendering vector image layers. It is relevant because it uses a vector renderer that might be affected by the same issue.
+
+```
+src/ol/renderer/canvas/VectorImageLayer.js
+class: CanvasVectorImageLayerRenderer
+```
+
+- `CanvasVectorImageLayerRenderer`: This class initializes a vector renderer and sets up necessary transformations. It may need to be inspected to ensure it correctly handles rotations during rendering.
+
+#### `src/ol/source/VectorTile.js`
+
+This file contains the `VectorTile` class and the `defaultLoadFunction`, which are related to vector tiles. However, they are more focused on data loading and less on rendering transformations.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `src/ol/style/Style.js`
+
+This file contains functions and classes related to styles, which are used to define how features are rendered. While styles can affect the appearance of features, they are not directly responsible for handling transformations and rotations.
+
+```
+This file contains no relevant functions/classes.
+```
+
+### Summary of Relevant Locations
+
+```
+src/ol/render.js
+function: getVectorContext
+function: toContext
+function: getRenderPixel
+
+src/ol/renderer/canvas/TileLayer.js
+class: CanvasTileLayerRenderer
+
+src/ol/renderer/canvas/VectorImageLayer.js
+class: CanvasVectorImageLayerRenderer
+```

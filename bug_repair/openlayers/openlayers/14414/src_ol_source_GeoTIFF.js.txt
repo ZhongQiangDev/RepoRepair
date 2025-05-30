@@ -1,0 +1,63 @@
+The issue described involves incorrect pixel values being read from the GeoTIFF file when performing region growing operations. The problem seems to be related to how the pixel values are being accessed and processed in the `floodRegion` function. Specifically, the issue with the R value of a pixel not being correct suggests that there might be an issue with how the pixel data is being interpreted or accessed.
+
+To address this, we need to ensure that the pixel data is correctly accessed and that the values are properly interpreted. Here's a potential fix:
+
+```javascript
+### index.js
+<<<<<<< SEARCH
+function floodRegion(inputs, data) {
+	const image = inputs[0];
+	const inputData = image.data;
+	const width = image.width;
+	const height = image.height;
+	let seed = data.pixel;
+
+	if (seed) {
+		seed = seed.map(Math.round);
+		const seedIdx = (seed[1] * width + seed[0]) * 4;
+		console.log("Value: " + inputData[seedIdx]);
+	}
+
+	return { data: image.data, width: width, height: height };
+}
+=======
+function floodRegion(inputs, data) {
+	const image = inputs[0];
+	const inputData = new Uint8Array(image.data); // Ensure we're working with the correct data type
+	const width = image.width;
+	const height = image.height;
+	let seed = data.pixel;
+
+	if (seed) {
+		seed = seed.map(Math.round);
+		const seedIdx = (seed[1] * width + seed[0]) * 4;
+		console.log("Value: " + inputData[seedIdx]);
+	}
+
+	return { data: new Uint8Array(image.data), width: width, height: height }; // Return the correct data type
+}
+>>>>>>> REPLACE
+```
+
+This change ensures that the pixel data is correctly interpreted as `Uint8Array`, which is the appropriate data type for pixel values in an image. This should help in correctly accessing and processing the pixel values, thereby addressing the issue with incorrect R values.
+
+Additionally, the issue with the slider not updating correctly when decreasing the level might be related to how the style variables are being updated. We can ensure that the `raster.changed()` is called after updating the style variables to force a re-render:
+
+```javascript
+### index.js
+<<<<<<< SEARCH
+control.addEventListener('input', () => {
+	outputLevel.innerText = control.value;
+	elevationTile.updateStyleVariables({ level: parseFloat(control.value) });
+	//raster.changed();
+})
+=======
+control.addEventListener('input', () => {
+	outputLevel.innerText = control.value;
+	elevationTile.updateStyleVariables({ level: parseFloat(control.value) });
+	raster.changed(); // Ensure the raster is updated after changing the style variables
+})
+>>>>>>> REPLACE
+```
+
+These changes should help in correctly updating the pixel values and ensuring that the slider updates the map correctly.

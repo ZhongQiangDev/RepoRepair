@@ -1,0 +1,21 @@
+1. **Identify the wrong behavior involved in `GitHub Problem Description`:**
+   The issue described is that Lighthouse is including a large number of user timing marks and measures, particularly those related to Google Ads, which are not relevant to the core performance metrics of the webpage. This clutter makes it difficult to focus on the relevant performance data.
+
+2. **Analyze the cause behind the wrong behavior:**
+   The cause appears to be that Lighthouse is not filtering out third-party user timing marks and measures effectively. Specifically, the `UserTimings` audit class is responsible for processing and presenting user timing events, but it may not be excluding irrelevant third-party marks and measures properly. The `blacklistedPrefixes` property in the `UserTimings` class is intended to exclude certain prefixes, but it might not be comprehensive enough or properly implemented to handle all irrelevant marks.
+
+3. **Find up to 5 files most related to the cause from `Repository Information`:**
+
+```
+lighthouse-core/audits/user-timings.js
+lighthouse-core/formatters/user-timings.js
+lighthouse-core/lib/traces/tracing-processor.js
+lighthouse-core/lib/traces/devtools-timeline-model.js
+lighthouse-core/index.js
+```
+
+- `lighthouse-core/audits/user-timings.js`: This file contains the `UserTimings` class, which is directly responsible for filtering and presenting user timing events. Adjusting the `blacklistedPrefixes` or the `excludeBlacklisted` method here would likely address the issue.
+- `lighthouse-core/formatters/user-timings.js`: This file formats the user timing events for output. Ensuring that the formatting logic aligns with the filtering logic in `user-timings.js` is important.
+- `lighthouse-core/lib/traces/tracing-processor.js`: This file processes trace data, which includes user timing marks and measures. Ensuring that irrelevant marks are filtered out early in the processing pipeline can help.
+- `lighthouse-core/lib/traces/devtools-timeline-model.js`: This file processes and analyzes tracing data, including user timing events. Proper handling of these events in the timeline model can impact the final audit results.
+- `lighthouse-core/index.js`: This file sets up and runs Lighthouse audits. While less directly related, ensuring that the configuration and setup correctly propagate filtering rules is important.

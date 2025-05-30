@@ -1,0 +1,83 @@
+The issue described involves missing tiles near the antimeridian when using a stereographic projection with WebGLTileLayer and GeoTiff source. The problem likely stems from how tile coordinates are calculated and how they handle the antimeridian crossing. The `TileGrid` class is responsible for calculating tile coordinates and ranges, so we need to ensure that it correctly handles the antimeridian.
+
+To address this, we need to modify the `getTileCoordForXYAndZ_` method to handle the antimeridian crossing properly. Specifically, we need to ensure that tile coordinates are correctly calculated when the coordinates cross the antimeridian.
+
+```typescript
+### src/ol/tilegrid/TileGrid.js
+<<<<<<< SEARCH
+  /**
+   * Although there is repetition between this method and `getTileCoordForXYAndResolution_`,
+   * they should have separate implementations.  This method is for integer zoom
+   * levels.  The other method should only be called for resolutions corresponding
+   * to non-integer zoom levels.
+   * @param {number} x Map x coordinate.
+   * @param {number} y Map y coordinate.
+   * @param {number} z Integer zoom level.
+   * @param {boolean} reverseIntersectionPolicy Instead of letting edge
+   *     intersections go to the higher tile coordinate, let edge intersections
+   *     go to the lower tile coordinate.
+   * @param {import("../tilecoord.js").TileCoord} [opt_tileCoord] Temporary import("../tilecoord.js").TileCoord object.
+   * @return {import("../tilecoord.js").TileCoord} Tile coordinate.
+   * @private
+   */
+  getTileCoordForXYAndZ_(x, y, z, reverseIntersectionPolicy, opt_tileCoord) {
+    const origin = this.getOrigin(z);
+    const resolution = this.getResolution(z);
+    const tileSize = toSize(this.getTileSize(z), this.tmpSize_);
+
+    let tileCoordX = (x - origin[0]) / resolution / tileSize[0];
+    let tileCoordY = (origin[1] - y) / resolution / tileSize[1];
+
+    if (reverseIntersectionPolicy) {
+      tileCoordX = ceil(tileCoordX, DECIMALS) - 1;
+      tileCoordY = ceil(tileCoordY, DECIMALS) - 1;
+    } else {
+      tileCoordX = floor(tileCoordX, DECIMALS);
+      tileCoordY = floor(tileCoordY, DECIMALS);
+    }
+
+    return createOrUpdateTileCoord(z, tileCoordX, tileCoordY, opt_tileCoord);
+  }
+=======
+  /**
+   * Although there is repetition between this method and `getTileCoordForXYAndResolution_`,
+   * they should have separate implementations.  This method is for integer zoom
+   * levels.  The other method should only be called for resolutions corresponding
+   * to non-integer zoom levels.
+   * @param {number} x Map x coordinate.
+   * @param {number} y Map y coordinate.
+   * @param {number} z Integer zoom level.
+   * @param {boolean} reverseIntersectionPolicy Instead of letting edge
+   *     intersections go to the higher tile coordinate, let edge intersections
+   *     go to the lower tile coordinate.
+   * @param {import("../tilecoord.js").TileCoord} [opt_tileCoord] Temporary import("../tilecoord.js").TileCoord object.
+   * @return {import("../tilecoord.js").TileCoord} Tile coordinate.
+   * @private
+   */
+  getTileCoordForXYAndZ_(x, y, z, reverseIntersectionPolicy, opt_tileCoord) {
+    const origin = this.getOrigin(z);
+    const resolution = this.getResolution(z);
+    const tileSize = toSize(this.getTileSize(z), this.tmpSize_);
+
+    let tileCoordX = (x - origin[0]) / resolution / tileSize[0];
+    let tileCoordY = (origin[1] - y) / resolution / tileSize[1];
+
+    // Handle antimeridian crossing
+    if (tileCoordX < 0) {
+      tileCoordX += Math.ceil(-tileCoordX);
+    }
+
+    if (reverseIntersectionPolicy) {
+      tileCoordX = ceil(tileCoordX, DECIMALS) - 1;
+      tileCoordY = ceil(tileCoordY, DECIMALS) - 1;
+    } else {
+      tileCoordX = floor(tileCoordX, DECIMALS);
+      tileCoordY = floor(tileCoordY, DECIMALS);
+    }
+
+    return createOrUpdateTileCoord(z, tileCoordX, tileCoordY, opt_tileCoord);
+  }
+>>>>>>> REPLACE
+```
+
+This modification ensures that tile coordinates are correctly adjusted when they cross the antimeridian, preventing the gaps from appearing in the WebGLTileLayer.

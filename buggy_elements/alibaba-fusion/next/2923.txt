@@ -1,0 +1,44 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that the `ConfigProvider` component is causing a memory leak in a Server-Side Rendering (SSR) environment. Specifically, the internal cache of `ConfigProvider` grows over time and is not being garbage collected (GC) as expected.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of the memory leak is that the `componentWillUnmount` lifecycle method, which is supposed to clear the cache, is not being called in an SSR environment. This is due to a known issue in React where `componentWillUnmount` is not triggered during SSR (as mentioned in the React issue: https://github.com/facebook/react/issues/3714). As a result, the cache entries created by `ConfigProvider` are not being removed, leading to a memory leak.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### `src/config-provider/cache.js`
+```
+This file contains no relevant functions/classes.
+```
+The `Cache` class is used for managing the cache, but the issue is not with the cache management itself but with the lifecycle method not being called to clear the cache.
+
+#### `src/config-provider/config.jsx`
+```
+This file contains no relevant functions/classes.
+```
+The `config` function and `ConfigedComponent` class are related to enhancing components with configuration capabilities and do not directly manage the cache or lifecycle methods of `ConfigProvider`.
+
+#### `src/config-provider/consumer.jsx`
+```
+This file contains no relevant functions/classes.
+```
+The functions in this file are related to transforming keys and handling context data, which are not directly related to the cache or lifecycle methods.
+
+#### `src/config-provider/get-context-props.jsx`
+```
+This file contains no relevant functions/classes.
+```
+The `getContextProps` function is used to merge props and context values but does not manage the cache or lifecycle methods.
+
+#### `src/config-provider/index.jsx`
+```
+src/config-provider/index.jsx
+class: ConfigProvider
+```
+The `ConfigProvider` class is directly relevant to the issue. It uses the `childContextCache` to manage the cache and relies on the `componentWillUnmount` lifecycle method to clear the cache. Since `componentWillUnmount` is not called in SSR, this is where the memory leak occurs.
+
+### Conclusion
+
+The `ConfigProvider` class in `src/config-provider/index.jsx` is the primary location that needs inspection or editing to fix the memory leak issue. The `componentWillUnmount` method should be replaced or supplemented with an alternative mechanism to clear the cache in an SSR environment. This could involve providing a manual cache clearing API or using a different lifecycle method that is guaranteed to be called in SSR.

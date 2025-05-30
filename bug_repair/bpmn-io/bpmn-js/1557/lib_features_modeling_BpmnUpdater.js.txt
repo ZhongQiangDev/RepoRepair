@@ -1,0 +1,45 @@
+The issue described is related to an error thrown when morphing a `DataStoreReference` to a `DataObjectReference` outside of a pool. The error occurs because the `updateDiParent` function in `BpmnUpdater.js` tries to access properties of an undefined object.
+
+To fix this, we need to ensure that the `parentDi` object is properly defined before attempting to access its properties. We can add a check to ensure `parentDi` is not `undefined` before proceeding with the update.
+
+Here's the proposed fix:
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+BpmnUpdater.prototype.updateDiParent = function(di, parentDi) {
+
+  if (parentDi && !is(parentDi, 'bpmndi:BPMNPlane')) {
+    parentDi = parentDi.$parent;
+  }
+
+  if (di.$parent === parentDi) {
+    return;
+  }
+
+  var planeElements = (parentDi || di.$parent).get('planeElement');
+=======
+BpmnUpdater.prototype.updateDiParent = function(di, parentDi) {
+
+  if (parentDi && !is(parentDi, 'bpmndi:BPMNPlane')) {
+    parentDi = parentDi.$parent;
+  }
+
+  if (di.$parent === parentDi) {
+    return;
+  }
+
+  // Ensure parentDi is defined before accessing its properties
+  if (!parentDi) {
+    return;
+  }
+
+  var planeElements = parentDi.get('planeElement');
+  
+  if (!planeElements) {
+    return;
+  }
+>>>>>>> REPLACE
+```
+
+This fix adds a check to ensure `parentDi` is not `undefined` before attempting to access its properties. If `parentDi` is `undefined`, the function will return early, preventing the error from occurring. Additionally, it checks if `planeElements` is defined before proceeding.

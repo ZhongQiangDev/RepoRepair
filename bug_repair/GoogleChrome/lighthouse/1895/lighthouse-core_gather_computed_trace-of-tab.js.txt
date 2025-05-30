@@ -1,0 +1,28 @@
+The error "Cannot read property 'ts' of undefined" suggests that one of the events being accessed is undefined, and the code is trying to access the `ts` property of that undefined event. Based on the code and the error message, it seems like the issue might be related to the `firstPaint` event being undefined when trying to find the `navigationStart` event.
+
+Here's the relevant code segment that might be causing the issue:
+
+```javascript
+const firstPaint = frameEvents.find(e => e.name === 'firstPaint');
+const navigationStart = frameEvents.filter(e =>
+    e.name === 'navigationStart' && e.ts < firstPaint.ts).pop();
+```
+
+If `firstPaint` is undefined, then `firstPaint.ts` will throw the error. We need to add a check to ensure `firstPaint` is defined before accessing its `ts` property.
+
+Here's the fix:
+
+```javascript
+###lighthouse-core/gather/computed/trace-of-tab.js
+<<<<<<< SEARCH
+const firstPaint = frameEvents.find(e => e.name === 'firstPaint');
+const navigationStart = frameEvents.filter(e =>
+    e.name === 'navigationStart' && e.ts < firstPaint.ts).pop();
+=======
+const firstPaint = frameEvents.find(e => e.name === 'firstPaint');
+const navigationStart = firstPaint ? frameEvents.filter(e =>
+    e.name === 'navigationStart' && e.ts < firstPaint.ts).pop() : undefined;
+>>>>>>> REPLACE
+```
+
+This change ensures that `navigationStart` is only calculated if `firstPaint` is defined, preventing the error from occurring.

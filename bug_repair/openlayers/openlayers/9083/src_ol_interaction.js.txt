@@ -1,0 +1,36 @@
+The issue described in the video and the issue text is related to a bug in OpenLayers 5.3.0 where the map cannot be dragged after drawing a polygon. The user has already identified that rolling back to OpenLayers 4.6.5 resolves the issue. However, if we want to fix this issue within the current version of OpenLayers, we need to ensure that the `DragPan` interaction is properly configured and not being interfered with by other interactions.
+
+Given the code segments provided, it seems that the `DragPan` interaction is already included in the default interactions. However, the issue might be related to the `altKeyOnly` condition used in the `Draw` interaction. This condition might be interfering with the `DragPan` interaction.
+
+To fix this issue, we can try to explicitly add the `DragPan` interaction to the map and ensure it has a higher priority than the `Draw` interaction. Here is the proposed fix:
+
+```javascript
+### src/ol/interaction.js
+<<<<<<< SEARCH
+const dragPan = options.dragPan !== undefined ? options.dragPan : true;
+if (dragPan) {
+  interactions.push(new DragPan({
+    condition: options.onFocusOnly ? focus : undefined,
+    kinetic: kinetic
+  }));
+}
+=======
+const dragPan = options.dragPan !== undefined ? options.dragPan : true;
+if (dragPan) {
+  interactions.push(new DragPan({
+    condition: options.onFocusOnly ? focus : undefined,
+    kinetic: kinetic
+  }));
+}
+
+// Explicitly add DragPan interaction with higher priority
+interactions.push(new DragPan({
+  condition: function (event) {
+    return !event.altKey;
+  },
+  kinetic: kinetic
+}));
+>>>>>>> REPLACE
+```
+
+This fix ensures that the `DragPan` interaction is added with a condition that checks if the `altKey` is not pressed, which should prevent interference with the `Draw` interaction. This should allow the map to be draggable even after drawing a polygon.

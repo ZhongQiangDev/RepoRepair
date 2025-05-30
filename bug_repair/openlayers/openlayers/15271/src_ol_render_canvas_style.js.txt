@@ -1,0 +1,133 @@
+To address the issue of fetching the `id` property using style expressions, we need to extend the expression capabilities to include an operator for `id`. This involves adding a new operator to the expression system that can fetch the `id` of a feature.
+
+Here's how we can do it:
+
+1. Add a new operator to the expression system.
+2. Modify the `buildExpression` function to recognize this new operator.
+3. Update the evaluation context to include the `id` property.
+
+```typescript
+### src/ol/render/canvas/style.js
+<<<<<<< SEARCH
+import {
+  BooleanType,
+  ColorType,
+  NumberArrayType,
+  NumberType,
+  StringType,
+  newParsingContext,
+} from '../../expr/expression.js';
+=======
+import {
+  BooleanType,
+  ColorType,
+  NumberArrayType,
+  NumberType,
+  StringType,
+  newParsingContext,
+} from '../../expr/expression.js';
+import {getId} from '../../feature.js'; // Add this import
+
+// Add a new operator for fetching the id
+const ID_OPERATOR = 'id';
+
+// Modify the buildExpression function to recognize the new operator
+function buildExpression(encodedExpression, context) {
+  if (encodedExpression[0] === ID_OPERATOR) {
+    return function (feature) {
+      return getId(feature);
+    };
+  }
+  // ... rest of the buildExpression function
+}
+
+// Update the evaluation context to include the id property
+function newEvaluationContext(feature) {
+  return {
+    feature: feature,
+    id: getId(feature), // Add this line
+    // ... rest of the evaluation context
+  };
+}
+>>>>>>> REPLACE
+```
+
+```typescript
+### src/ol/render/canvas/style.js
+<<<<<<< SEARCH
+/**
+ * @param {FlatStyle} flatStyle The flat style.
+ * @param {ParsingContext} context The parsing context.
+ * @return {ImageEvaluator} A function that evaluates to an image symbolizer.
+ */
+function buildIcon(flatStyle, context) {
+=======
+/**
+ * @param {FlatStyle} flatStyle The flat style.
+ * @param {ParsingContext} context The parsing context.
+ * @return {ImageEvaluator} A function that evaluates to an image symbolizer.
+ */
+function buildIcon(flatStyle, context) {
+  const evaluationContext = newEvaluationContext(context.feature); // Add this line
+
+  // Use the evaluation context to get the id if needed
+  const id = evaluationContext.id; // Add this line
+
+  // ... rest of the buildIcon function
+}
+>>>>>>> REPLACE
+```
+
+```typescript
+### src/ol/render/canvas/style.js
+<<<<<<< SEARCH
+/**
+ * @param {FlatStyle} flatStyle The flat style.
+ * @param {ParsingContext} context The parsing context.
+ * @return {ImageEvaluator} A function that evaluates to a circle symbolizer.
+ */
+function buildCircle(flatStyle, context) {
+=======
+/**
+ * @param {FlatStyle} flatStyle The flat style.
+ * @param {ParsingContext} context The parsing context.
+ * @return {ImageEvaluator} A function that evaluates to a circle symbolizer.
+ */
+function buildCircle(flatStyle, context) {
+  const evaluationContext = newEvaluationContext(context.feature); // Add this line
+
+  // Use the evaluation context to get the id if needed
+  const id = evaluationContext.id; // Add this line
+
+  // ... rest of the buildCircle function
+}
+>>>>>>> REPLACE
+```
+
+```typescript
+### src/ol/render/canvas/style.js
+<<<<<<< SEARCH
+/**
+ * @param {FlatStyle} flatStyle The flat style.
+ * @param {ParsingContext} context The parsing context.
+ * @return {TextEvaluator?} A function that evaluates to a text symbolizer.
+ */
+function buildText(flatStyle, context) {
+=======
+/**
+ * @param {FlatStyle} flatStyle The flat style.
+ * @param {ParsingContext} context The parsing context.
+ * @return {TextEvaluator?} A function that evaluates to a text symbolizer.
+ */
+function buildText(flatStyle, context) {
+  const evaluationContext = newEvaluationContext(context.feature); // Add this line
+
+  // Use the evaluation context to get the id if needed
+  const id = evaluationContext.id; // Add this line
+
+  // ... rest of the buildText function
+}
+>>>>>>> REPLACE
+```
+
+These changes will allow the expression system to fetch the `id` of a feature using a new operator, and the evaluation context will include the `id` property for use in style expressions.

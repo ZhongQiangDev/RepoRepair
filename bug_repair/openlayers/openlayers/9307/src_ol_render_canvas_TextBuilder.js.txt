@@ -1,0 +1,40 @@
+The issue described is related to the spacing between lines of text in labels when using `ol.style.Text` in OpenLayers. The user wants to remove the space between two lines of text in a label feature. The current implementation in OpenLayers v4.6.4 and later versions introduces a line spacing that wasn't present in earlier versions like v2.13.
+
+To address this, we need to modify the `ol.style.Text` implementation to allow for custom line spacing or to remove the default spacing. The `ol.style.Text` class does not directly expose a property for line spacing, so we need to adjust the rendering logic in the `CanvasTextBuilder` class.
+
+Here's how we can modify the `CanvasTextBuilder` class to remove the default line spacing:
+
+```javascript
+### src/ol/render/canvas/TextBuilder.js
+<<<<<<< SEARCH
+    const offsetY = this.textOffsetY_ * pixelRatio;
+    const text = this.text_;
+    const textScale = textState.scale;
+    const strokeWidth = strokeState ? strokeState.lineWidth * textScale / 2 : 0;
+=======
+    const offsetY = this.textOffsetY_ * pixelRatio;
+    const text = this.text_;
+    const textScale = textState.scale;
+    const strokeWidth = strokeState ? strokeState.lineWidth * textScale / 2 : 0;
+    const lineSpacing = textState.lineSpacing || 0; // Add line spacing control
+
+    // Adjust offsetY to remove default line spacing
+    const lines = text.split('\n');
+    if (lines.length > 1) {
+      offsetY -= (lines.length - 1) * lineSpacing * pixelRatio;
+    }
+>>>>>>> REPLACE
+```
+
+This modification introduces a `lineSpacing` property in the `textState` object, which can be set to control the spacing between lines. If `lineSpacing` is not defined, it defaults to 0, effectively removing any extra space between lines.
+
+To use this modification, you would need to update the `ol.style.Text` configuration to include the `lineSpacing` property:
+
+```javascript
+text: new ol.style.Text({ 
+    text: '3.5\nbar',
+    lineSpacing: 0 // Set line spacing to 0 to remove extra space
+})
+```
+
+This should resolve the issue of unwanted spacing between lines in text labels.

@@ -1,0 +1,67 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior involves two issues:
+
+1. **Lua Filter Error**: When using theorems and proofs with code blocks but no header/label, the Lua filter (`crossref.lua`) errors out with a `bad argument #1 to 'insert' (table expected, got nil)` error. This indicates that the Lua filter is not handling the absence of a header/label correctly.
+
+2. **Heading in Theorem Included as List Item**: When using lists inside a theorem div, the theorem caption (heading) is incorrectly included as part of the list, which is not the expected behavior. The heading should be separate from the list items.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+#### Lua Filter Error
+The error occurs because the Lua filter (`crossref.lua`) expects certain structures (like a header/label) that are not present when only a code block is included in the theorem. The error message suggests that the filter is trying to insert something into a nil value, which likely means it's not handling the absence of expected metadata correctly.
+
+#### Heading in Theorem Included as List Item
+This issue arises because the Markdown parser or the rendering engine is not correctly distinguishing between the theorem caption and the list items. The theorem caption is being treated as part of the list, which suggests a problem with how the theorem div is being processed or rendered.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### `src/command/render/crossref.ts`
+```
+src/command/render/crossref.ts
+function: crossrefFilterParams
+function: crossrefOption
+```
+- **crossrefFilterParams**: This function processes and validates cross-reference related parameters. It might need to be adjusted to handle cases where a theorem or proof does not have a header/label.
+- **crossrefOption**: This function retrieves specific option values. It might need to be modified to handle the absence of certain options gracefully.
+
+#### `src/core/handlers/mermaid.ts`
+```
+This file contains no relevant functions/classes.
+```
+This file is related to handling Mermaid diagrams and is not directly relevant to the issues described.
+
+#### `src/core/pandoc/pandoc-partition.ts`
+```
+src/core/pandoc/pandoc-partition.ts
+function: parsePandocTitle
+function: partitionMarkdown
+```
+- **parsePandocTitle**: This function parses Pandoc-style titles and attributes. It might need to be adjusted to handle cases where a theorem or proof does not have a header/label.
+- **partitionMarkdown**: This function partitions Markdown content and might need to be modified to correctly handle the structure of theorems and proofs.
+
+#### `src/core/run/lua.ts`
+```
+src/core/run/lua.ts
+function: function_2
+function: runLua
+```
+- **function_2**: This function runs a Lua script as a Pandoc filter. It might need to be adjusted to handle the specific error case described.
+- **runLua**: This function executes a Lua script with Pandoc. It might need to be modified to handle cases where the Lua script encounters errors due to missing structures.
+
+#### `src/core/schema/validated-yaml.ts`
+```
+This file contains no relevant functions/classes.
+```
+This file is related to reading and validating YAML files and is not directly relevant to the issues described.
+
+### Summary of Relevant Locations
+1. `src/command/render/crossref.ts`
+   - `crossrefFilterParams`
+   - `crossrefOption`
+2. `src/core/pandoc/pandoc-partition.ts`
+   - `parsePandocTitle`
+   - `partitionMarkdown`
+3. `src/core/run/lua.ts`
+   - `function_2`
+   - `runLua`

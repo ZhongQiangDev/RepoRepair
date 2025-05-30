@@ -1,0 +1,47 @@
+The issue described is related to the incorrect layout of connections when reconnecting start/end to form a loop, especially when the connection has more than two waypoints. The problem seems to be in how the waypoints are handled during the reconnect process. The `replaceReconnectedConnection` function is responsible for replacing the connection when the source or target changes. However, it does not seem to handle the waypoints correctly when forming a loop.
+
+To fix this issue, we need to ensure that the waypoints are recalculated correctly when the connection is reconnected to form a loop. We can achieve this by adding a step to recalculate the waypoints after the connection is replaced.
+
+Here is the proposed fix:
+
+```javascript
+### lib/features/modeling/behavior/ReplaceConnectionBehavior.js
+<<<<<<< SEARCH
+    replacement = modeling.connect(source, target, {
+      type: allowed.type,
+      waypoints: connection.waypoints.slice()
+    });
+
+    // remove old connection
+    modeling.removeConnection(connection);
+
+    // replace connection in context to reconnect end/start
+    context.connection = replacement;
+
+    if (dragging) {
+      cleanDraggingSelection(connection, replacement);
+    }
+=======
+    replacement = modeling.connect(source, target, {
+      type: allowed.type,
+      waypoints: connection.waypoints.slice()
+    });
+
+    // remove old connection
+    modeling.removeConnection(connection);
+
+    // recalculate waypoints for the new connection if it forms a loop
+    if (source === target) {
+      modeling.updateConnectionWaypoints(replacement);
+    }
+
+    // replace connection in context to reconnect end/start
+    context.connection = replacement;
+
+    if (dragging) {
+      cleanDraggingSelection(connection, replacement);
+    }
+>>>>>>> REPLACE
+```
+
+In this fix, we added a call to `modeling.updateConnectionWaypoints(replacement)` after the connection is replaced. This function will recalculate the waypoints for the new connection if it forms a loop, ensuring that the layout is correct. Note that `modeling.updateConnectionWaypoints` is a hypothetical function that needs to be implemented or an existing function that performs this task. If such a function does not exist, it would need to be added to the `modeling` service.

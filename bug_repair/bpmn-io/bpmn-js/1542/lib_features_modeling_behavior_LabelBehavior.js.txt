@@ -1,0 +1,62 @@
+The issue described in the bug report is related to the `LabelBehavior` component, specifically when inserting a gateway onto a flow. The error message `Cannot read properties of undefined (reading 'segmentIndex')` suggests that the code is trying to access a property on an undefined object, likely related to the label or connection layout.
+
+The error occurs in the `LabelLayoutUtil.js` file at line 116, which is called from `LabelBehavior.js` at line 205. The `LabelBehavior.js` file is responsible for handling label creation and updates during various modeling operations.
+
+To fix this issue, we need to ensure that the `label` and `connection` objects are properly defined before attempting to access their properties. Here's a potential fix:
+
+```javascript
+### lib/features/modeling/behavior/LabelBehavior.js
+<<<<<<< SEARCH
+    this.postExecute([ 'connection.layout', 'connection.updateWaypoints' ], function(event) {
+      var context = event.context,
+          hints = context.hints || {};
+
+      if (hints.labelBehavior === false) {
+        return;
+      }
+
+      var connection = context.connection,
+          label = connection.label,
+          labelAdjustment;
+
+      // handle missing label as well as the case
+      // that the label parent does not exist (yet),
+      // because it is being pasted / created via multi element create
+      //
+      // Cf. https://github.com/bpmn-io/bpmn-js/pull/1227
+      if (!label || !label.parent) {
+        return;
+      }
+
+      labelAdjustment = getVisibleLabelAdjustment(event);
+
+      modeling.moveShape(label, labelAdjustment);
+    });
+=======
+    this.postExecute([ 'connection.layout', 'connection.updateWaypoints' ], function(event) {
+      var context = event.context,
+          hints = context.hints || {};
+
+      if (hints.labelBehavior === false) {
+        return;
+      }
+
+      var connection = context.connection,
+          label = connection.label,
+          labelAdjustment;
+
+      // Ensure connection and label are defined
+      if (!connection || !label || !label.parent) {
+        return;
+      }
+
+      labelAdjustment = getVisibleLabelAdjustment(event);
+
+      if (labelAdjustment) {
+        modeling.moveShape(label, labelAdjustment);
+      }
+    });
+>>>>>>> REPLACE
+```
+
+This fix adds a check to ensure that `connection`, `label`, and `label.parent` are all defined before proceeding with the label adjustment. Additionally, it checks if `labelAdjustment` is defined before calling `modeling.moveShape`. This should prevent the `TypeError` from occurring when inserting a gateway onto a flow.

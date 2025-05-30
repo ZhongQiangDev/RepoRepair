@@ -1,0 +1,25 @@
+The issue described is that when an Intermediate Event is copied and pasted as a Boundary Event, it loses its properties. This is likely due to the fact that the properties are not being transferred during the replacement process.
+
+To fix this, we need to ensure that the properties of the original Intermediate Event are copied over to the new Boundary Event. This can be done by copying the business object properties from the original shape to the new shape.
+
+Here's the proposed fix:
+
+```javascript
+### lib/features/modeling/behavior/AttachEventBehavior.js
+<<<<<<< SEARCH
+      newShape = bpmnReplace.replaceElement(shape, boundaryEvent, { layoutConnection: false });
+
+      context.shapes = [ newShape ];
+=======
+      const originalBusinessObject = getBusinessObject(shape);
+      newShape = bpmnReplace.replaceElement(shape, boundaryEvent, { layoutConnection: false });
+
+      // Copy properties from the original business object to the new shape's business object
+      const newBusinessObject = getBusinessObject(newShape);
+      Object.assign(newBusinessObject, originalBusinessObject);
+
+      context.shapes = [ newShape ];
+>>>>>>> REPLACE
+```
+
+This code will ensure that the properties of the original Intermediate Event are copied over to the new Boundary Event when it is pasted.

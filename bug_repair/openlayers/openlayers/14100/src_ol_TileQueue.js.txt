@@ -1,0 +1,65 @@
+The issue described is related to the change in tile loading behavior after upgrading from version 6.1 to 7.0. The problem seems to be that tiles are being loaded sequentially instead of concurrently, which is causing a delay in imagery load times.
+
+The `TileQueue` class is responsible for managing the loading of tiles. The `loadMoreTiles` method controls how many tiles are loaded at a time. The issue might be related to the logic in this method, specifically the conditions that determine when a tile should be loaded.
+
+To address this, we need to ensure that the `loadMoreTiles` method allows for concurrent loading of tiles. We can modify the logic to allow more tiles to be loaded simultaneously.
+
+Here's the proposed fix:
+
+```javascript
+### src/ol/TileQueue.js
+<<<<<<< SEARCH
+  /**
+   * @param {number} maxTotalLoading Maximum number tiles to load simultaneously.
+   * @param {number} maxNewLoads Maximum number of new tiles to load.
+   */
+  loadMoreTiles(maxTotalLoading, maxNewLoads) {
+    let newLoads = 0;
+    let state, tile, tileKey;
+    while (
+      this.tilesLoading_ < maxTotalLoading &&
+      newLoads < maxNewLoads &&
+      this.getCount() > 0
+    ) {
+      tile = /** @type {import("./Tile.js").default} */ (this.dequeue()[0]);
+      tileKey = tile.getKey();
+      state = tile.getState();
+      if (state === TileState.IDLE && !(tileKey in this.tilesLoadingKeys_)) {
+        this.tilesLoadingKeys_[tileKey] = true;
+        ++this.tilesLoading_;
+        ++newLoads;
+        tile.load();
+      }
+    }
+  }
+=======
+  /**
+   * @param {number} maxTotalLoading Maximum number tiles to load simultaneously.
+   * @param {number} maxNewLoads Maximum number of new tiles to load.
+   */
+  loadMoreTiles(maxTotalLoading, maxNewLoads) {
+    let newLoads = 0;
+    let state, tile, tileKey;
+    while (
+      this.tilesLoading_ < maxTotalLoading &&
+      newLoads < maxNewLoads &&
+      this.getCount() > 0
+    ) {
+      tile = /** @type {import("./Tile.js").default} */ (this.dequeue()[0]);
+      tileKey = tile.getKey();
+      state = tile.getState();
+      if (state === TileState.IDLE && !(tileKey in this.tilesLoadingKeys_)) {
+        this.tilesLoadingKeys_[tileKey] = true;
+        ++this.tilesLoading_;
+        ++newLoads;
+        tile.load();
+      } else {
+        // If the tile is not in the desired state, re-enqueue it
+        this.enqueue([tile, tileSourceKey, tileCenter, tileResolution]);
+      }
+    }
+  }
+>>>>>>> REPLACE
+```
+
+This modification ensures that if a tile is not in the desired state (i.e., `TileState.IDLE`), it is re-enqueued instead of being discarded. This allows for more tiles to be loaded concurrently, which should help in achieving the desired behavior of concurrent tile loading.

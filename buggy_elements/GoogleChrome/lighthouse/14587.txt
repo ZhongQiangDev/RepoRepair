@@ -1,0 +1,76 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior is that the Lighthouse report shows "Emulated Moto G4" instead of indicating that the test was run on a real Moto Power G device. The user expects the report to reflect that the test was conducted on a physical device rather than an emulated one.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from how Lighthouse identifies and reports the device being used for testing. Despite the user running Lighthouse on a real Moto Power G device, the report still indicates an emulated device. This suggests a problem with how Lighthouse detects or reports the device information, possibly due to incorrect user agent detection or misconfiguration in the Lighthouse settings.
+
+### 3. Examine Each File One by One
+
+#### --- core/config/config.js ---
+```
+core/config/config.js
+function: getConfigDisplayString
+function: initializeConfig
+function: overrideNavigationThrottlingWindows
+function: overrideSettingsForGatherMode
+function: resolveArtifactDependencies
+function: resolveArtifactsToDefns
+function: resolveExtensions
+function: resolveFakeNavigations
+function: resolveWorkingCopy
+```
+The `getConfigDisplayString` function might be relevant as it processes the configuration object to create a display-friendly JSON string. If the device information is part of the configuration, this function could be responsible for incorrectly displaying "Emulated Moto G4."
+
+The `initializeConfig` function could also be relevant as it prepares the configuration for use, including resolving settings and plugins. If the device information is incorrectly set during this process, it could lead to the wrong device being reported.
+
+#### --- core/gather/gatherers/network-user-agent.js ---
+```
+core/gather/gatherers/network-user-agent.js
+class: NetworkUserAgent
+```
+The `NetworkUserAgent` class is relevant because it extracts the 'User-Agent' header from network requests. If the user agent is incorrectly detected or reported, it could lead to the wrong device being identified.
+
+#### --- core/gather/gatherers/viewport-dimensions.js ---
+```
+core/gather/gatherers/viewport-dimensions.js
+function: getViewportDimensions
+class: ViewportDimensions
+```
+This file contains no relevant functions/classes. The `getViewportDimensions` function and `ViewportDimensions` class are related to capturing viewport dimensions, which is not directly related to device identification.
+
+#### --- core/gather/gatherers/web-app-manifest.js ---
+```
+core/gather/gatherers/web-app-manifest.js
+class: WebAppManifest
+```
+This file contains no relevant functions/classes. The `WebAppManifest` class is related to retrieving and parsing the web application manifest, which is not directly related to device identification.
+
+#### --- core/lib/emulation.js ---
+```
+core/lib/emulation.js
+function: emulate
+function: parseUseragentIntoMetadata
+function: throttle
+```
+The `emulate` function is relevant because it applies user agent and screen emulation settings to a browser session. If the user agent is incorrectly set during emulation, it could lead to the wrong device being reported.
+
+The `parseUseragentIntoMetadata` function is also relevant because it constructs device-specific metadata based on the user agent. If this function incorrectly parses the user agent, it could result in the wrong device being identified.
+
+The `throttle` function could be relevant if it affects how the device is identified during the throttling process.
+
+### Summary of Relevant Locations
+```
+core/config/config.js
+function: getConfigDisplayString
+function: initializeConfig
+
+core/gather/gatherers/network-user-agent.js
+class: NetworkUserAgent
+
+core/lib/emulation.js
+function: emulate
+function: parseUseragentIntoMetadata
+function: throttle
+```

@@ -1,0 +1,23 @@
+### 1. Identify the Wrong Behavior Involved in GitHub Problem Description
+
+The wrong behavior involves an extension injecting an `unload` event listener into the main frame, which causes the bfcache audit to fail. However, this `unload` listener is not detected by the `no-unload-listeners` audit, making it challenging to debug.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause is that the `unload` listener is added by a content script from an extension, which runs in an isolated execution context. This isolated context makes the listener invisible to the `no-unload-listeners` audit, which only checks the main execution context. As a result, the bfcache audit fails due to the presence of the `unload` listener, but the `no-unload-listeners` audit passes because it cannot detect the listener.
+
+### 3. Find Up to 5 Files Most Related to the Cause
+
+```
+core/audits/bf-cache.js
+core/audits/no-unload-listeners.js
+core/gather/gatherers/global-listeners.js
+core/gather/gatherers/bf-cache-failures.js
+core/runner.js
+```
+
+- `core/audits/bf-cache.js`: This file contains the bfcache audit that fails due to the `unload` listener.
+- `core/audits/no-unload-listeners.js`: This file contains the audit that should detect `unload` listeners but fails to do so for isolated contexts.
+- `core/gather/gatherers/global-listeners.js`: This file gathers global event listeners, which may need to be modified to detect listeners in isolated contexts.
+- `core/gather/gatherers/bf-cache-failures.js`: This file gathers bfcache failure events, which may need to be updated to handle isolated context listeners.
+- `core/runner.js`: This file orchestrates the audit process and may need adjustments to handle execution contexts properly.

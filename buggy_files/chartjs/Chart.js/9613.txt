@@ -1,0 +1,29 @@
+### 1. Identify the Wrong Behavior Involved in GitHub Problem Description
+
+The wrong behavior described is that tooltips do not appear when using `pointerdown` and `pointerup` events after upgrading from Chart.js v2.9.4 to v3.5.1. The tooltips should be displayed when the user touches any part of the graph, but they are not showing up as expected.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue is related to event normalization in Chart.js v3.5.1. In v3, the event type is normalized to a standard type (e.g., `mousedown` for `pointerdown`), but the plugin event filters still use the original event types. This mismatch causes the tooltip plugin to fail in recognizing the events, leading to tooltips not being displayed.
+
+### 3. Find Up to 5 Files Most Related to the Cause
+
+```
+src/plugins/plugin.tooltip.js
+src/core/core.interaction.js
+src/platform/platform.dom.js
+docs/scripts/analyzer.js
+src/core/core.controller.js
+```
+
+**Explanation:**
+
+- `src/plugins/plugin.tooltip.js`: This file contains the core logic for tooltip rendering and event handling. It is directly responsible for displaying tooltips and needs to be updated to handle normalized event types.
+  
+- `src/core/core.interaction.js`: This file manages event interactions with chart elements. It likely contains the logic that normalizes events and could be the source of the mismatch between original and normalized event types.
+
+- `src/platform/platform.dom.js`: This file handles platform-specific event listeners and event normalization. It might need adjustments to ensure that the normalized events are correctly mapped to the original event types used by plugins.
+
+- `docs/scripts/analyzer.js`: This file contains functions that might be used for debugging or analyzing chart behavior. It could be useful for testing and verifying the fix.
+
+- `src/core/core.controller.js`: This file contains general chart controller logic, including event handling. It might need to be updated to ensure that the event normalization process is consistent across the chart library.

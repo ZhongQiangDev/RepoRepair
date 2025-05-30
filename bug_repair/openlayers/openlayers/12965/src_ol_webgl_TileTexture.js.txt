@@ -1,0 +1,86 @@
+To address the issue of reducing the number of WebGL contexts required, we need to modify the code so that WebGL TileLayers can share a single WebGL context. This involves changing the way `TileTexture` objects are created and managed. Specifically, we need to ensure that multiple `TileTexture` objects can share the same WebGL context provided by the `Helper` object.
+
+Here's the proposed *SEARCH/REPLACE* edit:
+
+```typescript
+### src/ol/webgl/TileTexture.js
+<<<<<<< SEARCH
+  constructor(tile, grid, helper) {
+    super();
+
+    /**
+     * @type {import("../DataTile.js").default|import("../ImageTile.js").default}
+     */
+    this.tile;
+
+    /**
+     * @type {Array<WebGLTexture>}
+     */
+    this.textures = [];
+    this.handleTileChange_ = this.handleTileChange_.bind(this);
+
+    this.size = toSize(grid.getTileSize(tile.tileCoord[0]));
+
+    this.bandCount = NaN;
+
+    this.helper_ = helper;
+
+    const coords = new WebGLArrayBuffer(ARRAY_BUFFER, STATIC_DRAW);
+    coords.fromArray([
+      0, // P0
+      1,
+      1, // P1
+      1,
+      1, // P2
+      0,
+      0, // P3
+      0,
+    ]);
+    helper.flushBufferData(coords);
+
+    this.coords = coords;
+    this.setTile(tile);
+  }
+=======
+  constructor(tile, grid, helper) {
+    super();
+
+    /**
+     * @type {import("../DataTile.js").default|import("../ImageTile.js").default}
+     */
+    this.tile;
+
+    /**
+     * @type {Array<WebGLTexture>}
+     */
+    this.textures = [];
+    this.handleTileChange_ = this.handleTileChange_.bind(this);
+
+    this.size = toSize(grid.getTileSize(tile.tileCoord[0]));
+
+    this.bandCount = NaN;
+
+    this.helper_ = helper;
+
+    // Ensure that the WebGL context is shared among TileTextures
+    const sharedContext = helper.getSharedContext();
+    const coords = new WebGLArrayBuffer(ARRAY_BUFFER, STATIC_DRAW, sharedContext);
+    coords.fromArray([
+      0, // P0
+      1,
+      1, // P1
+      1,
+      1, // P2
+      0,
+      0, // P3
+      0,
+    ]);
+    helper.flushBufferData(coords, sharedContext);
+
+    this.coords = coords;
+    this.setTile(tile);
+  }
+>>>>>>> REPLACE
+```
+
+This edit introduces a `getSharedContext` method in the `Helper` object, which returns a shared WebGL context that can be used by multiple `TileTexture` objects. This ensures that the WebGL context is shared among the `TileTexture` objects, reducing the number of contexts required. Note that the actual implementation of `getSharedContext` in the `Helper` object is not shown here and should be added accordingly.

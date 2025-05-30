@@ -1,0 +1,32 @@
+The issue described is that the `AdaptiveLabelPositioningBehavior` is not applied after pasting elements onto flows. The GIF shows that when a boundary event with a label is copied and pasted onto a flow with a vertical direction, the label's position does not adjust as expected.
+
+To fix this, we need to ensure that the `AdaptiveLabelPositioningBehavior` is triggered after pasting elements. This can be achieved by adding a listener for the `element.paste` event and calling `checkLabelAdjustment` for the pasted elements.
+
+Here's the proposed fix:
+
+```javascript
+### lib/features/modeling/behavior/AdaptiveLabelPositioningBehavior.js
+<<<<<<< SEARCH
+  this.postExecuted([
+    'label.create'
+  ], function(event) {
+    checkLabelAdjustment(event.context.shape.labelTarget);
+  });
+=======
+  this.postExecuted([
+    'label.create',
+    'element.paste'
+  ], function(event) {
+    if (event.context.type === 'element.paste') {
+      var pastedElements = event.context.elements;
+      pastedElements.forEach(function(element) {
+        checkLabelAdjustment(element);
+      });
+    } else {
+      checkLabelAdjustment(event.context.shape.labelTarget);
+    }
+  });
+>>>>>>> REPLACE
+```
+
+This change ensures that when elements are pasted, the `checkLabelAdjustment` function is called for each pasted element, which should resolve the issue of the label not being aligned correctly after pasting.

@@ -1,0 +1,137 @@
+```javascript
+### src/core/core.datasetController.js
+<<<<<<< SEARCH
+function isStacked(scale, meta) {
+  const stacked = scale && scale.options.stacked;
+  return stacked || (stacked === undefined && meta.stack !== undefined);
+}
+=======
+function isStacked(scale, meta) {
+  const stacked = scale && scale.options.stacked;
+  const scaleType = scale && scale.type;
+  return (stacked || (stacked === undefined && meta.stack !== undefined)) && scaleType !== 'category';
+}
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/core/core.datasetController.js
+<<<<<<< SEARCH
+function applyStack(stack, value, dsIndex, options) {
+  const keys = stack.keys;
+  const singleMode = options.mode === 'single';
+  let i, ilen, datasetIndex, otherValue;
+
+  if (value === null) {
+    return;
+  }
+
+  for (i = 0, ilen = keys.length; i < ilen; ++i) {
+    datasetIndex = +keys[i];
+    if (datasetIndex === dsIndex) {
+      if (options.all) {
+        continue;
+      }
+      break;
+    }
+    otherValue = stack.values[datasetIndex];
+    if (isFinite(otherValue) && (singleMode || (value === 0 || sign(value) === sign(otherValue)))) {
+      value += otherValue;
+    }
+  }
+  return value;
+}
+=======
+function applyStack(stack, value, dsIndex, options) {
+  const keys = stack.keys;
+  const singleMode = options.mode === 'single';
+  let i, ilen, datasetIndex, otherValue;
+
+  if (value === null) {
+    return;
+  }
+
+  for (i = 0, ilen = keys.length; i < ilen; ++i) {
+    datasetIndex = +keys[i];
+    if (datasetIndex === dsIndex) {
+      if (options.all) {
+        continue;
+      }
+      break;
+    }
+    otherValue = stack.values[datasetIndex];
+    if (isFinite(otherValue) && (singleMode || (value === 0 || sign(value) === sign(otherValue)))) {
+      value += otherValue;
+    }
+  }
+  return value;
+}
+
+function updateMinMaxForStackedLines(chart, meta) {
+  const {iScale, vScale} = meta;
+  const datasets = chart.data.datasets;
+  const stacks = chart._stacks;
+  const stackKey = getStackKey(iScale, vScale, meta);
+  const stack = stacks[stackKey];
+  const values = Object.values(stack);
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+
+  if (vScale.options.ticks.beginAtZero === false) {
+    vScale.options.ticks.min = minValue;
+    vScale.options.ticks.max = maxValue;
+  }
+}
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/core/core.datasetController.js
+<<<<<<< SEARCH
+function updateStacks(controller, parsed) {
+  const {chart, _cachedMeta: meta} = controller;
+  const stacks = chart._stacks || (chart._stacks = {}); // map structure is {stackKey: {datasetIndex: value}}
+  const {iScale, vScale, index: datasetIndex} = meta;
+  const iAxis = iScale.axis;
+  const vAxis = vScale.axis;
+  const key = getStackKey(iScale, vScale, meta);
+  const ilen = parsed.length;
+  let stack;
+
+  for (let i = 0; i < ilen; ++i) {
+    const item = parsed[i];
+    const {[iAxis]: index, [vAxis]: value} = item;
+    const itemStacks = item._stacks || (item._stacks = {});
+    stack = itemStacks[vAxis] = getOrCreateStack(stacks, key, index);
+    stack[datasetIndex] = value;
+
+    stack._top = getLastIndexInStack(stack, vScale, true, meta.type);
+    stack._bottom = getLastIndexInStack(stack, vScale, false, meta.type);
+  }
+}
+=======
+function updateStacks(controller, parsed) {
+  const {chart, _cachedMeta: meta} = controller;
+  const stacks = chart._stacks || (chart._stacks = {}); // map structure is {stackKey: {datasetIndex: value}}
+  const {iScale, vScale, index: datasetIndex} = meta;
+  const iAxis = iScale.axis;
+  const vAxis = vScale.axis;
+  const key = getStackKey(iScale, vScale, meta);
+  const ilen = parsed.length;
+  let stack;
+
+  for (let i = 0; i < ilen; ++i) {
+    const item = parsed[i];
+    const {[iAxis]: index, [vAxis]: value} = item;
+    const itemStacks = item._stacks || (item._stacks = {});
+    stack = itemStacks[vAxis] = getOrCreateStack(stacks, key, index);
+    stack[datasetIndex] = value;
+
+    stack._top = getLastIndexInStack(stack, vScale, true, meta.type);
+    stack._bottom = getLastIndexInStack(stack, vScale, false, meta.type);
+  }
+
+  updateMinMaxForStackedLines(chart, meta);
+}
+>>>>>>> REPLACE
+```

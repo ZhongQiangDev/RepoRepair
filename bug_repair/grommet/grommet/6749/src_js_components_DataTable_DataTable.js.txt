@@ -1,0 +1,116 @@
+To address the issue of adding a `DataTableGroup` component that allows users to select the `groupBy` value for a `DataTable`, we need to create a new component and integrate it into the existing `DataTable` component. Below are the steps and the corresponding *SEARCH/REPLACE* edits to achieve this:
+
+1. **Create the `DataTableGroup` Component**: This component will be a `Select` component that allows users to choose the `groupBy` value.
+
+2. **Integrate `DataTableGroup` into `DataTable`**: Add the `DataTableGroup` component to the `DataTable` component and pass the necessary props.
+
+### Step 1: Create the `DataTableGroup` Component
+
+First, let's create the `DataTableGroup` component. This component will be a simple `Select` component that allows users to choose the `groupBy` value.
+
+```typescript
+### src/js/components/DataTable/DataTableGroup.js
+<<<<<<< SEARCH
+// This file is empty, so we will add the entire component here.
+=======
+import React, { useState } from 'react';
+import { Select } from '../Select';
+
+const DataTableGroup = ({ columns, groupBy, onGroupByChange }) => {
+  const [selectedGroup, setSelectedGroup] = useState(groupBy);
+
+  const handleGroupChange = (value) => {
+    setSelectedGroup(value);
+    onGroupByChange(value);
+  };
+
+  return (
+    <Select
+      options={columns.map((column) => ({ label: column.property, value: column.property }))}
+      value={selectedGroup}
+      onChange={handleGroupChange}
+      placeholder="Group by..."
+    />
+  );
+};
+
+export { DataTableGroup };
+>>>>>>> REPLACE
+```
+
+### Step 2: Integrate `DataTableGroup` into `DataTable`
+
+Now, let's integrate the `DataTableGroup` component into the `DataTable` component.
+
+```typescript
+### src/js/components/DataTable/DataTable.js
+<<<<<<< SEARCH
+import { DataContext } from '../../contexts/DataContext';
+import { Box } from '../Box';
+import { Text } from '../Text';
+import { Header } from './Header';
+import { Footer } from './Footer';
+import { Body } from './Body';
+import { GroupedBody } from './GroupedBody';
+import { Pagination } from '../Pagination';
+=======
+import { DataContext } from '../../contexts/DataContext';
+import { Box } from '../Box';
+import { Text } from '../Text';
+import { Header } from './Header';
+import { Footer } from './Footer';
+import { Body } from './Body';
+import { GroupedBody } from './GroupedBody';
+import { Pagination } from '../Pagination';
+import { DataTableGroup } from './DataTableGroup'; // Add this import
+
+// Add the DataTableGroup component to the DataTable
+const DataTable = ({
+  // ... other props
+  groupBy,
+  onGroupByChange, // Add this prop
+  // ... other props
+}) => {
+  // ... existing code
+
+  // Add the DataTableGroup component
+  const groupByOptions = columns.map((column) => column.property);
+  const handleGroupByChange = (value) => {
+    if (onGroupByChange) {
+      onGroupByChange(value);
+    }
+  };
+
+  return (
+    <Container {...containterProps}>
+      <OverflowContainer {...overflowContainerProps}>
+        <StyledDataTable
+          // ... existing props
+        >
+          <DataTableGroup
+            columns={columns}
+            groupBy={groupBy}
+            onGroupByChange={handleGroupByChange}
+          />
+          <Header
+            // ... existing props
+          />
+          // ... existing code
+        </StyledDataTable>
+      </OverflowContainer>
+      // ... existing code
+    </Container>
+  );
+};
+
+// Add the new prop to the propTypes
+DataTable.propTypes = {
+  ...DataTablePropTypes,
+  onGroupByChange: PropTypes.func,
+};
+
+export { DataTable };
+>>>>>>> REPLACE
+```
+
+These changes will add a `DataTableGroup` component to the `DataTable` that allows users to select the `groupBy` value. The `DataTableGroup` component is a `Select` component that updates the `groupBy` value when a user selects an option. The `DataTable` component then uses this value to group the data accordingly.

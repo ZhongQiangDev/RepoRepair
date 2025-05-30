@@ -1,0 +1,94 @@
+The issue described is that associations on `bpmn:BoundaryEvents` are not being rendered correctly after the model is imported. The problem seems to be related to how the associations are handled during the import process. Specifically, the associations are not being properly attached to the boundary events.
+
+To fix this, we need to ensure that the associations are correctly linked to the boundary events during the import process. This can be achieved by modifying the `_attachBoundary` method to handle associations.
+
+Here is the proposed fix:
+
+```javascript
+### lib/import/BpmnImporter.js
+<<<<<<< SEARCH
+/**
+ * Attach the boundary element to the given host
+ *
+ * @param {ModdleElement} boundarySemantic
+ * @param {djs.model.Base} boundaryElement
+ */
+BpmnImporter.prototype._attachBoundary = function(boundarySemantic, boundaryElement) {
+  var translate = this._translate;
+  var hostSemantic = boundarySemantic.attachedToRef;
+
+  if (!hostSemantic) {
+    throw new Error(translate('missing {semantic}#attachedToRef', {
+      semantic: elementToString(boundarySemantic)
+    }));
+  }
+
+  var host = this._elementRegistry.get(hostSemantic.id),
+      attachers = host && host.attachers;
+
+  if (!host) {
+    throw notYetDrawn(translate, boundarySemantic, hostSemantic, 'attachedToRef');
+  }
+
+  // wire element.host <> host.attachers
+  boundaryElement.host = host;
+
+  if (!attachers) {
+    host.attachers = attachers = [];
+  }
+
+  if (attachers.indexOf(boundaryElement) === -1) {
+    attachers.push(boundaryElement);
+  }
+};
+=======
+/**
+ * Attach the boundary element to the given host and handle associations
+ *
+ * @param {ModdleElement} boundarySemantic
+ * @param {djs.model.Base} boundaryElement
+ */
+BpmnImporter.prototype._attachBoundary = function(boundarySemantic, boundaryElement) {
+  var translate = this._translate;
+  var hostSemantic = boundarySemantic.attachedToRef;
+
+  if (!hostSemantic) {
+    throw new Error(translate('missing {semantic}#attachedToRef', {
+      semantic: elementToString(boundarySemantic)
+    }));
+  }
+
+  var host = this._elementRegistry.get(hostSemantic.id),
+      attachers = host && host.attachers;
+
+  if (!host) {
+    throw notYetDrawn(translate, boundarySemantic, hostSemantic, 'attachedToRef');
+  }
+
+  // wire element.host <> host.attachers
+  boundaryElement.host = host;
+
+  if (!attachers) {
+    host.attachers = attachers = [];
+  }
+
+  if (attachers.indexOf(boundaryElement) === -1) {
+    attachers.push(boundaryElement);
+  }
+
+  // Handle associations
+  if (boundarySemantic.dataInputAssociation || boundarySemantic.dataOutputAssociation) {
+    var associations = boundarySemantic.dataInputAssociation || boundarySemantic.dataOutputAssociation;
+    associations.forEach(function(association) {
+      var associationElement = this._elementRegistry.get(association.id);
+      if (associationElement) {
+        boundaryElement.associations = boundaryElement.associations || [];
+        boundaryElement.associations.push(associationElement);
+      }
+    }.bind(this));
+  }
+};
+>>>>>>> REPLACE
+```
+
+This modification ensures that any associations related to the boundary event are properly linked to the boundary event during the import process. This should resolve the issue where associations are not rendered correctly after import.

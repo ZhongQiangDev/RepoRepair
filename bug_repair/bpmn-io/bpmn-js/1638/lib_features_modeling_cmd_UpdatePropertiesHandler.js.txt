@@ -1,0 +1,23 @@
+The issue described is that when the label of a Task is removed, the `di.label` property still exists with a value of `null`, which causes problems with other tools like linting. To fix this, we need to ensure that when the label is removed, the `di.label` property is also removed from the model.
+
+Here's the proposed fix:
+
+```javascript
+### lib/features/modeling/cmd/UpdatePropertiesHandler.js
+<<<<<<< SEARCH
+  if (!text) {
+    return;
+  }
+=======
+  if (!text) {
+    // Remove the label property from the DI if the text is empty
+    var di = getDi(element);
+    if (di && di.label) {
+      delete di.label;
+    }
+    return;
+  }
+>>>>>>> REPLACE
+```
+
+This change ensures that when the label text is empty, the `di.label` property is deleted from the model, preventing it from causing issues with other tools.

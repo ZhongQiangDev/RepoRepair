@@ -1,0 +1,60 @@
+To address the issue of adding `DataStoreReference` to the `DataObjectReference` replace menu and vice-versa, we need to modify the `ReplaceElementBehaviour` class to include the logic for replacing `DataObjectReference` with `DataStoreReference` and vice-versa. The current code does not handle this specific case, so we need to add the necessary logic.
+
+Here is the proposed `SEARCH/REPLACE` edit:
+
+```javascript
+### lib/features/modeling/behavior/ReplaceElementBehaviour.js
+<<<<<<< SEARCH
+  ReplaceElementBehaviour.prototype.replaceElements = function(elements, newElements) {
+    var elementRegistry = this._elementRegistry,
+        bpmnReplace = this._bpmnReplace,
+        selection = this._selection;
+
+    forEach(newElements, function(replacement) {
+      var newElement = {
+        type: replacement.newElementType
+      };
+
+      var oldElement = elementRegistry.get(replacement.oldElementId);
+
+      var idx = elements.indexOf(oldElement);
+
+      elements[idx] = bpmnReplace.replaceElement(oldElement, newElement, { select: false });
+    });
+
+    if (newElements) {
+      selection.select(elements);
+    }
+  };
+=======
+  ReplaceElementBehaviour.prototype.replaceElements = function(elements, newElements) {
+    var elementRegistry = this._elementRegistry,
+        bpmnReplace = this._bpmnReplace,
+        selection = this._selection;
+
+    forEach(newElements, function(replacement) {
+      var newElement = {
+        type: replacement.newElementType
+      };
+
+      var oldElement = elementRegistry.get(replacement.oldElementId);
+
+      var idx = elements.indexOf(oldElement);
+
+      if (oldElement.type === 'bpmn:DataObjectReference' && newElement.type === 'bpmn:DataStoreReference') {
+        elements[idx] = bpmnReplace.replaceElement(oldElement, newElement, { select: false });
+      } else if (oldElement.type === 'bpmn:DataStoreReference' && newElement.type === 'bpmn:DataObjectReference') {
+        elements[idx] = bpmnReplace.replaceElement(oldElement, newElement, { select: false });
+      } else {
+        elements[idx] = bpmnReplace.replaceElement(oldElement, newElement, { select: false });
+      }
+    });
+
+    if (newElements) {
+      selection.select(elements);
+    }
+  };
+>>>>>>> REPLACE
+```
+
+This edit adds the necessary logic to handle the replacement of `DataObjectReference` with `DataStoreReference` and vice-versa. The `if` and `else if` conditions check the types of the old and new elements and perform the replacement accordingly. The `else` block handles all other cases as before.

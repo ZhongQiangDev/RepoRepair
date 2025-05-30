@@ -1,0 +1,54 @@
+The issue described is related to an error thrown when morphing a `DataStoreReference` to a `DataObjectReference` outside of a pool. The error occurs because the code attempts to access a property of an undefined object during the morphing process.
+
+To fix this issue, we need to ensure that the morphing operation is only allowed within a pool or handle the case where the morphing is attempted outside of a pool gracefully.
+
+Since the provided code segment is from `ModelingUtil.js`, it doesn't directly handle the morphing logic. However, we can infer that the fix might involve checking the parent of the element before attempting to morph it.
+
+Here's a potential fix:
+
+```javascript
+### lib/features/modeling/util/ModelingUtil.js
+<<<<<<< SEARCH
+export function getParent(element, anyType) {
+
+  if (typeof anyType === 'string') {
+    anyType = [ anyType ];
+  }
+
+  while ((element = element.parent)) {
+    if (isAny(element, anyType)) {
+      return element;
+    }
+  }
+
+  return null;
+}
+=======
+export function getParent(element, anyType) {
+
+  if (typeof anyType === 'string') {
+    anyType = [ anyType ];
+  }
+
+  while ((element = element.parent)) {
+    if (isAny(element, anyType)) {
+      return element;
+    }
+  }
+
+  // Check if the element is outside of a pool and handle it gracefully
+  if (!element.parent) {
+    console.warn('Attempted to morph outside of a pool. Morphing operation not allowed.');
+    return null;
+  }
+
+  return null;
+}
+>>>>>>> REPLACE
+```
+
+However, this fix might not be sufficient as it only adds a warning and returns `null`. The actual fix might involve modifying the morphing logic in another part of the codebase where the morphing operation is initiated.
+
+To properly fix the issue, we need to locate the code that handles the morphing operation and ensure it checks if the element is within a pool before attempting to morph it. This might involve adding a condition to prevent the morphing operation if the element is outside of a pool.
+
+Since the provided code segment doesn't contain the morphing logic, we cannot provide a complete fix. However, the above code snippet demonstrates how you might add a check for the parent element in the `getParent` function.

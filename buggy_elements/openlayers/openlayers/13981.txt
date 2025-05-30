@@ -1,0 +1,66 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that the text rendering is inconsistent between the vector layer renderer and the vector context renderer when both offset and rotation are applied. Specifically:
+- The vector layer renderer rotates the offset text around the feature from which it is offset.
+- The vector context renderer rotates the text around its offset anchor point (defined by `textAlign` and `textBaseline` settings).
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The inconsistency arises from the different methods used by the vector layer renderer and the vector context renderer to handle text rotation and offset. The vector layer renderer likely calculates the rotation based on the feature's geometry, while the vector context renderer uses the text's anchor point for rotation. This discrepancy leads to different visual results when both offset and rotation are applied.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### src/ol/geom/flat/textpath.js
+
+This file contains no relevant functions/classes.
+
+#### src/ol/render/canvas.js
+
+```
+src/ol/render/canvas.js
+function: drawImageOrLabel
+function: executeLabelInstructions
+function: rotateAtOffset
+```
+
+- `drawImageOrLabel`: This function handles the drawing of labels and images, which includes text rendering. It applies transformations and opacity adjustments, which could be relevant to the text rendering issue.
+- `executeLabelInstructions`: This function processes drawing instructions for labels, which could be involved in the text rendering process.
+- `rotateAtOffset`: This function performs rotation around a specified offset point, which is directly related to the rotation behavior described in the problem.
+
+#### src/ol/render/canvas/Immediate.js
+
+```
+src/ol/render/canvas/Immediate.js
+class: CanvasImmediateRenderer
+```
+
+- `CanvasImmediateRenderer`: This class is responsible for immediate rendering of vector data, including text. It manages rendering styles and coordinate transformations, which could be relevant to the text rendering inconsistency.
+
+#### src/ol/render/canvas/TextBuilder.js
+
+```
+src/ol/render/canvas/TextBuilder.js
+class: CanvasTextBuilder
+```
+
+- `CanvasTextBuilder`: This class specializes in rendering text on a canvas. It handles text styles, geometry interactions, and rendering optimizations, which are directly related to the text rendering issue.
+
+#### src/ol/style/flat.js
+
+This file contains no relevant functions/classes.
+
+### Summary
+
+The relevant functions and classes identified are:
+```
+src/ol/render/canvas.js
+function: drawImageOrLabel
+function: executeLabelInstructions
+function: rotateAtOffset
+
+src/ol/render/canvas/Immediate.js
+class: CanvasImmediateRenderer
+
+src/ol/render/canvas/TextBuilder.js
+class: CanvasTextBuilder
+```

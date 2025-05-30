@@ -1,0 +1,65 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that after upgrading from Chart.js v2.9.4 to v3.5.1, the tooltip does not show when the user touches any part of the graph using `pointerdown` and `pointerup` events. The tooltip only hovers but does not display as expected.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue is related to event normalization in Chart.js v3.5.1. In v3, the event types are normalized, meaning that `pointerdown` and `pointerup` events are converted to `mousedown` and `mouseup` events internally. However, the plugin event filters still use the original event types (`pointerdown` and `pointerup`), which do not match the normalized event types. As a result, the tooltip does not trigger as expected.
+
+### 3. Examine Each File One by One
+
+#### --- docs/scripts/analyzer.js ---
+```
+This file contains no relevant functions/classes.
+```
+
+#### --- src/core/core.controller.js ---
+```
+src/core/core.controller.js
+class: Chart
+```
+
+The `chart` class creates and manages a customizable chart instance with interactive features, animations, and plugin support, which is relevant for handling event.
+
+#### --- src/core/core.interaction.js ---
+```
+src/core/core.interaction.js
+function: getRelativePosition
+function: fromNativeEvent
+```
+
+The `getRelativePosition` function calculates the relative position of an event within the chart, which is relevant for determining where tooltips should appear. The `fromNativeEvent` function normalizes the event type, which is directly related to the issue described.
+
+#### --- src/platform/platform.dom.js ---
+```
+src/platform/platform.dom.js
+function: fromNativeEvent
+```
+
+The `fromNativeEvent` function is responsible for normalizing the event type, which is the core of the issue. It converts the original event type to a normalized type, which does not match the event types used in the plugin filters.
+
+#### --- src/plugins/plugin.tooltip.js ---
+```
+src/plugins/plugin.tooltip.js
+function: afterEvent
+function: createTooltipItem
+function: determineAlignment
+```
+
+The `afterEvent` function processes events related to tooltips, and the `createTooltipItem` function creates tooltip items based on the event. The `determineAlignment` function determines the alignment of the tooltip, which is indirectly related to the event handling process. These functions are relevant to the tooltip behavior and event handling.
+
+### Summary of Relevant Locations
+
+```
+src/core/core.interaction.js
+function: getRelativePosition
+function: fromNativeEvent
+
+src/platform/platform.dom.js
+function: fromNativeEvent
+
+src/plugins/plugin.tooltip.js
+function: afterEvent
+function: createTooltipItem
+function: determineAlignment
+```

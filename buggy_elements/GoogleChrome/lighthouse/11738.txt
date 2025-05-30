@@ -1,0 +1,61 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that Lighthouse does not wait long enough to detect the Cumulative Layout Shift (CLS) for some pages when using `throttlingMethod=simulate`. This results in an inaccurate CLS score, which is lower than expected.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from the way Lighthouse simulates network and CPU throttling. When `throttlingMethod=simulate`, Lighthouse may not accurately simulate the delays and performance impacts that would occur on a real device with limited resources. This can lead to the audit completing too quickly, before all layout shifts have been detected.
+
+### 3. Examine Each File One by One and Determine Relevant Functions/Classes
+
+#### lighthouse-core/audits/metrics/cumulative-layout-shift.js
+```
+lighthouse-core/audits/metrics/cumulative-layout-shift.js
+class: CumulativeLayoutShift
+```
+The `CumulativeLayoutShift` class is directly related to the CLS metric. The `audit` method in this class computes the CLS metric from the provided trace. If the trace data is incomplete due to insufficient waiting time, the computed CLS score will be inaccurate.
+
+#### lighthouse-core/lib/emulation.js
+```
+lighthouse-core/lib/emulation.js
+function: enableNetworkThrottling
+function: enableCPUThrottling
+function: emulate
+```
+The `enableNetworkThrottling` and `enableCPUThrottling` functions are responsible for setting up network and CPU throttling conditions. If these functions do not accurately simulate the delays, the audit may complete too quickly. The `emulate` function applies device emulation settings, which can also affect the timing of the audit.
+
+#### lighthouse-core/lib/dependency-graph/simulator/simulator.js
+```
+lighthouse-core/lib/dependency-graph/simulator/simulator.js
+class: Simulator
+```
+The `Simulator` class simulates the execution of a graph of nodes, taking into account network conditions and CPU performance. If the simulation does not accurately reflect real-world conditions, it could lead to the audit completing too quickly.
+
+#### lighthouse-core/lib/tracehouse/main-thread-tasks.js
+```
+This file contains no relevant functions/classes.
+```
+The `MainThreadTasks` class processes trace events from the main thread but does not directly control the timing of the audit.
+
+#### lighthouse-core/lib/tracehouse/trace-processor.js
+```
+This file contains no relevant functions/classes.
+```
+The `TraceProcessor` class processes and analyzes trace events but does not directly control the timing of the audit.
+
+### Summary of Relevant Locations
+
+1. ```
+   lighthouse-core/audits/metrics/cumulative-layout-shift.js
+   class: CumulativeLayoutShift
+   ```
+2. ```
+   lighthouse-core/lib/emulation.js
+   function: enableNetworkThrottling
+   function: enableCPUThrottling
+   function: emulate
+   ```
+3. ```
+   lighthouse-core/lib/dependency-graph/simulator/simulator.js
+   class: Simulator
+   ```

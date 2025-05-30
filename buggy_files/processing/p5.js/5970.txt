@@ -1,0 +1,19 @@
+1. **Wrong Behavior**: The square created using `p5.Geometry` with lighting enabled is not being rendered on the Android smartphone, while it appears correctly on the note PC. This indicates an issue with how the square is being processed or rendered in the WebGL context on the Android device.
+
+2. **Cause Analysis**: The problem seems to stem from the handling of vertex attributes in the WebGL shader. Specifically, the issue arises because the UV information (texture coordinates) from the previous textured triangle is retained in the shader registers when drawing the untextured square. This retained UV information is insufficient for the square's four vertices, leading to rendering issues on certain devices like the Android smartphone. The solution proposed involves disabling unused attribute registers to prevent this conflict.
+
+3. **Files Related to the Cause**:
+
+```
+src/webgl/p5.RenderBuffer.js
+src/webgl/p5.RendererGL.js
+src/webgl/p5.Geometry.js
+src/webgl/p5.RendererGL.Retained.js
+src/webgl/p5.Shader.js
+```
+
+- `src/webgl/p5.RenderBuffer.js`: This file manages vertex buffer data and is crucial for preparing buffers for rendering. The `_prepareBuffer` function, which needs to disable unused attribute registers, is located here.
+- `src/webgl/p5.RendererGL.js`: This file contains the core WebGL rendering logic, including shader setup and attribute handling. It is essential for ensuring that the rendering process is consistent across different devices.
+- `src/webgl/p5.Geometry.js`: This file handles the creation and manipulation of 3D geometry, including the square created with `p5.Geometry`. It is relevant for understanding how the geometry is set up and passed to the renderer.
+- `src/webgl/p5.RendererGL.Retained.js`: This file deals with retained mode rendering, which is used for managing and rendering geometries that are stored in the renderer. It ensures that the geometry is correctly prepared and rendered.
+- `src/webgl/p5.Shader.js`: This file manages shaders and their attributes, which are central to the issue of retained UV information and attribute register management.

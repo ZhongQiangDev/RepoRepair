@@ -1,0 +1,47 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that **typed Start Events are allowed inside non-event-based Sub Processes**, which is not compliant with BPMN standards. The goal is to disallow typed Start Events inside non-event-based Sub Processes and support only untyped Start Events, similar to how non-interrupting Start Events are handled in event-based Sub Processes.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior likely lies in the BPMN modeling rules and the logic that governs the creation and validation of Start Events within Sub Processes. Specifically, the rules that determine whether a Start Event can be created or morphed into a typed Start Event inside a Sub Process are not correctly enforcing the BPMN standard. This could be due to missing or incorrect validation rules, or the logic responsible for updating the BPMN model when elements are created or moved.
+
+### 3. Examine Each File One by One and Determine Relevant Functions/Classes
+
+#### --- lib/features/modeling/BpmnUpdater.js ---
+```
+lib/features/modeling/BpmnUpdater.js
+function: updateParent
+function: updateSemanticParent
+function: updateDiParent
+```
+These functions are responsible for updating the parent references of BPMN elements, which is relevant when moving or creating Start Events inside Sub Processes. Ensuring that these functions correctly handle the parent updates for Start Events within Sub Processes is crucial.
+
+#### --- lib/features/modeling/behavior/CreateBehavior.js ---
+```
+lib/features/modeling/behavior/CreateBehavior.js
+function: CreateBehavior
+```
+This function intercepts the creation process of shapes in the BPMN diagram. It may need to be modified to prevent the creation of typed Start Events inside non-event-based Sub Processes.
+
+#### --- lib/features/modeling/behavior/SubProcessStartEventBehavior.js ---
+```
+lib/features/modeling/behavior/SubProcessStartEventBehavior.js
+function: SubProcessStartEventBehavior
+```
+This function handles the automatic addition of Start Events to expanded Sub Processes. It may need to be updated to ensure that only untyped Start Events are added to non-event-based Sub Processes.
+
+#### --- lib/features/rules/BpmnRules.js ---
+```
+lib/features/rules/BpmnRules.js
+function: canCreate
+function: canReplace
+function: canAttach
+```
+These functions define the rules for creating, replacing, and attaching elements in the BPMN diagram. They need to be updated to enforce the rule that typed Start Events are not allowed inside non-event-based Sub Processes.
+
+#### --- lib/features/modeling/behavior/ReplaceElementBehaviour.js ---
+```
+This file contains no relevant functions/classes.
+```
+This file does not contain functions directly related to the creation or validation of Start Events inside Sub Processes. The relevant logic is more likely to be found in the other files mentioned above.

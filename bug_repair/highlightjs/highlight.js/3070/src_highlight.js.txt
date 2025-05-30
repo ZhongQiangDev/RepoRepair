@@ -1,0 +1,42 @@
+The issue described is that when the `language-php` class is added to the code element, an extra `php` tag is added, which should not happen. This seems to be related to how the `updateClassName` function is handling the class names.
+
+To fix this, we need to ensure that the `updateClassName` function only adds the necessary class names and does not duplicate them. Specifically, we should check if the class already exists before adding it.
+
+Here's the proposed fix:
+
+```javascript
+### src/highlight.js
+<<<<<<< SEARCH
+/**
+ * Builds new class name for block given the language name
+ *
+ * @param {HTMLElement} element
+ * @param {string} [currentLang]
+ * @param {string} [resultLang]
+ */
+function updateClassName(element, currentLang, resultLang) {
+    const language = currentLang ? aliases[currentLang] : resultLang;
+
+    element.classList.add("hljs");
+    if (language) element.classList.add(language);
+}
+=======
+/**
+ * Builds new class name for block given the language name
+ *
+ * @param {HTMLElement} element
+ * @param {string} [currentLang]
+ * @param {string} [resultLang]
+ */
+function updateClassName(element, currentLang, resultLang) {
+    const language = currentLang ? aliases[currentLang] : resultLang;
+
+    element.classList.add("hljs");
+    if (language && !element.classList.contains(language)) {
+        element.classList.add(language);
+    }
+}
+>>>>>>> REPLACE
+```
+
+This change ensures that the `language` class is only added if it does not already exist in the `classList`, preventing the duplication of the `php` class.

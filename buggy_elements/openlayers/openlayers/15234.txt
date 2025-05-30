@@ -1,0 +1,63 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that the `WebGLPointsLayer` does not correctly respect the `useGeographic()` function when rendering points. Specifically, when `useGeographic()` is enabled, the points are plotted at incorrect locations, indicating that the coordinate transformation from EPSG:4326 to EPSG:3857 is not being handled correctly.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from a mismatch in how the `WebGLPointsLayer` handles coordinate transformations compared to how `useGeographic()` expects them to be handled. When `useGeographic()` is called, it sets the user projection to EPSG:4326, which should cause all subsequent coordinate transformations to respect this projection. However, if the `WebGLPointsLayer` does not properly account for this user projection, it will continue to treat coordinates as if they were in EPSG:3857, leading to incorrect rendering.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### src/ol/proj.js
+
+```
+src/ol/proj.js
+function: useGeographic
+function: getUserProjection
+function: transform
+function: addCoordinateTransforms
+function: addEquivalentTransforms
+```
+
+These functions are relevant because `useGeographic()` sets the user projection to EPSG:4326, and `getUserProjection()` retrieves it. The `transform` function is responsible for transforming coordinates between projections, and `addCoordinateTransforms` and `addEquivalentTransforms` set up the necessary transformations between EPSG:4326 and EPSG:3857.
+
+#### src/ol/layer/WebGLPoints.js
+
+```
+src/ol/layer/WebGLPoints.js
+class: WebGLPointsLayer
+```
+
+The `WebGLPointsLayer` class is relevant because it is responsible for rendering the points and should handle the coordinate transformations correctly based on the user projection.
+
+#### src/ol/proj/epsg3857.js
+
+```
+src/ol/proj/epsg3857.js
+function: fromEPSG4326
+function: toEPSG4326
+```
+
+These functions are relevant because they handle the specific transformations between EPSG:4326 and EPSG:3857, which are crucial for ensuring that coordinates are correctly transformed when `useGeographic()` is enabled.
+
+#### src/ol/proj/epsg4326.js
+
+```
+src/ol/proj/epsg4326.js
+class: EPSG4326Projection
+```
+
+The `EPSG4326Projection` class is relevant because it defines the properties and behavior of the EPSG:4326 projection, which is set as the user projection when `useGeographic()` is called.
+
+#### src/ol/renderer/webgl/PointsLayer.js
+
+```
+src/ol/renderer/webgl/PointsLayer.js
+class: WebGLPointsLayerRenderer
+```
+
+The `WebGLPointsLayerRenderer` class is relevant because it is responsible for the actual rendering of points using WebGL and should handle the coordinate transformations correctly based on the user projection.
+
+### Summary
+
+The identified functions and classes are directly involved in handling coordinate transformations and rendering points, which are key to resolving the issue described in the GitHub problem.

@@ -1,0 +1,78 @@
+The issue described is that the selected state of a tile is not being respected when using shift-click for multi-selection. The problem seems to be in the `handleClick` and `handleKeyDown` methods where the state is being toggled regardless of the `selected` prop value.
+
+To fix this, we need to ensure that the `selected` state is updated based on the `selected` prop value instead of always toggling it.
+
+Here is the proposed fix:
+
+```javascript
+###packages/react/src/components/Tile/Tile.js
+<<<<<<< SEARCH
+  handleClick = (evt) => {
+    evt.preventDefault();
+    evt.persist();
+    this.setState(
+      {
+        selected: !this.state.selected,
+      },
+      () => {
+        this.props.handleClick(evt);
+        this.props.onChange(evt);
+      }
+    );
+  };
+
+  handleKeyDown = (evt) => {
+    evt.persist();
+    if (matches(evt, [keys.Enter, keys.Space])) {
+      evt.preventDefault();
+      this.setState(
+        {
+          selected: !this.state.selected,
+        },
+        () => {
+          this.props.handleKeyDown(evt);
+          this.props.onChange(evt);
+        }
+      );
+    } else {
+      this.props.handleKeyDown(evt);
+    }
+  };
+=======
+  handleClick = (evt) => {
+    evt.preventDefault();
+    evt.persist();
+    const { selected } = this.props;
+    this.setState(
+      {
+        selected: selected,
+      },
+      () => {
+        this.props.handleClick(evt);
+        this.props.onChange(evt);
+      }
+    );
+  };
+
+  handleKeyDown = (evt) => {
+    evt.persist();
+    if (matches(evt, [keys.Enter, keys.Space])) {
+      evt.preventDefault();
+      const { selected } = this.props;
+      this.setState(
+        {
+          selected: selected,
+        },
+        () => {
+          this.props.handleKeyDown(evt);
+          this.props.onChange(evt);
+        }
+      );
+    } else {
+      this.props.handleKeyDown(evt);
+    }
+  };
+>>>>>>> REPLACE
+```
+
+This change ensures that the `selected` state is updated based on the `selected` prop value, which should resolve the issue of the selected state not being respected during multi-selection.

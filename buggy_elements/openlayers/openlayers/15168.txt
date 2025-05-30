@@ -1,0 +1,54 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that the raster reprojection in OpenLayers assumes that projected pixels are square, leading to misalignment when the source pixels cover non-square areas (e.g., 3km by 2km). This results in the horizontal misalignment of pixels in the target projection, causing the source image to appear stretched or distorted.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue is likely related to how the source resolution is calculated and applied during the reprojection process. Specifically, the assumption that pixels should remain square in the target projection can lead to incorrect scaling and alignment. The function responsible for calculating the source resolution (`calculateSourceResolution`) might not be accounting for the non-square nature of the source pixels, leading to the observed misalignment.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### `src/ol/reproj.js`
+
+```
+src/ol/reproj.js
+function: calculateSourceResolution
+function: calculateSourceExtentResolution
+function: render
+```
+
+- `calculateSourceResolution`: This function calculates the optimal resolution for the source projection, which might not be correctly handling non-square pixels.
+- `calculateSourceExtentResolution`: This function calculates the source resolution based on the target extent and resolution, which could be contributing to the issue.
+- `render`: This function handles the actual rendering of the reprojected image, which might be assuming square pixels.
+
+#### `src/ol/proj/Projection.js`
+
+```
+src/ol/proj/Projection.js
+class: Projection
+```
+
+- `Projection`: This class encapsulates projection information, including units and extent. While it doesn't directly cause the issue, it might need adjustments to better handle non-square pixels.
+
+#### `src/ol/proj/projections.js`
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `src/ol/reproj/Image.js`
+
+```
+src/ol/reproj/Image.js
+class: ReprojImage
+```
+
+- `ReprojImage`: This class handles the reprojection of images and might need adjustments to correctly handle non-square pixels during the reprojection process.
+
+#### `src/ol/source/GeoTIFF.js`
+
+```
+This file contains no relevant functions/classes.
+```
+
+The functions and classes in `src/ol/source/GeoTIFF.js` are specific to handling GeoTIFF data and do not directly relate to the issue of pixel misalignment during reprojection.

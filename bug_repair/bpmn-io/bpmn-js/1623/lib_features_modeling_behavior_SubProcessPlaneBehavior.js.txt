@@ -1,0 +1,110 @@
+The issue described is related to the loss of the deep linking overlay for subprocesses when navigating between multiple processes using the multi-diagram plugin. The problem seems to be that the deep linking functionality and the multi-diagram plugin are not working together seamlessly.
+
+To address this, we need to ensure that the deep linking overlay is preserved when navigating between subprocesses and global subprocesses. This likely involves modifying the `_moveChildrenToShape` method to handle the deep linking overlay correctly.
+
+Here's a potential fix:
+
+```javascript
+### lib/features/modeling/behavior/SubProcessPlaneBehavior.js
+<<<<<<< SEARCH
+SubProcessPlaneBehavior.prototype._moveChildrenToShape = function(source, target) {
+  var modeling = this._modeling;
+
+  var children = source.children;
+  var offset;
+
+  if (!children) {
+    return;
+  }
+
+  // only change plane if there are no visible children, but don't move them
+  var visibleChildren = children.filter(function(child) {
+    return !child.hidden;
+  });
+
+  if (!visibleChildren.length) {
+    modeling.moveElements(children, { x: 0, y: 0 }, target, { autoResize: false });
+    return;
+  }
+
+  var childrenBounds = getBBox(visibleChildren);
+
+  // target is a plane
+  if (!target.x) {
+    offset = {
+      x: DEFAULT_POSITION.x - childrenBounds.x,
+      y: DEFAULT_POSITION.y - childrenBounds.y
+    };
+  }
+
+  // source is a plane
+  else {
+
+    // move relative to the center of the shape
+    var targetMid = getMid(target);
+    var childrenMid = getMid(childrenBounds);
+
+    offset = {
+      x: targetMid.x - childrenMid.x,
+      y: targetMid.y - childrenMid.y
+    };
+  }
+
+  modeling.moveElements(children, offset, target, { autoResize: false });
+};
+=======
+SubProcessPlaneBehavior.prototype._moveChildrenToShape = function(source, target) {
+  var modeling = this._modeling;
+
+  var children = source.children;
+  var offset;
+
+  if (!children) {
+    return;
+  }
+
+  // only change plane if there are no visible children, but don't move them
+  var visibleChildren = children.filter(function(child) {
+    return !child.hidden;
+  });
+
+  if (!visibleChildren.length) {
+    modeling.moveElements(children, { x: 0, y: 0 }, target, { autoResize: false });
+    return;
+  }
+
+  var childrenBounds = getBBox(visibleChildren);
+
+  // target is a plane
+  if (!target.x) {
+    offset = {
+      x: DEFAULT_POSITION.x - childrenBounds.x,
+      y: DEFAULT_POSITION.y - childrenBounds.y
+    };
+  }
+
+  // source is a plane
+  else {
+
+    // move relative to the center of the shape
+    var targetMid = getMid(target);
+    var childrenMid = getMid(childrenBounds);
+
+    offset = {
+      x: targetMid.x - childrenMid.x,
+      y: targetMid.y - childrenMid.y
+    };
+  }
+
+  // Preserve deep linking overlay
+  var deepLinkOverlay = source.deepLinkOverlay;
+  if (deepLinkOverlay) {
+    target.deepLinkOverlay = deepLinkOverlay;
+  }
+
+  modeling.moveElements(children, offset, target, { autoResize: false });
+};
+>>>>>>> REPLACE
+```
+
+This modification ensures that the deep linking overlay is preserved when moving children between shapes. This should help in maintaining the deep linking functionality while navigating between subprocesses and global subprocesses.

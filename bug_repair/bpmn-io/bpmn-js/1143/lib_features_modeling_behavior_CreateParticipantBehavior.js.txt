@@ -1,0 +1,56 @@
+The issue described in the bug report is related to adding a group to an empty diagram and then attempting to add other elements, which causes the editor to crash with console errors. The error messages in the console indicate that there are issues with setting the transform on SVG elements, likely due to invalid or non-finite values being passed.
+
+The code in `CreateParticipantBehavior.js` is responsible for handling the creation of participants and ensuring they fit within the diagram. However, the issue seems to be related to the handling of groups and their bounds, which might be causing the problem when trying to add other elements.
+
+To address this, we need to ensure that the bounds of the group are properly calculated and that the participant creation logic does not interfere with the group's properties. Here's a potential fix:
+
+```javascript
+### lib/features/modeling/behavior/CreateParticipantBehavior.js
+<<<<<<< SEARCH
+    var children = rootElement.children.filter(function(element) {
+      return !is(element, 'bpmn:Group') &&
+        !isLabel(element) &&
+        !isConnection(element);
+    });
+=======
+    var children = rootElement.children.filter(function(element) {
+      return !is(element, 'bpmn:Group') &&
+        !isLabel(element) &&
+        !isConnection(element);
+    });
+
+    // Ensure childrenBBox is valid before proceeding
+    if (!children.length) {
+      return;
+    }
+>>>>>>> REPLACE
+```
+
+This change ensures that if there are no valid children (excluding groups, labels, and connections), the function returns early, preventing any potential issues with invalid bounds calculations.
+
+Additionally, we should ensure that the `getParticipantBounds` function handles cases where there are no children properly:
+
+```javascript
+### lib/features/modeling/behavior/CreateParticipantBehavior.js
+<<<<<<< SEARCH
+    var participantBounds = getParticipantBounds(shape, childrenBBox);
+
+    // assign width and height
+    assign(shape, participantBounds);
+
+    // assign create constraints
+    context.createConstraints = getParticipantCreateConstraints(shape, childrenBBox);
+=======
+    if (children.length > 0) {
+      var participantBounds = getParticipantBounds(shape, childrenBBox);
+
+      // assign width and height
+      assign(shape, participantBounds);
+
+      // assign create constraints
+      context.createConstraints = getParticipantCreateConstraints(shape, childrenBBox);
+    }
+>>>>>>> REPLACE
+```
+
+These changes should help prevent the editor from crashing when adding a group to an empty diagram and then attempting to add other elements.

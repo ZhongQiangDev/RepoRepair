@@ -1,0 +1,18 @@
+The issue described is that `loadStrings()` omits empty lines when it should include them. The bug is in the regular expression used to split the text into lines. The current regex `[^\r\n]+` matches one or more characters that are not carriage return or newline, which effectively skips empty lines.
+
+To fix this, we need to change the regex to match all lines, including empty ones. We can use `[\s\S]*?` which matches any character (including newlines) in a non-greedy way.
+
+Here's the fix:
+
+```javascript
+### src/io/files.js
+<<<<<<< SEARCH
+      var arr = data.match(/[^\r\n]+/g);
+=======
+      var arr = data.match(/[\s\S]*?(\r\n|\r|\n|$)/g).map(function(line) {
+        return line.trim();
+      });
+>>>>>>> REPLACE
+```
+
+This change will ensure that empty lines are included in the resulting array. The `trim()` function is used to remove any leading or trailing whitespace from each line, which is a common practice when processing text files.

@@ -1,0 +1,45 @@
+The issue described is that the flexbox elements are not stretching to the full page size as expected. The screenshots show that the red box should stretch to the full height of the page, but it does not. This is likely due to the way the dimensions and layout are being calculated in the `resolveDimensions` function.
+
+To fix this, we need to ensure that the flexbox properties are correctly applied and that the dimensions are set appropriately. Specifically, we need to ensure that the `flex-grow` property is set to `1` for the flexbox child elements so that they stretch to fill the available space.
+
+Here is the proposed fix:
+
+```javascript
+###packages/layout/src/steps/resolveDimensions.js
+<<<<<<< SEARCH
+const setNodeHeight = node =>
+  R.ifElse(
+    isPage,
+    setHeight(node.box.height),
+    setHeight(node.box.height || node.style.height),
+  );
+=======
+const setNodeHeight = node =>
+  R.ifElse(
+    isPage,
+    setHeight(node.box.height),
+    setHeight(node.box.height || node.style.height),
+  );
+
+// Ensure flex-grow is set to 1 for flexbox children
+const setFlexGrowForChildren = node => {
+  if (node.children && node.children.length > 0) {
+    node.children.forEach(child => {
+      if (child.style && child.style.flexGrow !== undefined) {
+        setFlexGrow(1)(child);
+      }
+    });
+  }
+  return node;
+};
+
+// Update resolveDimensions to include the new function
+const resolveDimensions = (node, fontStore) => {
+  const mapChild = child => resolvePageDimensions(child, fontStore);
+  const updatedNode = R.evolve({ children: R.map(mapChild) })(node);
+  return setFlexGrowForChildren(updatedNode);
+};
+>>>>>>> REPLACE
+```
+
+This change ensures that the `flex-grow` property is set to `1` for all flexbox child elements, which should allow them to stretch to fill the available space. This should resolve the issue where the red box is not stretching to the full height of the page.

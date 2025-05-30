@@ -1,0 +1,72 @@
+The issue described is related to duplicate Pool IDs when copying and pasting a Pool in the BPMN diagram. The provided XML snippet shows two processes with the same `id="Process_17iojvx"`, which is causing the problem.
+
+To fix this, we need to ensure that when a Pool is copied and pasted, the `id` attribute of the new Pool is updated to be unique. This likely involves modifying the code responsible for copying and pasting elements in the BPMN diagram.
+
+Since the provided code segment does not directly handle the copying and pasting of elements, we need to look for the relevant code that handles this functionality. However, based on the given code, we can infer that the `BpmnUpdater` class is responsible for updating the BPMN 2.0 XML when changes occur in the diagram.
+
+To address the issue, we need to ensure that when a Pool is copied and pasted, a new unique `id` is generated for the new Pool. This can be done by modifying the code that handles the copying and pasting of elements.
+
+Here is a potential fix:
+
+```javascript
+###lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+BpmnUpdater.prototype.updateParent = function(element, oldParent) {
+=======
+BpmnUpdater.prototype.updateParent = function(element, oldParent) {
+  // Generate a unique ID for the new Pool when copying and pasting
+  if (is(element, 'bpmn:Pool')) {
+    element.businessObject.id = generateUniquePoolId();
+  }
+
+  // do not update BPMN 2.0 label parent
+  if (element instanceof Label) {
+    return;
+  }
+
+  // data stores in collaborations are handled separately by DataStoreBehavior
+  if (is(element, 'bpmn:DataStoreReference') &&
+      element.parent &&
+      is(element.parent, 'bpmn:Collaboration')) {
+    return;
+  }
+
+  var parentShape = element.parent;
+
+  var businessObject = element.businessObject,
+      di = getDi(element),
+      parentBusinessObject = parentShape && parentShape.businessObject,
+      parentDi = getDi(parentShape);
+
+  if (is(element, 'bpmn:FlowNode')) {
+    this.updateFlowNodeRefs(businessObject, parentBusinessObject, oldParent && oldParent.businessObject);
+  }
+
+  if (is(element, 'bpmn:DataOutputAssociation')) {
+    if (element.source) {
+      parentBusinessObject = element.source.businessObject;
+    } else {
+      parentBusinessObject = null;
+    }
+  }
+
+  if (is(element, 'bpmn:DataInputAssociation')) {
+    if (element.target) {
+      parentBusinessObject = element.target.businessObject;
+    } else {
+      parentBusinessObject = null;
+    }
+  }
+
+  this.updateSemanticParent(businessObject, parentBusinessObject);
+
+  if (is(element, 'bpmn:DataObjectReference') && businessObject.dataObjectRef) {
+    this.updateSemanticParent(businessObject.dataObjectRef, parentBusinessObject);
+  }
+
+  this.updateDiParent(di, parentDi);
+};
+>>>>>>> REPLACE
+```
+
+Note: The `generateUniquePoolId` function is assumed to be defined elsewhere in the codebase and is responsible for generating a unique ID for the new Pool. This function should ensure that the generated ID is unique within the context of the BPMN diagram.

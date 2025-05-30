@@ -1,0 +1,95 @@
+The issue described in the bug report is related to the `implicit-arrow-linebreak` rule in ESLint, which is causing the autofixer to add extra characters and break the code when there are comments inside arrow functions. The problem seems to be in the `autoFixBesides` function, where it incorrectly handles comments and nested arrow functions.
+
+To fix this issue, we need to ensure that the autofixer correctly handles comments and nested arrow functions without breaking the code. Here's a proposed fix:
+
+```javascript
+###lib/rules/implicit-arrow-linebreak.js
+<<<<<<< SEARCH
+        /**
+         * Autofixes the function body to collapse onto the same line as the arrow.
+         * If comments exist, prepends the comments before the arrow function.
+         * If the function body contains arrow functions, appends the function bodies with parentheses.
+         * @param {Token} arrowToken The arrow token.
+         * @param {ASTNode} arrowBody the function body
+         * @param {ASTNode} node The evaluated node
+         * @returns {Function} autofixer -- validates the node to adhere to besides
+         */
+        function autoFixBesides(arrowToken, arrowBody, node) {
+            return fixer => {
+                const placeBesides = fixer.replaceTextRange([arrowToken.range[1], arrowBody.range[0]], " ");
+
+                const comments = sourceCode.getCommentsInside(node).filter(comment =>
+                    comment.loc.start.line < arrowBody.loc.start.line);
+
+                if (comments.length) {
+
+                    // If the grandparent is not a variable declarator
+                    if (
+                        arrowBody.parent &&
+                        arrowBody.parent.parent &&
+                        arrowBody.parent.parent.type !== "VariableDeclarator"
+                    ) {
+
+                        // If any arrow functions follow, return the necessary parens fixes.
+                        if (sourceCode.getTokenAfter(arrowToken, isArrowToken) && arrowBody.parent.parent.type !== "VariableDeclarator") {
+                            return addParentheses(fixer, arrowToken, arrowBody);
+                        }
+
+                        // If any arrow functions precede, the necessary fixes have already been returned, so return null.
+                        if (sourceCode.getTokenBefore(arrowToken, isArrowToken) && arrowBody.parent.parent.type !== "VariableDeclarator") {
+                            return null;
+                        }
+                    }
+
+                    const firstToken = findFirstToken(node);
+
+                    const commentText = formatComments(comments, firstToken.loc.start.column);
+
+                    const commentBeforeExpression = fixer.insertTextBeforeRange(
+                        firstToken.range,
+                        commentText
+                    );
+
+                    return [placeBesides, commentBeforeExpression];
+                }
+
+                return placeBesides;
+            };
+        }
+=======
+        /**
+         * Autofixes the function body to collapse onto the same line as the arrow.
+         * If comments exist, prepends the comments before the arrow function.
+         * If the function body contains arrow functions, appends the function bodies with parentheses.
+         * @param {Token} arrowToken The arrow token.
+         * @param {ASTNode} arrowBody the function body
+         * @param {ASTNode} node The evaluated node
+         * @returns {Function} autofixer -- validates the node to adhere to besides
+         */
+        function autoFixBesides(arrowToken, arrowBody, node) {
+            return fixer => {
+                const placeBesides = fixer.replaceTextRange([arrowToken.range[1], arrowBody.range[0]], " ");
+
+                const comments = sourceCode.getCommentsInside(node).filter(comment =>
+                    comment.loc.start.line < arrowBody.loc.start.line);
+
+                if (comments.length) {
+                    const firstToken = findFirstToken(node);
+
+                    const commentText = formatComments(comments, firstToken.loc.start.column);
+
+                    const commentBeforeExpression = fixer.insertTextBeforeRange(
+                        firstToken.range,
+                        commentText
+                    );
+
+                    return [placeBesides, commentBeforeExpression];
+                }
+
+                return placeBesides;
+            };
+        }
+>>>>>>> REPLACE
+```
+
+This fix removes the unnecessary checks for nested arrow functions and ensures that comments are correctly handled without breaking the code. The `addParentheses` function is no longer called in this context, as it was causing the issue with extra characters being added.

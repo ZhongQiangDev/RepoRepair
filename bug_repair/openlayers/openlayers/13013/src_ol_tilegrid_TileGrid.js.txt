@@ -1,0 +1,102 @@
+The issue described involves black tiles being rendered when using `ol.layer.WebGLTile` with `ol.source.DataTile` and a custom tile grid. The warning message indicates that there is a mismatch between the expected and available data for texture upload in WebGL. This suggests that the tile sizes or resolutions might not be correctly configured or calculated.
+
+Given the provided code and the issue description, the problem likely lies in how the tile sizes are being handled in the `TileGrid` class. Specifically, the tile sizes provided in the options (`tileSizes`) might not be correctly applied or calculated when determining the tile ranges.
+
+To address this, we need to ensure that the tile sizes are correctly used when calculating the tile ranges. Here's a potential fix:
+
+```javascript
+### src/ol/tilegrid/TileGrid.js
+<<<<<<< SEARCH
+    /**
+     * @param {import("../tilecoord.js").TileCoord} tileCoord Tile coordinate.
+     * @param {number} z Integer zoom level.
+     * @param {import("../TileRange.js").default} [opt_tileRange] Temporary import("../TileRange.js").default object.
+     * @return {import("../TileRange.js").default} Tile range.
+     */
+    getTileRangeForTileCoordAndZ(tileCoord, z, opt_tileRange) {
+      if (z > this.maxZoom || z < this.minZoom) {
+        return null;
+      }
+
+      const tileCoordZ = tileCoord[0];
+      const tileCoordX = tileCoord[1];
+      const tileCoordY = tileCoord[2];
+
+      if (z === tileCoordZ) {
+        return createOrUpdateTileRange(
+          tileCoordX,
+          tileCoordY,
+          tileCoordX,
+          tileCoordY,
+          opt_tileRange
+        );
+      }
+
+      if (this.zoomFactor_) {
+        const factor = Math.pow(this.zoomFactor_, z - tileCoordZ);
+        const minX = Math.floor(tileCoordX * factor);
+        const minY = Math.floor(tileCoordY * factor);
+        if (z < tileCoordZ) {
+          return createOrUpdateTileRange(minX, minX, minY, minY, opt_tileRange);
+        }
+
+        const maxX = Math.floor(factor * (tileCoordX + 1)) - 1;
+        const maxY = Math.floor(factor * (tileCoordY + 1)) - 1;
+        return createOrUpdateTileRange(minX, maxX, minY, maxY, opt_tileRange);
+      }
+
+      const tileCoordExtent = this.getTileCoordExtent(tileCoord, this.tmpExtent_);
+      return this.getTileRangeForExtentAndZ(tileCoordExtent, z, opt_tileRange);
+    }
+=======
+    /**
+     * @param {import("../tilecoord.js").TileCoord} tileCoord Tile coordinate.
+     * @param {number} z Integer zoom level.
+     * @param {import("../TileRange.js").default} [opt_tileRange] Temporary import("../TileRange.js").default object.
+     * @return {import("../TileRange.js").default} Tile range.
+     */
+    getTileRangeForTileCoordAndZ(tileCoord, z, opt_tileRange) {
+      if (z > this.maxZoom || z < this.minZoom) {
+        return null;
+      }
+
+      const tileCoordZ = tileCoord[0];
+      const tileCoordX = tileCoord[1];
+      const tileCoordY = tileCoord[2];
+
+      if (z === tileCoordZ) {
+        return createOrUpdateTileRange(
+          tileCoordX,
+          tileCoordY,
+          tileCoordX,
+          tileCoordY,
+          opt_tileRange
+        );
+      }
+
+      if (this.zoomFactor_) {
+        const factor = Math.pow(this.zoomFactor_, z - tileCoordZ);
+        const minX = Math.floor(tileCoordX * factor);
+        const minY = Math.floor(tileCoordY * factor);
+        if (z < tileCoordZ) {
+          return createOrUpdateTileRange(minX, minX, minY, minY, opt_tileRange);
+        }
+
+        const maxX = Math.floor(factor * (tileCoordX + 1)) - 1;
+        const maxY = Math.floor(factor * (tileCoordY + 1)) - 1;
+        return createOrUpdateTileRange(minX, maxX, minY, maxY, opt_tileRange);
+      }
+
+      const tileCoordExtent = this.getTileCoordExtent(tileCoord, this.tmpExtent_);
+      const tileSize = toSize(this.getTileSize(z), this.tmpSize_);
+      const tileRange = this.getTileRangeForExtentAndZ(tileCoordExtent, z, opt_tileRange);
+      tileRange.minX = Math.floor(tileRange.minX / tileSize[0]);
+      tileRange.maxX = Math.floor(tileRange.maxX / tileSize[0]);
+      tileRange.minY = Math.floor(tileRange.minY / tileSize[1]);
+      tileRange.maxY = Math.floor(tileRange.maxY / tileSize[1]);
+      return tileRange;
+    }
+>>>>>>> REPLACE
+```
+
+This change ensures that the tile sizes are correctly considered when calculating the tile ranges, which should help resolve the issue with black tiles being rendered.

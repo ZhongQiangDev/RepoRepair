@@ -1,0 +1,149 @@
+The issue described is that typed start events can be pasted onto a subprocess, which should not be allowed. The `canDrop` function in the `BpmnRules.js` file is responsible for determining if an element can be dropped onto a target. To fix this issue, we need to add a condition to prevent typed start events from being dropped onto a subprocess.
+
+Here is the proposed fix:
+
+```javascript
+### lib/features/rules/BpmnRules.js
+<<<<<<< SEARCH
+function canDrop(element, target, position) {
+
+  // can move labels and groups everywhere
+  if (isLabel(element) || isGroup(element)) {
+    return true;
+  }
+
+  // disallow to create elements on collapsed pools
+  if (is(target, 'bpmn:Participant') && !isExpanded(target)) {
+    return false;
+  }
+
+  // allow to create new participants on
+  // existing collaboration and process diagrams
+  if (is(element, 'bpmn:Participant')) {
+    return is(target, 'bpmn:Process') || is(target, 'bpmn:Collaboration');
+  }
+
+  // allow moving DataInput / DataOutput within its original container only
+  if (isAny(element, [ 'bpmn:DataInput', 'bpmn:DataOutput' ])) {
+
+    if (element.parent) {
+      return target === element.parent;
+    }
+  }
+
+  // allow creating lanes on participants and other lanes only
+  if (is(element, 'bpmn:Lane')) {
+    return is(target, 'bpmn:Participant') || is(target, 'bpmn:Lane');
+  }
+
+  // disallow dropping boundary events which cannot replace with intermediate event
+  if (is(element, 'bpmn:BoundaryEvent') && !isDroppableBoundaryEvent(element)) {
+    return false;
+  }
+
+  // drop flow elements onto flow element containers
+  // and participants
+  if (is(element, 'bpmn:FlowElement') && !is(element, 'bpmn:DataStoreReference')) {
+    if (is(target, 'bpmn:FlowElementsContainer')) {
+      return isExpanded(target);
+    }
+
+    return isAny(target, [ 'bpmn:Participant', 'bpmn:Lane' ]);
+  }
+
+  // account for the fact that data associations are always
+  // rendered and moved to top (Process or Collaboration level)
+  //
+  // artifacts may be placed wherever, too
+  if (isAny(element, [ 'bpmn:Artifact', 'bpmn:DataAssociation', 'bpmn:DataStoreReference' ])) {
+    return isAny(target, [
+      'bpmn:Collaboration',
+      'bpmn:Lane',
+      'bpmn:Participant',
+      'bpmn:Process',
+      'bpmn:SubProcess' ]);
+  }
+
+  if (is(element, 'bpmn:MessageFlow')) {
+    return is(target, 'bpmn:Collaboration')
+      || element.source.parent == target
+      || element.target.parent == target;
+  }
+
+  return false;
+}
+=======
+function canDrop(element, target, position) {
+
+  // can move labels and groups everywhere
+  if (isLabel(element) || isGroup(element)) {
+    return true;
+  }
+
+  // disallow to create elements on collapsed pools
+  if (is(target, 'bpmn:Participant') && !isExpanded(target)) {
+    return false;
+  }
+
+  // allow to create new participants on
+  // existing collaboration and process diagrams
+  if (is(element, 'bpmn:Participant')) {
+    return is(target, 'bpmn:Process') || is(target, 'bpmn:Collaboration');
+  }
+
+  // allow moving DataInput / DataOutput within its original container only
+  if (isAny(element, [ 'bpmn:DataInput', 'bpmn:DataOutput' ])) {
+
+    if (element.parent) {
+      return target === element.parent;
+    }
+  }
+
+  // allow creating lanes on participants and other lanes only
+  if (is(element, 'bpmn:Lane')) {
+    return is(target, 'bpmn:Participant') || is(target, 'bpmn:Lane');
+  }
+
+  // disallow dropping boundary events which cannot replace with intermediate event
+  if (is(element, 'bpmn:BoundaryEvent') && !isDroppableBoundaryEvent(element)) {
+    return false;
+  }
+
+  // drop flow elements onto flow element containers
+  // and participants
+  if (is(element, 'bpmn:FlowElement') && !is(element, 'bpmn:DataStoreReference')) {
+    if (is(target, 'bpmn:FlowElementsContainer')) {
+      return isExpanded(target);
+    }
+
+    return isAny(target, [ 'bpmn:Participant', 'bpmn:Lane' ]);
+  }
+
+  // account for the fact that data associations are always
+  // rendered and moved to top (Process or Collaboration level)
+  //
+  // artifacts may be placed wherever, too
+  if (isAny(element, [ 'bpmn:Artifact', 'bpmn:DataAssociation', 'bpmn:DataStoreReference' ])) {
+    return isAny(target, [
+      'bpmn:Collaboration',
+      'bpmn:Lane',
+      'bpmn:Participant',
+      'bpmn:Process',
+      'bpmn:SubProcess' ]);
+  }
+
+  // disallow dropping typed start events onto subprocess
+  if (is(element, 'bpmn:StartEvent') && is(target, 'bpmn:SubProcess')) {
+    return false;
+  }
+
+  if (is(element, 'bpmn:MessageFlow')) {
+    return is(target, 'bpmn:Collaboration')
+      || element.source.parent == target
+      || element.target.parent == target;
+  }
+
+  return false;
+}
+>>>>>>> REPLACE
+```

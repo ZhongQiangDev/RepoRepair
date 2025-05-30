@@ -1,0 +1,71 @@
+To address the issue where Boundary Events are not converted to Intermediate Events when moved out of their host in a batch operation, we need to ensure that the `elements.move` command checks if the moved elements are Boundary Events and converts them to Intermediate Events if they are moved outside their host.
+
+Here's the proposed fix:
+
+```javascript
+### lib/features/modeling/behavior/ReplaceElementBehaviour.js
+<<<<<<< SEARCH
+this.postExecuted([ 'elements.move' ], 500, function(event) {
+
+    var context = event.context,
+        target = context.newParent,
+        newHost = context.newHost,
+        elements = [];
+
+    forEach(context.closure.topLevel, function(topLevelElements) {
+      if (isEventSubProcess(topLevelElements)) {
+        elements = elements.concat(topLevelElements.children);
+      } else {
+        elements = elements.concat(topLevelElements);
+      }
+    });
+
+    // Change target to host when the moving element is a `bpmn:BoundaryEvent`
+    if (elements.length === 1 && newHost) {
+      target = newHost;
+    }
+
+    var canReplace = bpmnRules.canReplace(elements, target);
+
+    if (canReplace) {
+      this.replaceElements(elements, canReplace.replacements, newHost);
+    }
+  }, this);
+=======
+this.postExecuted([ 'elements.move' ], 500, function(event) {
+
+    var context = event.context,
+        target = context.newParent,
+        newHost = context.newHost,
+        elements = [];
+
+    forEach(context.closure.topLevel, function(topLevelElements) {
+      if (isEventSubProcess(topLevelElements)) {
+        elements = elements.concat(topLevelElements.children);
+      } else {
+        elements = elements.concat(topLevelElements);
+      }
+    });
+
+    // Check if any of the moved elements are Boundary Events and convert them to Intermediate Events if moved outside their host
+    elements.forEach(function(element) {
+      if (is(element, 'bpmn:BoundaryEvent') && !newHost) {
+        this._modeling.convertElement(element, 'bpmn:IntermediateCatchEvent');
+      }
+    }, this);
+
+    // Change target to host when the moving element is a `bpmn:BoundaryEvent`
+    if (elements.length === 1 && newHost) {
+      target = newHost;
+    }
+
+    var canReplace = bpmnRules.canReplace(elements, target);
+
+    if (canReplace) {
+      this.replaceElements(elements, canReplace.replacements, newHost);
+    }
+  }, this);
+>>>>>>> REPLACE
+```
+
+This fix introduces a check to see if any of the moved elements are Boundary Events and converts them to Intermediate Events if they are moved outside their host. This ensures that the expected behavior is met when Boundary Events are moved in a batch operation.

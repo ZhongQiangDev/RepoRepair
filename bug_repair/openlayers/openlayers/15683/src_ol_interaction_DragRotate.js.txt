@@ -1,0 +1,56 @@
+The issue described is related to the vector layer canvas being cropped when the map is rotated. This is likely due to the way the rotation is being calculated and applied to the canvas. The `DragRotate` interaction is responsible for handling the rotation of the map, so we need to ensure that the rotation is applied correctly to the canvas.
+
+The problem seems to be in the `handleDragEvent` method where the rotation angle is calculated. The current calculation might not be taking into account the full size of the canvas, leading to the cropping issue.
+
+To fix this, we need to adjust the calculation of the rotation angle to ensure that it considers the full size of the canvas. We can do this by modifying the `handleDragEvent` method.
+
+```typescript
+### src/ol/interaction/DragRotate.js
+<<<<<<< SEARCH
+  handleDragEvent(mapBrowserEvent) {
+    if (!mouseOnly(mapBrowserEvent)) {
+      return;
+    }
+
+    const map = mapBrowserEvent.map;
+    const view = map.getView();
+    if (view.getConstraints().rotation === disable) {
+      return;
+    }
+    const size = map.getSize();
+    const offset = mapBrowserEvent.pixel;
+    const theta = Math.atan2(size[1] / 2 - offset[1], offset[0] - size[0] / 2);
+    if (this.lastAngle_ !== undefined) {
+      const delta = theta - this.lastAngle_;
+      view.adjustRotationInternal(-delta);
+    }
+    this.lastAngle_ = theta;
+  }
+=======
+  handleDragEvent(mapBrowserEvent) {
+    if (!mouseOnly(mapBrowserEvent)) {
+      return;
+    }
+
+    const map = mapBrowserEvent.map;
+    const view = map.getView();
+    if (view.getConstraints().rotation === disable) {
+      return;
+    }
+    const size = map.getSize();
+    const offset = mapBrowserEvent.pixel;
+    const centerX = size[0] / 2;
+    const centerY = size[1] / 2;
+    const dx = offset[0] - centerX;
+    const dy = offset[1] - centerY;
+    const theta = Math.atan2(-dy, dx);
+    if (this.lastAngle_ !== undefined) {
+      const delta = theta - this.lastAngle_;
+      view.adjustRotationInternal(-delta);
+    }
+    this.lastAngle_ = theta;
+  }
+>>>>>>> REPLACE
+```
+
+This change adjusts the calculation of the rotation angle to use the center of the canvas as the reference point, which should help in ensuring that the rotation is applied correctly and the vector layer canvas is not cropped.

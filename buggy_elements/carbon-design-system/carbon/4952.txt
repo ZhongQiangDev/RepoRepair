@@ -1,0 +1,65 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that the Chinese Input Method Editor (IME) does not work correctly with the ComboBox component. Specifically, when a user types using a Chinese IME, the input is not properly converted into Chinese characters. Instead, the input remains in the phonetic form (e.g., `ㄓㄨㄥ ㄨㄣˊㄘㄜˋㄕˋ` instead of `中文測試`).
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how the ComboBox component handles text input events. When using an IME, the input process involves multiple steps: typing phonetic characters, selecting the desired Chinese characters from a candidate list, and confirming the selection. The ComboBox component may not be properly handling these intermediate steps, leading to the phonetic characters being displayed instead of the final Chinese characters.
+
+### 3. Examine Each File One by One
+
+#### `packages/react/src/components/ComboBox/ComboBox-story.js`
+
+This file contains storybook configurations for the ComboBox component. It does not directly handle input events or IME support, so it is unlikely to be the source of the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `packages/react/src/components/ComboBox/ComboBox.js`
+
+This file contains the main ComboBox component, which is likely where the issue lies. The following functions and class are relevant:
+
+```
+packages/react/src/components/ComboBox/ComboBox.js
+class: ComboBox
+function: function_3
+function: function_4
+```
+
+- **Class `ComboBox`**: This class manages the state and rendering of the ComboBox. It includes event handlers like `handleOnStateChange` and `onInputChange`, which may need to be updated to properly handle IME input.
+- **Function `function_3` (`getInputValue`)**: This function determines the input value based on the selected item or initial item. It may need to be adjusted to handle IME input correctly.
+- **Function `function_4` (`findHighlightedIndex`)**: This function searches for the first occurrence of the input value within the items. It may need to be updated to handle IME input correctly.
+
+#### `packages/react/src/components/TextInput/TextInput.js`
+
+This file contains the TextInput component, which is used within the ComboBox component. The following function is relevant:
+
+```
+packages/react/src/components/TextInput/TextInput.js
+function: TextInput
+```
+
+- **Function `TextInput`**: This function handles the text input field. It includes event handlers like `onChange` and `onClick`, which may need to be updated to properly handle IME input.
+
+#### `packages/react/src/components/TextInput/util.js`
+
+This file contains utility functions for the TextInput component. It does not directly handle input events or IME support, so it is unlikely to be the source of the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+### Summary
+
+The following locations need inspection or editing to fix the problem:
+
+```
+packages/react/src/components/ComboBox/ComboBox.js
+class: ComboBox
+function: function_3
+function: function_4
+
+packages/react/src/components/TextInput/TextInput.js
+function: TextInput
+```

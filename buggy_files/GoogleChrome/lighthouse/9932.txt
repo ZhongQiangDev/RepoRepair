@@ -1,0 +1,25 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The issue described is that non-network URLs (like data URIs) are being treated as actual network requests, resulting in server response times being calculated for them. This is incorrect because data URIs do not involve network requests and should not have server response times.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause appears to be in how the network analysis and simulation handle data URIs. Specifically, the code is likely not filtering out or properly handling data URIs when calculating server response times and RTTs. This results in the inclusion of server response times for non-network requests, which is incorrect.
+
+### 3. Find Up to 5 Files Most Related to the Cause
+
+Based on the analysis, the following files are most relevant to the issue, ordered by importance:
+
+```
+lighthouse-core/computed/network-analysis.js
+lighthouse-core/lib/dependency-graph/simulator/network-analyzer.js
+lighthouse-core/lib/dependency-graph/simulator/tcp-connection.js
+lighthouse-core/audits/network-server-latency.js
+lighthouse-core/lib/url-shim.js
+```
+
+- `lighthouse-core/computed/network-analysis.js`: This file is crucial as it calculates RTT and server response times. It likely needs to be modified to exclude data URIs from these calculations.
+- `lighthouse-core/lib/dependency-graph/simulator/network-analyzer.js`: This file contains methods for analyzing network requests and estimating RTT and server response times. It may need adjustments to handle data URIs correctly.
+- `lighthouse-core/lib/dependency-graph/simulator/tcp-connection.js`: This file models TCP connections and simulates network behavior. It might need changes to ensure data URIs are not treated as network requests.
+- `lighthouse-core/audits/network-server-latency.js`: This audit specifically measures server response times. It should be reviewed to ensure it correctly excludes data URIs.
+- `lighthouse-core/lib/url-shim.js`: This file provides utilities for handling URLs, including data URIs. It may need to be used or modified to properly identify and handle data URIs.

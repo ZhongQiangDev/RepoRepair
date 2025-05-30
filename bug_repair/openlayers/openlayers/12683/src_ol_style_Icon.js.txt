@@ -1,0 +1,88 @@
+The issue described is related to the offset being incorrect when a custom color is applied to an icon style and the screen pixel ratio is not equal to 1. The problem seems to be introduced in version 6.4.0 by the PR mentioned in the issue. The bug likely lies in how the offset is calculated or applied when a custom color is used.
+
+To fix this, we need to ensure that the offset calculation is independent of the screen pixel ratio and the custom color application. The `getOrigin` method seems to be the place where the offset is calculated. We need to adjust the calculation to account for the pixel ratio and ensure it works correctly with custom colors.
+
+Here is the proposed fix:
+
+```javascript
+### src/ol/style/Icon.js
+<<<<<<< SEARCH
+  /**
+   * Get the origin of the symbolizer.
+   * @return {Array<number>} Origin.
+   * @api
+   */
+  getOrigin() {
+    if (this.origin_) {
+      return this.origin_;
+    }
+    let offset = this.offset_;
+
+    if (this.offsetOrigin_ != IconOrigin.TOP_LEFT) {
+      const size = this.getSize();
+      const iconImageSize = this.iconImage_.getSize();
+      if (!size || !iconImageSize) {
+        return null;
+      }
+      offset = offset.slice();
+      if (
+        this.offsetOrigin_ == IconOrigin.TOP_RIGHT ||
+        this.offsetOrigin_ == IconOrigin.BOTTOM_RIGHT
+      ) {
+        offset[0] = iconImageSize[0] - size[0] - offset[0];
+      }
+      if (
+        this.offsetOrigin_ == IconOrigin.BOTTOM_LEFT ||
+        this.offsetOrigin_ == IconOrigin.BOTTOM_RIGHT
+      ) {
+        offset[1] = iconImageSize[1] - size[1] - offset[1];
+      }
+    }
+    this.origin_ = offset;
+    return this.origin_;
+  }
+=======
+  /**
+   * Get the origin of the symbolizer.
+   * @return {Array<number>} Origin.
+   * @api
+   */
+  getOrigin() {
+    if (this.origin_) {
+      return this.origin_;
+    }
+    let offset = this.offset_;
+
+    if (this.offsetOrigin_ != IconOrigin.TOP_LEFT) {
+      const size = this.getSize();
+      const iconImageSize = this.iconImage_.getSize();
+      if (!size || !iconImageSize) {
+        return null;
+      }
+      offset = offset.slice();
+      if (
+        this.offsetOrigin_ == IconOrigin.TOP_RIGHT ||
+        this.offsetOrigin_ == IconOrigin.BOTTOM_RIGHT
+      ) {
+        offset[0] = iconImageSize[0] - size[0] - offset[0];
+      }
+      if (
+        this.offsetOrigin_ == IconOrigin.BOTTOM_LEFT ||
+        this.offsetOrigin_ == IconOrigin.BOTTOM_RIGHT
+      ) {
+        offset[1] = iconImageSize[1] - size[1] - offset[1];
+      }
+    }
+
+    // Adjust offset for pixel ratio
+    const pixelRatio = this.getPixelRatio(1);
+    offset[0] /= pixelRatio;
+    offset[1] /= pixelRatio;
+
+    this.origin_ = offset;
+    return this.origin_;
+  }
+>>>>>>> REPLACE
+```
+
+This fix adjusts the offset calculation to account for the pixel ratio, ensuring that the offset is correctly applied regardless of the screen pixel ratio and the use of custom colors.

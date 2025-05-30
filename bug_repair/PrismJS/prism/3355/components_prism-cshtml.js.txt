@@ -1,0 +1,47 @@
+The issue described is related to incorrect highlighting of certain parts of the `.cshtml` code, specifically helper methods and C# attributes. The current regex patterns used for parsing and highlighting the code seem to be missing or incorrectly handling these specific cases.
+
+To address this, we need to update the regex patterns to correctly identify and highlight helper methods and C# attributes within the `.cshtml` code.
+
+Here's the proposed fix:
+
+```javascript
+###components/prism-cshtml.js
+<<<<<<< SEARCH
+var cs = {
+	pattern: /\S[\s\S]*/,
+	alias: 'language-csharp',
+	inside: csharpWithHtml
+};
+=======
+var cs = {
+	pattern: /\S[\s\S]*/,
+	alias: 'language-csharp',
+	inside: {
+		...csharpWithHtml,
+		'helper': {
+			pattern: /@helper\s+\w+\s*\([^)]*\)\s*\{[\s\S]*?\}/,
+			greedy: true,
+			inside: {
+				'keyword': /@helper/,
+				'csharp': cs
+			}
+		},
+		'attribute': {
+			pattern: /@\w+\.\w+\s*\([^)]*\)/,
+			greedy: true,
+			inside: {
+				'keyword': /@\w+\.\w+/,
+				'csharp': cs
+			}
+		}
+	}
+};
+>>>>>>> REPLACE
+```
+
+This update introduces two new patterns:
+
+1. **Helper Method Pattern**: This pattern matches the `@helper` keyword followed by the method name, parameters, and block content. It ensures that the helper method is correctly highlighted.
+2. **Attribute Pattern**: This pattern matches C# attributes within the `.cshtml` code, ensuring they are highlighted correctly.
+
+These changes should resolve the incorrect highlighting of helper methods and C# attributes in the `.cshtml` code.

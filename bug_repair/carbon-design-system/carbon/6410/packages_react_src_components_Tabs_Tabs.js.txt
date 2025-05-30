@@ -1,0 +1,117 @@
+To address the issue of removing the dropdown variant for tabs and ensuring the component behaves consistently across different screen sizes, we need to make several changes to the `Tabs.js` file. Specifically, we need to remove the logic that switches the tabs to a dropdown on smaller screens and ensure the markup consistently represents a tablist.
+
+Here are the necessary *SEARCH/REPLACE* edits:
+
+```javascript
+###packages/react/src/components/Tabs/Tabs.js
+<<<<<<< SEARCH
+const tabsWithProps = this.getTabs().map((tab, index) => {
+  const tabPanelIndex = index === this.state.selected ? 0 : -1;
+  const tabIndex = !this.state.dropdownHidden ? 0 : tabPanelIndex;
+  const newTab = React.cloneElement(tab, {
+    index,
+    selected: index === this.state.selected,
+    handleTabClick: this.handleTabClick(onSelectionChange),
+    tabIndex,
+    ref: (e) => {
+      this.setTabAt(index, e);
+    },
+    handleTabKeyDown: this.handleTabKeyDown(onSelectionChange),
+  });
+
+  return newTab;
+});
+=======
+const tabsWithProps = this.getTabs().map((tab, index) => {
+  const tabPanelIndex = index === this.state.selected ? 0 : -1;
+  const newTab = React.cloneElement(tab, {
+    index,
+    selected: index === this.state.selected,
+    handleTabClick: this.handleTabClick(onSelectionChange),
+    tabIndex: tabPanelIndex,
+    ref: (e) => {
+      this.setTabAt(index, e);
+    },
+    handleTabKeyDown: this.handleTabKeyDown(onSelectionChange),
+  });
+
+  return newTab;
+});
+>>>>>>> REPLACE
+```
+
+```javascript
+###packages/react/src/components/Tabs/Tabs.js
+<<<<<<< SEARCH
+const classes = {
+  tabs: classNames(`${prefix}--tabs`, className, {
+    [`${prefix}--tabs--container`]: type === 'container',
+  }),
+  tablist: classNames(`${prefix}--tabs__nav`, {
+    [`${prefix}--tabs__nav--hidden`]: this.state.dropdownHidden,
+  }),
+};
+=======
+const classes = {
+  tabs: classNames(`${prefix}--tabs`, className, {
+    [`${prefix}--tabs--container`]: type === 'container',
+  }),
+  tablist: `${prefix}--tabs__nav`,
+};
+>>>>>>> REPLACE
+```
+
+```javascript
+###packages/react/src/components/Tabs/Tabs.js
+<<<<<<< SEARCH
+<div
+  role="listbox"
+  aria-label={ariaLabel}
+  tabIndex={0}
+  className={`${prefix}--tabs-trigger`}
+  onClick={this.handleDropdownClick}
+  onKeyPress={this.handleDropdownClick}>
+  <a
+    tabIndex={-1}
+    className={`${prefix}--tabs-trigger-text`}
+    href={triggerHref}
+    onClick={this.handleDropdownClick}>
+    {selectedLabel}
+  </a>
+  <ChevronDown16 aria-hidden="true">
+    {iconDescription && <title>{iconDescription}</title>}
+  </ChevronDown16>
+</div>
+<ul role="tablist" className={classes.tablist}>
+  {tabsWithProps}
+</ul>
+=======
+<ul role="tablist" className={classes.tablist}>
+  {tabsWithProps}
+</ul>
+>>>>>>> REPLACE
+```
+
+```javascript
+###packages/react/src/components/Tabs/Tabs.js
+<<<<<<< SEARCH
+this.setState({
+  dropdownHidden: true,
+});
+=======
+// No need to manage dropdownHidden state
+>>>>>>> REPLACE
+```
+
+```javascript
+###packages/react/src/components/Tabs/Tabs.js
+<<<<<<< SEARCH
+this.setState({
+  dropdownHidden: !this.state.dropdownHidden,
+});
+=======
+// No need to manage dropdownHidden state
+>>>>>>> REPLACE
+```
+
+These changes remove the dropdown variant and ensure the tabs consistently behave as a tablist across all screen sizes.

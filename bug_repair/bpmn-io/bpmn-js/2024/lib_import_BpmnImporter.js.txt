@@ -1,0 +1,43 @@
+To address the issue of correctly rendering pool/lane labels in vertical collaboration, we need to ensure that the orientation of the pool is taken into account when rendering the labels. Specifically, we need to check the `isHorizontal` property of the `BPMNShape` and adjust the label rendering accordingly.
+
+Here's the proposed fix:
+
+```javascript
+### lib/import/BpmnImporter.js
+<<<<<<< SEARCH
+  label = this._elementFactory.createLabel(elementData(semantic, di, {
+    id: semantic.id + '_label',
+    labelTarget: element,
+    type: 'label',
+    hidden: element.hidden || !getLabel(element),
+    x: Math.round(bounds.x),
+    y: Math.round(bounds.y),
+    width: Math.round(bounds.width),
+    height: Math.round(bounds.height)
+  }));
+=======
+  // Check if the pool is vertical
+  const isVertical = di.isHorizontal === 'false';
+
+  // Adjust label bounds for vertical pools
+  if (isVertical) {
+    bounds = {
+      x: Math.round(bounds.y),
+      y: Math.round(bounds.x),
+      width: Math.round(bounds.height),
+      height: Math.round(bounds.width)
+    };
+  }
+
+  label = this._elementFactory.createLabel(elementData(semantic, di, {
+    id: semantic.id + '_label',
+    labelTarget: element,
+    type: 'label',
+    hidden: element.hidden || !getLabel(element),
+    x: Math.round(bounds.x),
+    y: Math.round(bounds.y),
+    width: Math.round(bounds.width),
+    height: Math.round(bounds.height)
+  }));
+>>>>>>> REPLACE
+```

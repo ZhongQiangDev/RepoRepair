@@ -1,0 +1,159 @@
+The issue described involves inconsistent behavior when adding, undoing, and redoing the addition of a participant in a BPMN model, as well as a bug related to copying pools that results in duplicate IDs. The code provided is related to copying model properties, but the issue seems to be more about the management of IDs during these operations.
+
+To address the issue of duplicate IDs when copying pools, we need to ensure that each copied pool gets a unique ID. This can be achieved by modifying the `copyProperty` method to generate a new unique ID for copied elements.
+
+Here's the proposed fix:
+
+```javascript
+### lib/features/copy-paste/ModdleCopy.js
+<<<<<<< SEARCH
+ModdleCopy.prototype.copyProperty = function(property, parent, propertyName) {
+  var self = this;
+
+  // allow others to copy property
+  var copiedProperty = this._eventBus.fire('moddleCopy.canCopyProperty', {
+    parent: parent,
+    property: property,
+    propertyName: propertyName
+  });
+
+  // return if copying is NOT allowed
+  if (copiedProperty === false) {
+    return;
+  }
+
+  if (copiedProperty) {
+    if (isObject(copiedProperty) && copiedProperty.$type && !copiedProperty.$parent) {
+      copiedProperty.$parent = parent;
+    }
+
+    return copiedProperty;
+  }
+
+  var propertyDescriptor = this._moddle.getPropertyDescriptor(parent, propertyName);
+
+  // do NOT copy references
+  if (propertyDescriptor.isReference) {
+    return;
+  }
+
+  // copy id
+  if (propertyDescriptor.isId) {
+    return this._copyId(property, parent);
+  }
+
+  // copy arrays
+  if (isArray(property)) {
+    return reduce(property, function(childProperties, childProperty) {
+
+      // recursion
+      copiedProperty = self.copyProperty(childProperty, parent, propertyName);
+
+      // copying might NOT be allowed
+      if (copiedProperty) {
+        copiedProperty.$parent = parent;
+
+        return childProperties.concat(copiedProperty);
+      }
+
+      return childProperties;
+    }, []);
+  }
+
+  // copy model elements
+  if (isObject(property) && property.$type) {
+    if (this._moddle.getElementDescriptor(property).isGeneric) {
+      return;
+    }
+
+    copiedProperty = self._bpmnFactory.create(property.$type);
+
+    copiedProperty.$parent = parent;
+
+    // recursion
+    copiedProperty = self.copyElement(property, copiedProperty);
+
+    return copiedProperty;
+  }
+
+  // copy primitive properties
+  return property;
+};
+=======
+ModdleCopy.prototype.copyProperty = function(property, parent, propertyName) {
+  var self = this;
+
+  // allow others to copy property
+  var copiedProperty = this._eventBus.fire('moddleCopy.canCopyProperty', {
+    parent: parent,
+    property: property,
+    propertyName: propertyName
+  });
+
+  // return if copying is NOT allowed
+  if (copiedProperty === false) {
+    return;
+  }
+
+  if (copiedProperty) {
+    if (isObject(copiedProperty) && copiedProperty.$type && !copiedProperty.$parent) {
+      copiedProperty.$parent = parent;
+    }
+
+    return copiedProperty;
+  }
+
+  var propertyDescriptor = this._moddle.getPropertyDescriptor(parent, propertyName);
+
+  // do NOT copy references
+  if (propertyDescriptor.isReference) {
+    return;
+  }
+
+  // copy id
+  if (propertyDescriptor.isId) {
+    // Generate a new unique ID for copied elements
+    return this._moddle.createId(property.$type);
+  }
+
+  // copy arrays
+  if (isArray(property)) {
+    return reduce(property, function(childProperties, childProperty) {
+
+      // recursion
+      copiedProperty = self.copyProperty(childProperty, parent, propertyName);
+
+      // copying might NOT be allowed
+      if (copiedProperty) {
+        copiedProperty.$parent = parent;
+
+        return childProperties.concat(copiedProperty);
+      }
+
+      return childProperties;
+    }, []);
+  }
+
+  // copy model elements
+  if (isObject(property) && property.$type) {
+    if (this._moddle.getElementDescriptor(property).isGeneric) {
+      return;
+    }
+
+    copiedProperty = self._bpmnFactory.create(property.$type);
+
+    copiedProperty.$parent = parent;
+
+    // recursion
+    copiedProperty = self.copyElement(property, copiedProperty);
+
+    return copiedProperty;
+  }
+
+  // copy primitive properties
+  return property;
+};
+>>>>>>> REPLACE
+```
+
+This change ensures that when copying a pool or any other element that has an ID, a new unique ID is generated for the copied element, preventing duplicate IDs.

@@ -1,0 +1,65 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when a Jetpack post is opened for a site with the JSON API turned off, the replies endpoint returns a 403 error. This results in a flood of error notices being displayed, indicating that the comments could not be retrieved for the requested post. The issue is that the system does not handle the 403 error gracefully, leading to a poor user experience with excessive error notifications.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior is likely due to the following reasons:
+- The system does not properly handle the 403 error returned by the replies endpoint when the JSON API is turned off.
+- There is no mechanism in place to limit the number of retries when an error occurs.
+- The error handling does not include displaying a single, clear error message in the comments section instead of flooding the user with multiple error notices.
+- The system does not set comments to 'off' in the API response when the Jetpack JSON API is turned off for the site.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### client/blocks/comments/post-comment-list.jsx
+```
+client/blocks/comments/post-comment-list.jsx
+function: function_1
+class: PostCommentList
+```
+- `function_1` is responsible for extracting and returning comment-related data, which could be relevant to handling the error when fetching comments.
+- `PostCommentList` is a React component that manages and displays comments, and it could be relevant to handling the error and displaying a clear message.
+
+#### client/notices/index.js
+```
+client/notices/index.js
+function: function_5
+function: function_8
+function: function_9
+```
+- `function_5` generates an error notice, which is relevant to the excessive error notices being displayed.
+- `function_8` removes a notice, which could be relevant to limiting the number of error notices.
+- `function_9` clears notices on navigation, which could be relevant to managing the error notices more effectively.
+
+#### client/state/comments/actions.js
+```
+client/state/comments/actions.js
+function: requestPostComments
+function: receiveCommentsError
+```
+- `requestPostComments` is responsible for requesting comments for a specific post, which could be relevant to handling the 403 error.
+- `receiveCommentsError` handles the error when receiving comments, which is directly related to the issue.
+
+#### client/state/comments/reducer.js
+```
+client/state/comments/reducer.js
+function: function_14
+function: function_15
+```
+- `function_14` manages error states for comments, which could be relevant to handling the 403 error.
+- `function_15` marks a comment as having an error, which could be relevant to the error handling.
+
+#### client/state/data-layer/wpcom/sites/comments/index.js
+```
+client/state/data-layer/wpcom/sites/comments/index.js
+function: function_5
+function: function_7
+function: function_12
+```
+- `function_5` fetches a specific comment, which could be relevant to handling the 403 error.
+- `function_7` handles the successful reception of a comment, which could be relevant to the error handling.
+- `function_12` announces a failure when retrieving comments, which is directly related to the issue.
+
+### Summary
+The identified functions and classes are relevant to the cause of the problem and should be inspected or edited to fix the issue.

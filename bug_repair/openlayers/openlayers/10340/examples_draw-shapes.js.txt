@@ -1,0 +1,126 @@
+The issue described is related to the shapes drawn using the `Draw` interaction not maintaining their expected size and shape when `useGeographic` is set to `true`. This is particularly noticeable in higher latitudes and when drawing regular polygons or boxes. The problem arises because the `createRegularPolygon` and `createBox` functions do not account for the geographic projection.
+
+To address this, we need to modify the `geometryFunction` for `Square`, `Box`, and `Star` to ensure they produce the correct shapes in geographic coordinates. We can achieve this by transforming the coordinates from the view projection to the geographic projection before calculating the shape.
+
+Here's the proposed fix:
+
+```javascript
+### examples/draw-shapes.js
+<<<<<<< SEARCH
+    let geometryFunction;
+    if (value === 'Square') {
+      value = 'Circle';
+      geometryFunction = createRegularPolygon(4);
+    } else if (value === 'Box') {
+      value = 'Circle';
+      geometryFunction = createBox();
+    } else if (value === 'Star') {
+      value = 'Circle';
+      geometryFunction = function(coordinates, geometry) {
+        const center = coordinates[0];
+        const last = coordinates[1];
+        const dx = center[0] - last[0];
+        const dy = center[1] - last[1];
+        const radius = Math.sqrt(dx * dx + dy * dy);
+        const rotation = Math.atan2(dy, dx);
+        const newCoordinates = [];
+        const numPoints = 12;
+        for (let i = 0; i < numPoints; ++i) {
+          const angle = rotation + i * 2 * Math.PI / numPoints;
+          const fraction = i % 2 === 0 ? 1 : 0.5;
+          const offsetX = radius * fraction * Math.cos(angle);
+          const offsetY = radius * fraction * Math.sin(angle);
+          newCoordinates.push([center[0] + offsetX, center[1] + offsetY]);
+        }
+        newCoordinates.push(newCoordinates[0].slice());
+        if (!geometry) {
+          geometry = new Polygon([newCoordinates]);
+        } else {
+          geometry.setCoordinates([newCoordinates]);
+        }
+        return geometry;
+      };
+    }
+=======
+    let geometryFunction;
+    if (value === 'Square') {
+      value = 'Circle';
+      geometryFunction = function(coordinates, geometry) {
+        const view = map.getView();
+        const projection = view.getProjection();
+        const center = projection.fromViewCoordinates(coordinates[0]);
+        const last = projection.fromViewCoordinates(coordinates[1]);
+        const dx = center[0] - last[0];
+        const dy = center[1] - last[1];
+        const radius = Math.sqrt(dx * dx + dy * dy);
+        const rotation = Math.atan2(dy, dx);
+        const newCoordinates = [];
+        const numPoints = 4;
+        for (let i = 0; i < numPoints; ++i) {
+          const angle = rotation + i * 2 * Math.PI / numPoints;
+          const offsetX = radius * Math.cos(angle);
+          const offsetY = radius * Math.sin(angle);
+          newCoordinates.push(projection.toViewCoordinates([center[0] + offsetX, center[1] + offsetY]));
+        }
+        newCoordinates.push(newCoordinates[0].slice());
+        if (!geometry) {
+          geometry = new Polygon([newCoordinates]);
+        } else {
+          geometry.setCoordinates([newCoordinates]);
+        }
+        return geometry;
+      };
+    } else if (value === 'Box') {
+      value = 'Circle';
+      geometryFunction = function(coordinates, geometry) {
+        const view = map.getView();
+        const projection = view.getProjection();
+        const center = projection.fromViewCoordinates(coordinates[0]);
+        const last = projection.fromViewCoordinates(coordinates[1]);
+        const dx = center[0] - last[0];
+        const dy = center[1] - last[1];
+        const newCoordinates = [
+          projection.toViewCoordinates([center[0] - dx / 2, center[1] - dy / 2]),
+          projection.toViewCoordinates([center[0] + dx / 2, center[1] - dy / 2]),
+          projection.toViewCoordinates([center[0] + dx / 2, center[1] + dy / 2]),
+          projection.toViewCoordinates([center[0] - dx / 2, center[1] + dy / 2]),
+          projection.toViewCoordinates([center[0] - dx / 2, center[1] - dy / 2])
+        ];
+        if (!geometry) {
+          geometry = new Polygon([newCoordinates]);
+        } else {
+          geometry.setCoordinates([newCoordinates]);
+        }
+        return geometry;
+      };
+    } else if (value === 'Star') {
+      value = 'Circle';
+      geometryFunction = function(coordinates, geometry) {
+        const view = map.getView();
+        const projection = view.getProjection();
+        const center = projection.fromViewCoordinates(coordinates[0]);
+        const last = projection.fromViewCoordinates(coordinates[1]);
+        const dx = center[0] - last[0];
+        const dy = center[1] - last[1];
+        const radius = Math.sqrt(dx * dx + dy * dy);
+        const rotation = Math.atan2(dy, dx);
+        const newCoordinates = [];
+        const numPoints = 12;
+        for (let i = 0; i < numPoints; ++i) {
+          const angle = rotation + i * 2 * Math.PI / numPoints;
+          const fraction = i % 2 === 0 ? 1 : 0.5;
+          const offsetX = radius * fraction * Math.cos(angle);
+          const offsetY = radius * fraction * Math.sin(angle);
+          newCoordinates.push(projection.toViewCoordinates([center[0] + offsetX, center[1] + offsetY]));
+        }
+        newCoordinates.push(newCoordinates[0].slice());
+        if (!geometry) {
+          geometry = new Polygon([newCoordinates]);
+        } else {
+          geometry.setCoordinates([newCoordinates]);
+        }
+        return geometry;
+      };
+    }
+>>>>>>> REPLACE
+```

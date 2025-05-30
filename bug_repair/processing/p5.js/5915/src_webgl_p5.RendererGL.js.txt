@@ -1,0 +1,125 @@
+To address the issue of interpolating line colors vertex-wise in p5.js WebGL, we need to modify the WebGL renderer to handle vertex-wise stroke colors. This involves updating the shaders, adding new buffers, and modifying the geometry handling. Below are the necessary changes:
+
+### 1. Update the Vertex Shader for Line Drawing
+
+We need to add an attribute for vertex color in the vertex shader and pass it to the fragment shader.
+
+```javascript
+### src/webgl/shaders/line.vert
+<<<<<<< SEARCH
+attribute vec3 aPosition;
+=======
+attribute vec3 aPosition;
+attribute vec4 aVertexColor;
+
+varying vec4 vColor;
+
+void main() {
+  vColor = aVertexColor;
+  gl_Position = uProjectionMatrix * uModelViewMatrix * vec4(aPosition, 1.0);
+}
+>>>>>>> REPLACE
+```
+
+### 2. Update the Fragment Shader for Line Drawing
+
+We need to use the varying variable to set the color in the fragment shader.
+
+```javascript
+### src/webgl/shaders/line.frag
+<<<<<<< SEARCH
+precision mediump float;
+
+uniform vec4 uColor;
+
+void main() {
+  gl_FragColor = uColor;
+}
+=======
+precision mediump float;
+
+varying vec4 vColor;
+
+void main() {
+  gl_FragColor = vColor;
+}
+>>>>>>> REPLACE
+```
+
+### 3. Modify the Renderer to Handle Vertex-wise Stroke Colors
+
+We need to add a new render buffer for line vertex colors and update the `_getImmediateLineShader` method.
+
+```javascript
+### src/webgl/p5.RendererGL.js
+<<<<<<< SEARCH
+new _main.default.RenderBuffer(4, 'vertexColors', 'colorBuffer', 'aVertexColor', this, this._flatten),
+=======
+new _main.default.RenderBuffer(4, 'vertexColors', 'colorBuffer', 'aVertexColor', this, this._flatten),
+new _main.default.RenderBuffer(4, 'lineVertexColors', 'lineColorBuffer', 'aVertexColor', this, this._flatten),
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+p5.RendererGL.prototype._getImmediateLineShader = function() {
+  return this._getShader('lineVert', 'lineFrag');
+};
+=======
+p5.RendererGL.prototype._getImmediateLineShader = function() {
+  if (this._lineVertexColors.length > 0) {
+    return this._getShader('lineVert', 'lineFrag');
+  } else {
+    return this._getShader('lineVert', 'lineFrag');
+  }
+};
+>>>>>>> REPLACE
+```
+
+### 4. Modify the Geometry to Store Line Vertex Colors
+
+We need to add a new array to store line vertex colors and update the `_edgesToVertices` method.
+
+```javascript
+### src/webgl/p5.Geometry.js
+<<<<<<< SEARCH
+this.vertexColors = [];
+=======
+this.vertexColors = [];
+this.lineVertexColors = [];
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+_main.default.Geometry.prototype._edgesToVertices = function () {
+  const data = this.vertexColors.slice();
+  this.vertexColors.length = 0;
+  /* ------- */
+  for (var i = 0; i < this.edges.length; i++) {
+    const e0 = this.edges[i][0];
+    const e1 = this.edges[i][1];
+    /* ------- */
+    if(data.length > 0){
+      var beginColor = [data[4*e0], data[4*e0+1], data[4*e0+2], data[4*e0+3]];
+      var endColor = [data[4*e1], data[4*e1+1], data[4*e1+2], data[4*e1+3]];
+      this.vertexColors.push(beginColor, beginColor, endColor, endColor, beginColor, endColor);
+    }
+  }
+};
+=======
+_main.default.Geometry.prototype._edgesToVertices = function () {
+  const data = this.lineVertexColors.slice();
+  this.lineVertexColors.length = 0;
+  /* ------- */
+  for (var i = 0; i < this.edges.length; i++) {
+    const e0 = this.edges[i][0];
+    const e1 = this.edges[i][1];
+    /* ------- */
+    if(data.length > 0){
+      var beginColor = [data[4*e0], data[4*e0+1], data[4*e0+2], data[4*e0+3]];
+      var endColor = [data[4*e1], data[4*e1+1], data[4*e1+2], data[4*e1+3]];
+      this.lineVertexColors.push(beginColor, beginColor, endColor, endColor, beginColor, endColor);
+    }
+  }
+};
+>>>>>>> REPLACE
+```
+
+These changes should allow for vertex-wise stroke color interpolation in p5.js WebGL.

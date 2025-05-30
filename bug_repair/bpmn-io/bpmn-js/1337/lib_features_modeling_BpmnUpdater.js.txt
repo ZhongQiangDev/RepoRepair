@@ -1,0 +1,70 @@
+To address the issue of disallowing typed Start Events inside non-event-based Sub Processes, we need to ensure that the BPMN modeler prevents the creation or morphing of typed start events within such sub-processes. The provided code snippet does not directly address this issue, so we need to add the necessary logic.
+
+Here's how we can modify the `BpmnUpdater.js` file to implement the required changes:
+
+1. Add a check to disallow morphing to typed start events inside sub-processes.
+2. Ensure that when a start event is moved to a sub-process, its event type is dropped.
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+/**
+ * Make sure the event listener is only called
+ * if the touched element is a BPMN element.
+ *
+ * @param  {Function} fn
+ * @return {Function} guarded function
+ */
+=======
+/**
+ * Make sure the event listener is only called
+ * if the touched element is a BPMN element.
+ *
+ * @param  {Function} fn
+ * @return {Function} guarded function
+ */
+function guardBpmnElement(fn) {
+  return function(event) {
+    var element = event.element;
+
+    if (!isBpmnElement(element)) {
+      return;
+    }
+
+    return fn(event);
+  };
+}
+
+function isBpmnElement(element) {
+  return is(element, 'bpmn:BaseElement');
+}
+
+function disallowTypedStartEventInSubProcess(event) {
+  var element = event.element,
+      target = event.target;
+
+  if (is(element, 'bpmn:StartEvent') && is(target, 'bpmn:SubProcess') && !isEventBasedSubProcess(target)) {
+    event.preventDefault();
+  }
+}
+
+function dropEventTypeWhenMovingToSubProcess(event) {
+  var element = event.element,
+      target = event.target;
+
+  if (is(element, 'bpmn:StartEvent') && is(target, 'bpmn:SubProcess') && !isEventBasedSubProcess(target)) {
+    var businessObject = getBusinessObject(element);
+    businessObject.eventDefinitions = [];
+  }
+}
+
+function isEventBasedSubProcess(subProcess) {
+  return is(subProcess, 'bpmn:EventSubProcess');
+}
+
+this._commandStack.registerListener('commandStack.preExecute', guardBpmnElement(disallowTypedStartEventInSubProcess));
+this._commandStack.registerListener('commandStack.postExecute', guardBpmnElement(dropEventTypeWhenMovingToSubProcess));
+>>>>>>> REPLACE
+```
+
+This code adds the necessary checks and listeners to prevent the creation or morphing of typed start events inside non-event-based sub-processes and ensures that the event type is dropped when a start event is moved to such a sub-process.

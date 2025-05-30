@@ -1,0 +1,63 @@
+The issue is that the word "account." is appearing on its own line, which is not desirable. To fix this, we need to apply the `preventWidows` treatment to the text. However, the issue mentions that applying `preventWidows()` directly to `this.getSupportText()` doesn't work because of the `<strong />` component. 
+
+To solve this, we can modify the `getSupportText` method to apply `preventWidows` to the text before it's rendered. We'll need to import the `preventWidows` function and then apply it to the translated text.
+
+Here's the fix:
+
+```javascript
+###client/components/happiness-support/index.jsx
+<<<<<<< SEARCH
+import React, { Component } from 'react';
+import PropTypes from 'prop-types';
+import classNames from 'classnames';
+import { connect } from 'react-redux';
+import { localize } from 'i18n-calypso';
+=======
+import React, { Component } from 'react';
+import PropTypes from 'prop-types';
+import classNames from 'classnames';
+import { connect } from 'react-redux';
+import { localize } from 'i18n-calypso';
+import { preventWidows } from 'lib/formatting'; // Add this import
+>>>>>>> REPLACE
+```
+
+```javascript
+###client/components/happiness-support/index.jsx
+<<<<<<< SEARCH
+getSupportText() {
+	const { isJetpackFreePlan, translate } = this.props;
+	const components = {
+		strong: <strong />,
+	};
+	return isJetpackFreePlan
+		? translate(
+				'{{strong}}Need help?{{/strong}} Search our support site to find out about your site, your account, and how to make the most of WordPress.',
+				{ components }
+		  )
+		: translate(
+				'{{strong}}Need help?{{/strong}} A Happiness Engineer can answer questions about your site and your account.',
+				{ components }
+		  );
+}
+=======
+getSupportText() {
+	const { isJetpackFreePlan, translate } = this.props;
+	const components = {
+		strong: <strong />,
+	};
+	const text = isJetpackFreePlan
+		? translate(
+				'{{strong}}Need help?{{/strong}} Search our support site to find out about your site, your account, and how to make the most of WordPress.',
+				{ components }
+		  )
+		: translate(
+				'{{strong}}Need help?{{/strong}} A Happiness Engineer can answer questions about your site and your account.',
+				{ components }
+		  );
+	return preventWidows(text); // Apply preventWidows to the translated text
+}
+>>>>>>> REPLACE
+```
+
+These changes will ensure that the `preventWidows` function is applied to the text, preventing the word "account." from appearing on its own line.

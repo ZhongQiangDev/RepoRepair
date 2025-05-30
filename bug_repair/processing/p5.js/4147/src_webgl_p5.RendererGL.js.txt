@@ -1,0 +1,35 @@
+The issue described is related to the vertex color functionality not working as expected in p5.js version 0.9.0 compared to version 0.8.0. The problem seems to be with how the `fill()` function is applied to vertices in WebGL mode. The code provided in the issue uses `fill()` before each `vertex()` call, which should ideally set the color for that specific vertex. However, in version 0.9.0, it appears that the colors are not being applied correctly.
+
+To fix this, we need to ensure that the `fill()` function properly sets the color for each vertex in the WebGL renderer. The issue might be related to how the shader is being set up or how the vertex colors are being passed to the shader.
+
+Here's a potential fix:
+
+```javascript
+### src/webgl/p5.RendererGL.js
+<<<<<<< SEARCH
+p5.RendererGL.prototype.fill = function(v1, v2, v3, a) {
+  //see material.js for more info on color blending in webgl
+  const color = p5.prototype.color.apply(this._pInst, arguments);
+  this.curFillColor = color._array;
+  this.drawMode = constants.FILL;
+  this._useNormalMaterial = false;
+  this._tex = null;
+};
+=======
+p5.RendererGL.prototype.fill = function(v1, v2, v3, a) {
+  //see material.js for more info on color blending in webgl
+  const color = p5.prototype.color.apply(this._pInst, arguments);
+  this.curFillColor = color._array;
+  this.drawMode = constants.FILL;
+  this._useNormalMaterial = false;
+  this._tex = null;
+
+  // Ensure the vertex color shader is used when fill is called
+  if (this._currentShapeType === 'VERTEX') {
+    this._currentShader = this._getImmediateVertexColorShader();
+  }
+};
+>>>>>>> REPLACE
+```
+
+This change ensures that when `fill()` is called in the context of drawing vertices (`this._currentShapeType === 'VERTEX'`), the appropriate vertex color shader is selected. This should help in correctly applying the colors to each vertex as intended.

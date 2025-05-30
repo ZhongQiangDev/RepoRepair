@@ -1,0 +1,31 @@
+The issue described is that task lists are still being rendered even when GFM is disabled. This is because the `list` method in `Tokenizer.js` is still processing task list items regardless of the `gfm` option. To fix this, we need to add a check for the `gfm` option before processing task list items.
+
+Here's the proposed fix:
+
+```javascript
+### src/Tokenizer.js
+<<<<<<< SEARCH
+        // Check for task list items
+        istask = /^\[[ xX]\] /.test(item);
+        ischecked = undefined;
+        if (istask) {
+          ischecked = item[1] !== ' ';
+          item = item.replace(/^\[[ xX]\] +/, '');
+        }
+=======
+        // Check for task list items only if GFM is enabled
+        if (this.options.gfm) {
+          istask = /^\[[ xX]\] /.test(item);
+          ischecked = undefined;
+          if (istask) {
+            ischecked = item[1] !== ' ';
+            item = item.replace(/^\[[ xX]\] +/, '');
+          }
+        } else {
+          istask = false;
+          ischecked = undefined;
+        }
+>>>>>>> REPLACE
+```
+
+This change ensures that task list items are only processed if the `gfm` option is enabled. If `gfm` is disabled, `istask` and `ischecked` will be set to `false` and `undefined` respectively, preventing the task list items from being rendered.

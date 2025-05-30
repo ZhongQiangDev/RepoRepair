@@ -1,0 +1,25 @@
+The issue described is related to the incorrect parent assignment of a sequence flow when replacing a message flow, especially when the source of the previous connection is a participant. The problem seems to be in the `replaceReconnectedConnection` function where the new connection is created but not properly assigned to the correct parent.
+
+To fix this, we need to ensure that the new connection is assigned to the correct parent, which is the second participant in this case. We can achieve this by modifying the `replaceReconnectedConnection` function to set the parent of the new connection explicitly.
+
+Here is the proposed fix:
+
+```javascript
+### lib/features/modeling/behavior/ReplaceConnectionBehavior.js
+<<<<<<< SEARCH
+    // temporarily connect old shapes with new connection
+    replacement = modeling.connect(connection.source, connection.target, {
+      type: allowed.type,
+      waypoints: connection.waypoints.slice()
+    });
+=======
+    // temporarily connect old shapes with new connection and set the correct parent
+    replacement = modeling.connect(connection.source, connection.target, {
+      type: allowed.type,
+      waypoints: connection.waypoints.slice(),
+      parent: context.newTarget.parent // Set the parent of the new connection to the parent of the new target
+    });
+>>>>>>> REPLACE
+```
+
+This change ensures that the new connection is assigned to the correct parent, which should resolve the issue of the sequence flow not being part of the second participant.

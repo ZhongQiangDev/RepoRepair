@@ -1,0 +1,95 @@
+The issue described is related to overlapping y-axis labels in a bar chart after upgrading from Chart.js version 2.7.3 to 2.9.3. The problem seems to be with the calculation of the y-axis labels' positions and sizes, causing them to overlap.
+
+To address this, we need to ensure that the y-axis labels are properly spaced and do not overlap. This can be achieved by adjusting the label rotation and padding settings in the `calculateLabelRotation` method.
+
+Here's the proposed fix:
+
+```javascript
+### src/core/core.scale.js
+<<<<<<< SEARCH
+  calculateLabelRotation() {
+    const me = this;
+    const options = me.options;
+    const tickOpts = options.ticks;
+    const numTicks = me.ticks.length;
+    const minRotation = tickOpts.minRotation || 0;
+    const maxRotation = tickOpts.maxRotation;
+    let labelRotation = minRotation;
+    let tickWidth, maxHeight, maxLabelDiagonal;
+
+    if (!me._isVisible() || !tickOpts.display || minRotation >= maxRotation || numTicks <= 1 || !me.isHorizontal()) {
+      me.labelRotation = minRotation;
+      return;
+    }
+
+    const labelSizes = me._getLabelSizes();
+    const maxLabelWidth = labelSizes.widest.width;
+    const maxLabelHeight = labelSizes.highest.height - labelSizes.highest.offset;
+
+    // Estimate the width of each grid based on the canvas width, the maximum
+    // label width and the number of tick intervals
+    const maxWidth = Math.min(me.maxWidth, me.chart.width - maxLabelWidth);
+    tickWidth = options.offset ? me.maxWidth / numTicks : maxWidth / (numTicks - 1);
+
+    // Allow 3 pixels x2 padding either side for label readability
+    if (maxLabelWidth + 6 > tickWidth) {
+      tickWidth = maxWidth / (numTicks - (options.offset ? 0.5 : 1));
+      maxHeight = me.maxHeight - getTickMarkLength(options.gridLines)
+				- tickOpts.padding - getScaleLabelHeight(options.scaleLabel, me.chart.options.font);
+      maxLabelDiagonal = Math.sqrt(maxLabelWidth * maxLabelWidth + maxLabelHeight * maxLabelHeight);
+      labelRotation = toDegrees(Math.min(
+        Math.asin(Math.min((labelSizes.highest.height + 6) / tickWidth, 1)),
+        Math.asin(Math.min(maxHeight / maxLabelDiagonal, 1)) - Math.asin(maxLabelHeight / maxLabelDiagonal)
+      ));
+      labelRotation = Math.max(minRotation, Math.min(maxRotation, labelRotation));
+    }
+
+    me.labelRotation = labelRotation;
+  }
+=======
+  calculateLabelRotation() {
+    const me = this;
+    const options = me.options;
+    const tickOpts = options.ticks;
+    const numTicks = me.ticks.length;
+    const minRotation = tickOpts.minRotation || 0;
+    const maxRotation = tickOpts.maxRotation;
+    let labelRotation = minRotation;
+    let tickWidth, maxHeight, maxLabelDiagonal;
+
+    if (!me._isVisible() || !tickOpts.display || minRotation >= maxRotation || numTicks <= 1 || !me.isHorizontal()) {
+      me.labelRotation = minRotation;
+      return;
+    }
+
+    const labelSizes = me._getLabelSizes();
+    const maxLabelWidth = labelSizes.widest.width;
+    const maxLabelHeight = labelSizes.highest.height - labelSizes.highest.offset;
+
+    // Estimate the width of each grid based on the canvas width, the maximum
+    // label width and the number of tick intervals
+    const maxWidth = Math.min(me.maxWidth, me.chart.width - maxLabelWidth);
+    tickWidth = options.offset ? me.maxWidth / numTicks : maxWidth / (numTicks - 1);
+
+    // Allow 3 pixels x2 padding either side for label readability
+    if (maxLabelWidth + 6 > tickWidth) {
+      tickWidth = maxWidth / (numTicks - (options.offset ? 0.5 : 1));
+      maxHeight = me.maxHeight - getTickMarkLength(options.gridLines)
+				- tickOpts.padding - getScaleLabelHeight(options.scaleLabel, me.chart.options.font);
+      maxLabelDiagonal = Math.sqrt(maxLabelWidth * maxLabelWidth + maxLabelHeight * maxLabelHeight);
+      labelRotation = toDegrees(Math.min(
+        Math.asin(Math.min((labelSizes.highest.height + 6) / tickWidth, 1)),
+        Math.asin(Math.min(maxHeight / maxLabelDiagonal, 1)) - Math.asin(maxLabelHeight / maxLabelDiagonal)
+      ));
+      labelRotation = Math.max(minRotation, Math.min(maxRotation, labelRotation));
+    }
+
+    // Increase padding to prevent label overlap
+    tickOpts.padding = Math.max(tickOpts.padding, 10); // Add extra padding
+
+    me.labelRotation = labelRotation;
+  }
+>>>>>>> REPLACE
+```
+
+This change increases the padding between the y-axis labels to prevent them from overlapping. The `tickOpts.padding` is set to a minimum value of 10 pixels, which should help in spacing out the labels properly. Adjust this value as needed based on the specific requirements of your chart.

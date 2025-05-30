@@ -1,0 +1,63 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that each WebGL TileLayer in OpenLayers uses a separate WebGL context. This leads to a limitation where the application can only have up to 16 WebGL TileLayers simultaneously due to the browser's hard limit on the number of WebGL contexts. When this limit is reached, the browser removes older WebGL contexts, causing the application to break down or misbehave.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior is that each WebGL TileLayer is currently designed to create and manage its own WebGL context. This design leads to a proliferation of WebGL contexts, which quickly exhausts the browser's limit. To address this, the WebGL TileLayers should ideally share a single WebGL context, thereby reducing the number of contexts required and making it less likely to hit the browser's limit.
+
+### 3. Examine Each File One by One and Determine Relevant Functions/Classes
+
+#### src/ol/geom/flat/contains.js
+```
+This file contains no relevant functions/classes.
+```
+
+#### src/ol/geom/flat/interpolate.js
+```
+This file contains no relevant functions/classes.
+```
+
+#### src/ol/renderer/canvas/VectorTileLayer.js
+```
+This file contains no relevant functions/classes.
+```
+
+#### src/ol/webgl/Helper.js
+```
+src/ol/webgl/Helper.js
+class: WebGLHelper
+```
+The `WebGLHelper` class is relevant because it manages WebGL resources, including contexts. It could be modified to allow multiple WebGL TileLayers to share a single WebGL context.
+
+#### src/ol/webgl/PostProcessingPass.js
+```
+This file contains no relevant functions/classes.
+```
+
+#### src/ol/webgl/RenderTarget.js
+```
+This file contains no relevant functions/classes.
+```
+
+#### src/ol/webgl/ShaderBuilder.js
+```
+This file contains no relevant functions/classes.
+```
+
+#### src/ol/webgl/TileTexture.js
+```
+src/ol/webgl/TileTexture.js
+class: TileTexture
+```
+The `TileTexture` class is relevant because it manages WebGL textures for tiles. It could be modified to work with a shared WebGL context instead of each tile layer having its own context.
+
+### Summary of Relevant Locations
+
+```
+src/ol/webgl/Helper.js
+class: WebGLHelper
+
+src/ol/webgl/TileTexture.js
+class: TileTexture
+```

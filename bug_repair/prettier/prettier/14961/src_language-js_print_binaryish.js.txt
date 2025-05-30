@@ -1,0 +1,39 @@
+To address the issue of Prettier adding spaces in Angular Pipes, we need to modify the `printBinaryishExpressions` function to handle the specific case of Angular Pipes. Specifically, we want to avoid adding spaces when the pipe arguments are strings or numbers, but add spaces in all other cases.
+
+Here's the proposed fix:
+
+```typescript
+### src/language-js/print/binaryish.js
+<<<<<<< SEARCH
+const rightSuffix =
+    node.type === "NGPipeExpression" && node.arguments.length > 0
+      ? group(
+          indent([
+            line,
+            ": ",
+            join(
+              [line, ": "],
+              path.map(() => align(2, group(print())), "arguments")
+            ),
+          ])
+        )
+      : "";
+=======
+const rightSuffix =
+    node.type === "NGPipeExpression" && node.arguments.length > 0
+      ? group(
+          indent([
+            line,
+            ":",
+            node.arguments.every(arg => typeof arg.value === 'string' || typeof arg.value === 'number') ? '' : ' ',
+            join(
+              [line, ": "],
+              path.map(() => align(2, group(print())), "arguments")
+            ),
+          ])
+        )
+      : "";
+>>>>>>> REPLACE
+```
+
+This modification checks if all arguments are strings or numbers and avoids adding spaces in that case. If any argument is not a string or number, it adds the spaces as before. This should align with the expected behavior mentioned in the issue.

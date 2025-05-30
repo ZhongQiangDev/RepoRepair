@@ -1,0 +1,52 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that after wrapping a collapsed sub-process with a pool and navigating into it, attempting to move back to the parent process results in an error: `Uncaught Error: rootElement required`. This indicates that the drilldown overlay is not properly handling changes to the root element when moving between processes.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The error message `Uncaught Error: rootElement required` suggests that the `Canvas` module is expecting a root element to be set but is not receiving one. This likely occurs because the drilldown overlay is not updating its internal state or references to the root element when the user navigates back up the process hierarchy. The issue may be related to how the root element is being tracked and updated within the `DrilldownBreadcrumbs` and `DrilldownOverlayBehavior` modules.
+
+### 3. Examine Each File One by One
+
+#### --- lib/features/drilldown/DrilldownBreadcrumbs.js ---
+```
+lib/features/drilldown/DrilldownBreadcrumbs.js
+function: DrilldownBreadcrumbs
+```
+The `DrilldownBreadcrumbs` function is responsible for creating and updating the breadcrumb navigation bar. It listens for the 'root.set' event and updates the breadcrumbs when the root element changes. The issue may be related to how it handles the root element change and updates the breadcrumb links.
+
+#### --- lib/features/drilldown/DrilldownOverlayBehavior.js ---
+```
+lib/features/drilldown/DrilldownOverlayBehavior.js
+function: DrilldownOverlayBehavior
+function: function_10
+function: function_12
+function: function_9
+```
+The `DrilldownOverlayBehavior` function manages the overlays for drilldown functionality. The `canDrillDown`, `addOverlay`, and `updateDrilldownOverlay` functions are relevant as they handle the visibility and addition of drilldown overlays. The issue may be related to how these functions handle the root element changes and update the overlays accordingly.
+
+#### --- lib/features/drilldown/SubprocessCompatibility.js ---
+```
+This file contains no relevant functions/classes.
+```
+The functions in this file are related to moving elements and creating new diagrams, which are not directly related to the root element change issue.
+
+#### --- lib/util/DrilldownUtil.js ---
+```
+This file contains no relevant functions/classes.
+```
+The functions in this file are utility functions for generating plane IDs, which are not directly related to the root element change issue.
+
+### Summary of Relevant Locations
+
+1. ```
+lib/features/drilldown/DrilldownBreadcrumbs.js
+function: DrilldownBreadcrumbs
+```
+2. ```
+lib/features/drilldown/DrilldownOverlayBehavior.js
+function: DrilldownOverlayBehavior
+function: function_10
+function: function_12
+function: function_9
+```

@@ -1,0 +1,77 @@
+The issue described is related to the TileDebug layer not correctly representing the inverted Y coordinate for the TileImage layer when using the `-y` placeholder in the URL template. The problem seems to be that the TileDebug layer is not aware of the inverted Y coordinate and thus does not align properly with the TileImage layer.
+
+To fix this, we need to ensure that the TileDebug layer correctly interprets the `-y` placeholder in the URL template. This can be achieved by modifying the `TileDebug` source to handle the inverted Y coordinate.
+
+Here is the proposed fix:
+
+```typescript
+### src/ol/source/TileDebug.js
+<<<<<<< SEARCH
+class TileDebug extends TileImage {
+  /**
+   * @param {!Options} options Tile debug options.
+   */
+  constructor(options) {
+    super({
+      attributions: options.attributions,
+      cacheSize: options.cacheSize,
+      opaque: options.opaque,
+      projection: options.projection,
+      state: options.state,
+      tileGrid: options.tileGrid,
+      tileLoadFunction: options.tileLoadFunction
+        ? options.tileLoadFunction
+        : defaultTileLoadFunction,
+      tilePixelRatio: options.tilePixelRatio,
+      tileUrlFunction: options.tileUrlFunction,
+      url: options.url,
+      urls: options.urls,
+      wrapX: options.wrapX,
+      transition: options.transition,
+      key: options.key,
+      attributionsCollapsible: options.attributionsCollapsible,
+      zDirection: options.zDirection,
+    });
+=======
+class TileDebug extends TileImage {
+  /**
+   * @param {!Options} options Tile debug options.
+   */
+  constructor(options) {
+    super({
+      attributions: options.attributions,
+      cacheSize: options.cacheSize,
+      opaque: options.opaque,
+      projection: options.projection,
+      state: options.state,
+      tileGrid: options.tileGrid,
+      tileLoadFunction: options.tileLoadFunction
+        ? options.tileLoadFunction
+        : defaultTileLoadFunction,
+      tilePixelRatio: options.tilePixelRatio,
+      tileUrlFunction: options.tileUrlFunction,
+      url: options.url,
+      urls: options.urls,
+      wrapX: options.wrapX,
+      transition: options.transition,
+      key: options.key,
+      attributionsCollapsible: options.attributionsCollapsible,
+      zDirection: options.zDirection,
+    });
+
+    // Override the tileUrlFunction to handle the inverted Y coordinate
+    if (options.url && options.url.includes('{-y}')) {
+      const originalTileUrlFunction = this.tileUrlFunction;
+      this.tileUrlFunction = function (tileCoord, pixelRatio, projection) {
+        const z = tileCoord[0];
+        const x = tileCoord[1];
+        const y = tileCoord[2];
+        const invertedY = Math.pow(2, z) - y - 1;
+        return originalTileUrlFunction([z, x, invertedY], pixelRatio, projection);
+      };
+    }
+>>>>>>> REPLACE
+}
+```
+
+This modification ensures that the `TileDebug` layer correctly interprets the `-y` placeholder in the URL template by inverting the Y coordinate before passing it to the original `tileUrlFunction`. This should align the TileDebug layer with the TileImage layer that uses the `-y` placeholder.

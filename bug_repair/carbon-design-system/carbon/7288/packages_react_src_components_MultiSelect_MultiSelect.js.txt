@@ -1,0 +1,177 @@
+To address the issue of adding an `onMenuChange` event for the multiselect menu, we need to introduce a new prop `onMenuChange` and trigger it whenever the menu's visibility changes. This will allow the user to know when the menu has been opened or closed.
+
+Here's the required SEARCH/REPLACE edit:
+
+```javascript
+###packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+const MultiSelect = React.forwardRef(function MultiSelect(
+  {
+    className: containerClassName,
+    id,
+    items,
+    itemToString,
+    titleText,
+    helperText,
+    label,
+    type,
+    size,
+    disabled,
+    initialSelectedItems,
+    sortItems,
+    compareItems,
+    light,
+    invalid,
+    invalidText,
+    warn,
+    warnText,
+    useTitleInItem,
+    translateWithId,
+    downshiftProps,
+    open,
+    selectionFeedback,
+    onChange,
+    direction,
+  },
+  ref
+) {
+=======
+const MultiSelect = React.forwardRef(function MultiSelect(
+  {
+    className: containerClassName,
+    id,
+    items,
+    itemToString,
+    titleText,
+    helperText,
+    label,
+    type,
+    size,
+    disabled,
+    initialSelectedItems,
+    sortItems,
+    compareItems,
+    light,
+    invalid,
+    invalidText,
+    warn,
+    warnText,
+    useTitleInItem,
+    translateWithId,
+    downshiftProps,
+    open,
+    selectionFeedback,
+    onChange,
+    onMenuChange, // New prop for menu change event
+    direction,
+  },
+  ref
+) {
+>>>>>>> REPLACE
+```
+
+```javascript
+###packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+  const {
+    getToggleButtonProps,
+    getLabelProps,
+    getMenuProps,
+    getItemProps,
+    selectedItem: selectedItems,
+  } = useSelect(
+    mapDownshiftProps({
+      ...downshiftProps,
+      highlightedIndex,
+      isOpen,
+      itemToString,
+      onStateChange,
+      selectedItem: controlledSelectedItems,
+      items,
+    })
+  );
+=======
+  const {
+    getToggleButtonProps,
+    getLabelProps,
+    getMenuProps,
+    getItemProps,
+    selectedItem: selectedItems,
+  } = useSelect(
+    mapDownshiftProps({
+      ...downshiftProps,
+      highlightedIndex,
+      isOpen,
+      itemToString,
+      onStateChange: (changes) => {
+        onStateChange(changes);
+        if (onMenuChange && changes.isOpen !== isOpen) {
+          onMenuChange(changes.isOpen); // Trigger onMenuChange when menu visibility changes
+        }
+      },
+      selectedItem: controlledSelectedItems,
+      items,
+    })
+  );
+>>>>>>> REPLACE
+```
+
+```javascript
+###packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+MultiSelect.propTypes = {
+  ...sortingPropTypes,
+  direction: PropTypes.oneOf(['top', 'bottom']),
+  disabled: PropTypes.bool,
+  downshiftProps: PropTypes.shape(Downshift.propTypes),
+  id: PropTypes.string.isRequired,
+  initialSelectedItems: PropTypes.array,
+  invalid: PropTypes.bool,
+  invalidText: PropTypes.string,
+  itemToString: PropTypes.func,
+  items: PropTypes.array.isRequired,
+  label: PropTypes.node.isRequired,
+  light: PropTypes.bool,
+  locale: PropTypes.string,
+  onChange: PropTypes.func,
+  open: PropTypes.bool,
+  selectionFeedback: PropTypes.oneOf(['top', 'fixed', 'top-after-reopen']),
+  size: ListBoxPropTypes.ListBoxSize,
+  titleText: PropTypes.string,
+  translateWithId: PropTypes.func,
+  type: PropTypes.oneOf(['default', 'inline']),
+  useTitleInItem: PropTypes.bool,
+  warn: PropTypes.bool,
+  warnText: PropTypes.string,
+};
+=======
+MultiSelect.propTypes = {
+  ...sortingPropTypes,
+  direction: PropTypes.oneOf(['top', 'bottom']),
+  disabled: PropTypes.bool,
+  downshiftProps: PropTypes.shape(Downshift.propTypes),
+  id: PropTypes.string.isRequired,
+  initialSelectedItems: PropTypes.array,
+  invalid: PropTypes.bool,
+  invalidText: PropTypes.string,
+  itemToString: PropTypes.func,
+  items: PropTypes.array.isRequired,
+  label: PropTypes.node.isRequired,
+  light: PropTypes.bool,
+  locale: PropTypes.string,
+  onChange: PropTypes.func,
+  onMenuChange: PropTypes.func, // New prop type for onMenuChange
+  open: PropTypes.bool,
+  selectionFeedback: PropTypes.oneOf(['top', 'fixed', 'top-after-reopen']),
+  size: ListBoxPropTypes.ListBoxSize,
+  titleText: PropTypes.string,
+  translateWithId: PropTypes.func,
+  type: PropTypes.oneOf(['default', 'inline']),
+  useTitleInItem: PropTypes.bool,
+  warn: PropTypes.bool,
+  warnText: PropTypes.string,
+};
+>>>>>>> REPLACE
+```
+
+These changes introduce the `onMenuChange` prop and ensure it is triggered whenever the menu's visibility changes. This allows the user to know when the menu has been opened or closed, addressing the issue described.

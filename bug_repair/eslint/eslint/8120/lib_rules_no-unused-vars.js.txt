@@ -1,0 +1,60 @@
+The issue described is that the `ignoreRestSiblings` flag in the `no-unused-vars` rule configuration is not working as expected when used inside function arguments. Specifically, the rule is still warning about unused variables even when they are siblings of a rest property.
+
+The problem lies in the `hasRestSpreadSibling` function, which is not correctly identifying the rest property and its siblings. The function checks if the last property of an object pattern is a rest property and then checks if the variable is a sibling of that rest property. However, it does not correctly handle the case where the rest property is inside a function argument.
+
+To fix this, we need to modify the `hasRestSpreadSibling` function to correctly identify rest properties and their siblings within function arguments.
+
+```javascript
+###lib/rules/no-unused-vars.js
+<<<<<<< SEARCH
+        /**
+         * Determines if a variable has a sibling rest property
+         * @param {Variable} variable - EScope variable object.
+         * @returns {boolean} True if the variable is exported, false if not.
+         * @private
+         */
+        function hasRestSpreadSibling(variable) {
+            if (config.ignoreRestSiblings) {
+                const restProperties = new Set(["ExperimentalRestProperty", "RestProperty"]);
+
+                return variable.defs
+                    .filter(def => def.name.type === "Identifier")
+                    .some(def => (
+                        def.node.id &&
+                        def.node.id.type === "ObjectPattern" &&
+                        def.node.id.properties.length &&
+                        restProperties.has(def.node.id.properties[def.node.id.properties.length - 1].type) &&  // last property is a rest property
+                        !restProperties.has(def.name.parent.type)  // variable is sibling of the rest property
+                    ));
+            }
+
+            return false;
+        }
+=======
+        /**
+         * Determines if a variable has a sibling rest property
+         * @param {Variable} variable - EScope variable object.
+         * @returns {boolean} True if the variable is a sibling of a rest property, false if not.
+         * @private
+         */
+        function hasRestSpreadSibling(variable) {
+            if (config.ignoreRestSiblings) {
+                const restProperties = new Set(["ExperimentalRestProperty", "RestProperty"]);
+
+                return variable.defs.some(def => {
+                    const id = def.name;
+                    const parent = id.parent;
+
+                    if (parent.type === "ObjectPattern" && parent.properties.length > 0) {
+                        const lastProperty = parent.properties[parent.properties.length - 1];
+                        return restProperties.has(lastProperty.type) && parent.properties.some(prop => prop !== lastProperty && prop.key.name === id.name);
+                    }
+
+                    return false;
+                });
+            }
+
+            return false;
+        }
+>>>>>>> REPLACE
+```

@@ -1,0 +1,45 @@
+The issue is that the current implementation of `filterTrace` does not filter out irrelevant user timing marks, such as those injected by Google Ads. To address this, we need to add a filtering mechanism that excludes specific user timing marks based on their names.
+
+Here's the proposed fix:
+
+```javascript
+###lighthouse-core/audits/user-timings.js
+<<<<<<< SEARCH
+    tabTrace.processEvents.filter(evt => {
+      if (!evt.cat.includes('blink.user_timing')) {
+        return false;
+      }
+
+      // reject these "userTiming" events that aren't really UserTiming, by nuking ones with frame data (or requestStart)
+      // https://cs.chromium.org/search/?q=trace_event.*?user_timing&sq=package:chromium&type=cs
+      return evt.name !== 'requestStart' &&
+          evt.name !== 'navigationStart' &&
+          evt.name !== 'paintNonDefaultBackgroundColor' &&
+          evt.args.frame === undefined;
+    })
+=======
+    tabTrace.processEvents.filter(evt => {
+      if (!evt.cat.includes('blink.user_timing')) {
+        return false;
+      }
+
+      // reject these "userTiming" events that aren't really UserTiming, by nuking ones with frame data (or requestStart)
+      // https://cs.chromium.org/search/?q=trace_event.*?user_timing&sq=package:chromium&type=cs
+      if (evt.name === 'requestStart' ||
+          evt.name === 'navigationStart' ||
+          evt.name === 'paintNonDefaultBackgroundColor' ||
+          evt.args.frame !== undefined) {
+        return false;
+      }
+
+      // Exclude irrelevant user timing marks, such as those injected by Google Ads
+      if (evt.name.startsWith('goog_') || evt.name.startsWith('ad_')) {
+        return false;
+      }
+
+      return true;
+    })
+>>>>>>> REPLACE
+```
+
+This change adds a new condition to the filter function that excludes user timing marks starting with 'goog_' or 'ad_', which are likely to be injected by Google Ads. This should help in filtering out irrelevant user timing marks and provide a more accurate performance analysis.

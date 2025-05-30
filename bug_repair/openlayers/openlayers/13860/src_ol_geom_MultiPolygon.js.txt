@@ -1,0 +1,26 @@
+The issue seems to be related to the `setCoordinates` method in the `MultiPolygon` class, where an invalid array length is being set. This is likely due to the `flatCoordinates.length` being set incorrectly when `endss.length` is 0.
+
+To fix this, we need to ensure that `flatCoordinates.length` is only set if `endss.length` is greater than 0. Here's the proposed fix:
+
+```javascript
+### src/ol/geom/MultiPolygon.js
+<<<<<<< SEARCH
+    if (endss.length === 0) {
+      this.flatCoordinates.length = 0;
+    } else {
+      const lastEnds = endss[endss.length - 1];
+      this.flatCoordinates.length =
+        lastEnds.length === 0 ? 0 : lastEnds[lastEnds.length - 1];
+    }
+=======
+    if (endss.length > 0) {
+      const lastEnds = endss[endss.length - 1];
+      this.flatCoordinates.length =
+        lastEnds.length === 0 ? 0 : lastEnds[lastEnds.length - 1];
+    } else {
+      this.flatCoordinates.length = 0;
+    }
+>>>>>>> REPLACE
+```
+
+This change ensures that `flatCoordinates.length` is only set if `endss.length` is greater than 0, preventing the `Invalid array length` error. If `endss.length` is 0, `flatCoordinates.length` is set to 0.

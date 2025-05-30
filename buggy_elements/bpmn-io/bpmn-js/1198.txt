@@ -1,0 +1,45 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when a `Timer Intermediate Catch Event` is added to a non-default flow of an exclusive gateway, the `default` attribute of the exclusive gateway is removed. This results in the default flow no longer being recognized as the default, even though it is still visually rendered as such.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior likely lies in the way the BPMN modeler handles the addition of intermediate events to sequence flows. When an intermediate event is added, the modeler may be inadvertently modifying the properties of the exclusive gateway, specifically removing the `default` attribute. This could be due to a lack of proper handling of the gateway's properties during the event attachment process.
+
+### 3. Examine Each File One by One
+
+#### --- lib/features/modeling/BpmnUpdater.js ---
+```
+lib/features/modeling/BpmnUpdater.js
+function: BpmnUpdater
+function: function_27
+function: function_25
+```
+The `BpmnUpdater` function handle various changes in a BPMN diagram, which is directly relevant to the issue. The `function_27` function updates connection details in a BPMN diagram. It might be relevant because it updates the source and target references of the business object, which could affect the properties of the exclusive gateway when an intermediate event is added. The `function_25` function updates the semantic parent of a business object. This could be relevant if the parent of the exclusive gateway is being incorrectly updated when an intermediate event is added.
+
+#### --- lib/features/modeling/behavior/AttachEventBehavior.js ---
+```
+lib/features/modeling/behavior/AttachEventBehavior.js
+function: AttachEventBehavior
+```
+The `AttachEventBehavior` function modifies the behavior of attaching events in a BPMN diagram. It could be relevant because it replaces intermediate events with boundary events, which might affect the properties of the exclusive gateway.
+
+#### --- lib/features/modeling/behavior/CreateBoundaryEventBehavior.js ---
+```
+lib/features/modeling/behavior/CreateBoundaryEventBehavior.js
+function: CreateBoundaryEventBehavior
+```
+The `CreateBoundaryEventBehavior` function handles the creation of boundary events. It could be relevant because it replaces intermediate throw events with boundary events, which might affect the properties of the exclusive gateway.
+
+#### --- lib/features/modeling/behavior/ReplaceElementBehaviour.js ---
+```
+lib/features/modeling/behavior/ReplaceElementBehaviour.js
+function: function_6
+```
+The `function_6` function replaces elements in a BPMN diagram. It could be relevant because it handles the replacement of elements, which might affect the properties of the exclusive gateway when an intermediate event is added.
+
+#### --- lib/util/ModelUtil.js ---
+```
+This file contains no relevant functions/classes.
+```
+The functions in this file are utility functions for getting business objects and checking element types. They do not directly handle the addition of intermediate events or the updating of gateway properties.

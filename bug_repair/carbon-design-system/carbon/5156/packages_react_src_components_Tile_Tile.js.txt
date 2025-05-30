@@ -1,0 +1,84 @@
+The issue is that the `onChange` event is not being fired when the SelectableTile is clicked or interacted with via keyboard. The problem lies in the fact that the `handleOnChange` method is not being called when the tile is selected or deselected.
+
+To fix this, we need to ensure that the `handleOnChange` method is called whenever the tile's selection state changes. We can do this by calling `handleOnChange` inside the `handleClick` and `handleKeyDown` methods.
+
+Here's the fix:
+
+```javascript
+###packages/react/src/components/Tile/Tile.js
+<<<<<<< SEARCH
+  handleClick = evt => {
+    evt.preventDefault();
+    evt.persist();
+    const isInput = evt.target === this.input;
+    if (!isInput) {
+      this.setState(
+        {
+          selected: !this.state.selected,
+        },
+        () => {
+          this.props.handleClick(evt);
+        }
+      );
+    } else {
+      this.props.handleClick(evt);
+    }
+  };
+
+  handleKeyDown = evt => {
+    evt.persist();
+    if (matches(evt, [keys.Enter, keys.Space])) {
+      evt.preventDefault();
+      this.setState(
+        {
+          selected: !this.state.selected,
+        },
+        () => {
+          this.props.handleKeyDown(evt);
+        }
+      );
+    } else {
+      this.props.handleKeyDown(evt);
+    }
+  };
+=======
+  handleClick = evt => {
+    evt.preventDefault();
+    evt.persist();
+    const isInput = evt.target === this.input;
+    if (!isInput) {
+      this.setState(
+        {
+          selected: !this.state.selected,
+        },
+        () => {
+          this.props.handleClick(evt);
+          this.handleOnChange({ target: { checked: this.state.selected } });
+        }
+      );
+    } else {
+      this.props.handleClick(evt);
+    }
+  };
+
+  handleKeyDown = evt => {
+    evt.persist();
+    if (matches(evt, [keys.Enter, keys.Space])) {
+      evt.preventDefault();
+      this.setState(
+        {
+          selected: !this.state.selected,
+        },
+        () => {
+          this.props.handleKeyDown(evt);
+          this.handleOnChange({ target: { checked: this.state.selected } });
+        }
+      );
+    } else {
+      this.props.handleKeyDown(evt);
+    }
+  };
+>>>>>>> REPLACE
+```
+
+This change ensures that the `handleOnChange` method is called whenever the tile's selection state changes, which should trigger the `onChange` event as expected.

@@ -1,0 +1,148 @@
+To address the issue where the `TileDebug` layer does not correctly represent the inverted Y coordinate for the `TileImage` layer, we need to modify the `TileGrid` class to handle the inverted Y coordinate properly. Specifically, we need to adjust the `getTileCoordForXYAndZ_` method to account for the inverted Y coordinate.
+
+Here's the proposed fix:
+
+```javascript
+### src/ol/tilegrid/TileGrid.js
+<<<<<<< SEARCH
+  /**
+   * Although there is repetition between this method and `getTileCoordForXYAndResolution_`,
+   * they should have separate implementations.  This method is for integer zoom
+   * levels.  The other method should only be called for resolutions corresponding
+   * to non-integer zoom levels.
+   * @param {number} x Map x coordinate.
+   * @param {number} y Map y coordinate.
+   * @param {number} z Integer zoom level.
+   * @param {boolean} reverseIntersectionPolicy Instead of letting edge
+   *     intersections go to the higher tile coordinate, let edge intersections
+   *     go to the lower tile coordinate.
+   * @param {import("../tilecoord.js").TileCoord} [opt_tileCoord] Temporary import("../tilecoord.js").TileCoord object.
+   * @return {import("../tilecoord.js").TileCoord} Tile coordinate.
+   * @private
+   */
+  getTileCoordForXYAndZ_(x, y, z, reverseIntersectionPolicy, opt_tileCoord) {
+    const origin = this.getOrigin(z);
+    const resolution = this.getResolution(z);
+    const tileSize = toSize(this.getTileSize(z), this.tmpSize_);
+
+    const adjustX = reverseIntersectionPolicy ? 0.5 : 0;
+    const adjustY = reverseIntersectionPolicy ? 0.5 : 0;
+    const xFromOrigin = Math.floor((x - origin[0]) / resolution + adjustX);
+    const yFromOrigin = Math.floor((origin[1] - y) / resolution + adjustY);
+    let tileCoordX = xFromOrigin / tileSize[0];
+    let tileCoordY = yFromOrigin / tileSize[1];
+
+    if (reverseIntersectionPolicy) {
+      tileCoordX = Math.ceil(tileCoordX) - 1;
+      tileCoordY = Math.ceil(tileCoordY) - 1;
+    } else {
+      tileCoordX = Math.floor(tileCoordX);
+      tileCoordY = Math.floor(tileCoordY);
+    }
+
+    return createOrUpdateTileCoord(z, tileCoordX, tileCoordY, opt_tileCoord);
+  }
+=======
+  /**
+   * Although there is repetition between this method and `getTileCoordForXYAndResolution_`,
+   * they should have separate implementations.  This method is for integer zoom
+   * levels.  The other method should only be called for resolutions corresponding
+   * to non-integer zoom levels.
+   * @param {number} x Map x coordinate.
+   * @param {number} y Map y coordinate.
+   * @param {number} z Integer zoom level.
+   * @param {boolean} reverseIntersectionPolicy Instead of letting edge
+   *     intersections go to the higher tile coordinate, let edge intersections
+   *     go to the lower tile coordinate.
+   * @param {import("../tilecoord.js").TileCoord} [opt_tileCoord] Temporary import("../tilecoord.js").TileCoord object.
+   * @return {import("../tilecoord.js").TileCoord} Tile coordinate.
+   * @private
+   */
+  getTileCoordForXYAndZ_(x, y, z, reverseIntersectionPolicy, opt_tileCoord) {
+    const origin = this.getOrigin(z);
+    const resolution = this.getResolution(z);
+    const tileSize = toSize(this.getTileSize(z), this.tmpSize_);
+
+    const adjustX = reverseIntersectionPolicy ? 0.5 : 0;
+    const adjustY = reverseIntersectionPolicy ? 0.5 : 0;
+    const xFromOrigin = Math.floor((x - origin[0]) / resolution + adjustX);
+    const yFromOrigin = Math.floor((origin[1] - y) / resolution + adjustY);
+    let tileCoordX = xFromOrigin / tileSize[0];
+    let tileCoordY = yFromOrigin / tileSize[1];
+
+    // Handle inverted Y coordinate
+    if (this.invertedY_) {
+      tileCoordY = Math.floor((origin[1] + y) / resolution + adjustY) / tileSize[1];
+    }
+
+    if (reverseIntersectionPolicy) {
+      tileCoordX = Math.ceil(tileCoordX) - 1;
+      tileCoordY = Math.ceil(tileCoordY) - 1;
+    } else {
+      tileCoordX = Math.floor(tileCoordX);
+      tileCoordY = Math.floor(tileCoordY);
+    }
+
+    return createOrUpdateTileCoord(z, tileCoordX, tileCoordY, opt_tileCoord);
+  }
+>>>>>>> REPLACE
+```
+
+Additionally, we need to add a property to the `TileGrid` class to indicate whether the Y coordinate is inverted:
+
+```javascript
+### src/ol/tilegrid/TileGrid.js
+<<<<<<< SEARCH
+  /**
+   * @param {Options} options Tile grid options.
+   */
+  constructor(options) {
+    /**
+     * @protected
+     * @type {number}
+     */
+    this.minZoom = options.minZoom !== undefined ? options.minZoom : 0;
+
+    /**
+     * @private
+     * @type {!Array<number>}
+     */
+    this.resolutions_ = options.resolutions;
+=======
+  /**
+   * @param {Options} options Tile grid options.
+   */
+  constructor(options) {
+    /**
+     * @protected
+     * @type {number}
+     */
+    this.minZoom = options.minZoom !== undefined ? options.minZoom : 0;
+
+    /**
+     * @private
+     * @type {!Array<number>}
+     */
+    this.resolutions_ = options.resolutions;
+
+    /**
+     * @private
+     * @type {boolean}
+     */
+    this.invertedY_ = options.invertedY || false;
+>>>>>>> REPLACE
+```
+
+Finally, we need to update the `TileImage` layer definition to include the `invertedY` option:
+
+```javascript
+TileImage
+        {
+            "baselayer": "baselayer",
+            "sourceOptions": {
+                "url": "/service@EPSG_3857/{z}/{x}/{-y}.png",
+                "type": "xyz",
+                "invertedY": true
+            }
+        }
+```

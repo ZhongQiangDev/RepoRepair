@@ -1,0 +1,41 @@
+The issue described is related to the handling of bold text when it contains an escaped square bracket and a closing brace. The problem seems to be in the way the `Tokenizer.js` handles the parsing of the bold text. The current implementation does not correctly handle the escaped square bracket within the bold text.
+
+To fix this issue, we need to adjust the regular expression used to match the bold text so that it correctly handles the escaped square bracket.
+
+Here is the proposed fix:
+
+```javascript
+### src/Tokenizer.js
+<<<<<<< SEARCH
+function outputLink(cap, link, raw, lexer) {
+  const href = link.href;
+  const title = link.title ? escape(link.title) : null;
+  const text = cap[1].replace(/\\([\[\]])/g, '$1');
+=======
+function outputLink(cap, link, raw, lexer) {
+  const href = link.href;
+  const title = link.title ? escape(link.title) : null;
+  const text = cap[1].replace(/\\([\[\]])/g, '$1').replace(/\\(\[)/g, '[');
+>>>>>>> REPLACE
+```
+
+This fix changes the `text` variable to also replace the escaped square bracket with the actual square bracket, ensuring that the bold text is correctly recognized.
+
+However, this fix might not be sufficient if the issue is related to the parsing of the bold text itself. In that case, we need to adjust the regular expression used to match the bold text.
+
+Here is the proposed fix for the regular expression:
+
+```javascript
+### src/Tokenizer.js
+<<<<<<< SEARCH
+const text = cap[1].replace(/\\([\[\]])/g, '$1');
+=======
+const text = cap[1].replace(/\\([\[\]])/g, '$1').replace(/\\(\[)/g, '[');
+const boldText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+cap[1] = boldText;
+>>>>>>> REPLACE
+```
+
+This fix changes the `text` variable to also replace the escaped square bracket with the actual square bracket and then replaces the bold text with the appropriate HTML tags.
+
+These fixes should resolve the issue with the bold text not being recognized when it contains an escaped square bracket and a closing brace.

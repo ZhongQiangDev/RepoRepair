@@ -1,0 +1,51 @@
+The issue described involves inconsistent behavior when adding, undoing, and redoing the addition of a participant in the BPMN model, as well as a bug related to copying a pool and resulting in duplicate IDs. The code provided is the `Modeler.js` file, which initializes the BPMN modeler and its modules. However, the specific logic for handling participants, undo/redo actions, and copying pools is not directly visible in this file. Therefore, the bug likely resides in other parts of the codebase that handle these specific functionalities.
+
+To address the issue, we need to ensure that the ID of the process remains consistent when undoing and redoing the addition of a participant. Additionally, we need to ensure that when copying a pool, the IDs are properly managed to avoid duplicates.
+
+Since the provided code does not contain the specific logic for these functionalities, we can only suggest a general approach to fix the issue. Here's a conceptual fix:
+
+1. Ensure that the process ID is preserved during undo/redo operations.
+2. Ensure that when copying a pool, new unique IDs are generated for the copied elements.
+
+Here's a conceptual `SEARCH/REPLACE` edit for the first issue (assuming the relevant code is in a different file):
+
+```javascript
+### src/features/modeling/ParticipantHandler.js
+<<<<<<< SEARCH
+function addParticipant(modeling, element) {
+  const newParticipant = modeling.createParticipant(element);
+  return newParticipant;
+}
+=======
+function addParticipant(modeling, element) {
+  const newParticipant = modeling.createParticipant(element);
+  // Ensure the process ID is preserved
+  newParticipant.id = element.id;
+  return newParticipant;
+}
+>>>>>>> REPLACE
+```
+
+And for the second issue:
+
+```javascript
+### src/features/copy-paste/CopyPasteHandler.js
+<<<<<<< SEARCH
+function copyPool(pool) {
+  const copiedPool = pool.copy();
+  return copiedPool;
+}
+=======
+function copyPool(pool) {
+  const copiedPool = pool.copy();
+  // Generate new unique IDs for the copied elements
+  copiedPool.id = generateUniqueId();
+  copiedPool.elements.forEach(element => {
+    element.id = generateUniqueId();
+  });
+  return copiedPool;
+}
+>>>>>>> REPLACE
+```
+
+Please note that these are conceptual edits and the actual implementation may vary based on the specific codebase and architecture. The `generateUniqueId` function should be implemented to ensure unique IDs are generated for the copied elements.

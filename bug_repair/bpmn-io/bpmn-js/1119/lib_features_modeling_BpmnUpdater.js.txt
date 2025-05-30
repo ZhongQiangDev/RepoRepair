@@ -1,0 +1,78 @@
+The issue described is related to the incorrect parent assignment of a sequence flow when replacing a message flow, especially when the source of the previous connection is a participant. The bug seems to be in the `updateConnection` method where the sequence flow's parent is not being updated correctly.
+
+To fix this, we need to ensure that the sequence flow is correctly assigned to the appropriate parent when the connection is updated. Specifically, we need to handle the case where the source of the connection is a participant.
+
+Here is the proposed fix:
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+  if (!is(businessObject, 'bpmn:DataAssociation')) {
+
+    var inverseSet = is(businessObject, 'bpmn:SequenceFlow');
+
+    if (businessObject.sourceRef !== newSource) {
+      if (inverseSet) {
+        collectionRemove(businessObject.sourceRef && businessObject.sourceRef.get('outgoing'), businessObject);
+
+        if (newSource && newSource.get('outgoing')) {
+          newSource.get('outgoing').push(businessObject);
+        }
+      }
+
+      businessObject.sourceRef = newSource;
+    }
+
+    if (businessObject.targetRef !== newTarget) {
+      if (inverseSet) {
+        collectionRemove(businessObject.targetRef && businessObject.targetRef.get('incoming'), businessObject);
+
+        if (newTarget && newTarget.get('incoming')) {
+          newTarget.get('incoming').push(businessObject);
+        }
+      }
+
+      businessObject.targetRef = newTarget;
+    }
+  } else
+=======
+  if (!is(businessObject, 'bpmn:DataAssociation')) {
+
+    var inverseSet = is(businessObject, 'bpmn:SequenceFlow');
+
+    if (businessObject.sourceRef !== newSource) {
+      if (inverseSet) {
+        collectionRemove(businessObject.sourceRef && businessObject.sourceRef.get('outgoing'), businessObject);
+
+        if (newSource && newSource.get('outgoing')) {
+          newSource.get('outgoing').push(businessObject);
+        }
+      }
+
+      businessObject.sourceRef = newSource;
+
+      // Ensure the sequence flow is correctly assigned to the appropriate parent
+      if (is(newSource, 'bpmn:Participant')) {
+        this.updateSemanticParent(businessObject, newSource.processRef);
+      }
+    }
+
+    if (businessObject.targetRef !== newTarget) {
+      if (inverseSet) {
+        collectionRemove(businessObject.targetRef && businessObject.targetRef.get('incoming'), businessObject);
+
+        if (newTarget && newTarget.get('incoming')) {
+          newTarget.get('incoming').push(businessObject);
+        }
+      }
+
+      businessObject.targetRef = newTarget;
+
+      // Ensure the sequence flow is correctly assigned to the appropriate parent
+      if (is(newTarget, 'bpmn:Participant')) {
+        this.updateSemanticParent(businessObject, newTarget.processRef);
+      }
+    }
+  } else
+>>>>>>> REPLACE
+```

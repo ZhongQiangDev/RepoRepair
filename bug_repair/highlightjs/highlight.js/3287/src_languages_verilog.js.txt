@@ -1,0 +1,40 @@
+The issue described is that the `meta` scope in Verilog is incorrectly applied from the backquote (`` ` ``) to the end of the line. This causes comments and other elements following the backquote to be incorrectly highlighted. To fix this, we need to adjust the `meta` scope definition so that it correctly handles the backquote and its associated content.
+
+Here's the proposed fix:
+
+```javascript
+### src/languages/verilog.js
+<<<<<<< SEARCH
+      {
+        className: 'meta',
+        begin: '`',
+        end: '$',
+        keywords: {
+          keyword:
+            'define __FILE__ ' +
+            '__LINE__ begin_keywords celldefine default_nettype define ' +
+            'else elsif end_keywords endcelldefine endif ifdef ifndef ' +
+            'include line nounconnected_drive pragma resetall timescale ' +
+            'unconnected_drive undef undefineall'
+        },
+        relevance: 0
+      }
+=======
+      {
+        className: 'meta',
+        begin: '`',
+        end: '(?=\\s|$)', // Change end to look for whitespace or end of line
+        keywords: {
+          keyword:
+            'define __FILE__ ' +
+            '__LINE__ begin_keywords celldefine default_nettype define ' +
+            'else elsif end_keywords endcelldefine endif ifdef ifndef ' +
+            'include line nounconnected_drive pragma resetall timescale ' +
+            'unconnected_drive undef undefineall'
+        },
+        relevance: 0
+      }
+>>>>>>> REPLACE
+```
+
+This change modifies the `end` pattern of the `meta` scope from `'$'` (which matches the end of the line) to `'(?=\\s|$)'`, which matches either whitespace or the end of the line. This ensures that the `meta` scope ends before any comments or other elements that should not be included in the `meta` scope.

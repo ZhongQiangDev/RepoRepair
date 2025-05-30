@@ -1,0 +1,124 @@
+The issue described is related to the deformation of the diagram when a child lane is removed from a parent lane. The problem seems to be in the `compensateLaneDelete` function, which is responsible for adjusting the sizes of other lanes after a lane deletion. The function calculates the adjustments for the top and bottom affected lanes but does not handle the case where the deleted lane is the only child lane of the parent lane. This can cause the diagram to deform and sometimes make it impossible to continue editing the diagram.
+
+To fix this issue, we need to add a check to see if the deleted lane is the only child lane of the parent lane. If it is, we should adjust the size of the parent lane instead of the other lanes.
+
+Here is the proposed fix:
+
+```javascript
+### lib/features/modeling/behavior/DeleteLaneBehavior.js
+<<<<<<< SEARCH
+function compensateLaneDelete(shape, oldParent) {
+
+    var siblings = getChildLanes(oldParent);
+
+    var topAffected = [];
+    var bottomAffected = [];
+
+    eachElement(siblings, function(element) {
+
+      if (element.y > shape.y) {
+        bottomAffected.push(element);
+      } else {
+        topAffected.push(element);
+      }
+
+      return element.children;
+    });
+
+    if (!siblings.length) {
+      return;
+    }
+
+    var offset;
+
+    if (bottomAffected.length && topAffected.length) {
+      offset = shape.height / 2;
+    } else {
+      offset = shape.height;
+    }
+
+    var topAdjustments,
+        bottomAdjustments;
+
+    if (topAffected.length) {
+      topAdjustments = spaceTool.calculateAdjustments(
+        topAffected, 'y', offset, shape.y - 10);
+
+      spaceTool.makeSpace(
+        topAdjustments.movingShapes,
+        topAdjustments.resizingShapes,
+        { x: 0, y: offset }, 's');
+    }
+
+    if (bottomAffected.length) {
+      bottomAdjustments = spaceTool.calculateAdjustments(
+        bottomAffected, 'y', -offset, shape.y + shape.height + 10);
+
+      spaceTool.makeSpace(
+        bottomAdjustments.movingShapes,
+        bottomAdjustments.resizingShapes,
+        { x: 0, y: -offset }, 'n');
+    }
+}
+=======
+function compensateLaneDelete(shape, oldParent) {
+
+    var siblings = getChildLanes(oldParent);
+
+    var topAffected = [];
+    var bottomAffected = [];
+
+    eachElement(siblings, function(element) {
+
+      if (element.y > shape.y) {
+        bottomAffected.push(element);
+      } else {
+        topAffected.push(element);
+      }
+
+      return element.children;
+    });
+
+    if (!siblings.length) {
+      // If the deleted lane is the only child lane of the parent lane,
+      // adjust the size of the parent lane instead of the other lanes.
+      spaceTool.makeSpace(
+        [oldParent],
+        [],
+        { x: 0, y: -shape.height }, 'n');
+      return;
+    }
+
+    var offset;
+
+    if (bottomAffected.length && topAffected.length) {
+      offset = shape.height / 2;
+    } else {
+      offset = shape.height;
+    }
+
+    var topAdjustments,
+        bottomAdjustments;
+
+    if (topAffected.length) {
+      topAdjustments = spaceTool.calculateAdjustments(
+        topAffected, 'y', offset, shape.y - 10);
+
+      spaceTool.makeSpace(
+        topAdjustments.movingShapes,
+        topAdjustments.resizingShapes,
+        { x: 0, y: offset }, 's');
+    }
+
+    if (bottomAffected.length) {
+      bottomAdjustments = spaceTool.calculateAdjustments(
+        bottomAffected, 'y', -offset, shape.y + shape.height + 10);
+
+      spaceTool.makeSpace(
+        bottomAdjustments.movingShapes,
+        bottomAdjustments.resizingShapes,
+        { x: 0, y: -offset }, 'n');
+    }
+}
+>>>>>>> REPLACE
+```

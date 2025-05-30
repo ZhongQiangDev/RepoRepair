@@ -1,0 +1,46 @@
+The issue described involves disallowing typed start events inside non-event-based sub-processes and ensuring that when a start event is moved into a sub-process, its type is dropped. The provided code does not directly address these requirements. To implement the necessary changes, we need to add logic to handle these specific cases.
+
+Here's how we can modify the `CreateBehavior.js` file to address the issue:
+
+```javascript
+### lib/features/modeling/behavior/CreateBehavior.js
+<<<<<<< SEARCH
+import { getParent } from '../util/ModelingUtil';
+=======
+
+import { getParent, isStartEvent } from '../util/ModelingUtil';
+
+this.preExecute('shape.create', 1500, function(event) {
+  var context = event.context,
+      parent = context.parent,
+      shape = context.shape;
+
+  if (is(parent, 'bpmn:Lane') && !is(shape, 'bpmn:Lane')) {
+    context.parent = getParent(parent, 'bpmn:Participant');
+  }
+
+  // Disallow morphing to typed start event inside sub-process
+  if (is(parent, 'bpmn:SubProcess') && isStartEvent(shape) && shape.eventDefinition) {
+    throw new Error('Typed start events are not allowed inside sub-processes.');
+  }
+});
+
+this.postExecute('shape.move', function(event) {
+  var context = event.context,
+      shape = context.shape,
+      targetParent = context.targetParent;
+
+  // Drop event type when moving start event to sub-process
+  if (is(targetParent, 'bpmn:SubProcess') && isStartEvent(shape)) {
+    shape.eventDefinition = null;
+  }
+});
+>>>>>>> REPLACE
+```
+
+Explanation:
+1. **Import `isStartEvent`**: We need a utility function to check if a shape is a start event.
+2. **Prevent Morphing to Typed Start Event**: In the `preExecute` method, we check if the parent is a sub-process and if the shape is a typed start event. If so, we throw an error.
+3. **Drop Event Type on Move**: In the `postExecute` method, we check if the target parent is a sub-process and if the shape is a start event. If so, we set the `eventDefinition` to `null` to drop the event type.
+
+This solution ensures that typed start events are not allowed inside sub-processes and that the event type is dropped when a start event is moved into a sub-process.

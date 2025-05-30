@@ -1,0 +1,47 @@
+The issue described is related to non-square pixels in a COG (Cloud Optimized GeoTIFF) not being displayed correctly in OpenLayers. The problem seems to be that the resolution calculation does not account for non-square pixels, leading to incorrect display of the image.
+
+To fix this, we need to adjust the resolution calculation to consider the aspect ratio of the pixels. Specifically, we need to modify the `getResolution` function to calculate the resolution based on both the width and height of the image.
+
+Here's the proposed fix:
+
+```javascript
+### src/ol/source/GeoTIFF.js
+<<<<<<< SEARCH
+/**
+ * Get the resolution of an image.  If the image does not have an affine transform,
+ * the width of the image is compared with the reference image.
+ * @param {GeoTIFFImage} image The image.
+ * @param {GeoTIFFImage} referenceImage The reference image.
+ * @return {number} The image resolution.
+ */
+function getResolution(image, referenceImage) {
+  try {
+    return image.getResolution(referenceImage)[0];
+  } catch (_) {
+    return (
+      referenceImage.fileDirectory.ImageWidth / image.fileDirectory.ImageWidth
+    );
+  }
+}
+=======
+/**
+ * Get the resolution of an image.  If the image does not have an affine transform,
+ * the width and height of the image are compared with the reference image to calculate the resolution.
+ * @param {GeoTIFFImage} image The image.
+ * @param {GeoTIFFImage} referenceImage The reference image.
+ * @return {number} The image resolution.
+ */
+function getResolution(image, referenceImage) {
+  try {
+    const resolutions = image.getResolution(referenceImage);
+    return Math.sqrt(resolutions[0] * resolutions[1]);
+  } catch (_) {
+    const widthRatio = referenceImage.fileDirectory.ImageWidth / image.fileDirectory.ImageWidth;
+    const heightRatio = referenceImage.fileDirectory.ImageLength / image.fileDirectory.ImageLength;
+    return Math.sqrt(widthRatio * heightRatio);
+  }
+}
+>>>>>>> REPLACE
+```
+
+This change ensures that the resolution is calculated based on both the width and height ratios, which should correctly handle non-square pixels and display the COG properly.

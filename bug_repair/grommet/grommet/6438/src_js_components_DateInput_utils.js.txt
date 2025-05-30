@@ -1,0 +1,52 @@
+The issue described is that it's possible to select a day from the previous month outside the specified bounds in the `DateInput` component. The provided code snippet does not directly address the bounds checking for the calendar component, but it does handle date parsing and validation.
+
+To fix this issue, we need to ensure that the calendar component correctly disables or prevents the selection of dates outside the specified bounds. This likely involves modifying the logic that renders the calendar days and handles date selection.
+
+Since the provided code snippet does not include the calendar rendering logic, we'll assume that the `DateInput` component uses a `Calendar` component internally. We'll need to modify the `Calendar` component to respect the bounds.
+
+Here's a potential fix:
+
+```javascript
+### src/js/components/Calendar/Calendar.js
+<<<<<<< SEARCH
+const Calendar = ({ minDate, maxDate, ...props }) => {
+  const renderDay = (day) => {
+    return <Day key={day} date={day} />;
+  };
+
+  return (
+    <div>
+      {days.map(renderDay)}
+    </div>
+  );
+};
+=======
+const Calendar = ({ minDate, maxDate, ...props }) => {
+  const isDateWithinBounds = (date) => {
+    return date >= minDate && date <= maxDate;
+  };
+
+  const renderDay = (day) => {
+    const isWithinBounds = isDateWithinBounds(day);
+    return (
+      <Day
+        key={day}
+        date={day}
+        disabled={!isWithinBounds}
+        onClick={() => isWithinBounds && handleDayClick(day)}
+      />
+    );
+  };
+
+  return (
+    <div>
+      {days.map(renderDay)}
+    </div>
+  );
+};
+>>>>>>> REPLACE
+```
+
+This code adds a function `isDateWithinBounds` to check if a given date is within the specified bounds. It then uses this function in the `renderDay` function to conditionally disable days that are outside the bounds and prevent their selection.
+
+If the `Calendar` component is not in the provided code snippet, you would need to locate it in your repository and apply the fix there. If the `Calendar` component is not directly accessible, you may need to modify the `DateInput` component to pass the bounds to the `Calendar` component and handle the logic there.

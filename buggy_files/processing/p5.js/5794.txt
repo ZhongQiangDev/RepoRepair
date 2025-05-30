@@ -1,0 +1,21 @@
+1. **Identify the wrong behavior involved in `GitHub Problem Description`:**
+   The issue is that the `blendMode(MULTIPLY)` function does not produce the expected result when used in WebGL mode. In 2D mode, the overlapping areas of the red and blue circles blend to produce a dark purple color, as expected with the `MULTIPLY` blend mode. However, in WebGL mode, the overlapping area remains white, indicating that the blend mode is not being applied correctly.
+
+2. **Analyze the cause behind the wrong behavior:**
+   The problem likely stems from how the `blendMode` function is implemented in the WebGL renderer. In WebGL, blending is controlled through the `gl.blendFunc` and `gl.blendEquation` functions, which may not be correctly configured for the `MULTIPLY` blend mode. The 2D renderer uses the `globalCompositeOperation` property of the 2D context, which directly supports `MULTIPLY`, but WebGL requires a different approach using shaders or specific blending functions.
+
+3. **Find up to 5 files most related to the cause from `Repository Information`:**
+
+```
+src/webgl/p5.RendererGL.js
+src/core/rendering.js
+src/webgl/material.js
+src/webgl/p5.RendererGL.Immediate.js
+src/core/p5.Renderer2D.js
+```
+
+- `src/webgl/p5.RendererGL.js`: This file contains the `blendMode` function for the WebGL renderer, which is likely where the issue lies. It needs to be checked to ensure that the correct WebGL blending functions are being set for the `MULTIPLY` blend mode.
+- `src/core/rendering.js`: This file contains the `blendMode` function that delegates to the current renderer. It ensures that the correct renderer's `blendMode` function is called, so it's important for the overall flow.
+- `src/webgl/material.js`: This file includes `_applyBlendMode`, which manages the WebGL blend mode. It might need adjustments to support the `MULTIPLY` blend mode properly.
+- `src/webgl/p5.RendererGL.Immediate.js`: This file handles immediate mode rendering in WebGL, which could be relevant if the issue is related to how shapes are rendered with the specified blend mode.
+- `src/core/p5.Renderer2D.js`: This file contains the 2D renderer's implementation of `blendMode`, which works correctly. Comparing it with the WebGL implementation might help identify the differences causing the issue.

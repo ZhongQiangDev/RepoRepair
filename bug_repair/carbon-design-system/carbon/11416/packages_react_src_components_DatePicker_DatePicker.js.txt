@@ -1,0 +1,77 @@
+The issue described in the bug report is related to the `DatePicker` component crashing when `datePickerType="single"` is used. The error message indicates that `start.addEventListener` is not a function, suggesting that `start` is undefined at the point where the event listener is being added.
+
+Upon reviewing the code, it appears that the `addKeyboardEvents` method is responsible for adding event listeners to the input fields. However, the `start` variable is not defined anywhere in the code, which could be causing the issue.
+
+To fix this, we need to ensure that the `start` variable is properly defined before attempting to add the event listener. One possible solution is to check if `start` is defined before adding the event listener.
+
+Here's the proposed fix:
+
+```javascript
+###packages/react/src/components/DatePicker/DatePicker.js
+<<<<<<< SEARCH
+    addKeyboardEvents = (cal) => {
+      const initArrowDownListener = (element) => {
+        if (element) {
+          element.addEventListener('keydown', (e) => {
+            if (match(e, keys.ArrowDown)) {
+              const {
+                calendarContainer,
+                selectedDateElem: fpSelectedDateElem,
+                todayDateElem: fptodayDateElem,
+              } = cal;
+              const selectedDateElem =
+                calendarContainer.querySelector('.selected') &&
+                fpSelectedDateElem;
+              const todayDateElem =
+                calendarContainer.querySelector('.today') && fptodayDateElem;
+              (
+                selectedDateElem ||
+                todayDateElem ||
+                calendarContainer.querySelector('.flatpickr-day[tabindex]') ||
+                calendarContainer
+              ).focus();
+            }
+          });
+          element.addEventListener('change', this.onChange);
+        }
+      };
+      initArrowDownListener(this.inputField);
+      initArrowDownListener(this.toInputField);
+    };
+=======
+    addKeyboardEvents = (cal) => {
+      const initArrowDownListener = (element) => {
+        if (element) {
+          element.addEventListener('keydown', (e) => {
+            if (match(e, keys.ArrowDown)) {
+              const {
+                calendarContainer,
+                selectedDateElem: fpSelectedDateElem,
+                todayDateElem: fptodayDateElem,
+              } = cal;
+              const selectedDateElem =
+                calendarContainer.querySelector('.selected') &&
+                fpSelectedDateElem;
+              const todayDateElem =
+                calendarContainer.querySelector('.today') && fptodayDateElem;
+              const start = (
+                selectedDateElem ||
+                todayDateElem ||
+                calendarContainer.querySelector('.flatpickr-day[tabindex]') ||
+                calendarContainer
+              );
+              if (start) {
+                start.focus();
+              }
+            }
+          });
+          element.addEventListener('change', this.onChange);
+        }
+      };
+      initArrowDownListener(this.inputField);
+      initArrowDownListener(this.toInputField);
+    };
+>>>>>>> REPLACE
+```
+
+This fix ensures that the `start` variable is defined and checks if it is not `undefined` before attempting to call `focus()` on it. This should prevent the `TypeError` from occurring and resolve the issue with the `DatePicker` component crashing when `datePickerType="single"` is used.

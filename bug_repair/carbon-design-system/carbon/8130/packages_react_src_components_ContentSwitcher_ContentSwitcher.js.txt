@@ -1,0 +1,47 @@
+To address the issue of the Content Switcher failing WCAG 1.4.11 Non-text Contrast, we need to ensure that the visual elements required to identify the user interface component meet the minimum 3:1 contrast ratio. Specifically, the light grey outline of the unselected tab and the divider between tabs should be adjusted to meet this requirement.
+
+Here's the proposed fix:
+
+```javascript
+###packages/react/src/components/ContentSwitcher/ContentSwitcher.js
+<<<<<<< SEARCH
+const classes = classNames(`${prefix}--content-switcher`, className, {
+      [`${prefix}--content-switcher--light`]: light,
+      [`${prefix}--content-switcher--${size}`]: size,
+    });
+=======
+const classes = classNames(`${prefix}--content-switcher`, className, {
+      [`${prefix}--content-switcher--light`]: light,
+      [`${prefix}--content-switcher--${size}`]: size,
+      [`${prefix}--content-switcher--high-contrast`]: true, // Add high contrast class
+    });
+
+// Add styles for high contrast
+const highContrastStyles = {
+  '--content-switcher-unselected-tab-border-color': 'rgba(0, 0, 0, 0.3)', // Adjust border color for unselected tabs
+  '--content-switcher-divider-color': 'rgba(0, 0, 0, 0.3)', // Adjust divider color
+};
+
+// Apply high contrast styles
+const style = { ...other.style, ...highContrastStyles };
+
+return (
+  <div {...other} className={classes} role="tablist" style={style}>
+    {React.Children.map(children, (child, index) =>
+      React.cloneElement(child, {
+        index,
+        onClick: composeEventHandlers([
+          this.handleChildChange,
+          child.props.onClick,
+        ]),
+        onKeyDown: this.handleChildChange,
+        selected: index === this.state.selectedIndex,
+        ref: this.handleItemRef(index),
+      })
+    )}
+  </div>
+);
+>>>>>>> REPLACE
+```
+
+This fix introduces a new class `--content-switcher--high-contrast` and applies styles to ensure the unselected tab border and divider meet the 3:1 contrast ratio. The `highContrastStyles` object defines the necessary styles, which are then applied to the component's style. This should resolve the contrast issues identified in the issue statement.

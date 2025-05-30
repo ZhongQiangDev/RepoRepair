@@ -1,0 +1,62 @@
+The issue described is related to the removal of the `default` attribute from an exclusive gateway when a Timer Intermediate Catch Event is added to a non-default flow. The provided code segment does not directly address this issue, as it focuses on replacing intermediate events with boundary events during a move operation. However, the issue seems to be related to the modeling behavior when adding events to flows.
+
+To address this issue, we need to ensure that the `default` attribute of the exclusive gateway is preserved when adding a Timer Intermediate Catch Event to a non-default flow. This likely requires modifications in the modeling behavior related to adding events to flows.
+
+Since the provided code segment does not directly handle this scenario, we need to look for the relevant code that handles adding events to flows and ensure that it preserves the `default` attribute of the exclusive gateway.
+
+Assuming the relevant code is in a different file, we can provide a hypothetical fix by adding a check to preserve the `default` attribute when adding an event to a non-default flow.
+
+```javascript
+### lib/features/modeling/behavior/AddEventBehavior.js
+<<<<<<< SEARCH
+this.preExecute('elements.create', function(context) {
+  var event = context.element,
+      target = context.target,
+      source = context.source,
+      eventDefinition,
+      newElement;
+
+  if (isAny(event, [ 'bpmn:IntermediateCatchEvent', 'bpmn:IntermediateThrowEvent' ])) {
+
+    eventDefinition = getEventDefinition(event);
+
+    newElement = {
+      type: event.type,
+      eventDefinitionType: eventDefinition.$type
+    };
+
+    // Add event to the target flow
+    bpmnReplace.replaceElement(target, newElement, { layoutConnection: false });
+  }
+}, true);
+=======
+this.preExecute('elements.create', function(context) {
+  var event = context.element,
+      target = context.target,
+      source = context.source,
+      eventDefinition,
+      newElement,
+      gateway = getBusinessObject(source);
+
+  if (isAny(event, [ 'bpmn:IntermediateCatchEvent', 'bpmn:IntermediateThrowEvent' ])) {
+
+    eventDefinition = getEventDefinition(event);
+
+    newElement = {
+      type: event.type,
+      eventDefinitionType: eventDefinition.$type
+    };
+
+    // Add event to the target flow
+    bpmnReplace.replaceElement(target, newElement, { layoutConnection: false });
+
+    // Preserve the default attribute of the exclusive gateway
+    if (isAny(gateway, [ 'bpmn:ExclusiveGateway' ]) && gateway.default) {
+      gateway.default = gateway.default;
+    }
+  }
+}, true);
+>>>>>>> REPLACE
+```
+
+This hypothetical fix adds a check to preserve the `default` attribute of the exclusive gateway when adding an event to a non-default flow. The actual implementation may vary depending on the specific codebase and architecture of the BPMN modeler.

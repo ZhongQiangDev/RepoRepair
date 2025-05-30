@@ -1,0 +1,59 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The issue described in the GitHub problem is that the `CascaderSelect` component modifies the properties of the objects passed to it as props, which leads to an error when using `immer` (a library for immutable state management). The error message indicates that the component is trying to add a property to an object that is not extensible, which is a common issue when mutating objects that are intended to be immutable.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue is likely due to the `CascaderSelect` component directly modifying the objects passed to it as props. When using `immer`, objects are made immutable, and any attempt to modify them directly will result in an error. The component should instead create new objects or use `immer`'s `produce` function to safely modify the state.
+
+### 3. Examine Each File One by One
+
+#### --- docs/cascader/theme/index.jsx ---
+```
+This file contains no relevant functions/classes.
+```
+
+#### --- docs/cascader-select/adaptor/index.jsx ---
+```
+docs/cascader-select/adaptor/index.jsx
+function: function_1
+```
+The `function_1` function processes the `list` parameter and generates a new data structure. If this function directly modifies the `list` parameter, it could be a source of the issue.
+
+#### --- src/cascader/cascader.jsx ---
+```
+src/cascader/cascader.jsx
+class: Cascader
+function: function_1
+```
+The `Cascader` class and the `function_1` function (`flatDataSource`) could be relevant. The `Cascader` class manages the data source and state, and the `flatDataSource` function processes the data structure. If either of these modifies the input data directly, it could cause the issue.
+
+#### --- src/cascader-select/index.jsx ---
+```
+src/cascader-select/index.jsx
+function: function_1
+```
+The `function_1` function checks for deprecated props and replaces them. If this function modifies the `props` object directly, it could be a source of the issue.
+
+#### --- types/cascader-select/index.d.ts ---
+```
+This file contains no relevant functions/classes.
+```
+
+### Summary of Relevant Locations
+
+1. ```
+docs/cascader-select/adaptor/index.jsx
+function: function_1
+```
+2. ```
+src/cascader/cascader.jsx
+class: Cascader
+function: function_1
+```
+3. ```
+src/cascader-select/index.jsx
+function: function_1
+```
+
+These locations should be inspected and potentially modified to ensure that they do not directly modify the input props or data structures, especially when using `immer` for immutable state management.

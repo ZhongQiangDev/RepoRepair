@@ -1,0 +1,43 @@
+The issue is that the `UUID` class is not being highlighted correctly as a class name. This is likely due to the regex pattern used for identifying class names not matching the `UUID` class properly.
+
+To fix this, we need to adjust the regex pattern for class names to ensure it correctly identifies `UUID` as a class name.
+
+Here's the proposed fix:
+
+```javascript
+###components/prism-java.js
+<<<<<<< SEARCH
+var className = {
+	pattern: RegExp(classNamePrefix + /[A-Z](?:[\d_A-Z]*[a-z]\w*)?\b/.source),
+	lookbehind: true,
+	inside: {
+		'namespace': {
+			pattern: /^[a-z]\w*(?:\s*\.\s*[a-z]\w*)*(?:\s*\.)?/,
+			inside: {
+				'punctuation': /\./
+			}
+		},
+		'punctuation': /\./
+	}
+};
+=======
+var className = {
+	pattern: RegExp(classNamePrefix + /[A-Z][\w\d]*\b/.source),
+	lookbehind: true,
+	inside: {
+		'namespace': {
+			pattern: /^[a-z]\w*(?:\s*\.\s*[a-z]\w*)*(?:\s*\.)?/,
+			inside: {
+				'punctuation': /\./
+			}
+		},
+		'punctuation': /\./
+	}
+};
+>>>>>>> REPLACE
+```
+
+Explanation:
+- The original pattern `[A-Z](?:[\d_A-Z]*[a-z]\w*)?\b` is too restrictive and may not match `UUID` correctly.
+- The updated pattern `[A-Z][\w\d]*\b` is more permissive and should correctly match `UUID` as a class name.
+- This change ensures that any class name starting with an uppercase letter followed by any word characters or digits will be correctly highlighted.

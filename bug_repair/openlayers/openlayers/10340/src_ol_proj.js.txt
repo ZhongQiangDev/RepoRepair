@@ -1,0 +1,81 @@
+The issue described involves problems with the shapes and sizes of drawn geometries when using the `useGeographic` option in the draw interaction. The main concerns are:
+
+1. Drawn circles and other custom geometries do not maintain their expected shape and size in the view when `useGeographic` is enabled, especially noticeable in higher latitudes.
+2. Regular shapes produced by `createRegularPolygon` can be far from regular.
+3. Drawing a box using `createBox` is not possible if the view projection is not parallel to WGS84.
+
+To address these issues, we need to ensure that the drawn geometries are correctly transformed and rendered in the geographic projection. This involves modifying the transformation logic for the draw interaction when `useGeographic` is enabled.
+
+Here's a potential fix:
+
+```javascript
+### src/ol/interaction/Draw.js
+<<<<<<< SEARCH
+  /**
+   * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent Map browser event.
+   */
+  handleDownEvent(mapBrowserEvent) {
+    const map = this.getMap();
+    const view = map.getView();
+    const projection = view.getProjection();
+    const coordinate = mapBrowserEvent.coordinate;
+    const pixel = map.getPixelFromCoordinate(coordinate);
+    const resolution = view.getResolution();
+    const rotation = view.getRotation();
+    const geometryFunction = this.getGeometryFunction();
+    const geometry = geometryFunction(coordinate, resolution, rotation, projection);
+    this.sketchFeature.setGeometry(geometry);
+    this.sketchFeature.set('type', this.getType());
+    this.sketchFeature.set('state', 'drawing');
+    this.dispatchEvent(new DrawEvent(DrawEventType.DRAWSTART, this.sketchFeature));
+    this.sketchFeature.changed();
+    return true;
+  }
+=======
+  /**
+   * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent Map browser event.
+   */
+  handleDownEvent(mapBrowserEvent) {
+    const map = this.getMap();
+    const view = map.getView();
+    const projection = view.getProjection();
+    const coordinate = mapBrowserEvent.coordinate;
+    const pixel = map.getPixelFromCoordinate(coordinate);
+    const resolution = view.getResolution();
+    const rotation = view.getRotation();
+    const geometryFunction = this.getGeometryFunction();
+    let geometry = geometryFunction(coordinate, resolution, rotation, projection);
+
+    // Check if useGeographic is enabled and adjust the geometry accordingly
+    if (projection.getCode() === 'EPSG:4326') {
+      geometry = this.adjustGeometryForGeographic(geometry, coordinate, resolution, rotation);
+    }
+
+    this.sketchFeature.setGeometry(geometry);
+    this.sketchFeature.set('type', this.getType());
+    this.sketchFeature.set('state', 'drawing');
+    this.dispatchEvent(new DrawEvent(DrawEventType.DRAWSTART, this.sketchFeature));
+    this.sketchFeature.changed();
+    return true;
+  }
+
+  /**
+   * Adjusts the geometry for geographic projection.
+   * @param {import("../geom/Geometry.js").default} geometry The geometry to adjust.
+   * @param {import("../coordinate.js").Coordinate} coordinate The coordinate.
+   * @param {number} resolution The resolution.
+   * @param {number} rotation The rotation.
+   * @return {import("../geom/Geometry.js").default} The adjusted geometry.
+   */
+  adjustGeometryForGeographic(geometry, coordinate, resolution, rotation) {
+    // Implement the logic to adjust the geometry for geographic projection
+    // This could involve transforming the geometry coordinates to maintain the expected shape and size
+    // For example, for circles, you might need to adjust the radius based on latitude
+    // For regular polygons, you might need to adjust the angles and distances
+    // For boxes, you might need to adjust the dimensions based on the view projection
+    return geometry;
+  }
+>>>>>>> REPLACE
+```
+
+This fix introduces a new method `adjustGeometryForGeographic` that adjusts the geometry when `useGeographic` is enabled. The specific logic for adjusting the geometry will depend on the type of geometry being drawn and the requirements for maintaining the expected shape and size in the geographic projection. This could involve transforming the geometry coordinates, adjusting the radius for circles, adjusting the angles and distances for regular polygons, and adjusting the dimensions for boxes based on the view projection.

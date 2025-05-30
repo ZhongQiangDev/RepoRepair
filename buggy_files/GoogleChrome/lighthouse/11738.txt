@@ -1,0 +1,20 @@
+1. **Identify the wrong behavior involved in `GitHub Problem Description`:**
+   The issue described is that Lighthouse does not wait long enough when using `throttlingMethod=simulate`, leading to an inaccurate detection of the Cumulative Layout Shift (CLS) metric. This results in a lower score for CLS than expected, as the page is still loading and shifting elements when the metric is measured.
+
+2. **Analyze the cause behind the wrong behavior:**
+   The cause likely lies in the timing mechanism used by Lighthouse when simulating network conditions. When `throttlingMethod=simulate` is used, Lighthouse may not accurately simulate the delays and timing needed for the page to fully load and stabilize. This can result in the CLS metric being measured prematurely, before all layout shifts have occurred.
+
+3. **Find up to 5 files most related to the cause from `Repository Information`:**
+   ```
+   lighthouse-core/audits/metrics/cumulative-layout-shift.js
+   lighthouse-core/lib/emulation.js
+   lighthouse-core/lib/tracehouse/main-thread-tasks.js
+   lighthouse-core/lib/tracehouse/trace-processor.js
+   lighthouse-core/lib/dependency-graph/simulator/simulator.js
+   ```
+
+   - `lighthouse-core/audits/metrics/cumulative-layout-shift.js`: This file contains the logic for computing the Cumulative Layout Shift metric. It is directly related to the issue since it calculates the CLS score.
+   - `lighthouse-core/lib/emulation.js`: This file handles network and CPU throttling, which is crucial for simulating network conditions. If the throttling simulation is not accurate, it could affect the timing of when metrics are measured.
+   - `lighthouse-core/lib/tracehouse/main-thread-tasks.js`: This file processes main thread trace events, which are used to determine when tasks are completed. If the timing of these tasks is incorrect, it could affect the CLS measurement.
+   - `lighthouse-core/lib/tracehouse/trace-processor.js`: This file processes and analyzes browser performance trace events. It ensures that the trace data is correctly interpreted, which is important for accurate metric calculations.
+   - `lighthouse-core/lib/dependency-graph/simulator/simulator.js`: This file simulates the execution of a graph composed of nodes representing CPU tasks and network requests. If the simulation timing is incorrect, it could affect the overall timing of the page load and thus the CLS metric.

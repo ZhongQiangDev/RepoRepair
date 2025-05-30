@@ -1,0 +1,48 @@
+The issue arises because the `light` prop is being set to `false` by default in the `defaultProps` of the `OverflowMenu` component, which triggers the deprecation warning even when the `light` prop is not explicitly passed in the component usage.
+
+To resolve this, we need to remove the `light` prop from the `defaultProps` and ensure that the `light` prop is only used when explicitly passed by the user.
+
+Here is the *SEARCH/REPLACE* edit to fix the issue:
+
+```javascript
+###packages/react/src/components/OverflowMenu/OverflowMenu.js
+<<<<<<< SEARCH
+    light: false,
+    selectorPrimaryFocus: '[data-overflow-menu-primary-focus]',
+  };
+=======
+    selectorPrimaryFocus: '[data-overflow-menu-primary-focus]',
+  };
+>>>>>>> REPLACE
+```
+
+Additionally, we need to ensure that the `light` prop is only applied when it is explicitly passed by the user. We can achieve this by modifying the `render` method:
+
+```javascript
+###packages/react/src/components/OverflowMenu/OverflowMenu.js
+<<<<<<< SEARCH
+      [`${prefix}--overflow-menu--light`]: light,
+      [`${prefix}--overflow-menu--${size}`]: size,
+    }
+=======
+      [`${prefix}--overflow-menu--${size}`]: size,
+    }
+    if (light !== undefined) {
+      overflowMenuClasses = classNames(overflowMenuClasses, {
+        [`${prefix}--overflow-menu--light`]: light,
+      });
+    }
+    const overflowMenuOptionsClasses = classNames(
+      menuOptionsClass,
+      `${prefix}--overflow-menu-options`,
+      {
+        [`${prefix}--overflow-menu--flip`]: this.props.flipped,
+        [`${prefix}--overflow-menu-options--open`]: open,
+        [`${prefix}--overflow-menu-options--light`]: light !== undefined && light,
+        [`${prefix}--overflow-menu-options--${size}`]: size,
+      }
+    );
+>>>>>>> REPLACE
+```
+
+These changes will ensure that the `light` prop is only applied when explicitly passed by the user, thus eliminating the deprecation warning when the `light` prop is not used.

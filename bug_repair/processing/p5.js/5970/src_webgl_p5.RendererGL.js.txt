@@ -1,0 +1,41 @@
+To address the issue described, we need to implement the proposed solution in the `p5.RendererGL` class. Specifically, we need to add an array to track the enabled state of registers and modify the `enableAttrib` and `_prepareBuffer` functions accordingly.
+
+Here are the necessary changes:
+
+```javascript
+### src/webgl/p5.RendererGL.js
+<<<<<<< SEARCH
+p5.RendererGL.prototype = Object.create(p5.Renderer.prototype);
+=======
+p5.RendererGL.prototype = Object.create(p5.Renderer.prototype);
+
+// Add an array to track the enabled state of registers
+this.registerEnabled = [];
+
+// Modify the enableAttrib function to record the register enabled state
+p5.RendererGL.prototype.enableAttrib = function(attr, loc) {
+  if (!attr.enabled) {
+    gl.enableVertexAttribArray(loc);
+    this._renderer.registerEnabled[loc] = true; // Record register enabled state
+    attr.enabled = true;
+  }
+};
+
+// Modify the _prepareBuffer function to disable unused registers
+p5.RendererGL.prototype._prepareBuffer = function(src, attr) {
+  if (src.length > 0) {
+    /* ~~~~~~~~~~~~~~~~~~~~ */
+  } else {
+    // Do nothing if register is not enabled
+    const loc = attr.location;
+    if (loc == -1 || !this._renderer.registerEnabled[loc]) { return; }
+    // If enabled, disable it.
+    gl.disableVertexAttribArray(loc);
+    attr.enabled = false;
+    this._renderer.registerEnabled[loc] = false; // Record register enabled state
+  }
+};
+>>>>>>> REPLACE
+```
+
+This code adds the `registerEnabled` array and modifies the `enableAttrib` and `_prepareBuffer` functions as suggested in the issue description. This should help prevent the issue where objects disappear on Android devices due to improper handling of unused registers.

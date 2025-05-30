@@ -1,0 +1,121 @@
+To address the issue of rendering the name of message elements below the message flows, we need to modify the `bpmn:MessageFlow` renderer to include the label rendering logic. Here's the proposed fix:
+
+```javascript
+###lib/draw/BpmnRenderer.js
+<<<<<<< SEARCH
+    'bpmn:MessageFlow': function(parentGfx, element) {
+
+      var semantic = getSemantic(element),
+          di = getDi(element);
+
+      var fill = getFillColor(element, defaultFillColor),
+          stroke = getStrokeColor(element, defaultStrokeColor);
+
+      var pathData = createPathFromConnection(element);
+
+      var attrs = {
+        markerEnd: marker('messageflow-end', fill, stroke),
+        markerStart: marker('messageflow-start', fill, stroke),
+        strokeDasharray: '10, 12',
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+        strokeWidth: '1.5px',
+        stroke: getStrokeColor(element, defaultStrokeColor)
+      };
+
+      var path = drawPath(parentGfx, pathData, attrs);
+
+      if (semantic.messageRef) {
+        var midPoint = path.getPointAtLength(path.getTotalLength() / 2);
+
+        var markerPathData = pathMap.getScaledPath('MESSAGE_FLOW_MARKER', {
+          abspos: {
+            x: midPoint.x,
+            y: midPoint.y
+          }
+        });
+
+        var messageAttrs = { strokeWidth: 1 };
+
+        if (di.messageVisibleKind === 'initiating') {
+          messageAttrs.fill = 'white';
+          messageAttrs.stroke = 'black';
+        } else {
+          messageAttrs.fill = '#888';
+          messageAttrs.stroke = 'white';
+        }
+
+        drawPath(parentGfx, markerPathData, messageAttrs);
+      }
+
+      return path;
+    },
+=======
+    'bpmn:MessageFlow': function(parentGfx, element) {
+
+      var semantic = getSemantic(element),
+          di = getDi(element);
+
+      var fill = getFillColor(element, defaultFillColor),
+          stroke = getStrokeColor(element, defaultStrokeColor);
+
+      var pathData = createPathFromConnection(element);
+
+      var attrs = {
+        markerEnd: marker('messageflow-end', fill, stroke),
+        markerStart: marker('messageflow-start', fill, stroke),
+        strokeDasharray: '10, 12',
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+        strokeWidth: '1.5px',
+        stroke: getStrokeColor(element, defaultStrokeColor)
+      };
+
+      var path = drawPath(parentGfx, pathData, attrs);
+
+      if (semantic.messageRef) {
+        var midPoint = path.getPointAtLength(path.getTotalLength() / 2);
+
+        var markerPathData = pathMap.getScaledPath('MESSAGE_FLOW_MARKER', {
+          abspos: {
+            x: midPoint.x,
+            y: midPoint.y
+          }
+        });
+
+        var messageAttrs = { strokeWidth: 1 };
+
+        if (di.messageVisibleKind === 'initiating') {
+          messageAttrs.fill = 'white';
+          messageAttrs.stroke = 'black';
+        } else {
+          messageAttrs.fill = '#888';
+          messageAttrs.stroke = 'white';
+        }
+
+        drawPath(parentGfx, markerPathData, messageAttrs);
+
+        // Render the message name below the message flow
+        var messageName = semantic.messageRef.name;
+        if (messageName) {
+          var labelBox = {
+            x: midPoint.x - 50,
+            y: midPoint.y + 10,
+            width: 100,
+            height: 20
+          };
+
+          renderLabel(parentGfx, messageName, {
+            box: labelBox,
+            align: 'center-middle',
+            style: {
+              fill: getStrokeColor(element, defaultStrokeColor)
+            }
+          });
+        }
+      }
+
+      return path;
+    },
+>>>>>>> REPLACE
+```

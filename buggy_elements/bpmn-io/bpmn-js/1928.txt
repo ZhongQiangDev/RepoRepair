@@ -1,0 +1,73 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that an empty pool in a BPMN diagram is being resized vertically when the space tool is used on it. According to the expected behavior, the empty pool should not be resized vertically.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from the resizing logic not correctly identifying or handling empty pools. Specifically, the resizing constraints for empty pools are not being enforced properly, allowing the space tool to alter their vertical dimensions. This could be due to a lack of specific constraints for empty pools or a misidentification of the empty pool as a regular lane or shape that can be resized.
+
+### 3. Examine Each File One by One
+
+#### `lib/features/modeling/behavior/ResizeBehavior.js`
+
+This file contains functions related to resizing behavior, including `ResizeBehavior`, which sets resize constraints for different BPMN elements. The `ResizeBehavior` function listens for the `resize.start` event and applies constraints based on the type of shape being resized. Since empty pools are a specific type of BPMN element, this file is relevant.
+
+```
+lib/features/modeling/behavior/ResizeBehavior.js
+function: ResizeBehavior
+```
+
+#### `lib/features/modeling/cmd/ResizeLaneHandler.js`
+
+This file contains functions related to resizing lanes, including `ResizeLaneHandler`, which handles the resizing of lanes. The `resizeSpace` function specifically handles non-balanced resizing, which might be relevant if the space tool is causing the resizing issue.
+
+```
+lib/features/modeling/cmd/ResizeLaneHandler.js
+function: ResizeLaneHandler
+function: function_5
+```
+
+#### `lib/features/modeling/util/LaneUtil.js`
+
+This file contains utility functions for working with lanes, including `computeLanesResize`, which calculates necessary resize operations for adjacent lanes. While this file is related to lane resizing, it may not directly address the issue with empty pools.
+
+```
+lib/features/modeling/util/LaneUtil.js
+function: computeLanesResize
+```
+
+#### `lib/features/replace/ReplaceOptions.js`
+
+This file contains a function for generating labels for elements, which is not directly related to resizing behavior.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `lib/features/space-tool/BpmnSpaceTool.js`
+
+This file contains the `BpmnSpaceTool` function, which is responsible for spacing and layout adjustments. The `function_2` extends the `calculateAdjustments` method, which could be relevant if the space tool is causing the resizing issue.
+
+```
+lib/features/space-tool/BpmnSpaceTool.js
+function: BpmnSpaceTool
+function: function_2
+```
+
+### Summary of Relevant Locations
+
+```
+lib/features/modeling/behavior/ResizeBehavior.js
+function: ResizeBehavior
+
+lib/features/modeling/cmd/ResizeLaneHandler.js
+function: ResizeLaneHandler
+function: function_5
+
+lib/features/modeling/util/LaneUtil.js
+function: computeLanesResize
+
+lib/features/space-tool/BpmnSpaceTool.js
+function: BpmnSpaceTool
+function: function_2
+```

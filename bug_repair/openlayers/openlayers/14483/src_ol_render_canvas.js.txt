@@ -1,0 +1,42 @@
+The issue described is related to the incorrect rendering of rotated text styles when the context is clipped and translated. The problem seems to be in the way the rotation is applied to the context before drawing the text. The `rotateAtOffset` function is responsible for rotating the context around a specific point, but it might not be correctly handling the translation after rotation.
+
+To fix this, we need to ensure that the rotation is applied correctly and that the context is translated to the correct position after rotation. We can modify the `rotateAtOffset` function to ensure that the translation is applied correctly after rotation.
+
+Here is the proposed fix:
+
+```javascript
+### src/ol/render/canvas.js
+<<<<<<< SEARCH
+/**
+ * @param {CanvasRenderingContext2D} context Context.
+ * @param {number} rotation Rotation.
+ * @param {number} offsetX X offset.
+ * @param {number} offsetY Y offset.
+ */
+export function rotateAtOffset(context, rotation, offsetX, offsetY) {
+  if (rotation !== 0) {
+    context.translate(offsetX, offsetY);
+    context.rotate(rotation);
+    context.translate(-offsetX, -offsetY);
+  }
+}
+=======
+/**
+ * @param {CanvasRenderingContext2D} context Context.
+ * @param {number} rotation Rotation.
+ * @param {number} offsetX X offset.
+ * @param {number} offsetY Y offset.
+ */
+export function rotateAtOffset(context, rotation, offsetX, offsetY) {
+  if (rotation !== 0) {
+    context.translate(offsetX, offsetY);
+    context.rotate(rotation);
+    context.translate(-offsetX, -offsetY);
+    // Apply the translation after rotation to ensure the text is drawn at the correct position
+    context.translate(offsetX, offsetY);
+  }
+}
+>>>>>>> REPLACE
+```
+
+This modification ensures that after rotating the context around the specified point, it is translated back to the correct position. This should fix the issue with the rotated text styles not being displayed at the correct location when the context is clipped and translated.

@@ -1,0 +1,65 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub issue is that the label text "Andy's Pub, Terrasse" is being displayed with the HTML entity `&apos;` instead of the actual apostrophe character `'`. This indicates that the text is not being properly decoded before being rendered as a label.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue is likely that the text is being read from the KML file as an encoded string (with HTML entities like `&apos;`) and is not being decoded before being used to create the label. The `decodeURIComponent()` function could be used to decode the text, but it seems that this step is missing in the current implementation.
+
+### 3. Examine Each File One by One
+
+#### src/ol/format/KML.js
+
+```
+src/ol/format/KML.js
+function: dataParser
+function: readName
+function: readStyleURL
+function: readURI
+```
+
+**Explanation:**
+- `dataParser`: This function is responsible for parsing the XML node and updating the feature object. It could be a relevant location to add the decoding logic.
+- `readName`: This function reads the name attribute from the node, which could be where the text is being read and needs to be decoded.
+- `readStyleURL` and `readURI`: These functions handle URL-related parsing, which might not be directly related but could be relevant if the issue involves URL-encoded text.
+
+#### src/ol/style/Text.js
+
+```
+src/ol/style/Text.js
+class: Text
+```
+
+**Explanation:**
+- `Text`: This class is responsible for handling text styling properties. The issue might not be directly related to this class, but it could be relevant if the text is being set in a way that prevents proper decoding.
+
+#### src/ol/geom/flat/textpath.js
+
+```
+This file contains no relevant functions/classes.
+```
+
+**Explanation:**
+- This file deals with rendering text along a path and does not handle text decoding or parsing.
+
+#### src/ol/render/canvas.js
+
+```
+This file contains no relevant functions/classes.
+```
+
+**Explanation:**
+- This file contains functions related to canvas rendering and transformations but does not handle text decoding or parsing.
+
+#### src/ol/renderer/canvas/VectorLayer.js
+
+```
+This file contains no relevant functions/classes.
+```
+
+**Explanation:**
+- This file contains the `CanvasVectorLayerRenderer` class, which manages the rendering of vector layers. While it handles rendering, it does not directly handle text decoding or parsing.
+
+### Summary of Relevant Locations
+
+The most relevant locations for inspection or editing are in `src/ol/format/KML.js`, specifically the `dataParser`, `readName`, `readStyleURL`, and `readURI` functions. These functions are involved in parsing and reading text from the KML file, where the decoding logic should be added. The `Text` class in `src/ol/style/Text.js` could also be relevant if the text is being set in a way that prevents proper decoding.

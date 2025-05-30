@@ -1,0 +1,105 @@
+The issue described involves problems with the shapes and sizes of drawn geometries when `useGeographic` is enabled. The core of the problem seems to be related to how the coordinates are transformed and how the shapes are rendered in geographic coordinates. The `SimpleGeometry` class is a base class for geometries, and it contains methods that could be involved in the transformation and rendering of these geometries.
+
+To address the issue, we need to ensure that the transformations and rendering of geometries are correctly handled when `useGeographic` is enabled. This might involve modifying the `applyTransform`, `rotate`, `scale`, and `translate` methods to account for geographic coordinates.
+
+Here is a potential fix:
+
+```javascript
+### src/ol/geom/SimpleGeometry.js
+<<<<<<< SEARCH
+  /**
+   * Apply a transform function to the coordinates of the geometry.
+   * The geometry is modified in place.
+   * If you do not want the geometry modified in place, first `clone()` it and
+   * then use this function on the clone.
+   * @param {import("../proj.js").TransformFunction} transformFn Transform function.
+   * Called with a flat array of geometry coordinates.
+   * @api
+   */
+  applyTransform(transformFn) {
+    if (this.flatCoordinates) {
+      transformFn(this.flatCoordinates, this.flatCoordinates, this.stride);
+      this.changed();
+    }
+  }
+=======
+  /**
+   * Apply a transform function to the coordinates of the geometry.
+   * The geometry is modified in place.
+   * If you do not want the geometry modified in place, first `clone()` it and
+   * then use this function on the clone.
+   * @param {import("../proj.js").TransformFunction} transformFn Transform function.
+   * Called with a flat array of geometry coordinates.
+   * @param {boolean} useGeographic Whether to use geographic coordinates.
+   * @api
+   */
+  applyTransform(transformFn, useGeographic) {
+    if (this.flatCoordinates) {
+      if (useGeographic) {
+        // Apply geographic transformation
+        const transformedCoordinates = transformFn(this.flatCoordinates, this.flatCoordinates, this.stride);
+        this.setFlatCoordinates(this.layout, transformedCoordinates);
+      } else {
+        transformFn(this.flatCoordinates, this.flatCoordinates, this.stride);
+      }
+      this.changed();
+    }
+  }
+>>>>>>> REPLACE
+```
+
+This change adds a `useGeographic` parameter to the `applyTransform` method and applies a geographic transformation if `useGeographic` is true. This ensures that the transformation is correctly handled when geographic coordinates are used.
+
+Additionally, similar changes should be made to the `rotate`, `scale`, and `translate` methods to account for geographic coordinates. Here is an example for the `rotate` method:
+
+```javascript
+### src/ol/geom/SimpleGeometry.js
+<<<<<<< SEARCH
+  /**
+   * Rotate the geometry around a given coordinate. This modifies the geometry
+   * coordinates in place.
+   * @param {number} angle Rotation angle in radians.
+   * @param {import("../coordinate.js").Coordinate} anchor The rotation center.
+   * @api
+   */
+  rotate(angle, anchor) {
+    const flatCoordinates = this.getFlatCoordinates();
+    if (flatCoordinates) {
+      const stride = this.getStride();
+      rotate(
+        flatCoordinates, 0, flatCoordinates.length,
+        stride, angle, anchor, flatCoordinates);
+      this.changed();
+    }
+  }
+=======
+  /**
+   * Rotate the geometry around a given coordinate. This modifies the geometry
+   * coordinates in place.
+   * @param {number} angle Rotation angle in radians.
+   * @param {import("../coordinate.js").Coordinate} anchor The rotation center.
+   * @param {boolean} useGeographic Whether to use geographic coordinates.
+   * @api
+   */
+  rotate(angle, anchor, useGeographic) {
+    const flatCoordinates = this.getFlatCoordinates();
+    if (flatCoordinates) {
+      const stride = this.getStride();
+      if (useGeographic) {
+        // Apply geographic rotation
+        const rotatedCoordinates = rotate(
+          flatCoordinates, 0, flatCoordinates.length,
+          stride, angle, anchor, flatCoordinates);
+        this.setFlatCoordinates(this.layout, rotatedCoordinates);
+      } else {
+        rotate(
+          flatCoordinates, 0, flatCoordinates.length,
+          stride, angle, anchor, flatCoordinates);
+      }
+      this.changed();
+    }
+  }
+>>>>>>> REPLACE
+```
+
+These changes should help address the issues with shapes and sizes when `useGeographic` is enabled. Similar changes should be made to the `scale` and `translate` methods as well.

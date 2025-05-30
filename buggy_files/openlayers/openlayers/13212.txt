@@ -1,0 +1,23 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that the WebGL context is lost when dealing with larger pyramids of WebGLTileLayers, leading to not-rendered tiles and poor performance (2-5 FPS instead of the expected 30 FPS). This issue arises when there are more layers required, which is dependent on the browser, settings, machine, and environment.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of the issue is likely due to the current implementation of WebGLTileLayers, which creates a separate WebGL context for each layer. When the number of layers increases, the browser may run out of available WebGL contexts, leading to context loss and rendering issues. The proposed solution is to use a single WebGL context per layer/renderer by implementing a GeoTIFF source that can handle a pyramid of GeoTIFFs, thus reducing the number of WebGL contexts needed.
+
+### 3. Find Up to 5 Files Most Related to the Cause
+
+```
+src/ol/layer/WebGLTile.js
+src/ol/source/GeoTIFF.js
+examples/cog-pyramid.js
+src/ol/webgl/Helper.js
+src/ol/tilegrid/TileGrid.js
+```
+
+- `src/ol/layer/WebGLTile.js`: This file is crucial as it contains the `WebGLTileLayer` class, which is responsible for rendering tiled image layers using WebGL. The issue described is directly related to the management of WebGL contexts in this class.
+- `src/ol/source/GeoTIFF.js`: This file contains the `GeoTIFFSource` class, which is essential for handling GeoTIFF data. Implementing a pyramid of GeoTIFFs would require modifications here to support the new source type.
+- `examples/cog-pyramid.js`: This example demonstrates the current pyramid of WebGLTileLayers and would need to be updated to reflect the new GeoTIFF pyramid source.
+- `src/ol/webgl/Helper.js`: This file provides utilities for managing WebGL resources, including context handling. It may need adjustments to support the new GeoTIFF pyramid source.
+- `src/ol/tilegrid/TileGrid.js`: This file manages tile grids, which are essential for organizing tiles in a pyramid structure. It may need modifications to support the new GeoTIFF pyramid source.

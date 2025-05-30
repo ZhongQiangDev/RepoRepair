@@ -1,0 +1,60 @@
+To address the issue of text truncation for container tabs, we need to add CSS styles that ensure the text is truncated with an ellipsis when it exceeds the available space. This can be achieved by adding specific CSS classes and styles to the container tabs.
+
+Here's the *SEARCH/REPLACE* edit to fix the issue:
+
+```javascript
+###packages/react/src/components/Tabs/Tabs.js
+<<<<<<< SEARCH
+const classes = {
+  tabs: classNames(`${prefix}--tabs`, className, {
+    [`${prefix}--tabs--container`]: type === 'container',
+  }),
+  tablist: classNames(`${prefix}--tabs__nav`, {
+    [`${prefix}--tabs__nav--hidden`]: this.state.dropdownHidden,
+  }),
+};
+=======
+const classes = {
+  tabs: classNames(`${prefix}--tabs`, className, {
+    [`${prefix}--tabs--container`]: type === 'container',
+  }),
+  tablist: classNames(`${prefix}--tabs__nav`, {
+    [`${prefix}--tabs__nav--hidden`]: this.state.dropdownHidden,
+  }),
+  tab: classNames(`${prefix}--tabs__tab`, {
+    [`${prefix}--tabs__tab--container`]: type === 'container',
+  }),
+};
+
+// Add styles for container tab text truncation
+const tabStyles = {
+  [`${prefix}--tabs__tab--container`]: {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    paddingRight: '16px', // Ensure 16px padding from the edge
+  },
+};
+=======
+const tabsWithProps = this.getTabs().map((tab, index) => {
+  const tabPanelIndex = index === this.state.selected ? 0 : -1;
+  const tabIndex = !this.state.dropdownHidden ? 0 : tabPanelIndex;
+  const newTab = React.cloneElement(tab, {
+    index,
+    selected: index === this.state.selected,
+    handleTabClick: this.handleTabClick(onSelectionChange),
+    tabIndex,
+    ref: e => {
+      this.setTabAt(index, e);
+    },
+    handleTabKeyDown: this.handleTabKeyDown(onSelectionChange),
+    className: classes.tab, // Apply the new tab class
+    style: tabStyles[`${prefix}--tabs__tab--container`], // Apply the new tab styles
+  });
+
+  return newTab;
+});
+>>>>>>> REPLACE
+```
+
+This edit introduces a new CSS class `tab` with a specific style for container tabs, ensuring that the text is truncated with an ellipsis and has the correct padding. The styles are then applied to the container tabs using the `className` and `style` props.

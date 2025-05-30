@@ -1,0 +1,261 @@
+The issue described is that the render buffers are not always created correctly when using a custom shader that doesn't have a full suite of attributes. This leads to problems when switching to a shader that does require those attributes. The solution involves ensuring that all necessary buffers are created regardless of the current shader's attributes.
+
+To fix this, we need to modify the `createBuffers` method to create all necessary buffers for the geometry, regardless of the current shader's attributes. Here's the proposed fix:
+
+```javascript
+### src/webgl/p5.RendererGL.Retained.js
+<<<<<<< SEARCH
+  var strokeShader = this._getRetainedStrokeShader();
+  strokeShader.bindShader();
+
+  // initialize the stroke shader's 'aPosition' buffer, if used
+  if (strokeShader.attributes.aPosition) {
+    geometry.lineVertexBuffer = gl.createBuffer();
+
+    this._bindBuffer(
+      geometry.lineVertexBuffer,
+      gl.ARRAY_BUFFER,
+      this._flatten(obj.lineVertices),
+      Float32Array,
+      gl.STATIC_DRAW
+    );
+
+    strokeShader.enableAttrib(
+      strokeShader.attributes.aPosition.location,
+      3,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+
+  // initialize the stroke shader's 'aDirection' buffer, if used
+  if (strokeShader.attributes.aDirection) {
+    geometry.lineNormalBuffer = gl.createBuffer();
+
+    this._bindBuffer(
+      geometry.lineNormalBuffer,
+      gl.ARRAY_BUFFER,
+      this._flatten(obj.lineNormals),
+      Float32Array,
+      gl.STATIC_DRAW
+    );
+
+    strokeShader.enableAttrib(
+      strokeShader.attributes.aDirection.location,
+      4,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+  strokeShader.unbindShader();
+
+  var fillShader = this._getRetainedFillShader();
+  fillShader.bindShader();
+
+  // initialize the fill shader's 'aPosition' buffer, if used
+  if (fillShader.attributes.aPosition) {
+    geometry.vertexBuffer = gl.createBuffer();
+
+    // allocate space for vertex positions
+    this._bindBuffer(
+      geometry.vertexBuffer,
+      gl.ARRAY_BUFFER,
+      this._vToNArray(obj.vertices),
+      Float32Array,
+      gl.STATIC_DRAW
+    );
+
+    fillShader.enableAttrib(
+      fillShader.attributes.aPosition.location,
+      3,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+
+  // allocate space for faces
+  geometry.indexBuffer = gl.createBuffer();
+  this._bindBuffer(
+    geometry.indexBuffer,
+    gl.ELEMENT_ARRAY_BUFFER,
+    this._flatten(obj.faces),
+    Uint16Array,
+    gl.STATIC_DRAW
+  );
+
+  // initialize the fill shader's 'aNormal' buffer, if used
+  if (fillShader.attributes.aNormal) {
+    geometry.normalBuffer = gl.createBuffer();
+
+    // allocate space for normals
+    this._bindBuffer(
+      geometry.normalBuffer,
+      gl.ARRAY_BUFFER,
+      this._vToNArray(obj.vertexNormals),
+      Float32Array,
+      gl.STATIC_DRAW
+    );
+
+    fillShader.enableAttrib(
+      fillShader.attributes.aNormal.location,
+      3,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+
+  // initialize the fill shader's 'aTexCoord' buffer, if used
+  if (fillShader.attributes.aTexCoord) {
+    geometry.uvBuffer = gl.createBuffer();
+
+    // tex coords
+    this._bindBuffer(
+      geometry.uvBuffer,
+      gl.ARRAY_BUFFER,
+      this._flatten(obj.uvs),
+      Float32Array,
+      gl.STATIC_DRAW
+    );
+
+    fillShader.enableAttrib(
+      fillShader.attributes.aTexCoord.location,
+      2,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+  fillShader.unbindShader();
+=======
+  // Create all necessary buffers regardless of the current shader's attributes
+
+  // Create lineVertexBuffer
+  geometry.lineVertexBuffer = gl.createBuffer();
+  this._bindBuffer(
+    geometry.lineVertexBuffer,
+    gl.ARRAY_BUFFER,
+    this._flatten(obj.lineVertices),
+    Float32Array,
+    gl.STATIC_DRAW
+  );
+
+  // Create lineNormalBuffer
+  geometry.lineNormalBuffer = gl.createBuffer();
+  this._bindBuffer(
+    geometry.lineNormalBuffer,
+    gl.ARRAY_BUFFER,
+    this._flatten(obj.lineNormals),
+    Float32Array,
+    gl.STATIC_DRAW
+  );
+
+  // Create vertexBuffer
+  geometry.vertexBuffer = gl.createBuffer();
+  this._bindBuffer(
+    geometry.vertexBuffer,
+    gl.ARRAY_BUFFER,
+    this._vToNArray(obj.vertices),
+    Float32Array,
+    gl.STATIC_DRAW
+  );
+
+  // Create indexBuffer
+  geometry.indexBuffer = gl.createBuffer();
+  this._bindBuffer(
+    geometry.indexBuffer,
+    gl.ELEMENT_ARRAY_BUFFER,
+    this._flatten(obj.faces),
+    Uint16Array,
+    gl.STATIC_DRAW
+  );
+
+  // Create normalBuffer
+  geometry.normalBuffer = gl.createBuffer();
+  this._bindBuffer(
+    geometry.normalBuffer,
+    gl.ARRAY_BUFFER,
+    this._vToNArray(obj.vertexNormals),
+    Float32Array,
+    gl.STATIC_DRAW
+  );
+
+  // Create uvBuffer
+  geometry.uvBuffer = gl.createBuffer();
+  this._bindBuffer(
+    geometry.uvBuffer,
+    gl.ARRAY_BUFFER,
+    this._flatten(obj.uvs),
+    Float32Array,
+    gl.STATIC_DRAW
+  );
+
+  // Bind and enable attributes for strokeShader
+  var strokeShader = this._getRetainedStrokeShader();
+  strokeShader.bindShader();
+  if (strokeShader.attributes.aPosition) {
+    strokeShader.enableAttrib(
+      strokeShader.attributes.aPosition.location,
+      3,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+  if (strokeShader.attributes.aDirection) {
+    strokeShader.enableAttrib(
+      strokeShader.attributes.aDirection.location,
+      4,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+  strokeShader.unbindShader();
+
+  // Bind and enable attributes for fillShader
+  var fillShader = this._getRetainedFillShader();
+  fillShader.bindShader();
+  if (fillShader.attributes.aPosition) {
+    fillShader.enableAttrib(
+      fillShader.attributes.aPosition.location,
+      3,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+  if (fillShader.attributes.aNormal) {
+    fillShader.enableAttrib(
+      fillShader.attributes.aNormal.location,
+      3,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+  if (fillShader.attributes.aTexCoord) {
+    fillShader.enableAttrib(
+      fillShader.attributes.aTexCoord.location,
+      2,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+  fillShader.unbindShader();
+>>>>>>> REPLACE
+```

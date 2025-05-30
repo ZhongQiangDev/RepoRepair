@@ -1,0 +1,145 @@
+The issue described is that when the keyboard focus moves to the NumberPicker's internal operation buttons, the buttons remain hidden, and the focus state of the NumberPicker disappears. To fix this, we need to ensure that the operation buttons are visible when focused and that the focus state is maintained using `:focus-within`.
+
+Here's the proposed fix:
+
+1. Ensure the operation buttons are visible when focused.
+2. Use `:focus-within` to maintain the focus state.
+
+```javascript
+### src/number-picker/number-picker.jsx
+<<<<<<< SEARCH
+        const cls = classNames({
+            [prefixCls]: true,
+            [`${prefixCls}-${type}`]: type,
+            [`${prefix}${size}`]: true,
+            [`${prefixCls}-show-trigger`]: alwaysShowTrigger,
+            [`${prefixCls}-no-trigger`]: !hasTrigger,
+            [`${prefix}disabled`]: disabled,
+            [className]: className,
+        });
+=======
+        const cls = classNames({
+            [prefixCls]: true,
+            [`${prefixCls}-${type}`]: type,
+            [`${prefix}${size}`]: true,
+            [`${prefixCls}-show-trigger`]: alwaysShowTrigger || this.state.hasFocused,
+            [`${prefixCls}-no-trigger`]: !hasTrigger,
+            [`${prefix}disabled`]: disabled,
+            [className]: className,
+        });
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+        if (type === 'normal') {
+            extra = (
+                <span className={`${prefixCls}-handler`}>
+                    <Button
+                        {...upBtnProps}
+                        onMouseDown={this.handleMouseDown}
+                        disabled={disabled}
+                        className={`${upBtnProps.className || ''} ${upDisabled ? 'disabled' : ''}`}
+                        onClick={this.up.bind(this, upDisabled)}
+                    >
+                        <Icon type="arrow-up" className={`${prefixCls}-up-icon`} />
+                    </Button>
+                    <Button
+                        {...downBtnProps}
+                        onMouseDown={this.handleMouseDown}
+                        disabled={disabled}
+                        className={`${downBtnProps.className || ''} ${downDisabled ? 'disabled' : ''}`}
+                        onClick={this.down.bind(this, downDisabled)}
+                    >
+                        <Icon type="arrow-down" className={`${prefixCls}-down-icon`} />
+                    </Button>
+                </span>
+            );
+        } else {
+            addonBefore = (
+                <Button
+                    {...downBtnProps}
+                    size={size}
+                    disabled={disabled}
+                    className={`${downBtnProps.className || ''} ${downDisabled ? 'disabled' : ''}`}
+                    onClick={this.down.bind(this, downDisabled)}
+                >
+                    <Icon type="minus" className={`${prefixCls}-minus-icon`} />
+                </Button>
+            );
+            addonAfter = (
+                <Button
+                    {...upBtnProps}
+                    size={size}
+                    disabled={disabled}
+                    className={`${upBtnProps.className || ''} ${upDisabled ? 'disabled' : ''}`}
+                    onClick={this.up.bind(this, upDisabled)}
+                >
+                    <Icon type="add" className={`${prefixCls}-add-icon`} />
+                </Button>
+            );
+        }
+=======
+        if (type === 'normal') {
+            extra = (
+                <span className={`${prefixCls}-handler ${this.state.hasFocused ? `${prefixCls}-handler-focused` : ''}`}>
+                    <Button
+                        {...upBtnProps}
+                        onMouseDown={this.handleMouseDown}
+                        disabled={disabled}
+                        className={`${upBtnProps.className || ''} ${upDisabled ? 'disabled' : ''}`}
+                        onClick={this.up.bind(this, upDisabled)}
+                    >
+                        <Icon type="arrow-up" className={`${prefixCls}-up-icon`} />
+                    </Button>
+                    <Button
+                        {...downBtnProps}
+                        onMouseDown={this.handleMouseDown}
+                        disabled={disabled}
+                        className={`${downBtnProps.className || ''} ${downDisabled ? 'disabled' : ''}`}
+                        onClick={this.down.bind(this, downDisabled)}
+                    >
+                        <Icon type="arrow-down" className={`${prefixCls}-down-icon`} />
+                    </Button>
+                </span>
+            );
+        } else {
+            addonBefore = (
+                <Button
+                    {...downBtnProps}
+                    size={size}
+                    disabled={disabled}
+                    className={`${downBtnProps.className || ''} ${downDisabled ? 'disabled' : ''}`}
+                    onClick={this.down.bind(this, downDisabled)}
+                >
+                    <Icon type="minus" className={`${prefixCls}-minus-icon`} />
+                </Button>
+            );
+            addonAfter = (
+                <Button
+                    {...upBtnProps}
+                    size={size}
+                    disabled={disabled}
+                    className={`${upBtnProps.className || ''} ${upDisabled ? 'disabled' : ''}`}
+                    onClick={this.up.bind(this, upDisabled)}
+                >
+                    <Icon type="add" className={`${prefixCls}-add-icon`} />
+                </Button>
+            );
+        }
+>>>>>>> REPLACE
+```
+
+Additionally, you may need to add CSS to handle the `:focus-within` state:
+
+```css
+/* Add this to your CSS file */
+.next-number-picker {
+    &-handler-focused {
+        display: block;
+    }
+    &:focus-within .next-number-picker-handler {
+        display: block;
+    }
+}
+```
+
+This ensures that the operation buttons are visible when focused and that the focus state is maintained using `:focus-within`.

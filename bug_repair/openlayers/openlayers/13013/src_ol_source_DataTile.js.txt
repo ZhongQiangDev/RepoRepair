@@ -1,0 +1,42 @@
+The issue described is related to the `ol.layer.WebGLTile` not rendering data loaded with `ol.source.DataTile` using a custom tile grid. The warning message indicates that the WebGL texture upload requires more data than is available, suggesting a mismatch between the expected and actual tile sizes.
+
+The problem seems to be related to the tile sizes and the tile grid configuration. The tile sizes provided in the issue description do not match the tile sizes expected by the WebGL renderer. Specifically, the tile sizes are `[770, 768], [240, 240], [240, 240], [240, 240]`, but the WebGL renderer expects a consistent tile size across all zoom levels.
+
+To fix this issue, we need to ensure that the tile sizes are consistent and match the expectations of the WebGL renderer. We can achieve this by modifying the `DataTileSource` constructor to enforce consistent tile sizes.
+
+Here is the proposed fix:
+
+```typescript
+### src/ol/source/DataTile.js
+<<<<<<< SEARCH
+    let tileGrid = options.tileGrid;
+    if (tileGrid === undefined && projection) {
+      tileGrid = createXYZ({
+        extent: extentFromProjection(projection),
+        maxResolution: options.maxResolution,
+        maxZoom: options.maxZoom,
+        minZoom: options.minZoom,
+        tileSize: options.tileSize,
+      });
+    }
+=======
+    let tileGrid = options.tileGrid;
+    if (tileGrid === undefined && projection) {
+      const tileSize = options.tileSize || [256, 256];
+      tileGrid = createXYZ({
+        extent: extentFromProjection(projection),
+        maxResolution: options.maxResolution,
+        maxZoom: options.maxZoom,
+        minZoom: options.minZoom,
+        tileSize: tileSize,
+      });
+    } else {
+      // Ensure consistent tile sizes across all zoom levels
+      const tileSize = options.tileSize || [256, 256];
+      tileGrid = tileGrid.clone();
+      tileGrid.tileSize = tileSize;
+    }
+>>>>>>> REPLACE
+```
+
+This fix ensures that the tile sizes are consistent across all zoom levels, which should resolve the issue with the WebGL renderer. If the `tileGrid` is provided, we clone it and set the `tileSize` to ensure consistency. If the `tileGrid` is not provided, we create a new `tileGrid` with the specified `tileSize`.

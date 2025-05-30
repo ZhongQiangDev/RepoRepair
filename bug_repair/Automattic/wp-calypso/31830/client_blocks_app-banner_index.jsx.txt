@@ -1,0 +1,43 @@
+The issue is that the app banner is still being displayed even when the user is already within the mobile app. To fix this, we need to ensure that the app banner is not shown when the user is already using the mobile app.
+
+We can achieve this by adding a condition to check if the user is within the app and then not rendering the app banner if that condition is met.
+
+Here's the *SEARCH/REPLACE* edit:
+
+```javascript
+### client/blocks/app-banner/index.jsx
+<<<<<<< SEARCH
+export class AppBanner extends Component {
+	static propTypes = {
+		saveDismissTime: PropTypes.func,
+		translate: PropTypes.func,
+		recordAppBannerOpen: PropTypes.func,
+		userAgent: PropTypes.string,
+		// connected
+		currentSection: PropTypes.string,
+		dismissedUntil: PropTypes.object,
+		fetchingPreferences: PropTypes.bool,
+	};
+=======
+export class AppBanner extends Component {
+	static propTypes = {
+		saveDismissTime: PropTypes.func,
+		translate: PropTypes.func,
+		recordAppBannerOpen: PropTypes.func,
+		userAgent: PropTypes.string,
+		// connected
+		currentSection: PropTypes.string,
+		dismissedUntil: PropTypes.object,
+		fetchingPreferences: PropTypes.bool,
+		isInApp: PropTypes.bool, // Add this new prop
+	};
+
+	isVisible() {
+		const { dismissedUntil, currentSection, isInApp } = this.props;
+
+		return this.isMobile() && !isDismissed(dismissedUntil, currentSection) && !isInApp; // Add isInApp check
+	}
+>>>>>>> REPLACE
+```
+
+This edit adds a new prop `isInApp` to the `AppBanner` component and modifies the `isVisible` method to check if the user is within the app. If the user is within the app, the app banner will not be displayed.

@@ -1,0 +1,22 @@
+The issue is that the audit is flagging `mailto:` links as failing the `rel="noopener"` check, even though these links should be exempt from this requirement. The audit should ignore `mailto:` links when checking for `rel="noopener"`.
+
+To fix this, we need to modify the audit logic to exclude `mailto:` links from the failing anchors list.
+
+```javascript
+### lighthouse-core/audits/dobetterweb/external-anchors-use-rel-noopener.js
+<<<<<<< SEARCH
+      .filter(anchor => {
+        // Ignore href's that are not real links
+        return !anchor.href || !anchor.href.toLowerCase().startsWith('javascript:');
+      })
+=======
+      .filter(anchor => {
+        // Ignore href's that are not real links or are mailto links
+        return (!anchor.href || 
+                anchor.href.toLowerCase().startsWith('javascript:') || 
+                anchor.href.toLowerCase().startsWith('mailto:'));
+      })
+>>>>>>> REPLACE
+```
+
+This change ensures that `mailto:` links are not included in the list of failing anchors, thus preventing the audit from flagging them incorrectly.

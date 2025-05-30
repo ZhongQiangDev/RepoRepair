@@ -1,0 +1,40 @@
+The issue described is related to the `GeometryCollection` class in OpenLayers, where the interaction does not work correctly when editing geometries within a `GeometryCollection`. The problem arises when dragging a common vertex of two polygons, causing unexpected behavior.
+
+To address this issue, we need to ensure that the `GeometryCollection` correctly handles the modification of its geometries. Specifically, we need to ensure that the `setGeometries` method properly updates the internal state and triggers the necessary change events.
+
+Here is the proposed fix:
+
+```javascript
+### src/ol/geom/GeometryCollection.js
+<<<<<<< SEARCH
+  /**
+   * Set the geometries that make up this geometry collection.
+   * @param {Array<Geometry>} geometries Geometries.
+   * @api
+   */
+  setGeometries(geometries) {
+    this.setGeometriesArray(cloneGeometries(geometries));
+  }
+=======
+  /**
+   * Set the geometries that make up this geometry collection.
+   * @param {Array<Geometry>} geometries Geometries.
+   * @api
+   */
+  setGeometries(geometries) {
+    this.unlistenGeometriesChange_();
+    this.geometries_ = cloneGeometries(geometries);
+    this.listenGeometriesChange_();
+    this.changed();
+  }
+>>>>>>> REPLACE
+```
+
+Explanation:
+1. The original `setGeometries` method calls `setGeometriesArray` with cloned geometries.
+2. The fix ensures that the `unlistenGeometriesChange_` method is called before updating the geometries to remove any existing event listeners.
+3. The `geometries_` array is then updated with the cloned geometries.
+4. The `listenGeometriesChange_` method is called to add new event listeners for the updated geometries.
+5. Finally, the `changed` method is called to notify any listeners that the geometry collection has been modified.
+
+This should resolve the issue where the interaction does not work correctly when editing geometries within a `GeometryCollection`.

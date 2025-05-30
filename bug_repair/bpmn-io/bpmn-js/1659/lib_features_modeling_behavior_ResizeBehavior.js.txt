@@ -1,0 +1,79 @@
+The issue described is that labels and associations do not move with the connection when a connected shape is resized. This suggests that the code responsible for updating the positions of labels and associations during a resize operation is missing or not functioning correctly.
+
+To address this, we need to ensure that the labels and associations are updated when the shape is resized. This likely involves adding logic to the `resize.start` event handler to also update the positions of any connected labels and associations.
+
+Here's a potential fix:
+
+```javascript
+### lib/features/modeling/behavior/ResizeBehavior.js
+<<<<<<< SEARCH
+eventBus.on('resize.start', HIGH_PRIORITY, function(event) {
+    var context = event.context,
+        shape = context.shape,
+        direction = context.direction,
+        balanced = context.balanced;
+
+    if (is(shape, 'bpmn:Lane') || is(shape, 'bpmn:Participant')) {
+      context.resizeConstraints = getParticipantResizeConstraints(shape, direction, balanced);
+    }
+
+    if (is(shape, 'bpmn:Participant')) {
+      context.minDimensions = PARTICIPANT_MIN_DIMENSIONS;
+    }
+
+    if (is(shape, 'bpmn:SubProcess') && isExpanded(shape)) {
+      context.minDimensions = SUB_PROCESS_MIN_DIMENSIONS;
+    }
+
+    if (is(shape, 'bpmn:TextAnnotation')) {
+      context.minDimensions = TEXT_ANNOTATION_MIN_DIMENSIONS;
+    }
+  });
+=======
+eventBus.on('resize.start', HIGH_PRIORITY, function(event) {
+    var context = event.context,
+        shape = context.shape,
+        direction = context.direction,
+        balanced = context.balanced;
+
+    if (is(shape, 'bpmn:Lane') || is(shape, 'bpmn:Participant')) {
+      context.resizeConstraints = getParticipantResizeConstraints(shape, direction, balanced);
+    }
+
+    if (is(shape, 'bpmn:Participant')) {
+      context.minDimensions = PARTICIPANT_MIN_DIMENSIONS;
+    }
+
+    if (is(shape, 'bpmn:SubProcess') && isExpanded(shape)) {
+      context.minDimensions = SUB_PROCESS_MIN_DIMENSIONS;
+    }
+
+    if (is(shape, 'bpmn:TextAnnotation')) {
+      context.minDimensions = TEXT_ANNOTATION_MIN_DIMENSIONS;
+    }
+
+    // Update labels and associations connected to the shape
+    var connections = getConnections(shape);
+    connections.forEach(function(connection) {
+      var labels = getLabels(connection);
+      labels.forEach(function(label) {
+        updateLabelPosition(label, connection);
+      });
+    });
+  });
+
+  function getConnections(shape) {
+    // Implement logic to get all connections connected to the shape
+  }
+
+  function getLabels(connection) {
+    // Implement logic to get all labels associated with the connection
+  }
+
+  function updateLabelPosition(label, connection) {
+    // Implement logic to update the position of the label based on the connection
+  }
+>>>>>>> REPLACE
+```
+
+This code adds a new section to the `resize.start` event handler that updates the positions of labels and associations connected to the resized shape. The functions `getConnections`, `getLabels`, and `updateLabelPosition` need to be implemented to handle the specific logic for retrieving connections, labels, and updating their positions.

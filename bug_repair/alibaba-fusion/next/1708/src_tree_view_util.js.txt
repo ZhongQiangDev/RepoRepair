@@ -1,0 +1,146 @@
+The issue described is related to the `TreeSelect` component where enabling both disabled items and default values causes the input box to display duplicate labels. This is likely due to the way the component handles the rendering of disabled items and their keys.
+
+To address this, we need to ensure that the keys for the items are unique and that disabled items are handled correctly. The `getAllCheckedKeys` function seems to be responsible for filtering and processing the keys, so we should focus on that.
+
+Here's a potential fix:
+
+```javascript
+### src/tree/view/util.js
+<<<<<<< SEARCH
+// eslint-disable-next-line max-statements
+export function getAllCheckedKeys(checkedKeys, _k2n, _p2n) {
+    checkedKeys = normalizeToArray(checkedKeys);
+    const filteredKeys = checkedKeys.filter(key => !!_k2n[key]);
+    const flatKeys = [
+        ...filterChildKey(filteredKeys, _k2n, _p2n),
+        ...filteredKeys.filter(
+            key => _k2n[key].disabled || _k2n[key].checkboxDisabled
+        ),
+    ];
+    const removeKey = child => {
+        if (child.disabled || child.checkboxDisabled) return;
+        if (
+            child.checkable === false &&
+            child.children &&
+            child.children.length > 0
+        ) {
+            return child.children.forEach(removeKey);
+        }
+        flatKeys.splice(flatKeys.indexOf(child.key), 1);
+    };
+
+    const addParentKey = (i, parent) => flatKeys.splice(i, 0, parent.key);
+
+    const keys = [...flatKeys];
+    for (let i = 0; i < keys.length; i++) {
+        const pos = _k2n[keys[i]].pos;
+        const nums = pos.split('-');
+        if (nums.length === 2) {
+            break;
+        }
+        for (let j = nums.length - 2; j > 0; j--) {
+            const parentPos = nums.slice(0, j + 1).join('-');
+            const parent = _p2n[parentPos];
+            if (
+                parent.checkable === false ||
+                parent.disabled ||
+                parent.checkboxDisabled
+            )
+                continue;
+            const parentChecked = parent.children.every(child =>
+                isNodeChecked(child, flatKeys)
+            );
+            if (parentChecked) {
+                parent.children.forEach(removeKey);
+                addParentKey(i, parent);
+            } else {
+                break;
+            }
+        }
+    }
+
+    const newKeys = [];
+    flatKeys.forEach(key => {
+        if (_k2n[key].disabled || _k2n[key].checkboxDisabled) {
+            newKeys.push(key);
+            return;
+        }
+        forEachEnableNode(_k2n[key], node => {
+            if (node.checkable === false) return;
+            newKeys.push(node.key);
+        });
+    });
+
+    return newKeys;
+}
+=======
+// eslint-disable-next-line max-statements
+export function getAllCheckedKeys(checkedKeys, _k2n, _p2n) {
+    checkedKeys = normalizeToArray(checkedKeys);
+    const filteredKeys = checkedKeys.filter(key => !!_k2n[key]);
+    const flatKeys = [
+        ...filterChildKey(filteredKeys, _k2n, _p2n),
+        ...filteredKeys.filter(
+            key => _k2n[key].disabled || _k2n[key].checkboxDisabled
+        ),
+    ];
+    const removeKey = child => {
+        if (child.disabled || child.checkboxDisabled) return;
+        if (
+            child.checkable === false &&
+            child.children &&
+            child.children.length > 0
+        ) {
+            return child.children.forEach(removeKey);
+        }
+        flatKeys.splice(flatKeys.indexOf(child.key), 1);
+    };
+
+    const addParentKey = (i, parent) => flatKeys.splice(i, 0, parent.key);
+
+    const keys = [...flatKeys];
+    for (let i = 0; i < keys.length; i++) {
+        const pos = _k2n[keys[i]].pos;
+        const nums = pos.split('-');
+        if (nums.length === 2) {
+            break;
+        }
+        for (let j = nums.length - 2; j > 0; j--) {
+            const parentPos = nums.slice(0, j + 1).join('-');
+            const parent = _p2n[parentPos];
+            if (
+                parent.checkable === false ||
+                parent.disabled ||
+                parent.checkboxDisabled
+            )
+                continue;
+            const parentChecked = parent.children.every(child =>
+                isNodeChecked(child, flatKeys)
+            );
+            if (parentChecked) {
+                parent.children.forEach(removeKey);
+                addParentKey(i, parent);
+            } else {
+                break;
+            }
+        }
+    }
+
+    const newKeys = [];
+    flatKeys.forEach(key => {
+        if (_k2n[key].disabled || _k2n[key].checkboxDisabled) {
+            // Skip adding disabled keys to newKeys
+            return;
+        }
+        forEachEnableNode(_k2n[key], node => {
+            if (node.checkable === false) return;
+            newKeys.push(node.key);
+        });
+    });
+
+    return newKeys;
+}
+>>>>>>> REPLACE
+```
+
+This change ensures that disabled keys are not added to the `newKeys` array, which should prevent the duplicate labels issue.

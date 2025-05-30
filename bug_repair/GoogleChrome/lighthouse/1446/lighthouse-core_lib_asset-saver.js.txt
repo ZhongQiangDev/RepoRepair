@@ -1,0 +1,69 @@
+The issue described is about integrating performance metrics into the Timeline view for better visualization. The code provided is related to saving artifacts and assets, but it doesn't directly address the issue of visualizing performance metrics on the Timeline. However, the issue mentions a patch for Lighthouse and DevTools that seems to handle this. 
+
+To integrate the performance metrics into the Timeline view, the code needs to be updated to include the fake trace events that represent the performance metrics. This involves modifying the `prepareAssets` function to include the metrics as trace events.
+
+Here's the proposed fix:
+
+```javascript
+###lighthouse-core/lib/asset-saver.js
+<<<<<<< SEARCH
+function prepareAssets(artifacts, results) {
+  const passNames = Object.keys(artifacts.traces);
+  const assets = [];
+
+  return passNames.reduce((chain, passName) => {
+    const trace = artifacts.traces[passName];
+
+    return chain.then(_ => artifacts.requestScreenshots(trace))
+      .then(screenshots => {
+        const traceData = Object.assign({}, trace);
+        const html = screenshotDump(screenshots, results);
+
+        assets.push({
+          traceData,
+          html
+        });
+      });
+  }, Promise.resolve())
+    .then(_ => assets);
+}
+=======
+function prepareAssets(artifacts, results) {
+  const passNames = Object.keys(artifacts.traces);
+  const assets = [];
+
+  return passNames.reduce((chain, passName) => {
+    const trace = artifacts.traces[passName];
+
+    return chain.then(_ => artifacts.requestScreenshots(trace))
+      .then(screenshots => {
+        const traceData = Object.assign({}, trace);
+        const html = screenshotDump(screenshots, results);
+
+        // Add performance metrics as trace events
+        const metrics = results.metrics;
+        Object.keys(metrics).forEach(metricName => {
+          const metricValue = metrics[metricName];
+          traceData.traceEvents.push({
+            name: metricName,
+            ph: 'X',
+            ts: metricValue * 1000, // Convert to microseconds
+            dur: 0,
+            pid: 0,
+            tid: 0,
+            args: {}
+          });
+        });
+
+        assets.push({
+          traceData,
+          html
+        });
+      });
+  }, Promise.resolve())
+    .then(_ => assets);
+}
+>>>>>>> REPLACE
+```
+
+This code adds the performance metrics as trace events to the `traceData` object, which will then be visualized in the Timeline view. The `metrics` object is assumed to be available in the `results` object, and each metric is added as a trace event with the appropriate timestamp and duration.

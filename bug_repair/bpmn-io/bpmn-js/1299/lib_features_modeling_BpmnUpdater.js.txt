@@ -1,0 +1,91 @@
+The issue described involves two bugs:
+
+1. **Resizing of labels to minimum bounds when completing direct editing with an empty label**.
+2. **Shapes of events and gateways becoming smaller or disappearing when clicked**.
+
+The first bug is related to the direct editing functionality, while the second is related to the selection of events and gateways.
+
+### Fix for Bug 1: Resizing of labels to minimum bounds
+
+The issue seems to be related to the direct editing functionality, which is not directly shown in the provided code segment. However, the commit mentioned in the issue (`e4e789bd3eecc47597d97d6c8f1e71b941dee066`) likely introduced the bug. We need to ensure that the label size is not set to minimum bounds when the label text is empty.
+
+### Fix for Bug 2: Shapes of events and gateways becoming smaller or disappearing
+
+The second bug is related to the selection of events and gateways. The issue might be in the way the selection is handled, possibly in the `BpmnUpdater` class. We need to ensure that the selection does not alter the shape or visibility of the elements.
+
+Here is the proposed fix for the second bug:
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+BpmnUpdater.prototype.updateConnection = function(context) {
+=======
+BpmnUpdater.prototype.updateConnection = function(context) {
+
+  // Ensure the selected elements do not change shape or disappear
+  if (context.element && isAny(context.element, ['bpmn:Event', 'bpmn:Gateway'])) {
+    return;
+  }
+
+  var connection = context.connection,
+      businessObject = getBusinessObject(connection),
+      newSource = getBusinessObject(connection.source),
+      newTarget = getBusinessObject(connection.target),
+      visualParent;
+
+  if (!is(businessObject, 'bpmn:DataAssociation')) {
+
+    var inverseSet = is(businessObject, 'bpmn:SequenceFlow');
+
+    if (businessObject.sourceRef !== newSource) {
+      if (inverseSet) {
+        collectionRemove(businessObject.sourceRef && businessObject.sourceRef.get('outgoing'), businessObject);
+
+        if (newSource && newSource.get('outgoing')) {
+          newSource.get('outgoing').push(businessObject);
+        }
+      }
+
+      businessObject.sourceRef = newSource;
+    }
+
+    if (businessObject.targetRef !== newTarget) {
+      if (inverseSet) {
+        collectionRemove(businessObject.targetRef && businessObject.targetRef.get('incoming'), businessObject);
+
+        if (newTarget && newTarget.get('incoming')) {
+          newTarget.get('incoming').push(businessObject);
+        }
+      }
+
+      businessObject.targetRef = newTarget;
+    }
+  } else
+
+  if (is(businessObject, 'bpmn:DataInputAssociation')) {
+
+    // handle obnoxious isMsome sourceRef
+    businessObject.get('sourceRef')[0] = newSource;
+
+    visualParent = context.parent || context.newParent || newTarget;
+
+    this.updateSemanticParent(businessObject, newTarget, visualParent);
+  } else
+
+  if (is(businessObject, 'bpmn:DataOutputAssociation')) {
+    visualParent = context.parent || context.newParent || newSource;
+
+    this.updateSemanticParent(businessObject, newSource, visualParent);
+
+    // targetRef = new target
+    businessObject.targetRef = newTarget;
+  }
+
+  this.updateConnectionWaypoints(connection);
+
+  this.updateDiConnection(businessObject.di, newSource, newTarget);
+};
+>>>>>>> REPLACE
+```
+
+This fix ensures that when an event or gateway is selected, the `updateConnection` function does not alter the shape or visibility of the elements. This should resolve the second bug. The first bug requires a different approach, possibly in the direct editing functionality, which is not shown in the provided code segment.

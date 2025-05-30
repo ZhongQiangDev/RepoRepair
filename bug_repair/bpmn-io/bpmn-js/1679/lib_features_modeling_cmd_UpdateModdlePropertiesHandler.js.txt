@@ -1,0 +1,41 @@
+The issue described is related to the toggling of the "Parallel" or "Sequential" options in a multi-instance loop not updating the XML correctly. The expected behavior is that the XML should reflect the chosen option with the appropriate attributes.
+
+The provided code snippet does not directly handle the toggling of the "Parallel" or "Sequential" options. However, it does handle updating properties on a ModdleElement. The issue might be related to how the `setModdleProperties` function is being used or how the properties are being set.
+
+To address this, we need to ensure that when the "Parallel" or "Sequential" option is toggled, the `isSequential` attribute is correctly set on the `multiInstanceLoopCharacteristics` element.
+
+Here's a potential fix:
+
+```javascript
+### lib/features/modeling/cmd/UpdateModdlePropertiesHandler.js
+<<<<<<< SEARCH
+function setModdleProperties(moddleElement, properties) {
+  forEach(properties, function(value, key) {
+    moddleElement.set(key, value);
+  });
+}
+=======
+function setModdleProperties(moddleElement, properties) {
+  forEach(properties, function(value, key) {
+    if (key === 'isSequential') {
+      // Ensure the multiInstanceLoopCharacteristics element exists
+      var loopCharacteristics = moddleElement.get('loopCharacteristics');
+      if (loopCharacteristics && loopCharacteristics.$instanceOf('bpmn:MultiInstanceLoopCharacteristics')) {
+        loopCharacteristics.set(key, value);
+      } else {
+        // Create the multiInstanceLoopCharacteristics element if it doesn't exist
+        var moddle = moddleElement.model;
+        var newLoopCharacteristics = moddle.create('bpmn:MultiInstanceLoopCharacteristics', {
+          isSequential: value
+        });
+        moddleElement.set('loopCharacteristics', newLoopCharacteristics);
+      }
+    } else {
+      moddleElement.set(key, value);
+    }
+  });
+}
+>>>>>>> REPLACE
+```
+
+This change ensures that when the `isSequential` property is set, it correctly updates the `multiInstanceLoopCharacteristics` element in the XML. If the element does not exist, it creates it with the appropriate attribute. This should resolve the issue where the XML is not being updated correctly when toggling between "Parallel" and "Sequential".

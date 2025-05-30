@@ -1,0 +1,74 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub issue is that the option to crop GeoTIFF source tiles to the tile grid extent is not respected when the tiles are reprojected. Specifically, when a non-zero nodata value is specified, the tiles are not cropped as expected, leading to incorrect rendering.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how the `wrapX` option is handled during reprojection. The `wrapX` option in the GeoTIFF source is intended to crop the output to the tile grid extent on both the x and y axes. However, during reprojection, this option might not be correctly applied, leading to tiles extending beyond the intended extent. This could be due to a mismatch in how the `wrapX` option is interpreted between the GeoTIFF source and the reprojection process.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### --- examples/cog-blob.js ---
+```
+This file contains no relevant functions/classes.
+```
+
+#### --- src/ol/reproj.js ---
+```
+src/ol/reproj.js
+function: calculateSourceExtentResolution
+function: calculateSourceResolution
+function: wrapX
+```
+
+The `calculateSourceExtentResolution` and `calculateSourceResolution` functions are involved in determining the resolution and extent for reprojection, which could affect how the tiles are cropped. The `wrapX` function is directly related to the issue as it handles the wrapping of tile coordinates, which is where the cropping behavior should be applied.
+
+#### --- src/ol/tilegrid.js ---
+```
+src/ol/tilegrid.js
+function: createForExtent
+function: createForProjection
+function: wrapX
+```
+
+The `createForExtent` and `createForProjection` functions are responsible for creating tile grids based on specific extents and projections, which could influence how the tiles are cropped during reprojection. The `wrapX` function is also relevant as it adjusts tile coordinates to fit within the projection's extent.
+
+#### --- src/ol/reproj/DataTile.js ---
+```
+src/ol/reproj/DataTile.js
+class: ReprojDataTile
+```
+
+The `ReprojDataTile` class handles the reprojection of tile data between different coordinate systems. It manages the loading and reprojecting of tiles, which is directly related to the issue of cropping tiles during reprojection.
+
+#### --- src/ol/source/GeoTIFF.js ---
+```
+src/ol/source/GeoTIFF.js
+class: GeoTIFFSource
+function: getBoundingBox
+function: getResolution
+```
+
+The `GeoTIFFSource` class is responsible for handling GeoTIFF data and configuring the tile grids. The `getBoundingBox` function retrieves the bounding box of a GeoTIFF image, which is relevant for determining the extent of the tiles. The `getResolution` function calculates the resolution of the image, which could affect how the tiles are cropped during reprojection.
+
+### Summary of Relevant Locations
+
+```
+src/ol/reproj.js
+function: calculateSourceExtentResolution
+function: calculateSourceResolution
+function: wrapX
+
+src/ol/tilegrid.js
+function: createForExtent
+function: createForProjection
+function: wrapX
+
+src/ol/reproj/DataTile.js
+class: ReprojDataTile
+
+src/ol/source/GeoTIFF.js
+class: GeoTIFFSource
+function: getBoundingBox
+function: getResolution
+```

@@ -1,0 +1,25 @@
+The issue described is that the audit is erroneously reporting that compression is missing, even though gzip compression is enabled. The problem seems to be in the `filterUnoptimizedResponses` method, where it checks if the `content-encoding` header is present and includes one of the compression types. However, it does not handle the case where the `content-encoding` header value is a comma-separated list of multiple encodings.
+
+To fix this, we need to modify the `filterUnoptimizedResponses` method to correctly parse the `content-encoding` header value and check if any of the compression types are included.
+
+Here is the *SEARCH/REPLACE* edit to fix the issue:
+
+```javascript
+### lighthouse-core/gather/gatherers/dobetterweb/response-compression.js
+<<<<<<< SEARCH
+      const isContentEncoded = record.responseHeaders.find(header =>
+        header.name.toLowerCase() === 'content-encoding' &&
+        compressionTypes.includes(header.value)
+      );
+=======
+      const isContentEncoded = record.responseHeaders.find(header => {
+        if (header.name.toLowerCase() !== 'content-encoding') {
+          return false;
+        }
+        const encodings = header.value.split(',').map(encoding => encoding.trim());
+        return encodings.some(encoding => compressionTypes.includes(encoding));
+      });
+>>>>>>> REPLACE
+```
+
+This edit changes the way the `content-encoding` header value is checked. It now splits the header value by commas and trims any whitespace, then checks if any of the resulting encodings are included in the `compressionTypes` array. This should correctly identify responses that are already compressed and prevent them from being reported as unoptimized.

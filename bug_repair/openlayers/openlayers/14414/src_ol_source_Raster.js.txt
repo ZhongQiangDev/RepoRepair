@@ -1,0 +1,61 @@
+The issue described involves incorrect pixel values being read and the inability to decrease the level after increasing it. The problem seems to be related to how the pixel data is being processed and updated in the `floodRegion` function. Specifically, the `inputData` array might not be correctly reflecting the changes when the level is decreased.
+
+To address this, we need to ensure that the `inputData` array is properly updated and that the pixel values are correctly read and modified. Here's a potential fix:
+
+```javascript
+### index.js
+<<<<<<< SEARCH
+function floodRegion(inputs, data) {
+	const image = inputs[0];
+	const inputData = image.data;
+	const width = image.width;
+	const height = image.height;
+	let seed = data.pixel;
+
+	if (seed) {
+		seed = seed.map(Math.round);
+		const seedIdx = (seed[1] * width + seed[0]) * 4;
+		console.log("Value: " + inputData[seedIdx]);
+	}
+
+	return { data: image.data, width: width, height: height };
+}
+=======
+function floodRegion(inputs, data) {
+	const image = inputs[0];
+	const inputData = image.data.slice(); // Create a copy of the input data to avoid modifying the original
+	const width = image.width;
+	const height = image.height;
+	let seed = data.pixel;
+
+	if (seed) {
+		seed = seed.map(Math.round);
+		const seedIdx = (seed[1] * width + seed[0]) * 4;
+		console.log("Value: " + inputData[seedIdx]);
+	}
+
+	// Update the pixel values based on the current level
+	for (let y = 0; y < height; y++) {
+		for (let x = 0; x < width; x++) {
+			const idx = (y * width + x) * 4;
+			const elevationValue = inputData[idx]; // Assuming the elevation value is in the R channel
+			if (elevationValue <= data.level) {
+				inputData[idx] = 255; // R
+				inputData[idx + 1] = 255; // G
+				inputData[idx + 2] = 255; // B
+				inputData[idx + 3] = 255; // A
+			} else {
+				inputData[idx] = 0; // R
+				inputData[idx + 1] = 0; // G
+				inputData[idx + 2] = 0; // B
+				inputData[idx + 3] = 0; // A
+			}
+		}
+	}
+
+	return { data: inputData, width: width, height: height };
+}
+>>>>>>> REPLACE
+```
+
+This change ensures that the `inputData` array is properly updated based on the current level, and it creates a copy of the input data to avoid modifying the original array. This should help in correctly reflecting the changes when the level is decreased.

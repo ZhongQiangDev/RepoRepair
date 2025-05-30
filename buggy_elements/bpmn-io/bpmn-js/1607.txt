@@ -1,0 +1,47 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that when a group is created inside a collapsed sub-process and the diagram is saved, upon re-importing the diagram, an import warning appears stating `unresolved reference <CategoryValue_01k5toe>`. This indicates that the BPMN export process is not correctly handling the group inside the collapsed sub-process, leading to a broken reference upon re-import.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from how the BPMN exporter handles the creation and management of groups within collapsed sub-processes. Specifically, the exporter may not be correctly updating or maintaining the references to the group's category values when the sub-process is collapsed. This could result in the category value being lost or not properly serialized during the export process, leading to an unresolved reference upon re-import.
+
+### 3. Examine Each File One by One
+
+#### --- lib/features/modeling/BpmnUpdater.js ---
+```
+lib/features/modeling/BpmnUpdater.js
+function: function_18
+function: function_25
+```
+- `function_18` (`updateParent`): This function updates parent references for BPMN elements. It might need to be checked to ensure it correctly handles parent updates for groups within collapsed sub-processes.
+- `function_25` (`updateSemanticParent`): This function updates the semantic parent of a business object. It might need to be checked to ensure it correctly handles the semantic parent updates for groups within collapsed sub-processes.
+
+#### --- lib/features/modeling/behavior/GroupBehavior.js ---
+```
+lib/features/modeling/behavior/GroupBehavior.js
+function: GroupBehavior
+```
+- `GroupBehavior`: This function handles the lifecycle of BPMN group elements. It might need to be checked to ensure it correctly manages the creation, deletion, and references of groups within collapsed sub-processes.
+
+#### --- lib/features/modeling/behavior/SubProcessPlaneBehavior.js ---
+```
+lib/features/modeling/behavior/SubProcessPlaneBehavior.js
+function: SubProcessPlaneBehavior
+```
+- `SubProcessPlaneBehavior`: This function ensures the proper handling of collapsed subprocesses. It might need to be checked to ensure it correctly manages the lifecycle of BPMNPlane elements associated with collapsed subprocesses, including the handling of groups within these subprocesses.
+
+#### --- lib/import/BpmnImporter.js ---
+```
+lib/import/BpmnImporter.js
+function: function_12
+function: function_8
+```
+- `function_12` (`_getElement`): This function retrieves BPMN elements from the registry. It might need to be checked to ensure it correctly handles the retrieval of elements, including groups, within collapsed sub-processes.
+- `function_8` (`addLabel`): This function creates and attaches labels to elements. It might need to be checked to ensure it correctly handles label creation and attachment for groups within collapsed sub-processes.
+
+#### --- lib/util/ModelUtil.js ---
+```
+This file contains no relevant functions/classes.
+```
+- The functions in this file are utility functions that do not directly handle the creation, management, or export of groups within collapsed sub-processes. Therefore, they are not directly relevant to the issue described.

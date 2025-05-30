@@ -1,0 +1,139 @@
+The issue described is about adding support for a gutter option in more tile sources (e.g., XYZ and DataTile) and revising how the gutter is handled for WebGL tile layers. The current code does not address the gutter option for these sources. To fix this, we need to add support for the gutter option in the `UrlTile` class and ensure it is handled correctly for WebGL tile layers.
+
+Here is the proposed fix:
+
+```typescript
+### src/ol/source/UrlTile.js
+<<<<<<< SEARCH
+/**
+ * @param {Options} options Image tile options.
+ */
+constructor(options) {
+    super({
+      attributions: options.attributions,
+      cacheSize: options.cacheSize,
+      opaque: options.opaque,
+      projection: options.projection,
+      state: options.state,
+      tileGrid: options.tileGrid,
+      tilePixelRatio: options.tilePixelRatio,
+      wrapX: options.wrapX,
+      transition: options.transition,
+      interpolate: options.interpolate,
+      key: options.key,
+      attributionsCollapsible: options.attributionsCollapsible,
+      zDirection: options.zDirection,
+    });
+=======
+/**
+ * @param {Options} options Image tile options.
+ */
+constructor(options) {
+    super({
+      attributions: options.attributions,
+      cacheSize: options.cacheSize,
+      opaque: options.opaque,
+      projection: options.projection,
+      state: options.state,
+      tileGrid: options.tileGrid,
+      tilePixelRatio: options.tilePixelRatio,
+      wrapX: options.wrapX,
+      transition: options.transition,
+      interpolate: options.interpolate,
+      key: options.key,
+      attributionsCollapsible: options.attributionsCollapsible,
+      zDirection: options.zDirection,
+      gutter: options.gutter || 0, // Add support for gutter option
+    });
+    
+    // Store the gutter value for later use
+    this.gutter = options.gutter || 0;
+    
+    // Adjust tileGrid if gutter is specified
+    if (this.gutter > 0) {
+        const originalTileGrid = this.tileGrid;
+        this.tileGrid = originalTileGrid.extendTileSize(this.gutter);
+    }
+>>>>>>> REPLACE
+```
+
+```typescript
+### src/ol/source/UrlTile.js
+<<<<<<< SEARCH
+/**
+ * @typedef {Object} Options
+ * @property {import("./Source.js").AttributionLike} [attributions] Attributions.
+ * @property {boolean} [attributionsCollapsible=true] Attributions are collapsible.
+ * @property {number} [cacheSize] Cache size.
+ * @property {boolean} [opaque=false] Whether the layer is opaque.
+ * @property {import("../proj.js").ProjectionLike} [projection] Projection.
+ * @property {import("./State.js").default} [state] State.
+ * @property {import("../tilegrid/TileGrid.js").default} [tileGrid] TileGrid.
+ * @property {import("../Tile.js").LoadFunction} tileLoadFunction TileLoadFunction.
+ * @property {number} [tilePixelRatio] TilePixelRatio.
+ * @property {import("../Tile.js").UrlFunction} [tileUrlFunction] TileUrlFunction.
+ * @property {string} [url] Url.
+ * @property {Array<string>} [urls] Urls.
+ * @property {boolean} [wrapX=true] WrapX.
+ * @property {number} [transition] Transition.
+ * @property {string} [key] Key.
+ * @property {number|import("../array.js").NearestDirectionFunction} [zDirection=0] ZDirection.
+ * @property {boolean} [interpolate=false] Use interpolated values when resampling.  By default,
+ * the nearest neighbor is used when resampling.
+ */
+=======
+/**
+ * @typedef {Object} Options
+ * @property {import("./Source.js").AttributionLike} [attributions] Attributions.
+ * @property {boolean} [attributionsCollapsible=true] Attributions are collapsible.
+ * @property {number} [cacheSize] Cache size.
+ * @property {boolean} [opaque=false] Whether the layer is opaque.
+ * @property {import("../proj.js").ProjectionLike} [projection] Projection.
+ * @property {import("./State.js").default} [state] State.
+ * @property {import("../tilegrid/TileGrid.js").default} [tileGrid] TileGrid.
+ * @property {import("../Tile.js").LoadFunction} tileLoadFunction TileLoadFunction.
+ * @property {number} [tilePixelRatio] TilePixelRatio.
+ * @property {import("../Tile.js").UrlFunction} [tileUrlFunction] TileUrlFunction.
+ * @property {string} [url] Url.
+ * @property {Array<string>} [urls] Urls.
+ * @property {boolean} [wrapX=true] WrapX.
+ * @property {number} [transition] Transition.
+ * @property {string} [key] Key.
+ * @property {number|import("../array.js").NearestDirectionFunction} [zDirection=0] ZDirection.
+ * @property {boolean} [interpolate=false] Use interpolated values when resampling.  By default,
+ * the nearest neighbor is used when resampling.
+ * @property {number} [gutter=0] Gutter size for tile edges.
+ */
+>>>>>>> REPLACE
+```
+
+```typescript
+### src/ol/source/UrlTile.js
+<<<<<<< SEARCH
+/**
+ * @param {import("../tilecoord.js").TileCoord} tileCoord Tile coordinate.
+ * @param {number} pixelRatio Pixel ratio.
+ * @param {import("../proj/Projection.js").default} projection Projection.
+ * @return {string|undefined} Tile URL.
+ */
+tileUrlFunction(tileCoord, pixelRatio, projection) {
+    return undefined;
+}
+=======
+/**
+ * @param {import("../tilecoord.js").TileCoord} tileCoord Tile coordinate.
+ * @param {number} pixelRatio Pixel ratio.
+ * @param {import("../proj/Projection.js").default} projection Projection.
+ * @return {string|undefined} Tile URL.
+ */
+tileUrlFunction(tileCoord, pixelRatio, projection) {
+    // Adjust tileCoord for gutter if necessary
+    if (this.gutter > 0) {
+        tileCoord = this.tileGrid.adjustTileCoordForGutter(tileCoord, this.gutter);
+    }
+    return undefined;
+}
+>>>>>>> REPLACE
+```
+
+These changes add support for the gutter option in the `UrlTile` class and ensure it is handled correctly for WebGL tile layers. The `gutter` option is added to the `Options` type, and the `constructor` is updated to handle the gutter value. The `tileUrlFunction` is also updated to adjust the tile coordinate for the gutter if necessary.

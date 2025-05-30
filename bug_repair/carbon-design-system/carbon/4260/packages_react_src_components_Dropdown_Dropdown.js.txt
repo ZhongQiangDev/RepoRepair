@@ -1,0 +1,165 @@
+The issue described in the screenshots indicates two main problems:
+
+1. **Invalid ARIA attribute values**: The `aria-owns` and `aria-controls` attributes are pointing to an invalid ID (`carbon-dropdown-example__menu`), which does not exist in the DOM.
+2. **Accessible name does not contain the visible label text**: The accessible name of the dropdown does not include the visible label text.
+
+To address these issues, we need to ensure that the `aria-owns` and `aria-controls` attributes point to a valid ID and that the accessible name includes the visible label text.
+
+Here are the necessary changes:
+
+```javascript
+###packages/react/src/components/Dropdown/Dropdown.js
+<<<<<<< SEARCH
+              <ListBox
+                id={id}
+                type={type}
+                className={className({ isOpen })}
+                disabled={disabled}
+                isOpen={isOpen}
+                invalid={invalid}
+                invalidText={invalidText}
+                light={light}
+                {...getRootProps({ refKey: 'innerRef' })}>
+                {invalid && (
+                  <WarningFilled16
+                    className={`${prefix}--list-box__invalid-icon`}
+                  />
+                )}
+                <ListBox.Field
+                  id={id}
+                  tabIndex="0"
+                  disabled={disabled}
+                  aria-disabled={disabled}
+                  translateWithId={translateWithId}
+                  {...getButtonProps({
+                    onKeyDown: event => {
+                      if (match(event, keys.Enter)) {
+                        toggleMenu();
+                      }
+                    },
+                    disabled,
+                  })}>
+                  <span
+                    className={`${prefix}--list-box__label`}
+                    {...getLabelProps()}>
+                    {selectedItem ? itemToString(selectedItem) : label}
+                  </span>
+                  <ListBox.MenuIcon
+                    isOpen={isOpen}
+                    translateWithId={translateWithId}
+                  />
+                </ListBox.Field>
+                {isOpen && (
+                  <ListBox.Menu aria-label={ariaLabel} id={`${id}-menu`}>
+                    {items.map((item, index) => (
+                      <ListBox.MenuItem
+                        key={itemToString(item)}
+                        isActive={selectedItem === item}
+                        isHighlighted={
+                          highlightedIndex === index || selectedItem === item
+                        }
+                        {...getItemProps({ item, index })}>
+                        {itemToElement ? (
+                          <ItemToElement key={itemToString(item)} {...item} />
+                        ) : (
+                          itemToString(item)
+                        )}
+                      </ListBox.MenuItem>
+                    ))}
+                  </ListBox.Menu>
+                )}
+              </ListBox>
+=======
+              <ListBox
+                id={id}
+                type={type}
+                className={className({ isOpen })}
+                disabled={disabled}
+                isOpen={isOpen}
+                invalid={invalid}
+                invalidText={invalidText}
+                light={light}
+                {...getRootProps({ refKey: 'innerRef' })}>
+                {invalid && (
+                  <WarningFilled16
+                    className={`${prefix}--list-box__invalid-icon`}
+                  />
+                )}
+                <ListBox.Field
+                  id={id}
+                  tabIndex="0"
+                  disabled={disabled}
+                  aria-disabled={disabled}
+                  translateWithId={translateWithId}
+                  {...getButtonProps({
+                    onKeyDown: event => {
+                      if (match(event, keys.Enter)) {
+                        toggleMenu();
+                      }
+                    },
+                    disabled,
+                  })}>
+                  <span
+                    className={`${prefix}--list-box__label`}
+                    {...getLabelProps()}>
+                    {selectedItem ? itemToString(selectedItem) : label}
+                  </span>
+                  <ListBox.MenuIcon
+                    isOpen={isOpen}
+                    translateWithId={translateWithId}
+                  />
+                </ListBox.Field>
+                {isOpen && (
+                  <ListBox.Menu aria-label={ariaLabel} id={`${id}-menu`}>
+                    {items.map((item, index) => (
+                      <ListBox.MenuItem
+                        key={itemToString(item)}
+                        isActive={selectedItem === item}
+                        isHighlighted={
+                          highlightedIndex === index || selectedItem === item
+                        }
+                        {...getItemProps({ item, index })}>
+                        {itemToElement ? (
+                          <ItemToElement key={itemToString(item)} {...item} />
+                        ) : (
+                          itemToString(item)
+                        )}
+                      </ListBox.MenuItem>
+                    ))}
+                  </ListBox.Menu>
+                )}
+              </ListBox>
+              <ListBox.Field
+                id={`${id}-label`}
+                aria-labelledby={`${id}-label`}
+                aria-describedby={`${id}-helper`}
+                aria-controls={`${id}-menu`}
+                aria-owns={`${id}-menu`}
+                tabIndex="0"
+                disabled={disabled}
+                aria-disabled={disabled}
+                translateWithId={translateWithId}
+                {...getButtonProps({
+                  onKeyDown: event => {
+                    if (match(event, keys.Enter)) {
+                      toggleMenu();
+                    }
+                  },
+                  disabled,
+                })}>
+                <span
+                  className={`${prefix}--list-box__label`}
+                  {...getLabelProps()}>
+                  {selectedItem ? itemToString(selectedItem) : label}
+                </span>
+                <ListBox.MenuIcon
+                  isOpen={isOpen}
+                  translateWithId={translateWithId}
+                />
+              </ListBox.Field>
+>>>>>>> REPLACE
+```
+
+In this fix:
+- The `ListBox.Menu` now has an `id` of `${id}-menu` to ensure it is a valid target for `aria-owns` and `aria-controls`.
+- The `ListBox.Field` now includes `aria-labelledby`, `aria-describedby`, `aria-controls`, and `aria-owns` attributes to ensure the accessible name includes the visible label text and points to the correct menu ID.

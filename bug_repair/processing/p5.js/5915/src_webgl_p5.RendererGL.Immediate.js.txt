@@ -1,0 +1,116 @@
+To address the issue of interpolating line colors vertex-wise in WebGL mode, we need to modify the WebGL renderer to handle vertex-wise stroke colors. This involves updating the shaders, adding new buffers, and modifying the geometry handling. Here are the necessary changes:
+
+### 1. Update the Vertex Shader to Accept Line Colors
+
+```javascript
+### src/webgl/p5.RendererGL.Immediate.js
+<<<<<<< SEARCH
+const immediateBufferStrides = {
+  vertices: 1,
+  vertexNormals: 1,
+  vertexColors: 4,
+  uvs: 2
+};
+=======
+const immediateBufferStrides = {
+  vertices: 1,
+  vertexNormals: 1,
+  vertexColors: 4,
+  lineVertexColors: 4, // New attribute for line colors
+  uvs: 2
+};
+>>>>>>> REPLACE
+```
+
+### 2. Add New RenderBuffer for Line Colors
+
+```javascript
+### src/webgl/p5.RendererGL.Immediate.js
+<<<<<<< SEARCH
+  this.vertexColors = new _main.default.RenderBuffer(4, 'vertexColors', 'colorBuffer', 'aVertexColor', this, this._flatten);
+=======
+  this.vertexColors = new _main.default.RenderBuffer(4, 'vertexColors', 'colorBuffer', 'aVertexColor', this, this._flatten);
+  this.lineVertexColors = new _main.default.RenderBuffer(4, 'lineVertexColors', 'lineColorBuffer', 'aLineColor', this, this._flatten); // New buffer for line colors
+>>>>>>> REPLACE
+```
+
+### 3. Modify Geometry to Store Line Colors
+
+```javascript
+### src/webgl/p5.RendererGL.Immediate.js
+<<<<<<< SEARCH
+  this.vertexColors = new _main.default.RenderBuffer(4, 'vertexColors', 'colorBuffer', 'aVertexColor', this, this._flatten);
+=======
+  this.vertexColors = new _main.default.RenderBuffer(4, 'vertexColors', 'colorBuffer', 'aVertexColor', this, this._flatten);
+  this.lineVertexColors = []; // New array to store line colors
+>>>>>>> REPLACE
+```
+
+### 4. Update `_edgesToVertices` to Include Line Colors
+
+```javascript
+### src/webgl/p5.RendererGL.Immediate.js
+<<<<<<< SEARCH
+  _main.default.Geometry.prototype._edgesToVertices = function () {
+    const data = this.lineVertexColors.slice();
+    this.lineVertexColors.length = 0;
+    /* ------- */
+    for (var i = 0; i < this.edges.length; i++) {
+      const e0 = this.edges[i][0];
+      const e1 = this.edges[i][1];
+      /* ------- */
+      if(data.length > 0){
+        var beginColor = [data[4*e0], data[4*e0+1], data[4*e0+2], data[4*e0+3]];
+        var endColor = [data[4*e1], data[4*e1+1], data[4*e1+2], data[4*e1+3]];
+        this.lineVertexColors.push(beginColor, beginColor, endColor, endColor, beginColor, endColor);
+      }
+    }
+=======
+  _main.default.Geometry.prototype._edgesToVertices = function () {
+    const data = this.lineVertexColors.slice();
+    this.lineVertexColors.length = 0;
+    /* ------- */
+    for (var i = 0; i < this.edges.length; i++) {
+      const e0 = this.edges[i][0];
+      const e1 = this.edges[i][1];
+      /* ------- */
+      if(data.length > 0){
+        var beginColor = [data[4*e0], data[4*e0+1], data[4*e0+2], data[4*e0+3]];
+        var endColor = [data[4*e1], data[4*e1+1], data[4*e1+2], data[4*e1+3]];
+        this.lineVertexColors.push(beginColor, beginColor, endColor, endColor, beginColor, endColor);
+      }
+    }
+    // Additional logic to handle line colors in the geometry
+    if (this.lineVertexColors.length > 0) {
+      this.lineVertexColorsBuffer.setData(this.lineVertexColors);
+    }
+>>>>>>> REPLACE
+```
+
+### 5. Update Fragment Shader to Handle Line Colors
+
+```javascript
+### src/webgl/shaders/fragmentShader.js
+<<<<<<< SEARCH
+  varying vec4 vVertexColor;
+=======
+  varying vec4 vVertexColor;
+  varying vec4 vLineColor; // New varying for line colors
+>>>>>>> REPLACE
+```
+
+### 6. Update Vertex Shader to Pass Line Colors
+
+```javascript
+### src/webgl/shaders/vertexShader.js
+<<<<<<< SEARCH
+  attribute vec4 aVertexColor;
+=======
+  attribute vec4 aVertexColor;
+  attribute vec4 aLineColor; // New attribute for line colors
+  varying vec4 vLineColor; // Varying to pass line colors to fragment shader
+  vLineColor = aLineColor;
+>>>>>>> REPLACE
+```
+
+These changes should enable vertex-wise interpolation of line colors in WebGL mode.

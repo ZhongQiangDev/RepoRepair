@@ -1,0 +1,63 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that Lighthouse reports a `NO_TTI_CPU_IDLE_PERIOD` error when the page has a slow First Contentful Paint (FCP) but becomes idle immediately after it. This results in no performance score being reported for the Time to Interactive (TTI) metric.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from how Lighthouse calculates the Time to Interactive (TTI) metric. Specifically, the `InteractiveMetric` class and its associated methods may not be correctly identifying the first period of at least 5 seconds where both the CPU and network are idle after the First Meaningful Paint (FMP). This could be due to incorrect handling of trace data or incorrect identification of quiet periods for CPU and network.
+
+### 3. Examine Each File One by One
+
+#### lighthouse-core/audits/metrics/first-cpu-idle.js
+
+This file contains the `FirstCPUIdle` class, which measures the "First CPU Idle" metric. While this metric is related to CPU idle periods, it is not directly responsible for calculating the TTI metric. Therefore, this file is not directly relevant to the issue described.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### lighthouse-core/audits/metrics/interactive.js
+
+This file contains the `InteractiveMetric` class, which is directly responsible for calculating the TTI metric. The `audit` method in this class is likely where the issue lies, as it processes traces and devtools logs to compute the interactive time.
+
+```
+lighthouse-core/audits/metrics/interactive.js
+class: InteractiveMetric
+```
+
+#### lighthouse-core/computed/metrics/interactive.js
+
+This file contains the `Interactive` class, which calculates the Time To Interactive (TTI) for a web page. The methods `_findNetworkQuietPeriods`, `_findCPUQuietPeriods`, and `findOverlappingQuietPeriods` are crucial for identifying quiet periods for network and CPU, and finding overlapping periods. These methods may not be correctly identifying the quiet periods, leading to the `NO_TTI_CPU_IDLE_PERIOD` error.
+
+```
+lighthouse-core/computed/metrics/interactive.js
+class: Interactive
+```
+
+#### lighthouse-core/lib/tracehouse/main-thread-tasks.js
+
+This file contains the `MainThreadTasks` class, which processes trace events from the main thread of a browser. While this class is involved in processing trace events, it is not directly responsible for calculating the TTI metric. Therefore, this file is not directly relevant to the issue described.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### lighthouse-core/lib/tracehouse/trace-processor.js
+
+This file contains the `TraceProcessor` class, which processes and analyzes trace events. While this class is involved in processing trace events, it is not directly responsible for calculating the TTI metric. Therefore, this file is not directly relevant to the issue described.
+
+```
+This file contains no relevant functions/classes.
+```
+
+### Summary
+
+The relevant files and classes that need inspection or editing to fix the problem are:
+
+```
+lighthouse-core/audits/metrics/interactive.js
+class: InteractiveMetric
+
+lighthouse-core/computed/metrics/interactive.js
+class: Interactive
+```

@@ -1,0 +1,53 @@
+The issue described is related to the deformation of the diagram when a child lane is removed from a parent lane. The problem seems to be related to the way the lane references are updated when a lane is deleted. The code provided is responsible for updating the lane references when certain events occur, such as creating, moving, deleting, or resizing shapes.
+
+To fix the issue, we need to ensure that when a child lane is removed, the parent lane and other related lanes are updated correctly to avoid deformation. This can be achieved by adding a specific event listener for the 'lane.delete' event and updating the lane references accordingly.
+
+Here is the proposed fix:
+
+```javascript
+### lib/features/modeling/behavior/UpdateFlowNodeRefsBehavior.js
+<<<<<<< SEARCH
+  this.preExecute([
+    'shape.create',
+    'shape.move',
+    'shape.delete',
+    'shape.resize'
+  ], function(event) {
+=======
+  this.preExecute([
+    'shape.create',
+    'shape.move',
+    'shape.delete',
+    'shape.resize',
+    'lane.delete'
+  ], function(event) {
+
+    var context = event.context,
+        shape = context.shape;
+
+    var updateContext = getContext();
+
+    // no need to update labels
+    if (shape.labelTarget) {
+      return;
+    }
+
+    if (is(shape, 'bpmn:Lane')) {
+      updateContext.addLane(shape);
+    }
+
+    if (is(shape, 'bpmn:FlowNode')) {
+      updateContext.addFlowNode(shape);
+    }
+
+    // Handle lane deletion
+    if (event.type === 'lane.delete') {
+      var parentLane = shape.parent;
+      if (parentLane && is(parentLane, 'bpmn:Lane')) {
+        updateContext.addLane(parentLane);
+      }
+    }
+>>>>>>> REPLACE
+```
+
+This fix adds a specific event listener for the 'lane.delete' event and updates the parent lane references when a child lane is deleted. This should prevent the deformation of the diagram and allow for continued editing.

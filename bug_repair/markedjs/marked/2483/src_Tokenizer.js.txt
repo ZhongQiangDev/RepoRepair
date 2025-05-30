@@ -1,0 +1,30 @@
+The issue described is that when a fenced code block follows a list and contains a blank line, it is not correctly recognized as a code block. This behavior is due to how the `list` method in the `Tokenizer` class handles the parsing of list items and their contents.
+
+To fix this, we need to ensure that the blank lines within a fenced code block are properly handled and not prematurely ending the list item.
+
+Here's the proposed fix:
+
+```javascript
+### src/Tokenizer.js
+<<<<<<< SEARCH
+            if (line.search(/[^ ]/) >= indent || !line.trim()) { // Dedent if possible
+              itemContents += '\n' + line.slice(indent);
+            } else if (!blankLine) { // Until blank line, item doesn't need indentation
+              itemContents += '\n' + line;
+            } else { // Otherwise, improper indentation ends this item
+              break;
+            }
+=======
+            if (line.search(/[^ ]/) >= indent || !line.trim()) { // Dedent if possible
+              itemContents += '\n' + line.slice(indent);
+            } else if (!blankLine && line.trim().startsWith('```')) { // Handle blank lines within fenced code blocks
+              itemContents += '\n' + line;
+            } else if (!blankLine) { // Until blank line, item doesn't need indentation
+              itemContents += '\n' + line;
+            } else { // Otherwise, improper indentation ends this item
+              break;
+            }
+>>>>>>> REPLACE
+```
+
+This change ensures that blank lines within a fenced code block are correctly included in the list item's content, preventing the premature termination of the list item. The check for `line.trim().startsWith('```')` ensures that blank lines within fenced code blocks are handled appropriately.

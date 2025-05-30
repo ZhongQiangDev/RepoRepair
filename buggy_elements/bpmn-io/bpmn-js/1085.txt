@@ -1,0 +1,61 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that when a new task is created from an existing one, the resulting diagram contains an illegal `waypoints` property on a `sequenceFlow`. Specifically, the `waypoints` property is serialized as `[object Object],[object Object],...` instead of being properly serialized as a list of coordinate pairs.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from how the `waypoints` property is being serialized when the diagram is exported. The `waypoints` property should contain an array of coordinate pairs, but instead, it is being serialized as a string representation of JavaScript objects (`[object Object]`). This suggests that the serialization process is not correctly handling the `waypoints` array, possibly due to an issue with how the waypoints are being accessed or formatted before serialization.
+
+### 3. Examine Each File One by One
+
+#### --- lib/features/modeling/BpmnUpdater.js ---
+
+This file contains functions that handle updates to the BPMN diagram, including updating waypoints for connections. The function `updateConnectionWaypoints` is directly related to updating the waypoints of a connection, which is relevant to the issue described.
+
+```
+lib/features/modeling/BpmnUpdater.js
+function: updateConnectionWaypoints
+```
+
+#### --- lib/features/modeling/behavior/ReplaceConnectionBehavior.js ---
+
+This file contains functions related to replacing connections in the BPMN diagram. While it does handle connections, it does not directly handle the serialization of waypoints. Therefore, this file is not directly relevant to the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### --- lib/import/BpmnImporter.js ---
+
+This file contains functions related to importing BPMN elements and setting up the diagram. The function `getWaypoints` is responsible for retrieving waypoints from a business object, which is relevant to the issue.
+
+```
+lib/import/BpmnImporter.js
+function: getWaypoints
+```
+
+#### --- lib/util/DiUtil.js ---
+
+This file contains utility functions related to BPMN elements and event definitions. None of these functions are directly related to the serialization of waypoints.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### --- lib/util/ModelUtil.js ---
+
+This file contains utility functions for working with BPMN elements and their business objects. While these functions are useful for general BPMN operations, they do not directly handle the serialization of waypoints.
+
+```
+This file contains no relevant functions/classes.
+```
+
+### Summary of Relevant Locations
+
+```
+lib/features/modeling/BpmnUpdater.js
+function: updateConnectionWaypoints
+
+lib/import/BpmnImporter.js
+function: getWaypoints
+```

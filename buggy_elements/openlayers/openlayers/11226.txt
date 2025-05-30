@@ -1,0 +1,49 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when editing a `GeometryCollection` containing multiple geometries, the interaction does not work correctly. Specifically, when dragging a common vertex of two polygons within a `GeometryCollection`, the polygons do not behave as expected. Instead of moving together as a single unit, they deform in unexpected ways, as shown in the video.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how the `GeometryCollection` handles the shared vertices among its constituent geometries. When a vertex is moved, the `GeometryCollection` may not properly update the shared vertex across all geometries, leading to inconsistent behavior. This could be due to a problem in how the `GeometryCollection` manages its internal geometries or how the `Modify` interaction handles the editing of `GeometryCollection` objects.
+
+### 3. Examine Each File One by One
+
+#### `src/ol/geom/GeometryCollection.js`
+
+This file contains the `GeometryCollection` class, which is directly related to the problem. The class manages a collection of geometries and is responsible for ensuring that changes to shared vertices are propagated correctly. The `cloneGeometries` function might also be relevant if the issue involves cloning geometries during the modification process.
+
+```
+src/ol/geom/GeometryCollection.js
+class: GeometryCollection
+function: cloneGeometries
+```
+
+#### `src/ol/geom/flat/closest.js`
+
+This file contains functions related to finding the closest points on segments and calculating distances. While these functions are important for spatial calculations, they are not directly related to the issue of managing shared vertices in a `GeometryCollection`.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `src/ol/interaction/Modify.js`
+
+This file contains the `Modify` class, which is responsible for the interaction that allows users to modify geometries. The `closestOnSegmentData` function and other methods in the `Modify` class are likely involved in determining which vertex to move and how to update the geometry during the modification process.
+
+```
+src/ol/interaction/Modify.js
+class: Modify
+function: closestOnSegmentData
+```
+
+### Summary of Relevant Locations
+
+```
+src/ol/geom/GeometryCollection.js
+class: GeometryCollection
+function: cloneGeometries
+
+src/ol/interaction/Modify.js
+class: Modify
+function: closestOnSegmentData
+```

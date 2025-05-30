@@ -1,0 +1,75 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when drawing a shape (specifically the letter "C") in WebGL mode using `beginShape()` and `endShape()`, the fill does not work as expected. Instead of filling the interior of the "C" shape, an unintended fill is created from the lower extremity of the "C" to the origin (top-left corner of the letter).
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how the vertices are being processed and rendered in WebGL mode. In 2D mode, the vertices are interpreted correctly to form the "C" shape, but in WebGL mode, there might be a problem with how the vertices are being tessellated or how the fill operation is being applied. This could be due to incorrect handling of the vertex data, improper tessellation of the shape, or issues with the WebGL rendering pipeline.
+
+### 3. Examine Each File One by One
+
+#### `src/core/shape/vertex.js`
+
+This file contains functions related to vertex manipulation and shape creation. The following functions are relevant:
+
+```
+src/core/shape/vertex.js
+function: function_2
+function: function_6
+function: function_8
+```
+
+- `function_2` (`beginShape`): This function initializes the shape creation process and sets up the vertices array. It might not be handling the WebGL mode correctly.
+- `function_6` (`endShape`): This function finalizes the shape and renders it. It might not be correctly processing the vertices for WebGL mode.
+- `function_8` (`vertex`): This function adds vertices to the shape. It might be adding vertices in a way that causes issues in WebGL mode.
+
+#### `src/webgl/p5.Geometry.js`
+
+This file contains functions related to geometry creation and manipulation in WebGL. The following functions are relevant:
+
+```
+src/webgl/p5.Geometry.js
+function: function_1
+function: function_13
+function: function_18
+```
+
+- `function_1`: This function initializes a `p5.Geometry` object. It might not be setting up the geometry correctly for the "C" shape.
+- `function_13`: This function normalizes the vertices of the geometry. It might be affecting the shape's vertices in an unintended way.
+- `function_18`: This function converts line segments into vertices. It might be causing issues with the fill operation.
+
+#### `src/webgl/p5.RendererGL.Immediate.js`
+
+This file contains functions related to immediate mode rendering in WebGL. The following functions are relevant:
+
+```
+src/webgl/p5.RendererGL.Immediate.js
+function: function_1
+function: function_4
+function: function_5
+```
+
+- `function_1` (`beginShape`): This function starts the shape creation process in WebGL mode. It might not be initializing the shape correctly.
+- `function_4` (`endShape`): This function finalizes the shape and renders it in WebGL mode. It might not be processing the vertices correctly.
+- `function_5` (`vertex`): This function adds vertices to the shape in WebGL mode. It might be adding vertices in a way that causes issues.
+
+#### `src/webgl/p5.RendererGL.js`
+
+This file contains functions related to WebGL rendering. The following functions are relevant:
+
+```
+src/webgl/p5.RendererGL.js
+function: function_44
+function: function_49
+```
+
+- `function_44` (`_getImmediateFillShader`): This function determines the shader used for filling shapes in WebGL mode. It might be selecting an incorrect shader.
+- `function_49` (`_setFillUniforms`): This function sets the uniform variables for the fill shader. It might be setting incorrect values.
+
+#### `src/webgl/p5.RendererGL.Retained.js`
+
+This file contains functions related to retained mode rendering in WebGL. This file contains no relevant functions/classes for the described issue, as the problem is more related to immediate mode rendering.
+
+```
+This file contains no relevant functions/classes.
+```

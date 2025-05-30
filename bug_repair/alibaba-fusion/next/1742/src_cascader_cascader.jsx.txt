@@ -1,0 +1,203 @@
+The issue is about providing an API to remove the title information from the Cascader component. To address this, we need to add a new prop to the `Cascader` component that allows users to control whether the title information is displayed or not.
+
+Here's how we can implement this:
+
+1. Add a new prop `showTitle` to the `propTypes` and `defaultProps`.
+2. Modify the `renderMenu` method to conditionally render the title based on the `showTitle` prop.
+
+```javascript
+### src/cascader/cascader.jsx
+<<<<<<< SEARCH
+    static defaultProps = {
+        prefix: 'next-',
+        rtl: false,
+        pure: false,
+        dataSource: [],
+        defaultValue: null,
+        canOnlySelectLeaf: false,
+        canOnlyCheckLeaf: false,
+        expandTriggerType: 'click',
+        multiple: false,
+        useVirtual: false,
+        checkStrictly: false,
+        itemRender: item => item.label,
+    };
+=======
+    static defaultProps = {
+        prefix: 'next-',
+        rtl: false,
+        pure: false,
+        dataSource: [],
+        defaultValue: null,
+        canOnlySelectLeaf: false,
+        canOnlyCheckLeaf: false,
+        expandTriggerType: 'click',
+        multiple: false,
+        useVirtual: false,
+        checkStrictly: false,
+        itemRender: item => item.label,
+        showTitle: true, // New prop to control title display
+    };
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+    renderMenu(data, level) {
+        const {
+            prefix,
+            multiple,
+            useVirtual,
+            checkStrictly,
+            expandTriggerType,
+            loadData,
+            canOnlyCheckLeaf,
+            listClassName,
+            listStyle,
+            itemRender,
+        } = this.props;
+        const { value, expandedValue, focusedValue } = this.state;
+
+        return (
+            <CascaderMenu
+                key={level}
+                prefix={prefix}
+                useVirtual={useVirtual}
+                className={listClassName}
+                style={listStyle}
+                ref={this.saveMenuRef}
+                focusedKey={focusedValue}
+                onItemFocus={this.handleFocus}
+                onBlur={this.onBlur}
+            >
+                {data.map(item => {
+                    const disabled = !!item.disabled;
+                    const canExpand =
+                        (!!item.children && !!item.children.length) ||
+                        (!!loadData && !item.isLeaf);
+                    const expanded = expandedValue[level] === item.value;
+                    const props = {
+                        prefix,
+                        disabled,
+                        canExpand,
+                        expanded,
+                        expandTriggerType,
+                        onExpand: this.handleExpand.bind(
+                            this,
+                            item.value,
+                            level,
+                            canExpand
+                        ),
+                        onFold: this.handleFold,
+                    };
+
+                    if (multiple) {
+                        props.checkable = !(canOnlyCheckLeaf && canExpand);
+                        props.checked =
+                            value.indexOf(item.value) > -1 || !!item.checked;
+                        props.indeterminate =
+                            (checkStrictly || canOnlyCheckLeaf
+                                ? false
+                                : this.indeterminate.indexOf(item.value) >
+                                  -1) || !!item.indeterminate;
+                        props.checkboxDisabled = !!item.checkboxDisabled;
+                        props.onCheck = this.handleCheck.bind(this, item.value);
+                    } else {
+                        props.selected = value[0] === item.value;
+                        props.onSelect = this.handleSelect.bind(
+                            this,
+                            item.value,
+                            canExpand
+                        );
+                    }
+
+                    return (
+                        <CascaderMenuItem key={item.value} {...props}>
+                            {itemRender(item)}
+                        </CascaderMenuItem>
+                    );
+                })}
+            </CascaderMenu>
+        );
+    }
+=======
+    renderMenu(data, level) {
+        const {
+            prefix,
+            multiple,
+            useVirtual,
+            checkStrictly,
+            expandTriggerType,
+            loadData,
+            canOnlyCheckLeaf,
+            listClassName,
+            listStyle,
+            itemRender,
+            showTitle, // New prop to control title display
+        } = this.props;
+        const { value, expandedValue, focusedValue } = this.state;
+
+        return (
+            <CascaderMenu
+                key={level}
+                prefix={prefix}
+                useVirtual={useVirtual}
+                className={listClassName}
+                style={listStyle}
+                ref={this.saveMenuRef}
+                focusedKey={focusedValue}
+                onItemFocus={this.handleFocus}
+                onBlur={this.onBlur}
+            >
+                {data.map(item => {
+                    const disabled = !!item.disabled;
+                    const canExpand =
+                        (!!item.children && !!item.children.length) ||
+                        (!!loadData && !item.isLeaf);
+                    const expanded = expandedValue[level] === item.value;
+                    const props = {
+                        prefix,
+                        disabled,
+                        canExpand,
+                        expanded,
+                        expandTriggerType,
+                        onExpand: this.handleExpand.bind(
+                            this,
+                            item.value,
+                            level,
+                            canExpand
+                        ),
+                        onFold: this.handleFold,
+                    };
+
+                    if (multiple) {
+                        props.checkable = !(canOnlyCheckLeaf && canExpand);
+                        props.checked =
+                            value.indexOf(item.value) > -1 || !!item.checked;
+                        props.indeterminate =
+                            (checkStrictly || canOnlyCheckLeaf
+                                ? false
+                                : this.indeterminate.indexOf(item.value) >
+                                  -1) || !!item.indeterminate;
+                        props.checkboxDisabled = !!item.checkboxDisabled;
+                        props.onCheck = this.handleCheck.bind(this, item.value);
+                    } else {
+                        props.selected = value[0] === item.value;
+                        props.onSelect = this.handleSelect.bind(
+                            this,
+                            item.value,
+                            canExpand
+                        );
+                    }
+
+                    return (
+                        <CascaderMenuItem key={item.value} {...props}>
+                            {showTitle ? itemRender(item) : null} {/* Conditionally render title */}
+                        </CascaderMenuItem>
+                    );
+                })}
+            </CascaderMenu>
+        );
+    }
+>>>>>>> REPLACE
+```
+
+This change introduces a new prop `showTitle` that controls whether the title information is displayed. If `showTitle` is set to `false`, the title will not be rendered.

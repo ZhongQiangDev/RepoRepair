@@ -1,0 +1,139 @@
+```typescript
+### src/elements/element.arc.ts
+<<<<<<< SEARCH
+function drawArc(
+  ctx: CanvasRenderingContext2D,
+  element: ArcElement,
+  offset: number,
+  spacing: number,
+  circular: boolean,
+) {
+  const {fullCircles, startAngle, circumference} = element;
+  let endAngle = element.endAngle;
+  if (fullCircles) {
+    pathArc(ctx, element, offset, spacing, startAngle + TAU, circular);
+
+    for (let i = 0; i < fullCircles; ++i) {
+      ctx.fill();
+    }
+
+    if (!isNaN(circumference)) {
+      endAngle = startAngle + circumference % TAU;
+      if (circumference % TAU === 0) {
+        endAngle += TAU;
+      }
+    }
+  }
+  pathArc(ctx, element, offset, spacing, endAngle, circular);
+  ctx.fill();
+  return endAngle;
+}
+=======
+function drawArc(
+  ctx: CanvasRenderingContext2D,
+  element: ArcElement,
+  offset: number,
+  spacing: number,
+  circular: boolean,
+) {
+  const {fullCircles, startAngle, circumference} = element;
+  let endAngle = element.endAngle;
+  if (fullCircles) {
+    pathArc(ctx, element, offset, spacing, startAngle + TAU, circular);
+
+    for (let i = 0; i < fullCircles; ++i) {
+      ctx.fill();
+    }
+
+    if (!isNaN(circumference)) {
+      endAngle = startAngle + circumference % TAU;
+      if (circumference % TAU === 0) {
+        endAngle += TAU;
+      }
+    }
+  }
+  pathArc(ctx, element, offset, spacing, endAngle, circular);
+  ctx.fill();
+  return endAngle;
+}
+
+// Fix for hoverOffset issue with specific value
+function fixHoverOffset(element: ArcElement) {
+  if (element.circumference === 0 || element.innerRadius < 0 || element.outerRadius < 0) {
+    return;
+  }
+  const {options} = element;
+  const offset = (options.offset || 0) / 4;
+  const spacing = (options.spacing || 0) / 2;
+  const circular = options.circular;
+  const fix = 1 - Math.sin(Math.min(PI, element.circumference || 0));
+  const radiusOffset = offset * fix;
+  element.outerRadius += radiusOffset;
+  element.innerRadius -= radiusOffset;
+}
+>>>>>>> REPLACE
+```
+
+```typescript
+### src/elements/element.arc.ts
+<<<<<<< SEARCH
+  draw(ctx: CanvasRenderingContext2D) {
+    const {options, circumference} = this;
+    const offset = (options.offset || 0) / 4;
+    const spacing = (options.spacing || 0) / 2;
+    const circular = options.circular;
+    this.pixelMargin = (options.borderAlign === 'inner') ? 0.33 : 0;
+    this.fullCircles = circumference > TAU ? Math.floor(circumference / TAU) : 0;
+
+    if (circumference === 0 || this.innerRadius < 0 || this.outerRadius < 0) {
+      return;
+    }
+
+    ctx.save();
+
+    const halfAngle = (this.startAngle + this.endAngle) / 2;
+    ctx.translate(Math.cos(halfAngle) * offset, Math.sin(halfAngle) * offset);
+    const fix = 1 - Math.sin(Math.min(PI, circumference || 0));
+    const radiusOffset = offset * fix;
+
+    ctx.fillStyle = options.backgroundColor;
+    ctx.strokeStyle = options.borderColor;
+
+    const endAngle = drawArc(ctx, this, radiusOffset, spacing, circular);
+    drawBorder(ctx, this, radiusOffset, spacing, endAngle, circular);
+
+    ctx.restore();
+  }
+=======
+  draw(ctx: CanvasRenderingContext2D) {
+    const {options, circumference} = this;
+    const offset = (options.offset || 0) / 4;
+    const spacing = (options.spacing || 0) / 2;
+    const circular = options.circular;
+    this.pixelMargin = (options.borderAlign === 'inner') ? 0.33 : 0;
+    this.fullCircles = circumference > TAU ? Math.floor(circumference / TAU) : 0;
+
+    if (circumference === 0 || this.innerRadius < 0 || this.outerRadius < 0) {
+      return;
+    }
+
+    ctx.save();
+
+    const halfAngle = (this.startAngle + this.endAngle) / 2;
+    ctx.translate(Math.cos(halfAngle) * offset, Math.sin(halfAngle) * offset);
+    const fix = 1 - Math.sin(Math.min(PI, circumference || 0));
+    const radiusOffset = offset * fix;
+
+    ctx.fillStyle = options.backgroundColor;
+    ctx.strokeStyle = options.borderColor;
+
+    // Apply fix for hoverOffset issue
+    fixHoverOffset(this);
+
+    const endAngle = drawArc(ctx, this, radiusOffset, spacing, circular);
+    drawBorder(ctx, this, radiusOffset, spacing, endAngle, circular);
+
+    ctx.restore();
+  }
+>>>>>>> REPLACE
+```

@@ -1,0 +1,28 @@
+To address the issue of embedded Crowdsignal surveys not displaying in the Reader, we need to add a similar detection rule for surveys as we have for polls. The current code only handles Polldaddy polls, so we need to extend it to handle Crowdsignal surveys as well.
+
+Here's the proposed fix:
+
+```javascript
+### client/lib/post-normalizer/rule-content-detect-polls.js
+<<<<<<< SEARCH
+const pollLink = noscriptDom.querySelector( 'a[href^="http://polldaddy.com/poll/"]' );
+=======
+const pollLink = noscriptDom.querySelector( 'a[href^="http://polldaddy.com/poll/"], a[href^="https://www.crowdsignal.com/"]' );
+if ( pollLink ) {
+	const pollId = pollLink.href.match( /https?:\/\/(polldaddy\.com\/poll|www\.crowdsignal\.com\/surveys)\/([0-9]+)/ )[ 2 ];
+	if ( pollId ) {
+		const p = document.createElement( 'p' );
+		p.innerHTML =
+			'<a target="_blank" rel="external noopener noreferrer" href="https://' +
+			(pollLink.href.includes('crowdsignal') ? 'www.crowdsignal.com/surveys/' : 'polldaddy.com/poll/') +
+			pollId +
+			'">' +
+			i18n.translate( pollLink.href.includes('crowdsignal') ? 'Take our survey' : 'Take our poll' ) +
+			'</a>';
+		noscript.parentNode.replaceChild( p, noscript );
+	}
+}
+>>>>>>> REPLACE
+```
+
+This change updates the `detectPolls` function to also look for Crowdsignal survey links and handle them similarly to Polldaddy polls. It checks if the link is for a Crowdsignal survey and then constructs the appropriate link text and URL.

@@ -1,0 +1,22 @@
+The issue described is related to the removal of the `default` attribute from an exclusive gateway when a Timer Intermediate Catch Event is added to a non-default flow. The provided code does not directly address this issue, but it seems to be related to the `ReplaceElementBehaviour` class, which handles the replacement of elements in the BPMN diagram.
+
+To fix this issue, we need to ensure that the `default` attribute is preserved when replacing elements. Here's a potential fix:
+
+```javascript
+### lib/features/modeling/behavior/ReplaceElementBehaviour.js
+<<<<<<< SEARCH
+    var newElement = {
+      type: replacement.newElementType
+    };
+=======
+    var newElement = {
+      type: replacement.newElementType,
+      default: oldElement.default // Preserve the default attribute if it exists
+    };
+    if (is(oldElement, 'bpmn:ExclusiveGateway') && oldElement.default) {
+      newElement.default = oldElement.default;
+    }
+>>>>>>> REPLACE
+```
+
+This change ensures that if the old element is an exclusive gateway with a `default` attribute, the new element will also have the same `default` attribute. This should prevent the `default` attribute from being removed when a Timer Intermediate Catch Event is added to a non-default flow.

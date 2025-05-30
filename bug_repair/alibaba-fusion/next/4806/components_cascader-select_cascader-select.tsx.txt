@@ -1,0 +1,175 @@
+To address the issue described, we need to implement a mechanism that either automatically clears the search results when all items are selected or provides a button to clear the search results manually. Here's how we can modify the code to include these features:
+
+1. Add a button to clear the search results.
+2. Automatically clear the search results when all items are selected.
+
+### Add a Clear Search Button
+
+```typescript
+###components/cascader-select/cascader-select.tsx
+<<<<<<< SEARCH
+        if (showSearch) {
+            props.popupProps = {
+                ...popupProps,
+                ref: this.getPopup,
+                afterOpen: this.handleAfterOpen,
+            };
+            props.autoWidth = resultAutoWidth && !!searchValue;
+        }
+=======
+        if (showSearch) {
+            props.popupProps = {
+                ...popupProps,
+                ref: this.getPopup,
+                afterOpen: this.handleAfterOpen,
+                footer: (
+                    <div className={`${prefix}cascader-select-clear-search`}>
+                        <button onClick={() => this.handleClearSearch()}>Clear Search</button>
+                    </div>
+                ),
+            };
+            props.autoWidth = resultAutoWidth && !!searchValue;
+        }
+>>>>>>> REPLACE
+```
+
+### Implement `handleClearSearch` Method
+
+```typescript
+###components/cascader-select/cascader-select.tsx
+<<<<<<< SEARCH
+    handleSearch(searchValue: string) {
+        this.setState({
+            searchValue,
+        });
+
+        this.props.onSearch && this.props.onSearch(searchValue);
+    }
+=======
+    handleSearch(searchValue: string) {
+        this.setState({
+            searchValue,
+        });
+
+        this.props.onSearch && this.props.onSearch(searchValue);
+    }
+
+    handleClearSearch() {
+        this.setState({
+            searchValue: '',
+        });
+        this.props.onSearch && this.props.onSearch('');
+    }
+>>>>>>> REPLACE
+```
+
+### Automatically Clear Search Results When All Items Are Selected
+
+```typescript
+###components/cascader-select/cascader-select.tsx
+<<<<<<< SEARCH
+    handleChange(value: string[], data: CascaderSelectDataItem[], extra: Extra) {
+        const { multiple, onChange } = this.props;
+        const { searchValue, value: stateValue } = this.state;
+
+        const st = {} as CascaderSelectState;
+
+        if (multiple && stateValue && Array.isArray(stateValue)) {
+            const noExistedValues = stateValue.filter(v => !this._v2n[v]);
+
+            if (noExistedValues.length > 0) {
+                value = value.filter(v => {
+                    return !(noExistedValues.indexOf(v) >= 0);
+                });
+            }
+
+            value = [...noExistedValues, ...value];
+            // onChange 中的 data 参数也应该保留不存在的 value 的数据
+            // 在 dataSource 异步加载的情况下，会出现 value 重复的现象，需要去重
+            data = [
+                ...noExistedValues.map(v => this._valueDataCache[v]).filter(v => v),
+                ...data,
+            ].filter((current, index, arr) => {
+                return index === arr.indexOf(current);
+            });
+            // 更新缓存
+            this.refreshValueDataCache(value);
+        }
+
+        if (!('value' in this.props)) {
+            st.value = value;
+        }
+        if (!multiple && searchValue) {
+            st.searchValue = '';
+        }
+        if (Object.keys(st).length) {
+            this.setState(st);
+        }
+
+        if (onChange) {
+            onChange(value, data, extra);
+        }
+
+        if (searchValue && this.select) {
+            this.select.handleSearchClear();
+        }
+    }
+=======
+    handleChange(value: string[], data: CascaderSelectDataItem[], extra: Extra) {
+        const { multiple, onChange } = this.props;
+        const { searchValue, value: stateValue } = this.state;
+
+        const st = {} as CascaderSelectState;
+
+        if (multiple && stateValue && Array.isArray(stateValue)) {
+            const noExistedValues = stateValue.filter(v => !this._v2n[v]);
+
+            if (noExistedValues.length > 0) {
+                value = value.filter(v => {
+                    return !(noExistedValues.indexOf(v) >= 0);
+                });
+            }
+
+            value = [...noExistedValues, ...value];
+            // onChange 中的 data 参数也应该保留不存在的 value 的数据
+            // 在 dataSource 异步加载的情况下，会出现 value 重复的现象，需要去重
+            data = [
+                ...noExistedValues.map(v => this._valueDataCache[v]).filter(v => v),
+                ...data,
+            ].filter((current, index, arr) => {
+                return index === arr.indexOf(current);
+            });
+            // 更新缓存
+            this.refreshValueDataCache(value);
+        }
+
+        if (!('value' in this.props)) {
+            st.value = value;
+        }
+        if (!multiple && searchValue) {
+            st.searchValue = '';
+        }
+        if (Object.keys(st).length) {
+            this.setState(st);
+        }
+
+        if (onChange) {
+            onChange(value, data, extra);
+        }
+
+        if (searchValue && this.select) {
+            this.select.handleSearchClear();
+        }
+
+        // Automatically clear search results when all items are selected
+        if (value.length === this.props.dataSource.length) {
+            this.setState({
+                searchValue: '',
+            });
+            this.props.onSearch && this.props.onSearch('');
+        }
+    }
+>>>>>>> REPLACE
+```
+
+These changes will add a "Clear Search" button and automatically clear the search results when all items are selected.

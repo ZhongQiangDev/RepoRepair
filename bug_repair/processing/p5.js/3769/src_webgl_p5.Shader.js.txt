@@ -1,0 +1,33 @@
+The issue described is related to the creation of render buffers for retained-mode geometry in the WebGL renderer. The problem arises because the buffers are created based on the current shader's attributes at the time of geometry creation, which may not match the attributes required by subsequent shaders. To fix this, we need to ensure that the geometry is created with all necessary buffers regardless of the current shader.
+
+Here's the proposed fix:
+
+```javascript
+### src/webgl/p5.RendererGL.Retained.js
+<<<<<<< SEARCH
+this._createBuffers = function() {
+  var shader = this._renderer._curFillShader || this._renderer._curStrokeShader;
+  var attributes = shader.attributes;
+  for (var attr in attributes) {
+    if (attributes.hasOwnProperty(attr)) {
+      this._buffers[attr] = this._renderer.GL.createBuffer();
+      this._renderer.GL.bindBuffer(this._renderer.GL.ARRAY_BUFFER, this._buffers[attr]);
+      this._renderer.GL.enableVertexAttribArray(attributes[attr].location);
+    }
+  }
+};
+=======
+this._createBuffers = function() {
+  // Create buffers for all possible attributes, not just the current shader's attributes
+  var requiredAttributes = ['aPosition', 'aNormal', 'aTexCoord', 'aVertexColor'];
+  for (var i = 0; i < requiredAttributes.length; i++) {
+    var attr = requiredAttributes[i];
+    this._buffers[attr] = this._renderer.GL.createBuffer();
+    this._renderer.GL.bindBuffer(this._renderer.GL.ARRAY_BUFFER, this._buffers[attr]);
+    this._renderer.GL.enableVertexAttribArray(this._renderer._getAttributeLocation(attr));
+  }
+};
+>>>>>>> REPLACE
+```
+
+This change ensures that all necessary buffers are created when the geometry is first created, regardless of the current shader's attributes. This should resolve the issue where the geometry fails to render correctly when switching shaders.

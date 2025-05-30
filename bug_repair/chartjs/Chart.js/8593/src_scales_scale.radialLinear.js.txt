@@ -1,0 +1,85 @@
+The issue is that the Radar Chart is not rotating as expected. The user wants to rotate the chart by a specific angle (1.22 * Math.PI), but the chart is currently stuck at the default rotation angle (-0.5 * Math.PI).
+
+To fix this, we need to modify the `getIndexAngle` method to accept a custom rotation angle and apply it when calculating the angle for each index.
+
+Here's the *SEARCH/REPLACE* edit to fix the issue:
+
+```javascript
+### src/scales/scale.radialLinear.js
+<<<<<<< SEARCH
+  getIndexAngle(index) {
+    const chart = this.chart;
+    const angleMultiplier = TAU / chart.data.labels.length;
+    const options = chart.options || {};
+    const startAngle = options.startAngle || 0;
+
+    return _normalizeAngle(index * angleMultiplier + toRadians(startAngle));
+  }
+=======
+  getIndexAngle(index) {
+    const chart = this.chart;
+    const angleMultiplier = TAU / chart.data.labels.length;
+    const options = chart.options || {};
+    const startAngle = options.startAngle || 0;
+    const customRotation = options.customRotation || -0.5 * Math.PI; // Add custom rotation option
+
+    return _normalizeAngle(index * angleMultiplier + toRadians(startAngle) + customRotation);
+  }
+>>>>>>> REPLACE
+```
+
+Additionally, we need to add the `customRotation` option to the `defaults` object so that users can specify the rotation angle:
+
+```javascript
+### src/scales/scale.radialLinear.js
+<<<<<<< SEARCH
+  RadialLinearScale.defaults = {
+    display: true,
+
+    // Boolean - Whether to animate scaling the chart from the centre
+    animate: true,
+    position: 'chartArea',
+
+    angleLines: {
+      display: true,
+      lineWidth: 1,
+      borderDash: [],
+      borderDashOffset: 0.0
+    },
+=======
+  RadialLinearScale.defaults = {
+    display: true,
+
+    // Boolean - Whether to animate scaling the chart from the centre
+    animate: true,
+    position: 'chartArea',
+
+    angleLines: {
+      display: true,
+      lineWidth: 1,
+      borderDash: [],
+      borderDashOffset: 0.0
+    },
+
+    // Custom rotation angle for the Radar Chart
+    customRotation: -0.5 * Math.PI
+  },
+>>>>>>> REPLACE
+```
+
+With these changes, users can now specify a custom rotation angle for the Radar Chart by setting the `customRotation` option in the chart configuration. For example:
+
+```javascript
+const chartConfig = {
+  type: 'radar',
+  data: {
+    labels: ['Label 1', 'Label 2', 'Label 3'],
+    datasets: [{
+      data: [10, 20, 30]
+    }]
+  },
+  options: {
+    customRotation: 1.22 * Math.PI // Set custom rotation angle
+  }
+};
+```

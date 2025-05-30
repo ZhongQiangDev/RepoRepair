@@ -1,0 +1,70 @@
+The issue described is related to the rendering of borders on rounded views in `react-pdf`. The problem arises because the border is not being drawn correctly when the `borderRadius` is increased. The current implementation of `drawHorizontalBorder` and `drawVerticalBorder` methods in `borders.js` does not handle the rounded corners correctly.
+
+To fix this, we need to adjust the drawing logic to properly handle the rounded corners. Specifically, we need to ensure that the quadratic curves are drawn correctly for the rounded corners.
+
+Here is the proposed fix:
+
+```javascript
+### src/mixins/borders.js
+<<<<<<< SEARCH
+  drawHorizontalBorder(p1, p2, r1, r2, width, color, style) {
+    if (width <= 0) return;
+
+    this.root.instance
+      .lineWidth(width)
+      .moveTo(p1[0], p1[1] + r1)
+      .quadraticCurveTo(p1[0], p1[1], p1[0] + r1, p1[1])
+      .lineTo(p2[0] - r2, p2[1])
+      .quadraticCurveTo(p2[0], p2[1], p2[0], p2[1] + r2)
+      .strokeColor(color);
+
+    this.traceBorder(style, width);
+  },
+  drawVerticalBorder(p1, p2, r1, r2, width, color, style) {
+    if (width <= 0) return;
+
+    this.root.instance
+      .lineWidth(width)
+      .moveTo(p1[0] + r1, p1[1])
+      .quadraticCurveTo(p1[0], p1[1], p1[0], p1[1] - r1)
+      .lineTo(p2[0], p2[1] + r2)
+      .quadraticCurveTo(p2[0], p2[1], p2[0] + r2, p2[1])
+      .strokeColor(color);
+
+    this.traceBorder(style, width);
+  },
+=======
+  drawHorizontalBorder(p1, p2, r1, r2, width, color, style) {
+    if (width <= 0) return;
+
+    this.root.instance
+      .lineWidth(width)
+      .moveTo(p1[0], p1[1])
+      .lineTo(p1[0] + r1, p1[1])
+      .quadraticCurveTo(p1[0] + r1 * 2, p1[1], p1[0] + r1 * 2, p1[1] + r1)
+      .lineTo(p2[0] - r2 * 2, p2[1] + r2)
+      .quadraticCurveTo(p2[0] - r2 * 2, p2[1], p2[0] - r2, p2[1])
+      .lineTo(p2[0], p2[1])
+      .strokeColor(color);
+
+    this.traceBorder(style, width);
+  },
+  drawVerticalBorder(p1, p2, r1, r2, width, color, style) {
+    if (width <= 0) return;
+
+    this.root.instance
+      .lineWidth(width)
+      .moveTo(p1[0], p1[1])
+      .lineTo(p1[0], p1[1] - r1)
+      .quadraticCurveTo(p1[0], p1[1] - r1 * 2, p1[0] + r1, p1[1] - r1 * 2)
+      .lineTo(p2[0] + r2, p2[1] + r2 * 2)
+      .quadraticCurveTo(p2[0], p2[1] + r2 * 2, p2[0], p2[1] + r2)
+      .lineTo(p2[0], p2[1])
+      .strokeColor(color);
+
+    this.traceBorder(style, width);
+  },
+>>>>>>> REPLACE
+```
+
+This fix adjusts the quadratic curves to properly handle the rounded corners, ensuring that the border is drawn correctly even when the `borderRadius` is increased.

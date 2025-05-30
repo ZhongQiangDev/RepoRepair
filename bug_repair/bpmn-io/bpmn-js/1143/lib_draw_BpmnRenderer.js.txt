@@ -1,0 +1,50 @@
+The issue described is related to adding a group to an empty diagram and then attempting to add other elements, which causes the editor to crash with console errors. The error messages in the console indicate that there are issues with the SVG transformations, specifically with the `setTranslate` method on `SVGTransform`.
+
+The problem seems to be related to the handling of groups in the BPMN renderer. The `getShapePath` method in `BpmnRenderer.js` does not handle groups, which might be causing the issue. We need to add a condition to handle groups properly.
+
+Here is the proposed fix:
+
+```javascript
+### lib/draw/BpmnRenderer.js
+<<<<<<< SEARCH
+BpmnRenderer.prototype.getShapePath = function(element) {
+
+  if (is(element, 'bpmn:Event')) {
+    return getCirclePath(element);
+  }
+
+  if (is(element, 'bpmn:Activity')) {
+    return getRoundRectPath(element, TASK_BORDER_RADIUS);
+  }
+
+  if (is(element, 'bpmn:Gateway')) {
+    return getDiamondPath(element);
+  }
+
+  return getRectPath(element);
+};
+=======
+BpmnRenderer.prototype.getShapePath = function(element) {
+
+  if (is(element, 'bpmn:Group')) {
+    return getRectPath(element);
+  }
+
+  if (is(element, 'bpmn:Event')) {
+    return getCirclePath(element);
+  }
+
+  if (is(element, 'bpmn:Activity')) {
+    return getRoundRectPath(element, TASK_BORDER_RADIUS);
+  }
+
+  if (is(element, 'bpmn:Gateway')) {
+    return getDiamondPath(element);
+  }
+
+  return getRectPath(element);
+};
+>>>>>>> REPLACE
+```
+
+This fix adds a condition to handle groups by returning a rectangle path for them, which should prevent the editor from crashing when adding other elements after a group.

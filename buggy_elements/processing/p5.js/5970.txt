@@ -1,0 +1,44 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that a textured triangle and an untextured square drawn with p5.js WebGL are not rendered correctly on an Android smartphone. Specifically, the square created using `p5.Geometry` with lighting enabled is not drawn, while it appears correctly on a note PC.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue arises from the way WebGL handles vertex attributes and buffers. When drawing the textured triangle, the UV information is stored in the texture registers. When the square is drawn afterward, the texture registers remain enabled, but the square does not provide UV data. This causes the WebGL context on the Android device to recognize the lack of data as an error and not draw the square. The problem is likely due to the WebGL context not properly disabling unused attributes when switching between different types of geometry.
+
+### 3. Examine Each File One by One
+
+#### src/webgl/p5.Geometry.js
+This file contains no relevant functions/classes.
+
+#### src/webgl/p5.RenderBuffer.js
+This file contains no relevant functions/classes.
+
+#### src/webgl/p5.RendererGL.Immediate.js
+This file contains no relevant functions/classes.
+
+#### src/webgl/p5.RendererGL.js
+```
+src/webgl/p5.RendererGL.js
+function: _prepareBuffer
+```
+
+The `_prepareBuffer` function is relevant because it is responsible for preparing the buffers required by the shader for rendering the given geometry. The issue described in the GitHub problem description suggests that the function needs to ensure that unused attributes are disabled properly. The proposed solution involves adding logic to disable vertex attribute arrays when the source array is empty and the corresponding register is enabled.
+
+#### src/webgl/p5.RendererGL.Retained.js
+```
+src/webgl/p5.RendererGL.Retained.js
+function: _prepareBuffer
+```
+
+The `_prepareBuffer` function in this file is also relevant for the same reason as in `p5.RendererGL.js`. It needs to ensure that unused attributes are disabled properly when switching between different types of geometry.
+
+### Summary of Relevant Locations
+
+```
+src/webgl/p5.RendererGL.js
+function: _prepareBuffer
+
+src/webgl/p5.RendererGL.Retained.js
+function: _prepareBuffer
+```

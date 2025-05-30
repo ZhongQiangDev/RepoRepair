@@ -1,0 +1,43 @@
+The issue described is that when a user searches for specific items in the DataTable and then tries to select all items using the "Select All" checkbox, it selects all items in the table instead of just the filtered items. This behavior is not as expected.
+
+To fix this, we need to modify the `handleSelectAll` method so that it only selects the filtered rows instead of all rows.
+
+Here's the proposed fix:
+
+```javascript
+###packages/react/src/components/DataTable/DataTable.js
+<<<<<<< SEARCH
+  handleSelectAll = () => {
+    this.setState(state => {
+      const { rowIds, rowsById } = state;
+      const selectableRows = rowIds.reduce((acc, rowId) => {
+        return (acc += rowsById[rowId].disabled ? 0 : 1);
+      }, 0);
+      const isSelected = this.getSelectedRows().length !== selectableRows;
+      return {
+        shouldShowBatchActions: isSelected,
+        ...this.setAllSelectedState(state, isSelected),
+      };
+    });
+  };
+=======
+  handleSelectAll = () => {
+    this.setState(state => {
+      const { filteredRowIds, rowsById } = state;
+      const selectableRows = filteredRowIds.reduce((acc, rowId) => {
+        return (acc += rowsById[rowId].disabled ? 0 : 1);
+      }, 0);
+      const isSelected = this.getSelectedRows().length !== selectableRows;
+      return {
+        shouldShowBatchActions: isSelected,
+        ...this.setAllSelectedState(state, isSelected),
+      };
+    });
+  };
+>>>>>>> REPLACE
+```
+
+Explanation:
+- The original code uses `rowIds` which contains all row IDs in the table.
+- The modified code uses `filteredRowIds` which contains only the IDs of the rows that match the current search filter.
+- This ensures that when the "Select All" checkbox is clicked, only the filtered rows are selected.

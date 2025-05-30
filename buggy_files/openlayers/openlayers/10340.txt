@@ -1,0 +1,27 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The issue described involves the following wrong behaviors:
+- Drawn circles and other custom geometries do not maintain the expected shape and size when `useGeographic` is enabled.
+- Regular shapes produced by `createRegularPolygon` can be far from regular, especially in higher latitudes.
+- Drawing a box using `createBox` is not possible if the view projection is not parallel to WGS84.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of these issues is likely related to how the `useGeographic` option affects the projection and rendering of geometries on the map. When `useGeographic` is enabled, the map uses a geographic coordinate system (WGS84), which is not a planar projection. This can lead to distortions in shapes and sizes, especially at higher latitudes where the curvature of the Earth becomes more pronounced. The `createRegularPolygon` and `createBox` functions may not account for these distortions, resulting in irregular shapes.
+
+### 3. Find Up to 5 Files Most Related to the Cause
+
+```
+src/ol/proj.js
+src/ol/geom/SimpleGeometry.js
+src/ol/geom/flat/geodesic.js
+src/ol/interaction/Draw.js
+examples/draw-shapes.js
+```
+
+**Explanation:**
+- `src/ol/proj.js`: This file manages projections and coordinate transformations. The issue with `useGeographic` likely involves how projections are handled, especially the conversion between geographic and projected coordinates.
+- `src/ol/geom/SimpleGeometry.js`: This file deals with basic geometry operations. The problem with irregular shapes may stem from how these geometries are created and manipulated in geographic coordinates.
+- `src/ol/geom/flat/geodesic.js`: This file contains functions for generating geodesic lines and shapes. The irregularities in shapes at higher latitudes could be related to how these geodesic calculations are performed.
+- `src/ol/interaction/Draw.js`: This file manages the drawing interaction. The issue with `createRegularPolygon` and `createBox` may be related to how these functions are implemented within the drawing interaction.
+- `examples/draw-shapes.js`: This example file demonstrates the drawing of shapes and may provide context for how the drawing interaction is used and configured.

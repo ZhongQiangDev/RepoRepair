@@ -1,0 +1,20 @@
+1. **Identify the wrong behavior involved in `GitHub Problem Description`:**
+   The issue described is that the code path analysis for the expression `(a && b) ?? c` does not correctly account for the short-circuiting behavior of the `&&` operator. Specifically, if `a` is falsy, the expression should evaluate to `c` without evaluating `b`, but the current analysis incorrectly includes a path through `b` even when `a` is falsy.
+
+2. **Analyze the cause behind the wrong behavior:**
+   The cause appears to be in how the code path analysis handles the logical AND (`&&`) operator in conjunction with the nullish coalescing (`??`) operator. The analysis is not correctly recognizing that `b` should only be evaluated if `a` is truthy. This likely involves a flaw in the logic that determines the branching paths for logical expressions.
+
+3. **Find up to 5 files most related to the cause from `Repository Information`:**
+   ```
+   lib/linter/code-path-analysis/code-path-analyzer.js
+   lib/linter/code-path-analysis/code-path-segment.js
+   lib/linter/code-path-analysis/code-path-state.js
+   lib/linter/code-path-analysis/code-path.js
+   lib/rules/logical-assignment-operators.js
+   ```
+
+   - `lib/linter/code-path-analysis/code-path-analyzer.js`: This file is central to the code path analysis and likely contains the logic that needs to be adjusted to correctly handle the `&&` and `??` operators.
+   - `lib/linter/code-path-analysis/code-path-segment.js`: This file manages code path segments, which are crucial for tracking the different paths through the code. Adjustments here might be necessary to ensure correct segment creation and linking.
+   - `lib/linter/code-path-analysis/code-path-state.js`: This file manages the state of the code path analysis, including handling different control flow structures. It may need changes to correctly manage the state when dealing with logical expressions.
+   - `lib/linter/code-path-analysis/code-path.js`: This file represents the overall code path and may need adjustments to ensure the correct representation of the code paths.
+   - `lib/rules/logical-assignment-operators.js`: Although this file focuses on logical assignment operators, it contains utilities for analyzing logical expressions that might be relevant for ensuring correct handling of `&&` and `??`.

@@ -1,0 +1,135 @@
+The issue is that the view counts are not being displayed in the Blog Posts list. To fix this, we need to add a method to render the view count and include it in the `render()` method of the `PostActionCounts` component.
+
+Here's the *SEARCH/REPLACE* edit to add the view count rendering:
+
+```javascript
+###client/my-sites/post-type-list/post-action-counts/index.jsx
+<<<<<<< SEARCH
+render() {
+	return (
+		<ul className="post-action-counts">
+			{ this.renderLikeCount() }
+			{ this.renderCommentCount() }
+		</ul>
+	);
+}
+=======
+renderViewCount() {
+	const {
+		viewCount: count,
+		numberFormat,
+		siteSlug,
+		translate,
+	} = this.props;
+
+	if ( count < 1 ) {
+		return null;
+	}
+
+	return (
+		<li>
+			<a href={ `/stats/post-views/${ siteSlug }` }>
+				{ translate( '%(count)s View', '%(count)s Views', {
+					count,
+					args: { count: numberFormat( count ) },
+				} ) }
+			</a>
+		</li>
+	);
+}
+
+render() {
+	return (
+		<ul className="post-action-counts">
+			{ this.renderLikeCount() }
+			{ this.renderCommentCount() }
+			{ this.renderViewCount() }
+		</ul>
+	);
+}
+>>>>>>> REPLACE
+```
+
+Additionally, we need to update the `connect` function to include the `viewCount` in the props:
+
+```javascript
+###client/my-sites/post-type-list/post-action-counts/index.jsx
+<<<<<<< SEARCH
+export default connect(
+	( state, { globalId } ) => {
+		const post = getNormalizedPost( state, globalId );
+		const postId = post && post.ID;
+		const siteId = post && post.site_ID;
+
+		const isJetpack = isJetpackSite( state, siteId );
+
+		const showComments =
+			( ! isJetpack || isJetpackModuleActive( state, siteId, 'comments' ) ) &&
+			post &&
+			post.discussion &&
+			post.discussion.comments_open;
+		const showLikes = ! isJetpack || isJetpackModuleActive( state, siteId, 'likes' );
+		const showViews =
+			canCurrentUser( state, siteId, 'view_stats' ) &&
+			( ! isJetpack || isJetpackModuleActive( state, siteId, 'stats' ) );
+
+		return {
+			commentCount: get( post, 'discussion.comment_count', null ),
+			likeCount: get( post, 'like_count', null ),
+			postId,
+			showComments,
+			showLikes,
+			showViews,
+			siteId,
+			siteSlug: getSiteSlug( state, siteId ),
+			type: get( post, 'type', 'unknown' ),
+			isCurrentLikesPopoverOpen: isLikesPopoverOpen( state, globalId ),
+		};
+	},
+	{
+		hideActiveLikesPopover,
+		toggleLikesPopover,
+		recordTracksEvent,
+	}
+)( localize( PostActionCounts ) );
+=======
+export default connect(
+	( state, { globalId } ) => {
+		const post = getNormalizedPost( state, globalId );
+		const postId = post && post.ID;
+		const siteId = post && post.site_ID;
+
+		const isJetpack = isJetpackSite( state, siteId );
+
+		const showComments =
+			( ! isJetpack || isJetpackModuleActive( state, siteId, 'comments' ) ) &&
+			post &&
+			post.discussion &&
+			post.discussion.comments_open;
+		const showLikes = ! isJetpack || isJetpackModuleActive( state, siteId, 'likes' );
+		const showViews =
+			canCurrentUser( state, siteId, 'view_stats' ) &&
+			( ! isJetpack || isJetpackModuleActive( state, siteId, 'stats' ) );
+
+		return {
+			commentCount: get( post, 'discussion.comment_count', null ),
+			likeCount: get( post, 'like_count', null ),
+			postId,
+			showComments,
+			showLikes,
+			showViews,
+			siteId,
+			siteSlug: getSiteSlug( state, siteId ),
+			type: get( post, 'type', 'unknown' ),
+			isCurrentLikesPopoverOpen: isLikesPopoverOpen( state, globalId ),
+			viewCount: get( post, 'view_count', null ),
+		};
+	},
+	{
+		hideActiveLikesPopover,
+		toggleLikesPopover,
+		recordTracksEvent,
+	}
+)( localize( PostActionCounts ) );
+>>>>>>> REPLACE
+```

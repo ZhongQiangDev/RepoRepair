@@ -1,0 +1,113 @@
+To improve the support for Python type hints in `highlight.js`, we need to add rules that recognize type annotations and highlight them appropriately. The current implementation lacks specific rules for type hints, which is why the issue arises.
+
+Here's how we can modify the `python.js` file to include support for type hints:
+
+```javascript
+### src/languages/python.js
+<<<<<<< SEARCH
+  return {
+    name: 'Python',
+    aliases: ['py', 'gyp', 'ipython'],
+    keywords: KEYWORDS,
+    illegal: /(<\/|->|\?)|=>/,
+    contains: [
+      PROMPT,
+      NUMBER,
+      // eat "if" prior to string so that it won't accidentally be
+      // labeled as an f-string as in:
+      { begin: /\bself\b/, }, // very common convention
+      { beginKeywords: "if", relevance: 0 },
+      STRING,
+      hljs.HASH_COMMENT_MODE,
+      {
+        variants: [
+          {className: 'function', beginKeywords: 'def'},
+          {className: 'class', beginKeywords: 'class'}
+        ],
+        end: /:/,
+        illegal: /[${=;\n,]/,
+        contains: [
+          hljs.UNDERSCORE_TITLE_MODE,
+          PARAMS,
+          {
+            begin: /->/, endsWithParent: true,
+            keywords: 'None'
+          }
+        ]
+      },
+      {
+        className: 'meta',
+        begin: /^[\t ]*@/, end: /(?=#)|$/,
+        contains: [NUMBER, PARAMS, STRING]
+      },
+      {
+        begin: /\b(print|exec)\(/ // don’t highlight keywords-turned-functions in Python 3
+      }
+    ]
+  };
+=======
+  return {
+    name: 'Python',
+    aliases: ['py', 'gyp', 'ipython'],
+    keywords: KEYWORDS,
+    illegal: /(<\/|->|\?)|=>/,
+    contains: [
+      PROMPT,
+      NUMBER,
+      // eat "if" prior to string so that it won't accidentally be
+      // labeled as an f-string as in:
+      { begin: /\bself\b/, }, // very common convention
+      { beginKeywords: "if", relevance: 0 },
+      STRING,
+      hljs.HASH_COMMENT_MODE,
+      {
+        variants: [
+          {className: 'function', beginKeywords: 'def'},
+          {className: 'class', beginKeywords: 'class'}
+        ],
+        end: /:/,
+        illegal: /[${=;\n,]/,
+        contains: [
+          hljs.UNDERSCORE_TITLE_MODE,
+          PARAMS,
+          {
+            begin: /->/, endsWithParent: true,
+            keywords: 'None'
+          },
+          // Add support for type hints
+          {
+            className: 'type',
+            begin: /\b(List|Dict|Set|Tuple|Optional|Union|Callable|Any|TypeVar|Generic|Protocol|Literal|Final|ClassVar|Annotated|Type)\b/,
+            relevance: 0
+          },
+          {
+            className: 'type',
+            begin: /\b(int|float|str|bool|bytes|bytearray|complex|memoryview|NoneType)\b/,
+            relevance: 0
+          },
+          {
+            className: 'type',
+            begin: /\b(T|S|U|V|W|X|Y|Z)\b/, // Common type variable names
+            relevance: 0
+          },
+          {
+            className: 'type',
+            begin: /\b(\w+)\[.*\]/, // Generic types with parameters
+            relevance: 0
+          }
+        ]
+      },
+      {
+        className: 'meta',
+        begin: /^[\t ]*@/, end: /(?=#)|$/,
+        contains: [NUMBER, PARAMS, STRING]
+      },
+      {
+        begin: /\b(print|exec)\(/ // don’t highlight keywords-turned-functions in Python 3
+      }
+    ]
+  };
+>>>>>>> REPLACE
+```
+
+This modification adds rules to recognize common type hints and generic types, which should improve the syntax highlighting for Python type annotations.

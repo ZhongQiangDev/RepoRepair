@@ -1,0 +1,58 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior involves two main issues:
+
+1. **Duplicated Stack Packs**: When running Lighthouse or PageSpeed Insights (PSI) on the specified URL and opening the Minify JavaScript audit, there are two identical stack packs for React, which should not be the case.
+2. **Experimental Entries in User Interface**: The new experimental `React (Fast Path)` entries are being shown to users within the best practices/js-libraries audit, which was not intended to be user-visible.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of the duplicated stack packs is likely due to the addition of the "Fast Path" checks in the `js-lib-detector` library. This addition introduced a new detection mechanism that resulted in duplicate entries for the same library. The issue with experimental entries being shown to users is likely due to the way the new detection results are being processed and displayed in the audit results.
+
+### 3. Examine Each File One by One and Determine Relevant Functions/Classes
+
+#### lighthouse-core/audits/dobetterweb/js-libraries.js
+```
+lighthouse-core/audits/dobetterweb/js-libraries.js
+class: JsLibrariesAudit
+```
+The `JsLibrariesAudit` class is responsible for identifying and reporting JavaScript libraries detected in a web application. It processes the `Stacks` artifact and filters the detected libraries. This class is relevant because it handles the display of library information in the audit results.
+
+#### lighthouse-core/lib/stack-collector.js
+```
+lighthouse-core/lib/stack-collector.js
+function: collectStacks
+function: detectLibraries
+```
+The `collectStacks` function collects information about JavaScript libraries used in a web page, and the `detectLibraries` function detects the libraries by iterating over predefined detection tests. These functions are relevant because they are responsible for detecting and collecting the library information that is later processed by the audit.
+
+#### lighthouse-core/lib/stack-packs.js
+```
+lighthouse-core/lib/stack-packs.js
+function: getStackPacks
+```
+The `getStackPacks` function processes the provided pageStacks to identify and return matching stack packs. This function is relevant because it is responsible for identifying and returning the stack packs, which are then used in the audit results.
+
+#### types/html-renderer.d.ts
+```
+This file contains no relevant functions/classes.
+```
+This file defines TypeScript interfaces and does not contain any functions or classes that directly contribute to the detection or display of library information.
+
+#### types/lhr.d.ts
+```
+This file contains no relevant functions/classes.
+```
+This file defines TypeScript types and does not contain any functions or classes that directly contribute to the detection or display of library information.
+
+### Summary of Relevant Locations
+
+1. `lighthouse-core/audits/dobetterweb/js-libraries.js`
+   - `class: JsLibrariesAudit`
+
+2. `lighthouse-core/lib/stack-collector.js`
+   - `function: collectStacks`
+   - `function: detectLibraries`
+
+3. `lighthouse-core/lib/stack-packs.js`
+   - `function: getStackPacks`

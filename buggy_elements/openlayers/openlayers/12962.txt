@@ -1,0 +1,42 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that after updating to OpenLayers (OL) version 6.9.0, the opacity of independent layers (specifically tiled ArcGIS REST layers) is not stacking correctly. Instead of each layer's opacity being applied independently, the top-most layer appears opaque relative to other OL layers, while still allowing basemaps to show through. This issue seems to be introduced in version 6.8.1 and later, as versions 6.7.0 and below render the layers as expected. Additionally, if the opacity values for individual layers are not identical, the layers render correctly with transparency.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely lies in how the opacity of layers is being calculated and applied during the rendering process. Specifically, the problem may be related to how the opacity values are being combined or applied to the canvas when multiple layers are rendered. The issue could be due to a change in the rendering logic or the way opacity is handled in the newer versions of OL.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### `src/ol/layer/Base.js`
+```
+src/ol/layer/Base.js
+class: BaseLayer
+```
+The `BaseLayer` class is relevant because it manages the opacity of layers. The `getOpacity` and `setOpacity` methods are likely involved in setting and retrieving the opacity values for layers. Since the issue is related to opacity, changes in how these methods handle opacity values could be a factor.
+
+#### `src/ol/layer/Group.js`
+```
+src/ol/layer/Group.js
+class: LayerGroup
+```
+The `LayerGroup` class is relevant because it manages a collection of layers. The `getLayers` and `setLayers` methods, which are observable, could be involved in how the layers' properties, including opacity, are managed within the group. The `getLayersArray` and `getLayerStatesArray` methods could also be relevant for retrieving the layers and their states as arrays, which might affect how opacity is applied.
+
+#### `src/ol/renderer/canvas/Layer.js`
+```
+src/ol/renderer/canvas/Layer.js
+class: CanvasLayerRenderer
+```
+The `CanvasLayerRenderer` class is highly relevant because it handles the canvas-based rendering for layers. The `useContainer` method, which manages the rendering container, and the `getRenderTransform` method, which generates a transform for rendering elements, could be involved in how the layers are rendered with their respective opacities. The `clipUnrotated` method, which applies clipping to the canvas context, and the `getDataAtPixel` method, which retrieves pixel data, could also be relevant for ensuring correct opacity application.
+
+#### `src/ol/style/Fill.js`
+```
+This file contains no relevant functions/classes.
+```
+The `Fill` class is not directly related to the issue of layer opacity stacking. It manages the fill style for vector features, which is not the focus of the problem described.
+
+#### `src/ol/style/Stroke.js`
+```
+This file contains no relevant functions/classes.
+```
+The `Stroke` class is not directly related to the issue of layer opacity stacking. It manages the stroke style for vector features, which is not the focus of the problem described.

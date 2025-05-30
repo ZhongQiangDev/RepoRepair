@@ -1,0 +1,24 @@
+The issue described is related to loading a COG (Cloud Optimized GeoTIFF) in OpenLayers where only the upper part of the image is displayed. This is likely due to non-square pixels in the COG, which may not be handled correctly by the current implementation.
+
+To address this, we need to ensure that the tile layer renderer correctly handles non-square pixels. This can be achieved by adjusting the tile rendering process to account for the pixel aspect ratio.
+
+Here's the proposed fix:
+
+```typescript
+### src/ol/layer/Tile.js
+<<<<<<< SEARCH
+  createRenderer() {
+    return new CanvasTileLayerRenderer(this);
+  }
+=======
+  createRenderer() {
+    const renderer = new CanvasTileLayerRenderer(this);
+    renderer.setPixelRatio(this.getSource().getPixelRatio());
+    return renderer;
+  }
+>>>>>>> REPLACE
+```
+
+This change ensures that the renderer is aware of the pixel ratio of the source, which should help in correctly rendering non-square pixels. However, this is a simplified approach and may need further adjustments depending on the specific implementation details of the `CanvasTileLayerRenderer` and the COG source.
+
+If the issue persists, further investigation into the `CanvasTileLayerRenderer` and the COG source handling might be necessary.

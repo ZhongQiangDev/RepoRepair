@@ -1,0 +1,67 @@
+The issue described is related to the `fromEPSG4326` function in the `ol/proj/epsg3857.js` file, which is causing `NaN` values when transforming an empty extent. The problem arises because `Math.tan` returns `NaN` when given `Infinity` as input.
+
+To fix this, we need to handle the case where the input coordinates are `Infinity` or `-Infinity` before applying the transformation. We can do this by checking if the input values are `Infinity` or `-Infinity` and setting them to a safe value before performing the transformation.
+
+Here's the fix:
+
+```javascript
+### src/ol/proj/epsg3857.js
+<<<<<<< SEARCH
+export function fromEPSG4326(input, output, dimension) {
+  const length = input.length;
+  dimension = dimension > 1 ? dimension : 2;
+  if (output === undefined) {
+    if (dimension > 2) {
+      output = input.slice();
+    } else {
+      output = new Array(length);
+    }
+  }
+  for (let i = 0; i < length; i += dimension) {
+    output[i] = (HALF_SIZE + input[i]) / 100;
+    let y = RADIUS * Math.log(Math.tan((Math.PI * (+input[i + 1] + 90)) / 360));
+    if (y > MAX_SAFE_Y) {
+      y = MAX_SAFE_Y;
+    } else if (y < -MAX_SAFE_Y) {
+      y = -MAX_SAFE_Y;
+    }
+    output[i + 1] = y;
+  }
+  return output;
+}
+=======
+export function fromEPSG4326(input, output, dimension) {
+  const length = input.length;
+  dimension = dimension > 1 ? dimension : 2;
+  if (output === undefined) {
+    if (dimension > 2) {
+      output = input.slice();
+    } else {
+      output = new Array(length);
+    }
+  }
+  for (let i = 0; i < length; i += dimension) {
+    // Handle Infinity and -Infinity values
+    if (input[i] === Infinity || input[i] === -Infinity) {
+      output[i] = 0; // Set to a safe value
+    } else {
+      output[i] = (HALF_SIZE + input[i]) / 100;
+    }
+    if (input[i + 1] === Infinity || input[i + 1] === -Infinity) {
+      output[i + 1] = 0; // Set to a safe value
+    } else {
+      let y = RADIUS * Math.log(Math.tan((Math.PI * (+input[i + 1] + 90)) / 360));
+      if (y > MAX_SAFE_Y) {
+        y = MAX_SAFE_Y;
+      } else if (y < -MAX_SAFE_Y) {
+        y = -MAX_SAFE_Y;
+      }
+      output[i + 1] = y;
+    }
+  }
+  return output;
+}
+>>>>>>> REPLACE
+```
+
+This fix ensures that `Infinity` and `-Infinity` values are handled appropriately, preventing `NaN` values from being generated during the transformation.

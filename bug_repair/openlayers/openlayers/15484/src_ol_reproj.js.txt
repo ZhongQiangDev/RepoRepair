@@ -1,0 +1,141 @@
+```javascript
+### src/ol/reproj.js
+<<<<<<< SEARCH
+/**
+ * @param {import("./proj/Projection.js").default} sourceProj Source projection.
+ * @param {import("./proj/Projection.js").default} targetProj Target projection.
+ * @param {import("./coordinate.js").Coordinate} targetCenter Target center.
+ * @param {number} targetResolution Target resolution.
+ * @return {number} The best resolution to use. Can be +-Infinity, NaN or 0.
+ */
+export function calculateSourceResolution(
+  sourceProj,
+  targetProj,
+  targetCenter,
+  targetResolution,
+) {
+=======
+/**
+ * @param {import("./proj/Projection.js").default} sourceProj Source projection.
+ * @param {import("./proj/Projection.js").default} targetProj Target projection.
+ * @param {import("./coordinate.js").Coordinate} targetCenter Target center.
+ * @param {number} targetResolution Target resolution.
+ * @return {number} The best resolution to use. Can be +-Infinity, NaN or 0.
+ */
+export function calculateSourceResolution(
+  sourceProj,
+  targetProj,
+  targetCenter,
+  targetResolution,
+) {
+  const sourceCenter = transform(targetCenter, targetProj, sourceProj);
+
+  // calculate the ideal resolution of the source data
+  let sourceResolution = getPointResolution(
+    targetProj,
+    targetResolution,
+    targetCenter,
+  );
+
+  const targetMetersPerUnit = targetProj.getMetersPerUnit();
+  if (targetMetersPerUnit !== undefined) {
+    sourceResolution *= targetMetersPerUnit;
+  }
+  const sourceMetersPerUnit = sourceProj.getMetersPerUnit();
+  if (sourceMetersPerUnit !== undefined) {
+    sourceResolution /= sourceMetersPerUnit;
+  }
+
+  // Based on the projection properties, the point resolution at the specified
+  // coordinates may be slightly different. We need to reverse-compensate this
+  // in order to achieve optimal results.
+
+  const sourceExtent = sourceProj.getExtent();
+  if (!sourceExtent || containsCoordinate(sourceExtent, sourceCenter)) {
+    const compensationFactor =
+      getPointResolution(sourceProj, sourceResolution, sourceCenter) /
+      sourceResolution;
+    if (isFinite(compensationFactor) && compensationFactor > 0) {
+      sourceResolution /= compensationFactor;
+    }
+  }
+
+  return sourceResolution;
+}
+// Add a new function to handle cropping based on tile grid extent
+/**
+ * @param {import("./proj/Projection.js").default} sourceProj Source projection.
+ * @param {import("./proj/Projection.js").default} targetProj Target projection.
+ * @param {import("./extent.js").Extent} sourceExtent Source extent.
+ * @param {import("./extent.js").Extent} targetExtent Target extent.
+ * @return {import("./extent.js").Extent} Cropped extent.
+ */
+export function cropToTileGridExtent(
+  sourceProj,
+  targetProj,
+  sourceExtent,
+  targetExtent,
+) {
+  const sourceCenter = transform(getCenter(targetExtent), targetProj, sourceProj);
+  const croppedExtent = createEmpty();
+  extend(croppedExtent, sourceExtent);
+  if (sourceExtent && containsCoordinate(sourceExtent, sourceCenter)) {
+    const targetWidth = getWidth(targetExtent);
+    const targetHeight = getHeight(targetExtent);
+    const sourceWidth = getWidth(sourceExtent);
+    const sourceHeight = getHeight(sourceExtent);
+    const scaleX = targetWidth / sourceWidth;
+    const scaleY = targetHeight / sourceHeight;
+    const croppedWidth = Math.min(targetWidth, sourceWidth * scaleX);
+    const croppedHeight = Math.min(targetHeight, sourceHeight * scaleY);
+    const croppedTopLeft = [
+      sourceCenter[0] - croppedWidth / 2,
+      sourceCenter[1] + croppedHeight / 2,
+    ];
+    extend(croppedExtent, [
+      croppedTopLeft[0],
+      croppedTopLeft[1] - croppedHeight,
+      croppedTopLeft[0] + croppedWidth,
+      croppedTopLeft[1],
+    ]);
+  }
+  return croppedExtent;
+}
+// Modify the calculateSourceExtentResolution function to use the new cropToTileGridExtent function
+export function calculateSourceExtentResolution(
+  sourceProj,
+  targetProj,
+  targetExtent,
+  targetResolution,
+) {
+  const targetCenter = getCenter(targetExtent);
+  let sourceResolution = calculateSourceResolution(
+    sourceProj,
+    targetProj,
+    targetCenter,
+    targetResolution,
+  );
+
+  if (!isFinite(sourceResolution) || sourceResolution <= 0) {
+    forEachCorner(targetExtent, function (corner) {
+      sourceResolution = calculateSourceResolution(
+        sourceProj,
+        targetProj,
+        corner,
+        targetResolution,
+      );
+      return isFinite(sourceResolution) && sourceResolution > 0;
+    });
+  }
+
+  const sourceExtent = cropToTileGridExtent(
+    sourceProj,
+    targetProj,
+    sourceProj.getExtent(),
+    targetExtent,
+  );
+
+  return sourceResolution;
+}
+>>>>>>> REPLACE
+```

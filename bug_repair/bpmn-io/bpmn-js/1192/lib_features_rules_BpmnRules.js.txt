@@ -1,0 +1,41 @@
+The issue is that the `canCopy` function is preventing the copying of boundary events. The specific line that needs to be modified is the one that checks if the element is a `bpmn:BoundaryEvent` and if its host is included in the elements being copied. The current logic prevents copying boundary events if their host is not included in the elements being copied. To allow copying boundary events, we need to modify this logic.
+
+Here is the required SEARCH/REPLACE edit:
+
+```javascript
+### lib/features/rules/BpmnRules.js
+<<<<<<< SEARCH
+function canCopy(elements, element) {
+  if (isLabel(element)) {
+    return true;
+  }
+
+  if (is(element, 'bpmn:Lane') && !includes(elements, element.parent)) {
+    return false;
+  }
+
+  if (is(element, 'bpmn:BoundaryEvent') && !includes(elements, element.host)) {
+    return false;
+  }
+
+  return true;
+}
+=======
+function canCopy(elements, element) {
+  if (isLabel(element)) {
+    return true;
+  }
+
+  if (is(element, 'bpmn:Lane') && !includes(elements, element.parent)) {
+    return false;
+  }
+
+  // Allow copying boundary events even if their host is not included in the elements being copied
+  if (is(element, 'bpmn:BoundaryEvent')) {
+    return true;
+  }
+
+  return true;
+}
+>>>>>>> REPLACE
+```

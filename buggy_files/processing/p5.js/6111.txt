@@ -1,0 +1,35 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior involves the following issues:
+
+- **Incorrect Near and Far Values**: When using `ortho()` or `frustum()`, the `cameraNear` and `cameraFar` values in the camera object do not reflect the values passed to these functions. Instead, they show default values.
+- **Default Behavior of `frustum()`**: The `frustum()` function behaves more like `perspective()` and defaults to something close to `ortho()`, causing objects to disappear when called without arguments.
+- **Vertical Direction Reversal**: The vertical direction is reversed when using `ortho()` and `frustum()`, requiring a sign reversal in the matrix component calculation.
+- **Reversed Vertical Rotation Direction**: The vertical rotation direction is reversed when the 3rd and 4th arguments of `ortho()` and `frustum()` are reversed, due to the determinant of the projection matrix being negative.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issues seem to stem from how the projection matrices are being set up and applied within the WebGL renderer. Specifically:
+
+- **Incorrect Near and Far Values**: The values passed to `ortho()` and `frustum()` are not being correctly applied to the camera's `cameraNear` and `cameraFar` properties.
+- **Default Behavior of `frustum()`**: The default values for `frustum()` are not being set correctly, leading to unexpected behavior.
+- **Vertical Direction Reversal**: The sign of the y-component in the matrix calculation might be incorrect, causing the vertical direction to be reversed.
+- **Reversed Vertical Rotation Direction**: The determinant of the projection matrix might be negative, causing the rotation direction to be reversed.
+
+### 3. Find Up to 5 Files Most Related to the Cause
+
+The files most related to these issues are:
+
+```
+src/webgl/p5.Camera.js
+src/webgl/p5.Matrix.js
+src/webgl/p5.RendererGL.js
+src/webgl/p5.RendererGL.Immediate.js
+src/webgl/interaction.js
+```
+
+- **`src/webgl/p5.Camera.js`**: This file handles the camera setup and projection matrix calculations, which are directly related to the issues with `ortho()` and `frustum()`.
+- **`src/webgl/p5.Matrix.js`**: This file contains matrix operations, including the creation of projection matrices, which are crucial for the correct behavior of `ortho()` and `frustum()`.
+- **`src/webgl/p5.RendererGL.js`**: This file manages the WebGL rendering context and applies the projection matrices, which could be involved in the incorrect near and far values.
+- **`src/webgl/p5.RendererGL.Immediate.js`**: This file handles immediate mode rendering, which might be relevant if the issue is related to how shapes are being rendered.
+- **`src/webgl/interaction.js`**: This file contains functions for 3D interaction, which might be related to the overall handling of camera and projection settings.

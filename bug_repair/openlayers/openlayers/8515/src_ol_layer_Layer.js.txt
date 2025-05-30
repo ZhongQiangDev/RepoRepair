@@ -1,0 +1,36 @@
+The issue described is related to the `ol.select.Interaction` feature always being rendered on top of other layers, regardless of the `zIndex` setting. This behavior is due to the `setMap` method in the `Layer` class, which sets the `zIndex` of unmanaged layers to `Infinity`. This causes the selected feature layer to always appear on top of other layers.
+
+To fix this issue, we need to modify the `setMap` method so that it does not set the `zIndex` to `Infinity` for unmanaged layers. Instead, we can allow the `zIndex` to be set based on the layer's configuration.
+
+Here is the proposed fix:
+
+```javascript
+### src/ol/layer/Layer.js
+<<<<<<< SEARCH
+      if (map) {
+        this.mapPrecomposeKey_ = listen(map, RenderEventType.PRECOMPOSE, function(evt) {
+          const layerState = this.getLayerState();
+          layerState.managed = false;
+          layerState.zIndex = Infinity;
+          evt.frameState.layerStatesArray.push(layerState);
+          evt.frameState.layerStates[getUid(this)] = layerState;
+        }, this);
+        this.mapRenderKey_ = listen(this, EventType.CHANGE, map.render, map);
+        this.changed();
+      }
+=======
+      if (map) {
+        this.mapPrecomposeKey_ = listen(map, RenderEventType.PRECOMPOSE, function(evt) {
+          const layerState = this.getLayerState();
+          layerState.managed = false;
+          // Do not set zIndex to Infinity, use the layer's configured zIndex
+          evt.frameState.layerStatesArray.push(layerState);
+          evt.frameState.layerStates[getUid(this)] = layerState;
+        }, this);
+        this.mapRenderKey_ = listen(this, EventType.CHANGE, map.render, map);
+        this.changed();
+      }
+>>>>>>> REPLACE
+```
+
+This change will allow the `zIndex` of the unmanaged layer to be determined by the layer's configuration, rather than always being set to `Infinity`. This should resolve the issue of the selected feature layer always appearing on top of other layers.

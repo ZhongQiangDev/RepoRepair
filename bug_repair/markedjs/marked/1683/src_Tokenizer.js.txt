@@ -1,0 +1,56 @@
+The issue described is related to the handling of escaped square brackets in the alt text of images, which causes the image links to break. The problem seems to be in the `outputLink` function where the alt text is being escaped, which is not necessary for the alt text.
+
+To fix this, we need to modify the `outputLink` function so that it does not escape the alt text. Here's the proposed fix:
+
+```javascript
+### src/Tokenizer.js
+<<<<<<< SEARCH
+function outputLink(cap, link, raw) {
+  const href = link.href;
+  const title = link.title ? escape(link.title) : null;
+
+  if (cap[0].charAt(0) !== '!') {
+    return {
+      type: 'link',
+      raw,
+      href,
+      title,
+      text: cap[1]
+    };
+  } else {
+    return {
+      type: 'image',
+      raw,
+      text: escape(cap[1]),
+      href,
+      title
+    };
+  }
+}
+=======
+function outputLink(cap, link, raw) {
+  const href = link.href;
+  const title = link.title ? escape(link.title) : null;
+
+  if (cap[0].charAt(0) !== '!') {
+    return {
+      type: 'link',
+      raw,
+      href,
+      title,
+      text: cap[1]
+    };
+  } else {
+    return {
+      type: 'image',
+      raw,
+      text: cap[1], // Do not escape the alt text
+      href,
+      title
+    };
+  }
+}
+>>>>>>> REPLACE
+```
+
+This change ensures that the alt text is not escaped, which should resolve the issue with the image links breaking due to escaped square brackets in the alt text.

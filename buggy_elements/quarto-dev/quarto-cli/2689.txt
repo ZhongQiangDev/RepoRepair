@@ -1,0 +1,58 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that the `crossref: false` setting in the YAML front matter is not being respected. Specifically, the `crossref` filter is still being applied even when `crossref: false` is explicitly set in the format configuration.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from the way the `crossref` filter is being activated or deactivated. The `crossrefFilterActive` function checks if `crossref` is explicitly set to `false` in the metadata. If it is not, the function returns `true`, indicating that the `crossref` filter should be active. However, if the `crossref` filter is still being applied when `crossref: false` is set, it suggests that either:
+
+1. The `crossrefFilterActive` function is not being called correctly.
+2. The result of `crossrefFilterActive` is being ignored or overridden somewhere else in the code.
+3. The `crossref` filter is being added to the filter list regardless of the `crossref: false` setting.
+
+### 3. Examine Each File One by One
+
+#### `src/command/render/crossref.ts`
+
+This file contains relevant functions that need to be inspected:
+
+```
+src/command/render/crossref.ts
+function: crossrefFilterActive
+function: crossrefFilterParams
+```
+
+- `crossrefFilterActive`: This function checks if `crossref` is explicitly set to `false` in the metadata. If it is not, it returns `true`, indicating that the `crossref` filter should be active. This function is crucial for determining whether the `crossref` filter should be applied.
+- `crossrefFilterParams`: This function processes cross-referencing parameters. While it does not directly control the activation of the `crossref` filter, it may be involved in setting up the parameters that are used by the filter.
+
+#### `src/command/render/filters.ts`
+
+This file contains relevant functions that need to be inspected:
+
+```
+src/command/render/filters.ts
+function: resolveFilters
+function: crossrefFilter
+```
+
+- `resolveFilters`: This function orchestrates the assembly of Quarto filters in a specific order. It includes the `crossrefFilter` by default unless a special marker is found in the input filters. This function could be the place where the `crossref` filter is being added regardless of the `crossref: false` setting.
+- `crossrefFilter`: This function provides the path to the `crossref.lua` filter script. While it does not directly control the activation of the filter, it is involved in referencing the filter script.
+
+#### `src/command/render/render.ts`
+
+This file contains relevant functions that need to be inspected:
+
+```
+src/command/render/render.ts
+function: renderPandoc
+```
+
+- `renderPandoc`: This function orchestrates the conversion of a file using Pandoc. It handles includes and merges Pandoc options. It could be the place where the `crossref` filter is being applied or where the `crossref: false` setting is being ignored.
+
+#### `src/core/lib/yaml-intelligence/yaml-intelligence.ts`
+
+This file contains no relevant functions/classes.
+
+#### `src/project/project-config.ts`
+
+This file contains no relevant functions/classes.

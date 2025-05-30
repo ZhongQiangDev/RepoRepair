@@ -1,0 +1,43 @@
+The issue described is related to the `ol.select.Interaction` feature always being shown as the top layer, regardless of the `zIndex` setting. This behavior is due to how OpenLayers handles the rendering of selected features. The selected features are rendered in a separate layer that is always on top of other layers for visual emphasis.
+
+To address this issue, you can modify the rendering order by adjusting the `zIndex` of the selected features' layer or by using a custom renderer. However, since the provided code snippet does not directly relate to the `ol.select.Interaction` or layer rendering, we need to focus on the OpenLayers configuration and usage rather than the provided code.
+
+Here's a potential solution using a custom renderer to control the rendering order:
+
+```javascript
+### src/ol/renderer/vector.js
+<<<<<<< SEARCH
+/**
+ * @param {module:ol/render/ReplayGroup} replayGroup Replay group.
+ * @param {module:ol/geom/Geometry} geometry Geometry.
+ * @param {module:ol/style/Style} style Style.
+ * @param {module:ol/Feature|module:ol/render/Feature} feature Feature.
+ */
+function renderGeometry(replayGroup, geometry, style, feature) {
+=======
+/**
+ * @param {module:ol/render/ReplayGroup} replayGroup Replay group.
+ * @param {module:ol/geom/Geometry} geometry Geometry.
+ * @param {module:ol/style/Style} style Style.
+ * @param {module:ol/Feature|module:ol/render/Feature} feature Feature.
+ */
+function renderGeometry(replayGroup, geometry, style, feature) {
+  // Custom zIndex handling for selected features
+  const isFeatureSelected = feature.get('selected'); // Assuming 'selected' property is set for selected features
+  const zIndex = isFeatureSelected ? -1 : 0; // Adjust zIndex based on selection status
+
+  if (geometry.getType() == GeometryType.GEOMETRY_COLLECTION) {
+    const geometries = /** @type {module:ol/geom/GeometryCollection} */ (geometry).getGeometries();
+    for (let i = 0, ii = geometries.length; i < ii; ++i) {
+      renderGeometry(replayGroup, geometries[i], style, feature);
+    }
+    return;
+  }
+  const replay = replayGroup.getReplay(zIndex, ReplayType.DEFAULT);
+  replay.drawCustom(/** @type {module:ol/geom/SimpleGeometry} */ (geometry), feature, style.getRenderer());
+>>>>>>> REPLACE
+```
+
+This solution assumes that the selected features have a 'selected' property set to `true`. You would need to adjust the `isFeatureSelected` check based on how you manage the selection state in your application.
+
+Additionally, you may need to adjust the `zIndex` values based on your specific layering requirements. The provided solution sets the `zIndex` of selected features to `-1` to ensure they are rendered below other features. You can experiment with different `zIndex` values to achieve the desired rendering order.

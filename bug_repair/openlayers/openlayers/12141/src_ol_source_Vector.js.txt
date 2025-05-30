@@ -1,0 +1,24 @@
+The issue described is that the extent of the `VectorSource` is not being calculated correctly when the `featuresloadend` event is triggered. This is because the features are being added to the source after the success callback is called, which means the extent calculation happens before the features are actually added.
+
+To fix this, we need to ensure that the features are added to the source before the success callback is called. This can be achieved by swapping the order of the `success(features)` call and the `source.addFeatures(features)` call in the `xhr` function.
+
+Here's the *SEARCH/REPLACE* edit to fix the issue:
+
+```javascript
+### src/ol/featureloader.js
+<<<<<<< SEARCH
+function (features, dataProjection) {
+  if (success !== undefined) {
+    success(features);
+  }
+  source.addFeatures(features);
+},
+=======
+function (features, dataProjection) {
+  source.addFeatures(features);
+  if (success !== undefined) {
+    success(features);
+  }
+},
+>>>>>>> REPLACE
+```

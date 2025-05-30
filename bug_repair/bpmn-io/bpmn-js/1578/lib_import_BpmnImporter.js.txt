@@ -1,0 +1,87 @@
+The issue described is related to duplicate Pool IDs when copying a Pool and then exporting and importing the BPMN file. The provided XML snippet shows two processes with the same `id` attribute (`Process_17iojvx`), which is causing the problem.
+
+To fix this, we need to ensure that when a Pool is copied, the IDs of the elements within it are properly updated to avoid duplicates. This likely involves modifying the code that handles the copying and pasting of elements.
+
+Here's a potential fix:
+
+```javascript
+### lib/import/BpmnImporter.js
+<<<<<<< SEARCH
+  // insert lanes behind other flow nodes (cf. #727)
+  if (is(semantic, 'bpmn:Lane')) {
+    parentIndex = 0;
+  }
+
+  if (is(semantic, 'bpmn:DataStoreReference')) {
+
+    // check whether data store is inside our outside of its semantic parent
+    if (!isPointInsideBBox(parentElement, getMid(bounds))) {
+      parentElement = this._canvas.findRoot(parentElement);
+    }
+  }
+
+  this._canvas.addShape(element, parentElement, parentIndex);
+=======
+  // insert lanes behind other flow nodes (cf. #727)
+  if (is(semantic, 'bpmn:Lane')) {
+    parentIndex = 0;
+  }
+
+  if (is(semantic, 'bpmn:DataStoreReference')) {
+
+    // check whether data store is inside our outside of its semantic parent
+    if (!isPointInsideBBox(parentElement, getMid(bounds))) {
+      parentElement = this._canvas.findRoot(parentElement);
+    }
+  }
+
+  // Ensure unique IDs when adding shapes
+  if (element.id && this._elementRegistry.get(element.id)) {
+    element.id = generateUniqueID(element.id);
+  }
+
+  this._canvas.addShape(element, parentElement, parentIndex);
+>>>>>>> REPLACE
+```
+
+And we need to add a helper function `generateUniqueID`:
+
+```javascript
+### lib/import/BpmnImporter.js
+<<<<<<< SEARCH
+  // insert sequence flows behind other flow nodes (cf. #727)
+  if (is(semantic, 'bpmn:SequenceFlow')) {
+    parentIndex = 0;
+  }
+
+  this._canvas.addConnection(element, parentElement, parentIndex);
+=======
+  // insert sequence flows behind other flow nodes (cf. #727)
+  if (is(semantic, 'bpmn:SequenceFlow')) {
+    parentIndex = 0;
+  }
+
+  // Ensure unique IDs when adding connections
+  if (element.id && this._elementRegistry.get(element.id)) {
+    element.id = generateUniqueID(element.id);
+  }
+
+  this._canvas.addConnection(element, parentElement, parentIndex);
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+}
+=======
+}
+
+function generateUniqueID(baseId) {
+  let suffix = 1;
+  let newId = baseId + '_' + suffix;
+  while (this._elementRegistry.get(newId)) {
+    suffix++;
+    newId = baseId + '_' + suffix;
+  }
+  return newId;
+>>>>>>> REPLACE
+```
+
+These changes ensure that when a Pool is copied and pasted, the IDs of the elements within it are updated to be unique, preventing the duplicate ID issue.

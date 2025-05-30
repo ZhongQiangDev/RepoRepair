@@ -1,0 +1,44 @@
+The issue described is related to the `borderRadius` property being ignored for the bottom corners of bars with a value of 0 when `borderSkipped` and `minBarLength` are set. The problem seems to be in how the `borderRadius` is applied when the bar length is adjusted by `minBarLength`.
+
+To fix this, we need to ensure that the `borderRadius` is applied correctly even when the bar length is adjusted. This can be achieved by modifying the `setBorderSkipped` function and ensuring that the `borderRadius` is applied to all corners when `borderSkipped` is `false`.
+
+Here's the proposed fix:
+
+```javascript
+### src/controllers/controller.bar.js
+<<<<<<< SEARCH
+function setBorderSkipped(properties, options, stack, index) {
+  const borderSkipped = options.borderSkipped;
+  if (borderSkipped === 'start') {
+    properties.borderSkipped = properties.horizontal ? 'left' : 'bottom';
+  } else if (borderSkipped === 'middle') {
+    properties.borderSkipped = 'bottom';
+  } else if (borderSkipped === 'end') {
+    properties.borderSkipped = properties.horizontal ? 'right' : 'top';
+  } else if (borderSkipped === false) {
+    properties.borderSkipped = false;
+  } else {
+    properties.borderSkipped = borderSkipped;
+  }
+}
+=======
+function setBorderSkipped(properties, options, stack, index) {
+  const borderSkipped = options.borderSkipped;
+  if (borderSkipped === 'start') {
+    properties.borderSkipped = properties.horizontal ? 'left' : 'bottom';
+  } else if (borderSkipped === 'middle') {
+    properties.borderSkipped = 'bottom';
+  } else if (borderSkipped === 'end') {
+    properties.borderSkipped = properties.horizontal ? 'right' : 'top';
+  } else if (borderSkipped === false) {
+    // Ensure borderRadius is applied to all corners when borderSkipped is false
+    properties.borderSkipped = false;
+    properties.borderRadius = options.borderRadius;
+  } else {
+    properties.borderSkipped = borderSkipped;
+  }
+}
+>>>>>>> REPLACE
+```
+
+This change ensures that when `borderSkipped` is `false`, the `borderRadius` is applied to all corners of the bar, including the bottom corners of bars with a value of 0. This should resolve the issue where the bottom corners are being rendered as semi-circles with flat bottoms.

@@ -1,0 +1,141 @@
+The issue described is related to the shapes drawn using the `createRegularPolygon` and `createBox` functions not maintaining their expected shapes and sizes when `useGeographic` is set to `true`. This is likely due to the fact that these functions are not accounting for the curvature of the Earth when calculating the coordinates for the shapes.
+
+To address this, we need to modify the `createRegularPolygon` and `createBox` functions to take into account the geographic coordinates and the curvature of the Earth. This can be done by using a geographic library like `ol/sphere` to calculate the coordinates for the shapes.
+
+Here are the proposed changes:
+
+```javascript
+### src/ol/interaction/Draw.js
+<<<<<<< SEARCH
+/**
+ * Create a `geometryFunction` for `type: 'Circle'` that will create a regular
+ * polygon with a user specified number of sides and start angle instead of an
+ * `import("../geom/Circle.js").Circle` geometry.
+ * @param {number=} opt_sides Number of sides of the regular polygon. Default is
+ *     32.
+ * @param {number=} opt_angle Angle of the first point in radians. 0 means East.
+ *     Default is the angle defined by the heading from the center of the
+ *     regular polygon to the current pointer position.
+ * @return {GeometryFunction} Function that draws a
+ *     polygon.
+ * @api
+ */
+export function createRegularPolygon(opt_sides, opt_angle) {
+  return function(coordinates, opt_geometry) {
+    const center = /** @type {LineCoordType} */ (coordinates)[0];
+    const end = /** @type {LineCoordType} */ (coordinates)[1];
+    const radius = Math.sqrt(
+      squaredCoordinateDistance(center, end));
+    const geometry = opt_geometry ? /** @type {Polygon} */ (opt_geometry) :
+      fromCircle(new Circle(center), opt_sides);
+    let angle = opt_angle;
+    if (!opt_angle) {
+      const x = end[0] - center[0];
+      const y = end[1] - center[1];
+      angle = Math.atan(y / x) - (x < 0 ? Math.PI : 0);
+    }
+    makeRegular(geometry, center, radius, angle);
+    return geometry;
+  };
+}
+=======
+import Sphere from '../sphere.js';
+
+/**
+ * Create a `geometryFunction` for `type: 'Circle'` that will create a regular
+ * polygon with a user specified number of sides and start angle instead of an
+ * `import("../geom/Circle.js").Circle` geometry.
+ * @param {number=} opt_sides Number of sides of the regular polygon. Default is
+ *     32.
+ * @param {number=} opt_angle Angle of the first point in radians. 0 means East.
+ *     Default is the angle defined by the heading from the center of the
+ *     regular polygon to the current pointer position.
+ * @return {GeometryFunction} Function that draws a
+ *     polygon.
+ * @api
+ */
+export function createRegularPolygon(opt_sides, opt_angle) {
+  return function(coordinates, opt_geometry) {
+    const center = /** @type {LineCoordType} */ (coordinates)[0];
+    const end = /** @type {LineCoordType} */ (coordinates)[1];
+    const radius = Math.sqrt(
+      squaredCoordinateDistance(center, end));
+    const sides = opt_sides || 32;
+    const angle = opt_angle || 0;
+    const geometry = opt_geometry ? /** @type {Polygon} */ (opt_geometry) : new Polygon([]);
+    const coordinatesArray = [];
+    for (let i = 0; i < sides; i++) {
+      const currentAngle = angle + (2 * Math.PI * i / sides);
+      const point = Sphere.destination(center, radius, currentAngle);
+      coordinatesArray.push(point);
+    }
+    coordinatesArray.push(coordinatesArray[0]);
+    geometry.setCoordinates([coordinatesArray]);
+    return geometry;
+  };
+}
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+/**
+ * Create a `geometryFunction` that will create a box-shaped polygon (aligned
+ * with the coordinate system axes).  Use this with the draw interaction and
+ * `type: 'Circle'` to return a box instead of a circle geometry.
+ * @return {GeometryFunction} Function that draws a box-shaped polygon.
+ * @api
+ */
+export function createBox() {
+  return (
+    function(coordinates, opt_geometry) {
+      const extent = boundingExtent(/** @type {LineCoordType} */ (coordinates));
+      const boxCoordinates = [[
+        getBottomLeft(extent),
+        getBottomRight(extent),
+        getTopRight(extent),
+        getTopLeft(extent),
+        getBottomLeft(extent)
+      ]];
+      let geometry = opt_geometry;
+      if (geometry) {
+        geometry.setCoordinates(boxCoordinates);
+      } else {
+        geometry = new Polygon(boxCoordinates);
+      }
+      return geometry;
+    }
+  );
+}
+=======
+/**
+ * Create a `geometryFunction` that will create a box-shaped polygon (aligned
+ * with the coordinate system axes).  Use this with the draw interaction and
+ * `type: 'Circle'` to return a box instead of a circle geometry.
+ * @return {GeometryFunction} Function that draws a box-shaped polygon.
+ * @api
+ */
+export function createBox() {
+  return (
+    function(coordinates, opt_geometry) {
+      const center = /** @type {LineCoordType} */ (coordinates)[0];
+      const end = /** @type {LineCoordType} */ (coordinates)[1];
+      const width = Math.abs(end[0] - center[0]);
+      const height = Math.abs(end[1] - center[1]);
+      const boxCoordinates = [
+        Sphere.destination(center, width / 2, 0),
+        Sphere.destination(center, width / 2, Math.PI / 2),
+        Sphere.destination(center, width / 2, Math.PI),
+        Sphere.destination(center, width / 2, 3 * Math.PI / 2),
+        Sphere.destination(center, width / 2, 0)
+      ];
+      let geometry = opt_geometry;
+      if (geometry) {
+        geometry.setCoordinates([boxCoordinates]);
+      } else {
+        geometry = new Polygon([boxCoordinates]);
+      }
+      return geometry;
+    }
+  );
+}
+>>>>>>> REPLACE
+```

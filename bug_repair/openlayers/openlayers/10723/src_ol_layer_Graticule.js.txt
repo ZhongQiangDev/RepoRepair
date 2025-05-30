@@ -1,0 +1,133 @@
+The issue described is related to the graticule not displaying correctly when the view projection crosses the dateline. The meridians do not appear, and parallels begin at the dateline or extend too far. To address this, we need to ensure that the meridians and parallels are correctly calculated and displayed even when the projection crosses the dateline.
+
+Here's a potential fix:
+
+```javascript
+### src/ol/layer/Graticule.js
+<<<<<<< SEARCH
+  /**
+   * @param {number} lon Longitude.
+   * @param {number} minLat Minimal latitude.
+   * @param {number} maxLat Maximal latitude.
+   * @param {number} squaredTolerance Squared tolerance.
+   * @param {import("../extent.js").Extent} extent Extent.
+   * @param {number} index Index.
+   * @return {number} Index.
+   * @private
+   */
+  addMeridian_(lon, minLat, maxLat, squaredTolerance, extent, index) {
+    const lineString = this.getMeridian_(lon, minLat, maxLat, squaredTolerance, index);
+    if (intersects(lineString.getExtent(), extent)) {
+      if (this.meridiansLabels_) {
+        const text = this.lonLabelFormatter_(lon);
+        if (index in this.meridiansLabels_) {
+          this.meridiansLabels_[index].text = text;
+        } else {
+          this.meridiansLabels_[index] = {
+            geom: new Point([]),
+            text: text
+          };
+        }
+      }
+      this.meridians_[index++] = lineString;
+    }
+    return index;
+  }
+=======
+  /**
+   * @param {number} lon Longitude.
+   * @param {number} minLat Minimal latitude.
+   * @param {number} maxLat Maximal latitude.
+   * @param {number} squaredTolerance Squared tolerance.
+   * @param {import("../extent.js").Extent} extent Extent.
+   * @param {number} index Index.
+   * @return {number} Index.
+   * @private
+   */
+  addMeridian_(lon, minLat, maxLat, squaredTolerance, extent, index) {
+    const lineString = this.getMeridian_(lon, minLat, maxLat, squaredTolerance, index);
+    const lineExtent = lineString.getExtent();
+    if (intersects(lineExtent, extent) || (lineExtent[0] < extent[0] && lineExtent[2] > extent[2])) {
+      if (this.meridiansLabels_) {
+        const text = this.lonLabelFormatter_(lon);
+        if (index in this.meridiansLabels_) {
+          this.meridiansLabels_[index].text = text;
+        } else {
+          this.meridiansLabels_[index] = {
+            geom: new Point([]),
+            text: text
+          };
+        }
+      }
+      this.meridians_[index++] = lineString;
+    }
+    return index;
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/layer/Graticule.js
+<<<<<<< SEARCH
+  /**
+   * @param {number} lat Latitude.
+   * @param {number} minLon Minimal longitude.
+   * @param {number} maxLon Maximal longitude.
+   * @param {number} squaredTolerance Squared tolerance.
+   * @param {import("../extent.js").Extent} extent Extent.
+   * @param {number} index Index.
+   * @return {number} Index.
+   * @private
+   */
+  addParallel_(lat, minLon, maxLon, squaredTolerance, extent, index) {
+    const lineString = this.getParallel_(lat, minLon, maxLon, squaredTolerance, index);
+    if (intersects(lineString.getExtent(), extent)) {
+      if (this.parallelsLabels_) {
+        const text = this.latLabelFormatter_(lat);
+        if (index in this.parallelsLabels_) {
+          this.parallelsLabels_[index].text = text;
+        } else {
+          this.parallelsLabels_[index] = {
+            geom: new Point([]),
+            text: text
+          };
+        }
+      }
+      this.parallels_[index++] = lineString;
+    }
+    return index;
+  }
+=======
+  /**
+   * @param {number} lat Latitude.
+   * @param {number} minLon Minimal longitude.
+   * @param {number} maxLon Maximal longitude.
+   * @param {number} squaredTolerance Squared tolerance.
+   * @param {import("../extent.js").Extent} extent Extent.
+   * @param {number} index Index.
+   * @return {number} Index.
+   * @private
+   */
+  addParallel_(lat, minLon, maxLon, squaredTolerance, extent, index) {
+    const lineString = this.getParallel_(lat, minLon, maxLon, squaredTolerance, index);
+    const lineExtent = lineString.getExtent();
+    if (intersects(lineExtent, extent) || (lineExtent[0] < extent[0] && lineExtent[2] > extent[2])) {
+      if (this.parallelsLabels_) {
+        const text = this.latLabelFormatter_(lat);
+        if (index in this.parallelsLabels_) {
+          this.parallelsLabels_[index].text = text;
+        } else {
+          this.parallelsLabels_[index] = {
+            geom: new Point([]),
+            text: text
+          };
+        }
+      }
+      this.parallels_[index++] = lineString;
+    }
+    return index;
+  }
+>>>>>>> REPLACE
+```
+
+These changes modify the `addMeridian_` and `addParallel_` methods to include lines that cross the dateline by checking if the line's extent intersects with the view extent or if it spans across the dateline. This should help in correctly displaying the graticule when the projection crosses the dateline.

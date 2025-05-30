@@ -1,0 +1,50 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that a typed start event can be copied and pasted onto a subprocess, which should not be allowed according to BPMN rules. Additionally, non-interrupting events copied out of an event subprocess can also be pasted onto a subprocess, which is also not allowed.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior likely lies in the copy-paste functionality not correctly enforcing BPMN rules when pasting elements onto a subprocess. Specifically, the rules that prohibit start events and non-interrupting events from being placed within a subprocess are not being enforced during the paste operation.
+
+### 3. Examine Each File One by One
+
+#### --- lib/features/copy-paste/BpmnCopyPaste.js ---
+```
+lib/features/copy-paste/BpmnCopyPaste.js
+function: BpmnCopyPaste
+```
+The `BpmnCopyPaste` function is responsible for managing the copy and paste operations. It listens for the 'element.paste' event and creates new business objects based on the copied elements. It needs to ensure that the new elements are placed correctly according to BPMN rules. This function should be inspected to ensure it correctly enforces the rules when pasting elements onto a subprocess.
+
+#### --- lib/features/modeling/behavior/AttachEventBehavior.js ---
+```
+lib/features/modeling/behavior/AttachEventBehavior.js
+function: AttachEventBehavior
+```
+The `AttachEventBehavior` function handles the behavior of attaching events in a BPMN diagram. It checks if an intermediate event can be attached to a host shape and replaces it with a boundary event if necessary. This function may need to be inspected to ensure it correctly handles the attachment of events to subprocesses.
+
+#### --- lib/features/modeling/behavior/SubProcessStartEventBehavior.js ---
+```
+lib/features/modeling/behavior/SubProcessStartEventBehavior.js
+function: SubProcessStartEventBehavior
+```
+The `SubProcessStartEventBehavior` function is responsible for automatically adding a start event to an expanded subprocess. It listens for events related to creating or replacing shapes and ensures that a start event is added if necessary. This function should be inspected to ensure it correctly handles the creation of start events within subprocesses.
+
+#### --- lib/features/rules/BpmnRules.js ---
+```
+lib/features/rules/BpmnRules.js
+function: canAttach
+function: canCreate
+function: canDrop
+function: canPaste
+```
+The `BpmnRules` file contains several functions that define the rules for various operations in a BPMN diagram. The `canAttach`, `canCreate`, `canDrop`, and `canPaste` functions are particularly relevant as they determine whether an element can be attached, created, dropped, or pasted in a specific location. These functions should be inspected to ensure they correctly enforce the rules for placing elements within subprocesses.
+
+#### `lib/features/modeling/behavior/ReplaceElementBehaviour.js`
+
+**Relevant Functions:**
+```
+lib/features/modeling/behavior/ReplaceElementBehaviour.js
+function: ReplaceElementBehaviour
+```
+
+This file contains logic for replacing elements, which might be relevant if the paste operation involves replacing an existing element with a start event or non-interrupting event.

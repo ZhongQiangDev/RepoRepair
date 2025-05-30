@@ -1,0 +1,25 @@
+The issue described is related to the creation of render buffers for retained-mode geometry in the WebGL renderer. The problem arises because the buffers are created based on the current shader's attributes at the time of geometry creation, which may not match the attributes required by subsequent shaders. To fix this, we need to ensure that the geometry is created with all necessary buffers regardless of the current shader.
+
+Here's the proposed fix:
+
+```javascript
+### src/webgl/p5.RendererGL.Retained.js
+<<<<<<< SEARCH
+this._buffers = [];
+this._attributes = [];
+=======
+this._buffers = [];
+this._attributes = [];
+
+// Ensure all necessary buffers are created regardless of the current shader
+const requiredAttributes = ['aPosition', 'aNormal', 'aTexCoord', 'aColor']; // Add other required attributes as needed
+requiredAttributes.forEach(attr => {
+  if (!this._attributes.includes(attr)) {
+    this._attributes.push(attr);
+    this._buffers.push(new p5.RendererGL.Buffer(this.drawingContext, this._gl.FLOAT, this._vertices.length / 3, 3));
+  }
+});
+>>>>>>> REPLACE
+```
+
+This code ensures that all necessary buffers are created when the geometry is initialized, regardless of the current shader's attributes. This should resolve the issue where the required render buffers are missing when switching shaders.

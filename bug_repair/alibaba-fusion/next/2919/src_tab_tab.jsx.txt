@@ -1,0 +1,96 @@
+The issue is that the Tab component does not support scrolling when the content exceeds the available space, especially in "slide" mode. To fix this, we need to add a scrollable container to the `TabNav` component and ensure it can be scrolled using mouse drag or keyboard navigation.
+
+Here's the proposed fix:
+
+```javascript
+### src/tab/tab.jsx
+<<<<<<< SEARCH
+const navProps = {
+    prefix,
+    rtl,
+    animation,
+    activeKey,
+    excessMode: isTouchable ? 'slide' : excessMode,
+    extra,
+    tabs,
+    tabPosition,
+    tabRender,
+    triggerType,
+    popupProps,
+    onClose,
+    onTriggerEvent: this.handleTriggerEvent,
+    onKeyDown: this.onNavKeyDown,
+    style: navStyle,
+    className: navClassName,
+    locale,
+    icons,
+};
+=======
+const navProps = {
+    prefix,
+    rtl,
+    animation,
+    activeKey,
+    excessMode: isTouchable ? 'slide' : excessMode,
+    extra,
+    tabs,
+    tabPosition,
+    tabRender,
+    triggerType,
+    popupProps,
+    onClose,
+    onTriggerEvent: this.handleTriggerEvent,
+    onKeyDown: this.onNavKeyDown,
+    style: navStyle,
+    className: navClassName,
+    locale,
+    icons,
+    onScroll: this.handleScroll, // Add scroll event handler
+};
+
+// Add scroll event handler
+this.handleScroll = (event) => {
+    const scrollContainer = event.target;
+    scrollContainer.addEventListener('mousedown', this.handleMouseDown);
+    scrollContainer.addEventListener('mouseup', this.handleMouseUp);
+};
+
+this.handleMouseDown = (event) => {
+    const scrollContainer = event.target;
+    scrollContainer.addEventListener('mousemove', this.handleMouseMove);
+};
+
+this.handleMouseMove = (event) => {
+    const scrollContainer = event.target;
+    scrollContainer.scrollLeft += event.movementX;
+};
+
+this.handleMouseUp = (event) => {
+    const scrollContainer = event.target;
+    scrollContainer.removeEventListener('mousemove', this.handleMouseMove);
+};
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/tab/tab.jsx
+<<<<<<< SEARCH
+const tabChildren = [
+    <TabNav key="tab-nav" {...navProps} />,
+    <TabContent key="tab-content" {...contentProps}>
+        {tabs}
+    </TabContent>,
+];
+=======
+const tabChildren = [
+    <div style={{ overflowX: 'auto', whiteSpace: 'nowrap' }}>
+        <TabNav key="tab-nav" {...navProps} />
+    </div>,
+    <TabContent key="tab-content" {...contentProps}>
+        {tabs}
+    </TabContent>,
+];
+>>>>>>> REPLACE
+```
+
+These changes add a scrollable container around the `TabNav` component and handle mouse drag events to enable scrolling. The `handleScroll`, `handleMouseDown`, `handleMouseMove`, and `handleMouseUp` methods are added to manage the scroll behavior.

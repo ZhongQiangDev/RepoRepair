@@ -1,0 +1,36 @@
+The issue described is that pasting multiple shapes onto a connection results in unexpected connections. The current implementation only handles the case for a single shape being pasted onto a connection. To fix this, we need to modify the `insertShape` function to handle multiple shapes.
+
+Here's the proposed fix:
+
+```javascript
+### lib/features/modeling/behavior/DropOnFlowBehavior.js
+<<<<<<< SEARCH
+  this.postExecuted('elements.move', function(context) {
+
+    var shapes = context.shapes,
+        targetFlow = context.targetFlow,
+        position = context.position;
+
+    if (targetFlow) {
+      insertShape(shapes[0], targetFlow, position);
+    }
+
+  }, true);
+=======
+  this.postExecuted('elements.move', function(context) {
+
+    var shapes = context.shapes,
+        targetFlow = context.targetFlow,
+        position = context.position;
+
+    if (targetFlow) {
+      shapes.forEach(function(shape) {
+        insertShape(shape, targetFlow, position);
+      });
+    }
+
+  }, true);
+>>>>>>> REPLACE
+```
+
+This change ensures that the `insertShape` function is called for each shape in the `shapes` array, thus handling the case where multiple shapes are pasted onto a connection.

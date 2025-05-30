@@ -1,0 +1,79 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that the `stroke` function in WebGL mode does not interpolate colors between vertices when drawing lines. Instead, it only applies the last color specified by the `stroke` function to the entire line. The desired behavior is to interpolate the colors between vertices, similar to how the `fill` function interpolates colors for shapes.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior is likely due to the way the WebGL renderer handles stroke rendering. Specifically, the shader programs used for stroke rendering do not currently support per-vertex color interpolation. The `stroke` function sets a uniform color for the entire line, rather than passing per-vertex color data to the shader. To achieve the desired behavior, the shader programs need to be modified to accept per-vertex color data and interpolate these colors during rendering.
+
+### 3. Examine Each File One by One
+
+#### --- src/webgl/p5.Geometry.js ---
+```
+src/webgl/p5.Geometry.js
+function: _edgesToVertices
+function: _addSegment
+function: _addCap
+function: _addJoin
+```
+These functions are responsible for generating the vertices and attributes for line drawing. They need to be modified to include per-vertex color data for stroke rendering.
+
+#### --- src/webgl/p5.RenderBuffer.js ---
+```
+src/webgl/p5.RenderBuffer.js
+function: p5.RenderBuffer
+```
+This function initializes render buffers. A new render buffer for storing per-vertex stroke colors needs to be created.
+
+#### --- src/webgl/p5.RendererGL.Immediate.js ---
+```
+src/webgl/p5.RendererGL.Immediate.js
+function: _drawImmediateStroke
+function: _prepareBuffer
+```
+The `_drawImmediateStroke` function manages the rendering of stroke geometry in immediate mode. It needs to be updated to handle per-vertex stroke colors. The `_prepareBuffer` function needs to be modified to prepare the new stroke color buffer.
+
+#### --- src/webgl/p5.RendererGL.js ---
+```
+src/webgl/p5.RendererGL.js
+function: stroke
+function: _getImmediateStrokeShader
+function: _setStrokeUniforms
+```
+The `stroke` function sets the stroke color. It needs to be modified to handle per-vertex stroke colors. The `_getImmediateStrokeShader` function needs to return a shader that supports per-vertex stroke colors. The `_setStrokeUniforms` function needs to be updated to handle the new stroke color data.
+
+#### --- src/webgl/p5.Shader.js ---
+```
+src/webgl/p5.Shader.js
+function: setUniform
+function: init
+function: bindShader
+```
+The `setUniform` function manages uniform data in shaders. It needs to be updated to handle per-vertex stroke colors. The `init` function initializes the shader program and needs to be modified to include per-vertex stroke color attributes. The `bindShader` function needs to be updated to bind the new stroke color attribute.
+
+### Summary of Relevant Functions/Classes
+
+```
+src/webgl/p5.Geometry.js
+function: _edgesToVertices
+function: _addSegment
+function: _addCap
+function: _addJoin
+
+src/webgl/p5.RenderBuffer.js
+function: p5.RenderBuffer
+
+src/webgl/p5.RendererGL.Immediate.js
+function: _drawImmediateStroke
+function: _prepareBuffer
+
+src/webgl/p5.RendererGL.js
+function: stroke
+function: _getImmediateStrokeShader
+function: _setStrokeUniforms
+
+src/webgl/p5.Shader.js
+function: setUniform
+function: init
+function: bindShader
+```

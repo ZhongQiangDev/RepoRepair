@@ -1,0 +1,152 @@
+The issue described is that Lighthouse is unable to automatically check the `font-display` value for certain font URLs, which suggests that the CSSUsage artifact does not have any stylesheets referencing these fonts. This could be due to the fact that the fonts are being loaded via iframes, and the current implementation of the `findFontDisplayDeclarations` method does not account for this.
+
+To address this, we need to modify the `findFontDisplayDeclarations` method to also consider stylesheets that are loaded within iframes. This can be done by iterating over the stylesheets of each iframe and checking for `@font-face` declarations.
+
+Here is the proposed fix:
+
+```javascript
+### lighthouse-core/audits/font-display.js
+<<<<<<< SEARCH
+    // Go through all the stylesheets to find all @font-face declarations
+    for (const stylesheet of artifacts.CSSUsage.stylesheets) {
+      // Eliminate newlines so we can more easily scan through with a regex
+      const newlinesStripped = stylesheet.content.replace(/(\r|\n)+/g, ' ');
+      // Find the @font-faces
+      const fontFaceDeclarations = newlinesStripped.match(/@font-face\s*{(.*?)}/g) || [];
+      // Go through all the @font-face declarations to find a declared `font-display: ` property
+      for (const declaration of fontFaceDeclarations) {
+        // We'll try to find the URL it's referencing.
+        const rawFontURLs = declaration.match(CSS_URL_GLOBAL_REGEX);
+        // If no URLs, we can't really do anything; bail
+        if (!rawFontURLs) continue;
+        // Find the font-display value by matching a single token, optionally surrounded by whitespace,
+        // followed either by a semicolon or the end of a block.
+        const fontDisplayMatch = declaration.match(/font-display\s*:\s*(\w+)\s*(;|\})/);
+        const rawFontDisplay = (fontDisplayMatch && fontDisplayMatch[1]) || '';
+        const hasPassingFontDisplay = PASSING_FONT_DISPLAY_REGEX.test(rawFontDisplay);
+        const targetURLSet = hasPassingFontDisplay ? passingURLs : failingURLs;
+
+        // Finally convert the raw font URLs to the absolute URLs and add them to the set.
+        const relativeURLs = rawFontURLs
+          // @ts-ignore - guaranteed to match from previous regex, pull URL group out
+          .map(s => s.match(CSS_URL_REGEX)[1].trim())
+          .map(s => {
+            // remove any quotes surrounding the URL
+            if (/^('|").*\1$/.test(s)) {
+              return s.substr(1, s.length - 2);
+            }
+
+            return s;
+          });
+
+        // Convert the relative CSS URL to an absolute URL and add it to the target set.
+        for (const relativeURL of relativeURLs) {
+          try {
+            const relativeRoot = URL.isValid(stylesheet.header.sourceURL) ?
+              stylesheet.header.sourceURL : artifacts.URL.finalUrl;
+            const absoluteURL = new URL(relativeURL, relativeRoot);
+            targetURLSet.add(absoluteURL.href);
+          } catch (err) {
+            Sentry.captureException(err, {tags: {audit: this.meta.id}});
+          }
+        }
+      }
+    }
+=======
+    // Go through all the stylesheets to find all @font-face declarations
+    for (const iframe of artifacts.iframes || []) {
+      for (const stylesheet of iframe.CSSUsage.stylesheets) {
+        // Eliminate newlines so we can more easily scan through with a regex
+        const newlinesStripped = stylesheet.content.replace(/(\r|\n)+/g, ' ');
+        // Find the @font-faces
+        const fontFaceDeclarations = newlinesStripped.match(/@font-face\s*{(.*?)}/g) || [];
+        // Go through all the @font-face declarations to find a declared `font-display: ` property
+        for (const declaration of fontFaceDeclarations) {
+          // We'll try to find the URL it's referencing.
+          const rawFontURLs = declaration.match(CSS_URL_GLOBAL_REGEX);
+          // If no URLs, we can't really do anything; bail
+          if (!rawFontURLs) continue;
+          // Find the font-display value by matching a single token, optionally surrounded by whitespace,
+          // followed either by a semicolon or the end of a block.
+          const fontDisplayMatch = declaration.match(/font-display\s*:\s*(\w+)\s*(;|\})/);
+          const rawFontDisplay = (fontDisplayMatch && fontDisplayMatch[1]) || '';
+          const hasPassingFontDisplay = PASSING_FONT_DISPLAY_REGEX.test(rawFontDisplay);
+          const targetURLSet = hasPassingFontDisplay ? passingURLs : failingURLs;
+
+          // Finally convert the raw font URLs to the absolute URLs and add them to the set.
+          const relativeURLs = rawFontURLs
+            // @ts-ignore - guaranteed to match from previous regex, pull URL group out
+            .map(s => s.match(CSS_URL_REGEX)[1].trim())
+            .map(s => {
+              // remove any quotes surrounding the URL
+              if (/^('|").*\1$/.test(s)) {
+                return s.substr(1, s.length - 2);
+              }
+
+              return s;
+            });
+
+          // Convert the relative CSS URL to an absolute URL and add it to the target set.
+          for (const relativeURL of relativeURLs) {
+            try {
+              const relativeRoot = URL.isValid(stylesheet.header.sourceURL) ?
+                stylesheet.header.sourceURL : iframe.URL.finalUrl;
+              const absoluteURL = new URL(relativeURL, relativeRoot);
+              targetURLSet.add(absoluteURL.href);
+            } catch (err) {
+              Sentry.captureException(err, {tags: {audit: this.meta.id}});
+            }
+          }
+        }
+      }
+    }
+
+    // Also check the main document's stylesheets
+    for (const stylesheet of artifacts.CSSUsage.stylesheets) {
+      // Eliminate newlines so we can more easily scan through with a regex
+      const newlinesStripped = stylesheet.content.replace(/(\r|\n)+/g, ' ');
+      // Find the @font-faces
+      const fontFaceDeclarations = newlinesStripped.match(/@font-face\s*{(.*?)}/g) || [];
+      // Go through all the @font-face declarations to find a declared `font-display: ` property
+      for (const declaration of fontFaceDeclarations) {
+        // We'll try to find the URL it's referencing.
+        const rawFontURLs = declaration.match(CSS_URL_GLOBAL_REGEX);
+        // If no URLs, we can't really do anything; bail
+        if (!rawFontURLs) continue;
+        // Find the font-display value by matching a single token, optionally surrounded by whitespace,
+        // followed either by a semicolon or the end of a block.
+        const fontDisplayMatch = declaration.match(/font-display\s*:\s*(\w+)\s*(;|\})/);
+        const rawFontDisplay = (fontDisplayMatch && fontDisplayMatch[1]) || '';
+        const hasPassingFontDisplay = PASSING_FONT_DISPLAY_REGEX.test(rawFontDisplay);
+        const targetURLSet = hasPassingFontDisplay ? passingURLs : failingURLs;
+
+        // Finally convert the raw font URLs to the absolute URLs and add them to the set.
+        const relativeURLs = rawFontURLs
+          // @ts-ignore - guaranteed to match from previous regex, pull URL group out
+          .map(s => s.match(CSS_URL_REGEX)[1].trim())
+          .map(s => {
+            // remove any quotes surrounding the URL
+            if (/^('|").*\1$/.test(s)) {
+              return s.substr(1, s.length - 2);
+            }
+
+            return s;
+          });
+
+        // Convert the relative CSS URL to an absolute URL and add it to the target set.
+        for (const relativeURL of relativeURLs) {
+          try {
+            const relativeRoot = URL.isValid(stylesheet.header.sourceURL) ?
+              stylesheet.header.sourceURL : artifacts.URL.finalUrl;
+            const absoluteURL = new URL(relativeURL, relativeRoot);
+            targetURLSet.add(absoluteURL.href);
+          } catch (err) {
+            Sentry.captureException(err, {tags: {audit: this.meta.id}});
+          }
+        }
+      }
+    }
+>>>>>>> REPLACE
+```
+
+This modification ensures that the `findFontDisplayDeclarations` method checks for `@font-face` declarations in stylesheets loaded within iframes as well as the main document, addressing the issue where Lighthouse is unable to automatically check the `font-display` value for certain font URLs.

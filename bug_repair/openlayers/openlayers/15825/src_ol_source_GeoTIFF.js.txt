@@ -1,0 +1,51 @@
+The issue described involves missing tiles near the antimeridian when reprojecting GeoTIFF tiles into a stereographic projection. This is likely due to how the tiles are handled near the edge of the projection, particularly around the antimeridian. The problem might be related to how the tile grid is configured or how the tiles are rendered in the WebGLTileLayer.
+
+To address this, we need to ensure that the tile grid and rendering logic properly handle the antimeridian. One potential solution is to adjust the tile grid extent and ensure that tiles are correctly wrapped around the antimeridian.
+
+Here's a proposed fix:
+
+```javascript
+### src/ol/source/GeoTIFF.js
+<<<<<<< SEARCH
+    const tileGrid = new TileGrid({
+      extent: extent,
+      minZoom: minZoom,
+      origin: origin,
+      resolutions: resolutions,
+      tileSizes: commonRenderTileSizes,
+    });
+=======
+    // Adjust the extent to handle the antimeridian properly
+    const adjustedExtent = extent.slice();
+    if (extent[0] > extent[2]) {
+      // If the extent crosses the antimeridian, adjust it to wrap around
+      adjustedExtent[2] += 360;
+    }
+
+    const tileGrid = new TileGrid({
+      extent: adjustedExtent,
+      minZoom: minZoom,
+      origin: origin,
+      resolutions: resolutions,
+      tileSizes: commonRenderTileSizes,
+    });
+>>>>>>> REPLACE
+```
+
+This change adjusts the extent of the tile grid to handle cases where the extent crosses the antimeridian. If the extent crosses the antimeridian, it adjusts the right boundary of the extent by adding 360 degrees, effectively wrapping the tiles around the antimeridian.
+
+Additionally, we should ensure that the WebGLTileLayer properly handles the wrapping of tiles. This might involve adjusting the rendering logic to handle tiles that cross the antimeridian.
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+    this.setTileGrid(tileGrid);
+=======
+    this.setTileGrid(tileGrid);
+
+    // Ensure the layer properly handles wrapping around the antimeridian
+    this.setWrapX(true);
+>>>>>>> REPLACE
+```
+
+This change ensures that the WebGLTileLayer properly handles wrapping around the antimeridian by setting `wrapX` to `true`. This should help in rendering tiles that cross the antimeridian correctly.

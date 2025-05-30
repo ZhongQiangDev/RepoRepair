@@ -1,0 +1,49 @@
+The issue described is related to the placement of images within custom divs in a Reveal.js presentation. The problem seems to be that images are not being properly contained within the specified divs, except when using the `.columns` class. This suggests a potential issue with how the custom divs are being processed or styled.
+
+To address this, we need to ensure that the custom divs are properly styled to contain their child elements, including images. This can be achieved by adding appropriate CSS styles to the custom divs.
+
+Here's a potential fix:
+
+```typescript
+### src/format/reveal/format-reveal.ts
+<<<<<<< SEARCH
+import { join } from "path/mod.ts";
+=======
+import { join } from "path/mod.ts";
+
+// Add custom CSS for custom divs to ensure images are contained
+const customDivStyles = `
+  .qrcodeblock, .anotherblocks {
+    display: block;
+    overflow: hidden;
+  }
+`;
+
+// Add the custom CSS to the document head
+function addCustomDivStyles(doc: Document) {
+  const style = doc.createElement("style");
+  style.innerHTML = customDivStyles;
+  doc.head.appendChild(style);
+}
+
+// Modify the revealHtmlPostprocessor function to include the custom CSS
+function revealHtmlPostprocessor(
+  format: Format,
+  extraConfig: Record<string, unknown>,
+  pluginInit: {
+    scripts: RevealPluginScript[];
+    register: string[];
+    revealConfig: Record<string, unknown>;
+  },
+) {
+  return (doc: Document): Promise<HtmlPostProcessResult> => {
+    // Add custom div styles
+    addCustomDivStyles(doc);
+
+    // ... rest of the function remains the same ...
+  };
+}
+>>>>>>> REPLACE
+```
+
+This solution adds custom CSS styles to ensure that the custom divs (`qrcodeblock` and `anotherblocks`) are displayed as block elements with overflow hidden, which should help contain the images within the divs. The `addCustomDivStyles` function is added to include these styles in the document head, and the `revealHtmlPostprocessor` function is modified to call this function.

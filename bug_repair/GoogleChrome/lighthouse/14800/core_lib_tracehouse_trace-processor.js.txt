@@ -1,0 +1,18 @@
+The issue arises because the `processId` in the `FrameCommittedInBrowser` event is being returned as `undefined`, leading to the error "Unable to determine tid for renderer process". To fix this, we need to handle the case where `processId` might be `undefined` or a `processPseudoId` instead.
+
+Here's the proposed fix:
+
+```typescript
+###core/lib/tracehouse/trace-processor.js
+<<<<<<< SEARCH
+const mainFramePids = frameCommittedEvts.length
+  ? frameCommittedEvts.map(e => e?.args?.data?.processId)
+  : [mainFrameInfo.startingPid];
+=======
+const mainFramePids = frameCommittedEvts.length
+  ? frameCommittedEvts.map(e => e?.args?.data?.processId || e?.args?.data?.processPseudoId || mainFrameInfo.startingPid)
+  : [mainFrameInfo.startingPid];
+>>>>>>> REPLACE
+```
+
+This change ensures that if `processId` is `undefined`, it will fall back to `processPseudoId` or `mainFrameInfo.startingPid`, preventing the error from occurring.

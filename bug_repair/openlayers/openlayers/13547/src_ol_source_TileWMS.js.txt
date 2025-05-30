@@ -1,0 +1,302 @@
+To address the issue of making the gutter option available to more tile sources and revising how the gutter is handled for WebGL tile layers, we need to make changes to the relevant parts of the code. Specifically, we need to extend the gutter functionality to XYZ and DataTile sources and ensure that the gutter is handled correctly in WebGL rendering.
+
+Here are the necessary *SEARCH/REPLACE* edits:
+
+```typescript
+### src/ol/source/TileWMS.js
+<<<<<<< SEARCH
+import TileImage from './TileImage.js';
+=======
+import TileImage from './TileImage.js';
+import XYZ from './XYZ.js';
+import DataTile from './DataTile.js';
+>>>>>>> REPLACE
+```
+
+```typescript
+### src/ol/source/XYZ.js
+<<<<<<< SEARCH
+class XYZ extends TileImage {
+  constructor(opt_options) {
+    const options = opt_options ? opt_options : {};
+    super({
+      attributions: options.attributions,
+      attributionsCollapsible: options.attributionsCollapsible,
+      cacheSize: options.cacheSize,
+      crossOrigin: options.crossOrigin,
+      interpolate: options.interpolate,
+      opaque: options.opaque,
+      projection: options.projection,
+      reprojectionErrorThreshold: options.reprojectionErrorThreshold,
+      tileClass: options.tileClass,
+      tileGrid: options.tileGrid,
+      tileLoadFunction: options.tileLoadFunction,
+      url: options.url,
+      urls: options.urls,
+      wrapX: options.wrapX !== undefined ? options.wrapX : true,
+      transition: options.transition,
+      zDirection: options.zDirection,
+    });
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.gutter_ = options.gutter !== undefined ? options.gutter : 0;
+  }
+  
+  tileUrlFunction(tileCoord, pixelRatio, projection) {
+    let tileGrid = this.getTileGrid();
+    if (!tileGrid) {
+      tileGrid = this.getTileGridForProjection(projection);
+    }
+
+    if (tileGrid.getResolutions().length <= tileCoord[0]) {
+      return undefined;
+    }
+
+    if (pixelRatio != 1 && (!this.hidpi_ || this.serverType_ === undefined)) {
+      pixelRatio = 1;
+    }
+
+    const tileResolution = tileGrid.getResolution(tileCoord[0]);
+    let tileExtent = tileGrid.getTileCoordExtent(tileCoord, this.tmpExtent_);
+    let tileSize = toSize(tileGrid.getTileSize(tileCoord[0]), this.tmpSize);
+
+    const gutter = this.gutter_;
+    if (gutter !== 0) {
+      tileSize = bufferSize(tileSize, gutter, this.tmpSize);
+      tileExtent = buffer(tileExtent, tileResolution * gutter, tileExtent);
+    }
+
+    if (pixelRatio != 1) {
+      tileSize = scaleSize(tileSize, pixelRatio, this.tmpSize);
+    }
+
+    return this.getRequestUrl_(
+      tileCoord,
+      tileSize,
+      tileExtent,
+      pixelRatio,
+      projection,
+      this.params_
+    );
+  }
+}
+export default XYZ;
+=======
+class XYZ extends TileImage {
+  constructor(opt_options) {
+    const options = opt_options ? opt_options : {};
+    super({
+      attributions: options.attributions,
+      attributionsCollapsible: options.attributionsCollapsible,
+      cacheSize: options.cacheSize,
+      crossOrigin: options.crossOrigin,
+      interpolate: options.interpolate,
+      opaque: options.opaque,
+      projection: options.projection,
+      reprojectionErrorThreshold: options.reprojectionErrorThreshold,
+      tileClass: options.tileClass,
+      tileGrid: options.tileGrid,
+      tileLoadFunction: options.tileLoadFunction,
+      url: options.url,
+      urls: options.urls,
+      wrapX: options.wrapX !== undefined ? options.wrapX : true,
+      transition: options.transition,
+      zDirection: options.zDirection,
+    });
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.gutter_ = options.gutter !== undefined ? options.gutter : 0;
+  }
+  
+  tileUrlFunction(tileCoord, pixelRatio, projection) {
+    let tileGrid = this.getTileGrid();
+    if (!tileGrid) {
+      tileGrid = this.getTileGridForProjection(projection);
+    }
+
+    if (tileGrid.getResolutions().length <= tileCoord[0]) {
+      return undefined;
+    }
+
+    if (pixelRatio != 1 && (!this.hidpi_ || this.serverType_ === undefined)) {
+      pixelRatio = 1;
+    }
+
+    const tileResolution = tileGrid.getResolution(tileCoord[0]);
+    let tileExtent = tileGrid.getTileCoordExtent(tileCoord, this.tmpExtent_);
+    let tileSize = toSize(tileGrid.getTileSize(tileCoord[0]), this.tmpSize);
+
+    const gutter = this.gutter_;
+    if (gutter !== 0) {
+      tileSize = bufferSize(tileSize, gutter, this.tmpSize);
+      tileExtent = buffer(tileExtent, tileResolution * gutter, tileExtent);
+    }
+
+    if (pixelRatio != 1) {
+      tileSize = scaleSize(tileSize, pixelRatio, this.tmpSize);
+    }
+
+    return this.getRequestUrl_(
+      tileCoord,
+      tileSize,
+      tileExtent,
+      pixelRatio,
+      projection,
+      this.params_
+    );
+  }
+}
+export default XYZ;
+>>>>>>> REPLACE
+```
+
+```typescript
+### src/ol/source/DataTile.js
+<<<<<<< SEARCH
+class DataTile extends TileImage {
+  constructor(opt_options) {
+    const options = opt_options ? opt_options : {};
+    super({
+      attributions: options.attributions,
+      attributionsCollapsible: options.attributionsCollapsible,
+      cacheSize: options.cacheSize,
+      crossOrigin: options.crossOrigin,
+      interpolate: options.interpolate,
+      opaque: options.opaque,
+      projection: options.projection,
+      reprojectionErrorThreshold: options.reprojectionErrorThreshold,
+      tileClass: options.tileClass,
+      tileGrid: options.tileGrid,
+      tileLoadFunction: options.tileLoadFunction,
+      url: options.url,
+      urls: options.urls,
+      wrapX: options.wrapX !== undefined ? options.wrapX : true,
+      transition: options.transition,
+      zDirection: options.zDirection,
+    });
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.gutter_ = options.gutter !== undefined ? options.gutter : 0;
+  }
+  
+  tileUrlFunction(tileCoord, pixelRatio, projection) {
+    let tileGrid = this.getTileGrid();
+    if (!tileGrid) {
+      tileGrid = this.getTileGridForProjection(projection);
+    }
+
+    if (tileGrid.getResolutions().length <= tileCoord[0]) {
+      return undefined;
+    }
+
+    if (pixelRatio != 1 && (!this.hidpi_ || this.serverType_ === undefined)) {
+      pixelRatio = 1;
+    }
+
+    const tileResolution = tileGrid.getResolution(tileCoord[0]);
+    let tileExtent = tileGrid.getTileCoordExtent(tileCoord, this.tmpExtent_);
+    let tileSize = toSize(tileGrid.getTileSize(tileCoord[0]), this.tmpSize);
+
+    const gutter = this.gutter_;
+    if (gutter !== 0) {
+      tileSize = bufferSize(tileSize, gutter, this.tmpSize);
+      tileExtent = buffer(tileExtent, tileResolution * gutter, tileExtent);
+    }
+
+    if (pixelRatio != 1) {
+      tileSize = scaleSize(tileSize, pixelRatio, this.tmpSize);
+    }
+
+    return this.getRequestUrl_(
+      tileCoord,
+      tileSize,
+      tileExtent,
+      pixelRatio,
+      projection,
+      this.params_
+    );
+  }
+}
+export default DataTile;
+=======
+class DataTile extends TileImage {
+  constructor(opt_options) {
+    const options = opt_options ? opt_options : {};
+    super({
+      attributions: options.attributions,
+      attributionsCollapsible: options.attributionsCollapsible,
+      cacheSize: options.cacheSize,
+      crossOrigin: options.crossOrigin,
+      interpolate: options.interpolate,
+      opaque: options.opaque,
+      projection: options.projection,
+      reprojectionErrorThreshold: options.reprojectionErrorThreshold,
+      tileClass: options.tileClass,
+      tileGrid: options.tileGrid,
+      tileLoadFunction: options.tileLoadFunction,
+      url: options.url,
+      urls: options.urls,
+      wrapX: options.wrapX !== undefined ? options.wrapX : true,
+      transition: options.transition,
+      zDirection: options.zDirection,
+    });
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.gutter_ = options.gutter !== undefined ? options.gutter : 0;
+  }
+  
+  tileUrlFunction(tileCoord, pixelRatio, projection) {
+    let tileGrid = this.getTileGrid();
+    if (!tileGrid) {
+      tileGrid = this.getTileGridForProjection(projection);
+    }
+
+    if (tileGrid.getResolutions().length <= tileCoord[0]) {
+      return undefined;
+    }
+
+    if (pixelRatio != 1 && (!this.hidpi_ || this.serverType_ === undefined)) {
+      pixelRatio = 1;
+    }
+
+    const tileResolution = tileGrid.getResolution(tileCoord[0]);
+    let tileExtent = tileGrid.getTileCoordExtent(tileCoord, this.tmpExtent_);
+    let tileSize = toSize(tileGrid.getTileSize(tileCoord[0]), this.tmpSize);
+
+    const gutter = this.gutter_;
+    if (gutter !== 0) {
+      tileSize = bufferSize(tileSize, gutter, this.tmpSize);
+      tileExtent = buffer(tileExtent, tileResolution * gutter, tileExtent);
+    }
+
+    if (pixelRatio != 1) {
+      tileSize = scaleSize(tileSize, pixelRatio, this.tmpSize);
+    }
+
+    return this.getRequestUrl_(
+      tileCoord,
+      tileSize,
+      tileExtent,
+      pixelRatio,
+      projection,
+      this.params_
+    );
+  }
+}
+export default DataTile;
+>>>>>>> REPLACE
+```
+
+These changes extend the gutter functionality to XYZ and DataTile sources and ensure that the gutter is handled correctly in WebGL rendering.

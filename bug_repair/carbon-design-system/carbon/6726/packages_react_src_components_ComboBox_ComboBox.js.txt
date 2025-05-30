@@ -1,0 +1,110 @@
+The issue described is that the `onClick` function is not triggered when clicking the down arrow icon in the ComboBox component, which prevents the AJAX call from being made to populate the list. The problem seems to be related to how the `onClick` event is handled for the down arrow icon.
+
+To fix this, we need to ensure that the `onClick` event is properly propagated when the down arrow icon is clicked. We can achieve this by modifying the `getToggleButtonProps` method to include the `onClick` handler for the down arrow icon.
+
+Here's the proposed fix:
+
+```javascript
+###packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+              <ListBox.Field
+                {...getToggleButtonProps({
+                  disabled,
+                  onClick: this.onToggleClick(isOpen),
+                })}>
+                <input
+                  disabled={disabled}
+                  className={inputClasses}
+                  type="text"
+                  tabIndex="0"
+                  aria-autocomplete="list"
+                  ref={this.textInput}
+                  {...rest}
+                  {...getInputProps({
+                    disabled,
+                    placeholder,
+                    onKeyDown: (event) => {
+                      if (match(event, keys.Space)) {
+                        event.stopPropagation();
+                      }
+
+                      if (match(event, keys.Enter)) {
+                        toggleMenu();
+                      }
+                    },
+                  })}
+                />
+                {invalid && (
+                  <WarningFilled16
+                    className={`${prefix}--list-box__invalid-icon`}
+                  />
+                )}
+                {inputValue && (
+                  <ListBox.Selection
+                    clearSelection={clearSelection}
+                    translateWithId={translateWithId}
+                    disabled={disabled}
+                    onClearSelection={this.handleSelectionClear}
+                  />
+                )}
+                <ListBox.MenuIcon
+                  isOpen={isOpen}
+                  translateWithId={translateWithId}
+                />
+              </ListBox.Field>
+=======
+              <ListBox.Field
+                {...getToggleButtonProps({
+                  disabled,
+                  onClick: (event) => {
+                    this.onToggleClick(isOpen)(event);
+                    if (event.target.classList.contains(`${prefix}--list-box__menu-icon`)) {
+                      this.handleOnInputValueChange('');
+                      this.handleOnStateChange({ isOpen: !isOpen });
+                    }
+                  },
+                })}>
+                <input
+                  disabled={disabled}
+                  className={inputClasses}
+                  type="text"
+                  tabIndex="0"
+                  aria-autocomplete="list"
+                  ref={this.textInput}
+                  {...rest}
+                  {...getInputProps({
+                    disabled,
+                    placeholder,
+                    onKeyDown: (event) => {
+                      if (match(event, keys.Space)) {
+                        event.stopPropagation();
+                      }
+
+                      if (match(event, keys.Enter)) {
+                        toggleMenu();
+                      }
+                    },
+                  })}
+                />
+                {invalid && (
+                  <WarningFilled16
+                    className={`${prefix}--list-box__invalid-icon`}
+                  />
+                )}
+                {inputValue && (
+                  <ListBox.Selection
+                    clearSelection={clearSelection}
+                    translateWithId={translateWithId}
+                    disabled={disabled}
+                    onClearSelection={this.handleSelectionClear}
+                  />
+                )}
+                <ListBox.MenuIcon
+                  isOpen={isOpen}
+                  translateWithId={translateWithId}
+                />
+              </ListBox.Field>
+>>>>>>> REPLACE
+```
+
+This modification ensures that when the down arrow icon is clicked, the `onClick` event is properly handled, triggering the necessary functions to populate the list.

@@ -1,0 +1,33 @@
+The issue described is that Lighthouse is not correctly reporting the offline behavior of the start URL. The current behavior is that the desktop version of the page is loaded during the offline pass, and the `fromServiceWorker` and `fromDiskCache` flags are `false`, which should not be possible when offline. The expected behavior is that the start URL should load offline, and the page should display a message indicating that the user is offline.
+
+The bug seems to be in the `afterPass` method of the `Offline` class. The method is filtering network records to find the one that matches the start URL and was fetched via a service worker. However, it is not checking if the page was actually loaded offline. To fix this, we need to add a check to ensure that the page was loaded offline.
+
+Here is the *SEARCH/REPLACE* edit to fix the issue:
+
+```javascript
+### lighthouse-core/gather/gatherers/offline.js
+<<<<<<< SEARCH
+  afterPass(passContext, loadData) {
+    const navigationRecord = loadData.networkRecords.filter(record => {
+      return URL.equalWithExcludedFragments(record.url, passContext.url) &&
+        record.fetchedViaServiceWorker;
+    }).pop(); // Take the last record that matches.
+
+    return passContext.driver.goOnline(passContext)
+      .then(_ => navigationRecord ? navigationRecord.statusCode : -1);
+  }
+=======
+  afterPass(passContext, loadData) {
+    const navigationRecord = loadData.networkRecords.filter(record => {
+      return URL.equalWithExcludedFragments(record.url, passContext.url) &&
+        record.fetchedViaServiceWorker &&
+        record.fromServiceWorker;
+    }).pop(); // Take the last record that matches.
+
+    return passContext.driver.goOnline(passContext)
+      .then(_ => navigationRecord ? navigationRecord.statusCode : -1);
+  }
+>>>>>>> REPLACE
+```
+
+This edit adds a check to ensure that the page was loaded offline by checking the `fromServiceWorker` flag on the network record. If the flag is `true`, it means that the page was loaded from the service worker, which indicates that it was loaded offline. If the flag is `false`, it means that the page was not loaded offline, and the method will return `-1`. This should fix the issue and ensure that Lighthouse correctly reports the offline behavior of the start URL.

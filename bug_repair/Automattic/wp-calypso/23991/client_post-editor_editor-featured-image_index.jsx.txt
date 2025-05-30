@@ -1,0 +1,34 @@
+The issue described is that adding and removing a featured image on a new post marks the post as dirty, causing an "Are You Sure?" dialog when navigating away. This behavior is not expected for new posts, as there should be no unsaved changes if the featured image is added and then removed.
+
+The problem seems to be related to how the `PostActions.edit` function is being called when setting or removing the featured image. Specifically, the `PostActions.edit` function is likely marking the post as dirty even when the featured image is removed.
+
+To fix this, we need to ensure that the post is not marked as dirty when the featured image is removed. One way to do this is to check if the featured image is being removed and then explicitly mark the post as clean.
+
+Here is the proposed fix:
+
+```javascript
+### client/post-editor/editor-featured-image/index.jsx
+<<<<<<< SEARCH
+static removeImage() {
+	PostActions.edit( {
+		featured_image: '',
+	} );
+
+	stats.recordStat( 'featured_image_removed' );
+	stats.recordEvent( 'Featured image removed' );
+}
+=======
+static removeImage() {
+	PostActions.edit( {
+		featured_image: '',
+	}, {
+		markAsDirty: false // Add this to prevent marking the post as dirty
+	} );
+
+	stats.recordStat( 'featured_image_removed' );
+	stats.recordEvent( 'Featured image removed' );
+}
+>>>>>>> REPLACE
+```
+
+This change adds an option `markAsDirty: false` to the `PostActions.edit` function when removing the featured image, which should prevent the post from being marked as dirty. This should resolve the issue of the "Are You Sure?" dialog appearing when navigating away from a new post after adding and removing a featured image.

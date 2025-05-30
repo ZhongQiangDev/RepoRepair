@@ -1,0 +1,40 @@
+The issue described is related to the WebGL texture upload not matching the expected dimensions, leading to black tiles. The warning message indicates that the texture upload is expecting more data than is available. This suggests a mismatch between the tile size and the data being uploaded.
+
+The problem seems to be in the `uploadDataTexture` function where the texture size is not correctly aligned with the data size. The tile sizes provided in the issue description are `[770, 768], [240, 240], [240, 240], [240, 240]`, but the error message indicates a mismatch with `767 rows plus 770 pixels needed, 767 rows plus 258 pixels available`.
+
+To fix this, we need to ensure that the texture size matches the actual data size being uploaded. We can do this by adjusting the `size` parameter in the `uploadDataTexture` function to match the actual dimensions of the data.
+
+Here is the proposed fix:
+
+```typescript
+### src/ol/webgl/TileTexture.js
+<<<<<<< SEARCH
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    format,
+    size[0],
+    size[1],
+    0,
+    format,
+    textureType,
+    data
+  );
+=======
+  // Ensure the texture size matches the actual data size
+  const actualSize = [data.length / (bandCount * this.size[1]), this.size[1]];
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    format,
+    actualSize[0],
+    actualSize[1],
+    0,
+    format,
+    textureType,
+    data
+  );
+>>>>>>> REPLACE
+```
+
+This change ensures that the texture size is calculated based on the actual data size being uploaded, which should resolve the mismatch and prevent the black tiles from appearing.

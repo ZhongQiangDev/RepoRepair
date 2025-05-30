@@ -1,0 +1,54 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that when using OpenLayers (OL) version 6.3.2-dev.1589843798021 with proj4js version 2.6.1, the WMTS layer (EPSG:2180) appears rotated when the view is set to Mercator projection (EPSG:3857). Similarly, when the view is set to EPSG:2180, the OSM layer (Mercator) appears rotated. This issue does not occur when using proj4js version 2.6.0.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of the issue is likely related to changes in proj4js version 2.6.1, specifically the "Fixed interpretation of axis order." This change may have altered how proj4js handles the axis order for certain projections, leading to incorrect transformations between EPSG:3857 and EPSG:2180. The rotation observed in the images suggests that the x and y coordinates are being swapped or incorrectly interpreted during the transformation process.
+
+### 3. Examine Each File One by One
+
+#### --- src/ol/proj/epsg3857.js ---
+```
+src/ol/proj/epsg3857.js
+function: fromEPSG4326
+function: toEPSG4326
+```
+The `fromEPSG4326` and `toEPSG4326` functions handle transformations between EPSG:4326 and EPSG:3857. These functions may need to be reviewed to ensure they correctly handle the axis order changes introduced in proj4js 2.6.1.
+
+#### --- src/ol/proj/epsg4326.js ---
+```
+src/ol/proj/epsg4326.js
+class: EPSG4326Projection
+```
+The `EPSG4326Projection` class defines properties for the WGS84 geographic coordinate system. While this class itself may not directly cause the issue, it is part of the projection handling system and should be reviewed to ensure consistency with the changes in proj4js.
+
+#### --- src/ol/proj/proj4.js ---
+```
+src/ol/proj/proj4.js
+function: fromEPSGCode
+function: register
+```
+The `fromEPSGCode` function retrieves projection definitions based on EPSG codes, and the `register` function synchronizes projection definitions between proj4 and OpenLayers. These functions are crucial for ensuring that the correct projection definitions are used, and they may need to be adjusted to handle the axis order changes in proj4js 2.6.1.
+
+#### --- src/ol/proj/Projection.js ---
+```
+src/ol/proj/Projection.js
+class: Projection
+```
+The `Projection` class encapsulates information about map projections. While this class may not directly cause the issue, it is fundamental to the projection handling system and should be reviewed to ensure it correctly handles the changes in proj4js.
+
+#### --- src/ol/proj/transforms.js ---
+```
+src/ol/proj/transforms.js
+function: add
+function: get
+```
+The `add` and `get` functions manage coordinate transformation functions between different projections. These functions may need to be reviewed to ensure they correctly handle the axis order changes introduced in proj4js 2.6.1.
+
+### Summary of Relevant Functions/Classes
+- `src/ol/proj/epsg3857.js`: `fromEPSG4326`, `toEPSG4326`
+- `src/ol/proj/epsg4326.js`: `EPSG4326Projection`
+- `src/ol/proj/proj4.js`: `fromEPSGCode`, `register`
+- `src/ol/proj/Projection.js`: `Projection`
+- `src/ol/proj/transforms.js`: `add`, `get`

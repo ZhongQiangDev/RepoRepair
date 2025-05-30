@@ -1,0 +1,26 @@
+The issue is that the audit is reporting a false positive when the `short_name` is missing from the manifest. The audit should not report a failure if the `short_name` is not present, as it is not a required field.
+
+To fix this, we need to ensure that the audit only checks the length of `short_name` if it is present. If it is not present, the audit should pass.
+
+Here is the *SEARCH/REPLACE* edit to fix the issue:
+
+```javascript
+###lighthouse-core/audits/manifest-short-name-length.js
+<<<<<<< SEARCH
+      const manifestValue = manifest.short_name.value || manifest.name.value || '';
+      isShortNameShortEnough = manifestValue && manifestValue.length <= suggestedLength;
+
+      if (!isShortNameShortEnough) {
+        debugString = `${suggestedLength} chars is the suggested maximum homescreen label length`;
+        debugString += ` (Found: ${manifestValue.length} chars).`;
+      }
+=======
+      const manifestValue = manifest.short_name.value;
+      isShortNameShortEnough = !manifestValue || (manifestValue && manifestValue.length <= suggestedLength);
+
+      if (!isShortNameShortEnough && manifestValue) {
+        debugString = `${suggestedLength} chars is the suggested maximum homescreen label length`;
+        debugString += ` (Found: ${manifestValue.length} chars).`;
+      }
+>>>>>>> REPLACE
+```

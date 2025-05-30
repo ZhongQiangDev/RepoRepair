@@ -1,0 +1,56 @@
+The issue described is related to the axis order interpretation in proj4js version 2.6.1, which affects the proper rendering of layers in OpenLayers when using certain projections. The problem seems to be related to how the coordinate transformations are handled between different projections, particularly between Mercator and EPSG:2180.
+
+To address this, we need to ensure that the coordinate transformations are correctly applied, taking into account the axis order. This can be achieved by modifying the `add` function in the `src/ol/proj/transforms.js` file to include a check for the axis order and adjust the transformation function accordingly.
+
+Here is the proposed *SEARCH/REPLACE* edit:
+
+```javascript
+### src/ol/proj/transforms.js
+<<<<<<< SEARCH
+/**
+ * Registers a conversion function to convert coordinates from the source
+ * projection to the destination projection.
+ *
+ * @param {import("./Projection.js").default} source Source.
+ * @param {import("./Projection.js").default} destination Destination.
+ * @param {import("../proj.js").TransformFunction} transformFn Transform.
+ */
+export function add(source, destination, transformFn) {
+  const sourceCode = source.getCode();
+  const destinationCode = destination.getCode();
+  if (!(sourceCode in transforms)) {
+    transforms[sourceCode] = {};
+  }
+  transforms[sourceCode][destinationCode] = transformFn;
+}
+=======
+/**
+ * Registers a conversion function to convert coordinates from the source
+ * projection to the destination projection, taking into account the axis order.
+ *
+ * @param {import("./Projection.js").default} source Source.
+ * @param {import("./Projection.js").default} destination Destination.
+ * @param {import("../proj.js").TransformFunction} transformFn Transform.
+ */
+export function add(source, destination, transformFn) {
+  const sourceCode = source.getCode();
+  const destinationCode = destination.getCode();
+  if (!(sourceCode in transforms)) {
+    transforms[sourceCode] = {};
+  }
+
+  // Check if the axis order needs to be adjusted
+  if (source.getAxisOrientation() !== destination.getAxisOrientation()) {
+    const adjustedTransformFn = (coordinates) => {
+      const adjustedCoordinates = [coordinates[1], coordinates[0]];
+      return transformFn(adjustedCoordinates);
+    };
+    transforms[sourceCode][destinationCode] = adjustedTransformFn;
+  } else {
+    transforms[sourceCode][destinationCode] = transformFn;
+  }
+}
+>>>>>>> REPLACE
+```
+
+This edit adds a check for the axis orientation of the source and destination projections. If they differ, it adjusts the transformation function to swap the coordinates before applying the transformation. This should help in correctly rendering the layers when using proj4js version 2.6.1 and above.

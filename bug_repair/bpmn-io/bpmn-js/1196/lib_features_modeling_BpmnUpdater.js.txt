@@ -1,0 +1,63 @@
+The issue described is that when a Boundary Event is copied along with the object it's attached to, the copied Boundary Event does not remain attached to the copied object. The expected behavior is for the copied Boundary Event to be automatically attached to the copied task.
+
+To address this, we need to ensure that the `attachedToRef` property of the Boundary Event is correctly set when the elements are copied. The `updateAttachment` function in `BpmnUpdater.js` is responsible for updating the `attachedToRef` property, but it seems that this function is not being called during the copy operation.
+
+We need to ensure that the `updateAttachment` function is called when the elements are copied. This can be done by adding a call to `updateAttachment` in the appropriate place in the code.
+
+Here is the proposed fix:
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+BpmnUpdater.prototype.updateAttachment = function(context) {
+
+  var shape = context.shape,
+      businessObject = shape.businessObject,
+      host = shape.host;
+
+  businessObject.attachedToRef = host && host.businessObject;
+};
+=======
+BpmnUpdater.prototype.updateAttachment = function(context) {
+
+  var shape = context.shape,
+      businessObject = shape.businessObject,
+      host = shape.host;
+
+  businessObject.attachedToRef = host && host.businessObject;
+};
+
+// Add a method to handle the copy operation
+BpmnUpdater.prototype.handleCopy = function(context) {
+  var copiedShapes = context.copiedShapes;
+
+  copiedShapes.forEach(function(shape) {
+    if (shape.businessObject && shape.host) {
+      this.updateAttachment({ shape: shape });
+    }
+  }, this);
+};
+>>>>>>> REPLACE
+```
+
+Additionally, we need to ensure that the `handleCopy` method is called during the copy operation. This can be done by adding a call to `handleCopy` in the appropriate place in the code. For example, if the copy operation is handled by a command, we can add a call to `handleCopy` in the `execute` method of that command.
+
+Here is an example of how this can be done:
+
+```javascript
+### lib/features/modeling/CopyCommand.js
+<<<<<<< SEARCH
+execute: function(context) {
+  // existing code for copying elements
+},
+=======
+execute: function(context) {
+  // existing code for copying elements
+
+  // Call handleCopy to update the attachedToRef property
+  this.bpmnUpdater.handleCopy(context);
+},
+>>>>>>> REPLACE
+```
+
+Note: The exact location where the `handleCopy` method should be called depends on the specific implementation of the copy operation in the codebase. The above example assumes that the copy operation is handled by a command called `CopyCommand`. If the copy operation is handled differently, the call to `handleCopy` should be added in the appropriate place.

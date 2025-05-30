@@ -1,0 +1,50 @@
+The issue described is related to the pessimistic default GZIP compression ratio used by Lighthouse, which leads to incorrect estimations of potential savings for CSS resources. The current implementation uses a fixed compression ratio of 0.5, which may not accurately reflect the actual compression ratio for specific resources.
+
+To address this, we need to adjust the `estimateTransferSize` method to use a more accurate compression ratio based on the actual transfer size and resource size of the network record.
+
+Here's the proposed fix:
+
+```javascript
+###lighthouse-core/audits/byte-efficiency/byte-efficiency-audit.js
+<<<<<<< SEARCH
+  static estimateTransferSize(networkRecord, totalBytes, resourceType, compressionRatio = 0.5) {
+    if (!networkRecord) {
+      // We don't know how many bytes this asset used on the network, but we can guess it was
+      // roughly the size of the content gzipped.
+      // See https://discuss.httparchive.org/t/file-size-and-compression-savings/145 for multipliers
+      return Math.round(totalBytes * compressionRatio);
+    } else if (networkRecord.resourceType === resourceType) {
+      // This was a regular standalone asset, just use the transfer size.
+      return networkRecord.transferSize || 0;
+    } else {
+      // This was an asset that was inlined in a different resource type (e.g. HTML document).
+      // Use the compression ratio of the resource to estimate the total transferred bytes.
+      const transferSize = networkRecord.transferSize || 0;
+      const resourceSize = networkRecord.resourceSize;
+      const compressionRatio = resourceSize !== undefined ? (transferSize / resourceSize) : 1;
+      return Math.round(totalBytes * compressionRatio);
+    }
+  }
+=======
+  static estimateTransferSize(networkRecord, totalBytes, resourceType) {
+    if (!networkRecord) {
+      // We don't know how many bytes this asset used on the network, but we can guess it was
+      // roughly the size of the content gzipped.
+      // See https://discuss.httparchive.org/t/file-size-and-compression-savings/145 for multipliers
+      return Math.round(totalBytes * 0.5); // Default compression ratio if no network record is available
+    } else if (networkRecord.resourceType === resourceType) {
+      // This was a regular standalone asset, just use the transfer size.
+      return networkRecord.transferSize || 0;
+    } else {
+      // This was an asset that was inlined in a different resource type (e.g. HTML document).
+      // Use the actual compression ratio from the network record to estimate the total transferred bytes.
+      const transferSize = networkRecord.transferSize || 0;
+      const resourceSize = networkRecord.resourceSize;
+      const compressionRatio = resourceSize !== undefined ? (transferSize / resourceSize) : 1;
+      return Math.round(totalBytes * compressionRatio);
+    }
+  }
+>>>>>>> REPLACE
+```
+
+This change removes the default compression ratio parameter and uses the actual compression ratio from the network record when available. This should provide a more accurate estimation of the potential savings for CSS resources.

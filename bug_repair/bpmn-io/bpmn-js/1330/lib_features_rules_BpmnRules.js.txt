@@ -1,0 +1,64 @@
+To address the issue where a message flow should not be connected to a boundary event, we need to modify the `canConnectMessageFlow` function to ensure that boundary events are not considered valid targets or sources for message flows. The current implementation of `isMessageFlowTarget` and `isMessageFlowSource` does not explicitly exclude boundary events.
+
+Here's the proposed fix:
+
+```javascript
+### lib/features/rules/BpmnRules.js
+<<<<<<< SEARCH
+function isMessageFlowTarget(element) {
+  return (
+    is(element, 'bpmn:InteractionNode') &&
+    !isForCompensation(element) && (
+      !is(element, 'bpmn:Event') || (
+        is(element, 'bpmn:CatchEvent') &&
+        hasEventDefinitionOrNone(element, 'bpmn:MessageEventDefinition')
+      )
+    )
+  );
+}
+=======
+function isMessageFlowTarget(element) {
+  return (
+    is(element, 'bpmn:InteractionNode') &&
+    !isForCompensation(element) &&
+    !isBoundaryEvent(element) && (
+      !is(element, 'bpmn:Event') || (
+        is(element, 'bpmn:CatchEvent') &&
+        hasEventDefinitionOrNone(element, 'bpmn:MessageEventDefinition')
+      )
+    )
+  );
+}
+
+function isBoundaryEvent(element) {
+  return is(element, 'bpmn:BoundaryEvent');
+}
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+function isMessageFlowSource(element) {
+  return (
+    is(element, 'bpmn:InteractionNode') && (
+      !is(element, 'bpmn:Event') || (
+        is(element, 'bpmn:ThrowEvent') &&
+        hasEventDefinitionOrNone(element, 'bpmn:MessageEventDefinition')
+      )
+    )
+  );
+}
+=======
+function isMessageFlowSource(element) {
+  return (
+    is(element, 'bpmn:InteractionNode') &&
+    !isBoundaryEvent(element) && (
+      !is(element, 'bpmn:Event') || (
+        is(element, 'bpmn:ThrowEvent') &&
+        hasEventDefinitionOrNone(element, 'bpmn:MessageEventDefinition')
+      )
+    )
+  );
+}
+>>>>>>> REPLACE
+```
+
+This modification ensures that boundary events are not considered valid targets or sources for message flows, thus preventing the connection of message flows to boundary events.

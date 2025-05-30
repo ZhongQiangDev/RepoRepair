@@ -1,0 +1,26 @@
+The issue is that single-package package names are not being highlighted correctly. The current regex for the 'namespace' pattern only matches package names with at least one dot (.), which means single-package names like "baz" are not being highlighted.
+
+To fix this, we need to modify the 'namespace' pattern to also match single-package names.
+
+```javascript
+###components/prism-java.js
+<<<<<<< SEARCH
+		'namespace': {
+			pattern: /(\b(?:exports|import(?:\s+static)?|module|open|opens|package|provides|requires|to|transitive|uses|with)\s+)[a-z]\w*(?:\.[a-z]\w*)+/,
+			lookbehind: true,
+			inside: {
+				'punctuation': /\./,
+			}
+		},
+=======
+		'namespace': {
+			pattern: RegExp(String.raw`(\b(?:exports|import(?:\s+static)?|module|open|opens|package|provides|requires|to|transitive|uses|with)\s+)(?!${keywords.source}\b)[a-z]\w*(?:\.[a-z]\w*)*\.?`);
+			lookbehind: true,
+			inside: {
+				'punctuation': /\./,
+			}
+		},
+>>>>>>> REPLACE
+```
+
+The change is in the 'namespace' pattern. The original pattern was `"[a-z]\w*(?:\.[a-z]\w*)+"`, which matches a package name with at least one dot. The modified pattern is `"[a-z]\w*(?:\.[a-z]\w*)*+"`, which matches a package name with zero or more dots. This will now correctly highlight single-package names like "baz".

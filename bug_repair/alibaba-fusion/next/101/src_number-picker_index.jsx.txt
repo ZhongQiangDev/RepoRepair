@@ -1,0 +1,75 @@
+The issue described is related to JavaScript's floating-point arithmetic, which can lead to precision errors when adding or subtracting numbers. To fix this, we need to ensure that the `NumberPicker` component correctly handles floating-point arithmetic by rounding the result to the specified precision.
+
+Here's the fix using the `toFixed` method to round the result to the specified precision:
+
+```javascript
+### src/number-picker/index.jsx
+<<<<<<< SEARCH
+    upStep(val) {
+        const {step, min} = this.props;
+        const precisionFactor = this.getPrecisionFactor();
+        let result;
+        if (typeof val === 'number') {
+            result = (precisionFactor * val + precisionFactor * step) / precisionFactor;
+        } else {
+            result = min === -Infinity ? step : min;
+        }
+        return result;
+    }
+=======
+    upStep(val) {
+        const {step, min, precision} = this.props;
+        const precisionFactor = this.getPrecisionFactor();
+        let result;
+        if (typeof val === 'number') {
+            result = (precisionFactor * val + precisionFactor * step) / precisionFactor;
+            if (precision > 0) {
+                result = Number(result.toFixed(precision));
+            }
+        } else {
+            result = min === -Infinity ? step : min;
+        }
+        return result;
+    }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/number-picker/index.jsx
+<<<<<<< SEARCH
+    downStep(val) {
+        const {step, min} = this.props;
+        const precisionFactor = this.getPrecisionFactor();
+        let result;
+        if (typeof val === 'number') {
+            result = (precisionFactor * val - precisionFactor * step) / precisionFactor;
+
+            // in chrome browser: 0.3 - 0.2 = 0.09999999999, we should creact to 0.1
+            const precision = this.getPrecision();
+            if (precision > 0) {
+                result = Number(Number(result).toFixed(precision));
+            }
+        } else {
+            result = min === -Infinity ? -step : min;
+        }
+        return result;
+    }
+=======
+    downStep(val) {
+        const {step, min, precision} = this.props;
+        const precisionFactor = this.getPrecisionFactor();
+        let result;
+        if (typeof val === 'number') {
+            result = (precisionFactor * val - precisionFactor * step) / precisionFactor;
+            if (precision > 0) {
+                result = Number(result.toFixed(precision));
+            }
+        } else {
+            result = min === -Infinity ? -step : min;
+        }
+        return result;
+    }
+>>>>>>> REPLACE
+```
+
+These changes ensure that the `upStep` and `downStep` methods round the result to the specified precision, preventing the display of unexpected floating-point errors.

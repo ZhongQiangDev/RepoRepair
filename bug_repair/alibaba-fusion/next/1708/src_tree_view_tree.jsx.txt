@@ -1,0 +1,78 @@
+The issue described is related to the warning about encountering two children with the same key, which causes the input labels to appear duplicated. This is likely due to the way keys are being generated or handled within the `Tree` component, especially when dealing with disabled items and default selected keys.
+
+To address this, we need to ensure that each node has a unique key, even when it is disabled or part of the default selected keys. We can modify the `getCheckedKeys` method to handle this scenario properly.
+
+Here's the proposed fix:
+
+```javascript
+### src/tree/view/tree.jsx
+<<<<<<< SEARCH
+    /* istanbul ignore next */
+    getCheckedKeys(props, willReceiveProps) {
+        let checkedKeys = props.defaultCheckedKeys;
+
+        if ('checkedKeys' in props) {
+            checkedKeys = props.checkedKeys;
+        } else if (willReceiveProps) {
+            checkedKeys = [];
+        }
+
+        const { checkStrictly } = this.props;
+        if (checkStrictly) {
+            if (isPlainObject(checkedKeys)) {
+                const { checked, indeterminate } = checkedKeys;
+                checkedKeys = normalizeToArray(checked);
+                this.indeterminateKeys = normalizeToArray(indeterminate);
+            } else {
+                checkedKeys = normalizeToArray(checkedKeys);
+            }
+
+            checkedKeys = checkedKeys.filter(key => !!this._k2n[key]);
+        } else {
+            checkedKeys = getAllCheckedKeys(checkedKeys, this._k2n, this._p2n);
+            checkedKeys = checkedKeys.filter(key => !!this._k2n[key]);
+
+            this.indeterminateKeys = this.getIndeterminateKeys(checkedKeys);
+        }
+
+        return checkedKeys;
+    }
+=======
+    /* istanbul ignore next */
+    getCheckedKeys(props, willReceiveProps) {
+        let checkedKeys = props.defaultCheckedKeys;
+
+        if ('checkedKeys' in props) {
+            checkedKeys = props.checkedKeys;
+        } else if (willReceiveProps) {
+            checkedKeys = [];
+        }
+
+        const { checkStrictly } = this.props;
+        if (checkStrictly) {
+            if (isPlainObject(checkedKeys)) {
+                const { checked, indeterminate } = checkedKeys;
+                checkedKeys = normalizeToArray(checked);
+                this.indeterminateKeys = normalizeToArray(indeterminate);
+            } else {
+                checkedKeys = normalizeToArray(checkedKeys);
+            }
+
+            checkedKeys = checkedKeys.filter(key => !!this._k2n[key]);
+        } else {
+            checkedKeys = getAllCheckedKeys(checkedKeys, this._k2n, this._p2n);
+            checkedKeys = checkedKeys.filter(key => !!this._k2n[key]);
+
+            // Ensure unique keys by filtering out duplicates
+            const uniqueCheckedKeys = Array.from(new Set(checkedKeys));
+            checkedKeys = uniqueCheckedKeys;
+
+            this.indeterminateKeys = this.getIndeterminateKeys(checkedKeys);
+        }
+
+        return checkedKeys;
+    }
+>>>>>>> REPLACE
+```
+
+This change ensures that the `checkedKeys` array contains only unique keys by converting it to a `Set` and then back to an array. This should resolve the issue of encountering two children with the same key and prevent the duplication of input labels.

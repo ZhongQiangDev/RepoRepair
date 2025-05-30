@@ -1,0 +1,25 @@
+The issue described is that the append shortcut `a` does not work on elements where append actions are allowed in principle but no append actions are given. The expected behavior is that `a` should always be an available action, defaulting to create if append is not applicable.
+
+The problem seems to be in the `getPopupMenuEntries` function where it returns an empty array `[]` when there are no append actions available. Instead, it should return a default create action when append actions are not available.
+
+Here is the proposed fix:
+
+```javascript
+###lib/features/create-append-anything/AppendMenuProvider.js
+<<<<<<< SEARCH
+  if (!rules.allowed('shape.append', { element: element })) {
+    return [];
+  }
+=======
+  if (!rules.allowed('shape.append', { element: element })) {
+    return {
+      'create-default': {
+        label: translate('Create'),
+        action: this._createEntryAction(element, null)
+      }
+    };
+  }
+>>>>>>> REPLACE
+```
+
+This change ensures that when no append actions are available, a default create action is returned, allowing the `a` shortcut to work as expected.

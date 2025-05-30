@@ -1,0 +1,119 @@
+The issue described is that the `AdaptiveLabelPositioningBehavior` is not applied after pasting elements onto flows. This suggests that the copied elements are not being properly updated to reflect the adaptive label positioning behavior after being pasted.
+
+The provided code is responsible for copying properties from one element to another. However, it does not seem to handle the specific behavior of adaptive label positioning. To fix this, we need to ensure that the adaptive label positioning behavior is applied after the elements are pasted.
+
+Here's a potential fix:
+
+```javascript
+### lib/features/copy-paste/ModdleCopy.js
+<<<<<<< SEARCH
+ModdleCopy.prototype.copyElement = function(sourceElement, targetElement, propertyNames) {
+  var self = this;
+
+  if (propertyNames && !isArray(propertyNames)) {
+    propertyNames = [ propertyNames ];
+  }
+
+  propertyNames = propertyNames || getPropertyNames(sourceElement.$descriptor);
+
+  var canCopyProperties = this._eventBus.fire('moddleCopy.canCopyProperties', {
+    propertyNames: propertyNames,
+    sourceElement: sourceElement,
+    targetElement: targetElement
+  });
+
+  if (canCopyProperties === false) {
+    return targetElement;
+  }
+
+  if (isArray(canCopyProperties)) {
+    propertyNames = canCopyProperties;
+  }
+
+  // copy properties
+  forEach(propertyNames, function(propertyName) {
+    var sourceProperty;
+
+    if (has(sourceElement, propertyName)) {
+      sourceProperty = sourceElement.get(propertyName);
+    }
+
+    var copiedProperty = self.copyProperty(sourceProperty, targetElement, propertyName);
+
+    var canSetProperty = self._eventBus.fire('moddleCopy.canSetCopiedProperty', {
+      parent: parent,
+      property: copiedProperty,
+      propertyName: propertyName
+    });
+
+    if (canSetProperty === false) {
+      return;
+    }
+
+    if (isDefined(copiedProperty)) {
+      targetElement.set(propertyName, copiedProperty);
+    }
+  });
+
+  return targetElement;
+};
+=======
+ModdleCopy.prototype.copyElement = function(sourceElement, targetElement, propertyNames) {
+  var self = this;
+
+  if (propertyNames && !isArray(propertyNames)) {
+    propertyNames = [ propertyNames ];
+  }
+
+  propertyNames = propertyNames || getPropertyNames(sourceElement.$descriptor);
+
+  var canCopyProperties = this._eventBus.fire('moddleCopy.canCopyProperties', {
+    propertyNames: propertyNames,
+    sourceElement: sourceElement,
+    targetElement: targetElement
+  });
+
+  if (canCopyProperties === false) {
+    return targetElement;
+  }
+
+  if (isArray(canCopyProperties)) {
+    propertyNames = canCopyProperties;
+  }
+
+  // copy properties
+  forEach(propertyNames, function(propertyName) {
+    var sourceProperty;
+
+    if (has(sourceElement, propertyName)) {
+      sourceProperty = sourceElement.get(propertyName);
+    }
+
+    var copiedProperty = self.copyProperty(sourceProperty, targetElement, propertyName);
+
+    var canSetProperty = self._eventBus.fire('moddleCopy.canSetCopiedProperty', {
+      parent: parent,
+      property: copiedProperty,
+      propertyName: propertyName
+    });
+
+    if (canSetProperty === false) {
+      return;
+    }
+
+    if (isDefined(copiedProperty)) {
+      targetElement.set(propertyName, copiedProperty);
+    }
+  });
+
+  // Apply AdaptiveLabelPositioningBehavior after pasting
+  self._eventBus.fire('adaptiveLabelPositioning.apply', {
+    element: targetElement
+  });
+
+  return targetElement;
+};
+>>>>>>> REPLACE
+```
+
+This fix introduces a call to the `adaptiveLabelPositioning.apply` event after the properties have been copied. This ensures that the adaptive label positioning behavior is applied to the newly pasted element.

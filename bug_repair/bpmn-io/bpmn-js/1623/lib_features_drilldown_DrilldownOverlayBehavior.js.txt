@@ -1,0 +1,134 @@
+The issue described is that the deep linking overlay for the subprocess is lost when navigating between multiple processes and subprocesses. The problem seems to be related to the overlay not being properly maintained or updated when the subprocess is toggled or moved.
+
+To address this, we need to ensure that the overlay is correctly added and updated when the subprocess is toggled or moved. We can do this by modifying the `DrilldownOverlayBehavior` class to properly handle these events.
+
+Here is the proposed fix:
+
+```javascript
+### lib/features/drilldown/DrilldownOverlayBehavior.js
+<<<<<<< SEARCH
+this.executed('shape.toggleCollapse', LOW_PRIORITY, function(context) {
+    var shape = context.shape;
+
+    // Add overlay to the collapsed shape
+    if (self.canDrillDown(shape)) {
+      self.addOverlay(shape);
+    } else {
+      self.removeOverlay(shape);
+    }
+  }, true);
+=======
+this.executed('shape.toggleCollapse', LOW_PRIORITY, function(context) {
+    var shape = context.shape;
+
+    // Add overlay to the collapsed shape
+    if (self.canDrillDown(shape)) {
+      self.addOverlay(shape);
+    } else {
+      self.removeOverlay(shape);
+    }
+
+    // Ensure the overlay is updated after toggling
+    self.updateDrilldownOverlay(shape);
+  }, true);
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+this.reverted('shape.toggleCollapse', LOW_PRIORITY, function(context) {
+    var shape = context.shape;
+
+    // Add overlay to the collapsed shape
+    if (self.canDrillDown(shape)) {
+      self.addOverlay(shape);
+    } else {
+      self.removeOverlay(shape);
+    }
+  }, true);
+=======
+this.reverted('shape.toggleCollapse', LOW_PRIORITY, function(context) {
+    var shape = context.shape;
+
+    // Add overlay to the collapsed shape
+    if (self.canDrillDown(shape)) {
+      self.addOverlay(shape);
+    } else {
+      self.removeOverlay(shape);
+    }
+
+    // Ensure the overlay is updated after reverting
+    self.updateDrilldownOverlay(shape);
+  }, true);
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+this.executed(['shape.create', 'shape.move', 'shape.delete'], LOW_PRIORITY,
+    function(context) {
+      var oldParent = context.oldParent,
+          newParent = context.newParent || context.parent,
+          shape = context.shape;
+
+      // Add overlay to the collapsed shape
+      if (self.canDrillDown(shape)) {
+        self.addOverlay(shape);
+      }
+
+      self.updateDrilldownOverlay(oldParent);
+      self.updateDrilldownOverlay(newParent);
+      self.updateDrilldownOverlay(shape);
+    }, true);
+=======
+this.executed(['shape.create', 'shape.move', 'shape.delete'], LOW_PRIORITY,
+    function(context) {
+      var oldParent = context.oldParent,
+          newParent = context.newParent || context.parent,
+          shape = context.shape;
+
+      // Add overlay to the collapsed shape
+      if (self.canDrillDown(shape)) {
+        self.addOverlay(shape);
+      }
+
+      // Ensure the overlay is updated after creating, moving, or deleting
+      self.updateDrilldownOverlay(oldParent);
+      self.updateDrilldownOverlay(newParent);
+      self.updateDrilldownOverlay(shape);
+    }, true);
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+this.reverted(['shape.create', 'shape.move', 'shape.delete'], LOW_PRIORITY,
+    function(context) {
+      var oldParent = context.oldParent,
+          newParent = context.newParent || context.parent,
+          shape = context.shape;
+
+      // Add overlay to the collapsed shape
+      if (self.canDrillDown(shape)) {
+        self.addOverlay(shape);
+      }
+
+      self.updateDrilldownOverlay(oldParent);
+      self.updateDrilldownOverlay(newParent);
+      self.updateDrilldownOverlay(shape);
+    }, true);
+=======
+this.reverted(['shape.create', 'shape.move', 'shape.delete'], LOW_PRIORITY,
+    function(context) {
+      var oldParent = context.oldParent,
+          newParent = context.newParent || context.parent,
+          shape = context.shape;
+
+      // Add overlay to the collapsed shape
+      if (self.canDrillDown(shape)) {
+        self.addOverlay(shape);
+      }
+
+      // Ensure the overlay is updated after reverting creating, moving, or deleting
+      self.updateDrilldownOverlay(oldParent);
+      self.updateDrilldownOverlay(newParent);
+      self.updateDrilldownOverlay(shape);
+    }, true);
+>>>>>>> REPLACE
+```
+
+These changes ensure that the overlay is properly updated after toggling, moving, or deleting the subprocess, which should resolve the issue of the overlay being lost.

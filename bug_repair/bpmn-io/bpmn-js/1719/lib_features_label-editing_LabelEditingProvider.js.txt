@@ -1,0 +1,129 @@
+The issue described is related to the visibility of labels inside a collapsed sub-process. The labels should be hidden when the sub-process is collapsed. The code provided does not directly handle the visibility of labels when a sub-process is collapsed. To address this, we need to ensure that the labels inside a sub-process are hidden when the sub-process is collapsed.
+
+Here is a potential fix:
+
+```javascript
+###lib/features/label-editing/LabelEditingProvider.js
+<<<<<<< SEARCH
+LabelEditingProvider.prototype.activate = function(element) {
+
+  // text
+  var text = getLabel(element);
+
+  if (text === undefined) {
+    return;
+  }
+
+  var context = {
+    text: text
+  };
+
+  // bounds
+  var bounds = this.getEditingBBox(element);
+
+  assign(context, bounds);
+
+  var options = {};
+
+  // tasks
+  if (
+    isAny(element, [
+      'bpmn:Task',
+      'bpmn:Participant',
+      'bpmn:Lane',
+      'bpmn:CallActivity'
+    ]) ||
+    isCollapsedSubProcess(element)
+  ) {
+    assign(options, {
+      centerVertically: true
+    });
+  }
+
+  // external labels
+  if (isLabelExternal(element)) {
+    assign(options, {
+      autoResize: true
+    });
+  }
+
+  // text annotations
+  if (is(element, 'bpmn:TextAnnotation')) {
+    assign(options, {
+      resizable: true,
+      autoResize: true
+    });
+  }
+
+  assign(context, {
+    options: options
+  });
+
+  return context;
+};
+=======
+LabelEditingProvider.prototype.activate = function(element) {
+
+  // text
+  var text = getLabel(element);
+
+  if (text === undefined) {
+    return;
+  }
+
+  // Check if the element is inside a collapsed sub-process
+  if (isCollapsedSubProcess(element.parent)) {
+    return; // Do not activate label editing for elements inside a collapsed sub-process
+  }
+
+  var context = {
+    text: text
+  };
+
+  // bounds
+  var bounds = this.getEditingBBox(element);
+
+  assign(context, bounds);
+
+  var options = {};
+
+  // tasks
+  if (
+    isAny(element, [
+      'bpmn:Task',
+      'bpmn:Participant',
+      'bpmn:Lane',
+      'bpmn:CallActivity'
+    ]) ||
+    isCollapsedSubProcess(element)
+  ) {
+    assign(options, {
+      centerVertically: true
+    });
+  }
+
+  // external labels
+  if (isLabelExternal(element)) {
+    assign(options, {
+      autoResize: true
+    });
+  }
+
+  // text annotations
+  if (is(element, 'bpmn:TextAnnotation')) {
+    assign(options, {
+      resizable: true,
+      autoResize: true
+    });
+  }
+
+  assign(context, {
+    options: options
+  });
+
+  return context;
+};
+>>>>>>> REPLACE
+```
+
+This change ensures that label editing is not activated for elements inside a collapsed sub-process, effectively hiding the labels when the sub-process is collapsed.

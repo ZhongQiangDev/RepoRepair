@@ -1,0 +1,25 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The issue described is that Lighthouse does not handle Out-of-Process iframes (OOPIFs) correctly. Specifically, it seems that Lighthouse is not performing target discovery for iframes, which means it may only analyze requests from the main frame and not from iframes.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause appears to be that Lighthouse is not implementing the same target discovery mechanism that Chrome DevTools uses. In the provided image, Chrome DevTools is seen using `Target.sendMessageToTarget` to send `Network.enable` to a discovered target, indicating that it is actively discovering and communicating with iframes. Lighthouse, however, does not seem to have this capability, leading to incomplete analysis of network requests from iframes.
+
+### 3. Find Up to 5 Files Most Related to the Cause
+
+Based on the analysis, the following files are most likely related to the issue, ordered by importance:
+
+```
+lighthouse-core/runner.js
+lighthouse-core/gather/gatherers/network-requests.js
+lighthouse-core/computed/main-resource.js
+lighthouse-core/gather/gatherers/chrome-console-messages.js
+lighthouse-core/lib/lh-error.js
+```
+
+- `lighthouse-core/runner.js`: This file orchestrates the entire Lighthouse run, including artifact gathering and audit execution. It is crucial for ensuring that all necessary data is collected, including network requests from iframes.
+- `lighthouse-core/gather/gatherers/network-requests.js`: This file specifically handles the collection of network requests. If Lighthouse is not capturing requests from iframes, this file would need to be modified to include target discovery and communication with iframes.
+- `lighthouse-core/computed/main-resource.js`: This file identifies the main resource of a webpage. If Lighthouse is not correctly identifying iframes, this could be a contributing factor.
+- `lighthouse-core/gather/gatherers/chrome-console-messages.js`: This file collects console messages, which could be useful for debugging issues related to iframes and network requests.
+- `lighthouse-core/lib/lh-error.js`: This file handles error management. If there are issues with target discovery or communication with iframes, proper error handling would be necessary.

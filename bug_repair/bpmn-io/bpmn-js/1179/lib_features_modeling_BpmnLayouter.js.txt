@@ -1,0 +1,44 @@
+The issue described is that when an element is dropped onto a sequence flow, the layout breaks and the docking of the new incoming sequence flow is always at the top left corner. This suggests that the docking logic for the new sequence flow is not correctly calculating the docking point based on the target element's position.
+
+To address this, we need to ensure that the docking point is correctly calculated based on the target element's position and orientation. The `getConnectionDocking` function should be reviewed and potentially modified to ensure it returns the correct docking point.
+
+Here is the proposed fix:
+
+```javascript
+###lib/features/modeling/BpmnLayouter.js
+<<<<<<< SEARCH
+  if (!start) {
+    start = getConnectionDocking(waypoints && waypoints[0], source);
+  }
+
+  if (!end) {
+    end = getConnectionDocking(waypoints && waypoints[waypoints.length - 1], target);
+  }
+=======
+  if (!start) {
+    start = getConnectionDocking(waypoints && waypoints[0], source);
+  }
+
+  if (!end) {
+    end = calculateCorrectDockingPoint(waypoints && waypoints[waypoints.length - 1], target);
+  }
+
+  function calculateCorrectDockingPoint(waypoint, target) {
+    if (!waypoint || !target) {
+      return { x: 0, y: 0 };
+    }
+
+    const targetBounds = target.getBounds();
+    const targetCenter = {
+      x: targetBounds.x + targetBounds.width / 2,
+      y: targetBounds.y + targetBounds.height / 2
+    };
+
+    const orientation = getOrientation(waypoint, targetCenter);
+
+    return getMid(target, orientation);
+  }
+>>>>>>> REPLACE
+```
+
+This fix introduces a new function `calculateCorrectDockingPoint` that calculates the correct docking point based on the target element's bounds and the orientation of the incoming sequence flow. This should ensure that the docking point is correctly placed and the layout is not broken when an element is dropped onto a sequence flow.

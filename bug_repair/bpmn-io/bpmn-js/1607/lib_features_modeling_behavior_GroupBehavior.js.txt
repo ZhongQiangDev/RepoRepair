@@ -1,0 +1,58 @@
+The issue described is related to the creation of groups inside collapsed sub-processes and the subsequent warning about unresolved references when re-importing the BPMN diagram. The problem seems to be related to how the `categoryValueRef` is handled when creating and deleting groups within sub-processes.
+
+To fix this issue, we need to ensure that the `categoryValueRef` is properly managed when creating and deleting groups within sub-processes. Specifically, we need to ensure that the `categoryValueRef` is correctly linked to the appropriate parent category when creating a group and properly removed when deleting a group.
+
+Here is the proposed fix:
+
+```javascript
+###lib/features/modeling/behavior/GroupBehavior.js
+<<<<<<< SEARCH
+  /**
+   * create new category + value when group was created
+   */
+  this.execute('shape.create', function(event) {
+    var context = event.context,
+        shape = context.shape,
+        businessObject = getBusinessObject(shape);
+
+    if (is(businessObject, 'bpmn:Group') && !businessObject.categoryValueRef) {
+
+      var definitions = getDefinitions(),
+          categoryValue = createCategoryValue(definitions, bpmnFactory);
+
+      // link the reference to the Group
+      businessObject.categoryValueRef = categoryValue;
+    }
+  });
+=======
+  /**
+   * create new category + value when group was created
+   */
+  this.execute('shape.create', function(event) {
+    var context = event.context,
+        shape = context.shape,
+        businessObject = getBusinessObject(shape);
+
+    if (is(businessObject, 'bpmn:Group') && !businessObject.categoryValueRef) {
+
+      var parentElement = shape.parent,
+          parentBusinessObject = getBusinessObject(parentElement),
+          categoryValue;
+
+      if (is(parentBusinessObject, 'bpmn:SubProcess')) {
+        // If the group is inside a sub-process, use the sub-process as the parent for the category
+        categoryValue = createCategoryValue(parentBusinessObject, bpmnFactory);
+      } else {
+        // Otherwise, use the definitions as the parent for the category
+        var definitions = getDefinitions();
+        categoryValue = createCategoryValue(definitions, bpmnFactory);
+      }
+
+      // link the reference to the Group
+      businessObject.categoryValueRef = categoryValue;
+    }
+  });
+>>>>>>> REPLACE
+```
+
+This change ensures that when a group is created inside a sub-process, the `categoryValue` is created with the sub-process as its parent, rather than the root definitions. This should prevent the unresolved reference warning when re-importing the BPMN diagram.

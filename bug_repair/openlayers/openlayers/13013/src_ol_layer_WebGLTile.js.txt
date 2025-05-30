@@ -1,0 +1,96 @@
+The issue described involves black tiles being rendered when using `ol.layer.WebGLTile` with `ol.source.DataTile` and a custom tile grid. The warning message indicates that there is a mismatch between the expected and available data for texture upload in WebGL. This suggests that the tile sizes or the way they are being handled might be incorrect.
+
+To address this, we need to ensure that the tile sizes and the way they are being processed in the WebGLTileLayerRenderer are correctly aligned with the data being loaded. The issue might be related to how the tile sizes are being passed or handled within the WebGLTileLayerRenderer.
+
+Here is a potential fix:
+
+```typescript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+  /**
+   * @param {import("../../layer/WebGLTile.js").default} tileLayer WebGLTile layer.
+   * @param {Object} opt_options Options.
+   */
+  constructor(tileLayer, opt_options) {
+    const options = opt_options ? assign({}, opt_options) : {};
+
+    super(tileLayer, options);
+
+    /**
+     * @type {import("../../webgl/Helper.js").default}
+     * @private
+     */
+    this.helper_ = new WebGLHelper({
+      vertexShader: options.vertexShader,
+      fragmentShader: options.fragmentShader,
+      uniforms: options.uniforms,
+      cacheSize: options.cacheSize,
+    });
+
+    /**
+     * @type {import("../../source/DataTile.js").default|import("../../source/TileImage.js").default}
+     * @private
+     */
+    this.source_ = tileLayer.getSource();
+
+    /**
+     * @type {import("../../tilegrid/TileGrid.js").default}
+     * @private
+     */
+    this.tileGrid_ = this.source_.getTileGrid();
+
+    /**
+     * @type {import("../../Tile.js").default[]}
+     * @private
+     */
+    this.tiles_ = [];
+  }
+=======
+  /**
+   * @param {import("../../layer/WebGLTile.js").default} tileLayer WebGLTile layer.
+   * @param {Object} opt_options Options.
+   */
+  constructor(tileLayer, opt_options) {
+    const options = opt_options ? assign({}, opt_options) : {};
+
+    super(tileLayer, options);
+
+    /**
+     * @type {import("../../webgl/Helper.js").default}
+     * @private
+     */
+    this.helper_ = new WebGLHelper({
+      vertexShader: options.vertexShader,
+      fragmentShader: options.fragmentShader,
+      uniforms: options.uniforms,
+      cacheSize: options.cacheSize,
+    });
+
+    /**
+     * @type {import("../../source/DataTile.js").default|import("../../source/TileImage.js").default}
+     * @private
+     */
+    this.source_ = tileLayer.getSource();
+
+    /**
+     * @type {import("../../tilegrid/TileGrid.js").default}
+     * @private
+     */
+    this.tileGrid_ = this.source_.getTileGrid();
+
+    // Ensure tile sizes are correctly handled
+    const tileSizes = this.tileGrid_.getTileSizes();
+    if (tileSizes) {
+      this.helper_.setTileSizes(tileSizes);
+    }
+
+    /**
+     * @type {import("../../Tile.js").default[]}
+     * @private
+     */
+    this.tiles_ = [];
+  }
+>>>>>>> REPLACE
+```
+
+This change ensures that the tile sizes are correctly passed to the WebGLHelper, which should help in resolving the issue with the black tiles and the WebGL warning.

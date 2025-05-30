@@ -1,0 +1,32 @@
+The issue seems to be related to the JavaScript code being improperly sanitized or formatted when it's inlined into the HTML report. The error "Uncaught SyntaxError: Invalid or unexpected token" suggests that there might be an issue with the JavaScript code being inserted into the HTML. The second error "Uncaught TypeError: Cannot read property 'generatedTime' of undefined" suggests that the report JSON might not be properly formatted or might be missing some required properties.
+
+To address these issues, we need to ensure that the JavaScript code is properly sanitized and that the report JSON is correctly formatted. Here are the steps to fix the issue:
+
+1. Ensure that the JavaScript code is properly sanitized when it's inlined into the HTML.
+2. Ensure that the report JSON is correctly formatted and contains all required properties.
+
+Here is the *SEARCH/REPLACE* edit to fix the issue:
+
+```javascript
+###lighthouse-core/report/v2/report-generator.js
+<<<<<<< SEARCH
+const sanitizedJavascript = REPORT_JAVASCRIPT.replace(/<\//g, '\\u003c/');
+=======
+const sanitizedJavascript = REPORT_JAVASCRIPT.replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+>>>>>>> REPLACE
+```
+
+This edit ensures that both `<` and `>` characters are properly escaped in the JavaScript code, which should prevent the "Uncaught SyntaxError: Invalid or unexpected token" error.
+
+Additionally, we need to ensure that the report JSON is correctly formatted. Here is another *SEARCH/REPLACE* edit to fix the issue:
+
+```javascript
+###lighthouse-core/report/v2/report-generator.js
+<<<<<<< SEARCH
+const sanitizedJson = JSON.stringify(reportAsJson).replace(/</g, '\\u003c');
+=======
+const sanitizedJson = JSON.stringify(reportAsJson, null, 2).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+>>>>>>> REPLACE
+```
+
+This edit ensures that the report JSON is properly formatted and that both `<` and `>` characters are properly escaped, which should prevent the "Uncaught TypeError: Cannot read property 'generatedTime' of undefined" error.

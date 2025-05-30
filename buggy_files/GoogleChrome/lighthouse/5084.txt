@@ -1,0 +1,21 @@
+1. **Identify the wrong behavior involved in `GitHub Problem Description`:**
+   - The issue is that the ByteEfficiency audit reports no savings for converting animated GIFs to video formats, even though there is a significant potential saving of almost 5MB. The report shows a score of 100, indicating no room for improvement, which is incorrect given the large savings possible.
+
+2. **Analyze the cause behind the wrong behavior:**
+   - The `computeWasteWithTTIGraph` method in the `UnusedBytes` class reports 0 savings because it only considers the impact on the estimated Time to Interactive (TTI). Since there's only one network request affected and no long tasks touched, it doesn't reflect the actual savings at the end of the graph. The audit should consider the impact on the end of the graph or onload time instead of just TTI.
+
+3. **Find up to 5 files most related to the cause from `Repository Information`:**
+
+```
+lighthouse-core/audits/byte-efficiency/efficient-animated-content.js
+lighthouse-core/audits/byte-efficiency/byte-efficiency-audit.js
+lighthouse-core/gather/computed/page-dependency-graph.js
+lighthouse-core/lib/dependency-graph/simulator/simulator.js
+lighthouse-core/audits/byte-efficiency/total-byte-weight.js
+```
+
+- `efficient-animated-content.js`: This file directly handles the audit for efficient animated content and calculates potential savings from converting GIFs to videos. It is the primary file where the issue likely resides.
+- `byte-efficiency-audit.js`: This file contains the foundational class for byte efficiency audits, including the `computeWasteWithTTIGraph` method, which needs to be adjusted to consider the end of the graph or onload time.
+- `page-dependency-graph.js`: This file constructs the dependency graph used for simulations. Adjustments here might be necessary to ensure the graph accurately reflects the impact of converting GIFs to videos.
+- `simulator.js`: This file simulates the execution of the dependency graph. Changes here could help in accurately estimating the time savings at the end of the graph.
+- `total-byte-weight.js`: This file assesses the total byte weight of network resources. While not directly related to the specific issue, it might need adjustments to ensure it correctly reflects the savings from converting GIFs to videos.

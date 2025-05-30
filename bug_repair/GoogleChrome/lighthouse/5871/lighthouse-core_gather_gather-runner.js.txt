@@ -1,0 +1,27 @@
+The issue described is that the user agent mentioned in the Lighthouse report's runtime settings does not match the actual user agent used in the test requests. This discrepancy can be confusing and should be fixed for consistency.
+
+To address this, we need to ensure that the user agent string used in the test requests matches the one reported in the runtime settings. This can be achieved by setting the user agent explicitly in the driver setup.
+
+Here's the proposed fix:
+
+```javascript
+### lighthouse-core/gather/gather-runner.js
+<<<<<<< SEARCH
+    await driver.beginEmulation(options.settings);
+    await driver.enableRuntimeEvents();
+    await driver.cacheNatives();
+    await driver.registerPerformanceObserver();
+    await driver.dismissJavaScriptDialogs();
+    if (resetStorage) await driver.clearDataForOrigin(options.requestedUrl);
+=======
+    const userAgent = await driver.getUserAgent();
+    await driver.beginEmulation({...options.settings, userAgent});
+    await driver.enableRuntimeEvents();
+    await driver.cacheNatives();
+    await driver.registerPerformanceObserver();
+    await driver.dismissJavaScriptDialogs();
+    if (resetStorage) await driver.clearDataForOrigin(options.requestedUrl);
+>>>>>>> REPLACE
+```
+
+This change ensures that the user agent used during the test matches the one reported in the runtime settings by explicitly setting it in the `beginEmulation` method.

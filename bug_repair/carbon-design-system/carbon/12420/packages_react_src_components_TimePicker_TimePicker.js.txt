@@ -1,0 +1,347 @@
+To address the issue of implementing a read-only mode for the TimePicker component, we need to add a `readOnly` prop and apply the necessary styles and logic. Here are the required changes:
+
+1. Add the `readOnly` prop to the component.
+2. Apply styles for the `readOnly` prop.
+3. Ensure the component behaves correctly in read-only mode.
+4. Add controls for each state in the playground.
+5. Create a default story for easy copy and paste.
+6. Add RTL tests for the read-only class on the prop.
+
+Here are the *SEARCH/REPLACE* edits:
+
+```javascript
+###packages/react/src/components/TimePicker/TimePicker.js
+<<<<<<< SEARCH
+const TimePicker = React.forwardRef(function TimePicker(
+  {
+    children,
+    className,
+    disabled = false,
+    hideLabel,
+    id,
+    invalidText = 'Invalid time format.',
+    invalid = false,
+    labelText,
+    light = false,
+    maxLength = 5,
+    onChange = () => {},
+    onClick = () => {},
+    onBlur = () => {},
+    pattern = '(1[012]|[1-9]):[0-5][0-9](\\s)?',
+    placeholder = 'hh:mm',
+    size = 'md',
+    type = 'text',
+    value,
+    ...rest
+  },
+  ref
+) {
+=======
+const TimePicker = React.forwardRef(function TimePicker(
+  {
+    children,
+    className,
+    disabled = false,
+    hideLabel,
+    id,
+    invalidText = 'Invalid time format.',
+    invalid = false,
+    labelText,
+    light = false,
+    maxLength = 5,
+    onChange = () => {},
+    onClick = () => {},
+    onBlur = () => {},
+    pattern = '(1[012]|[1-9]):[0-5][0-9](\\s)?',
+    placeholder = 'hh:mm',
+    readOnly = false, // Add readOnly prop
+    size = 'md',
+    type = 'text',
+    value,
+    ...rest
+  },
+  ref
+) {
+>>>>>>> REPLACE
+```
+
+```javascript
+###packages/react/src/components/TimePicker/TimePicker.js
+<<<<<<< SEARCH
+const timePickerInputClasses = cx(
+    `${prefix}--time-picker__input-field`,
+    `${prefix}--text-input`,
+    [className],
+    {
+      [`${prefix}--text-input--light`]: light,
+    }
+  );
+=======
+const timePickerInputClasses = cx(
+    `${prefix}--time-picker__input-field`,
+    `${prefix}--text-input`,
+    [className],
+    {
+      [`${prefix}--text-input--light`]: light,
+      [`${prefix}--time-picker__input--readonly`]: readOnly, // Add class for readOnly
+    }
+  );
+>>>>>>> REPLACE
+```
+
+```javascript
+###packages/react/src/components/TimePicker/TimePicker.js
+<<<<<<< SEARCH
+function handleOnClick(evt) {
+    if (!disabled) {
+      setValue(isValue);
+      onClick(evt);
+    }
+  }
+
+  function handleOnChange(evt) {
+    if (!disabled) {
+      setValue(isValue);
+      onChange(evt);
+    }
+  }
+
+  function handleOnBlur(evt) {
+    if (!disabled) {
+      setValue(isValue);
+      onBlur(evt);
+    }
+  }
+=======
+function handleOnClick(evt) {
+    if (!disabled && !readOnly) { // Check for readOnly
+      setValue(isValue);
+      onClick(evt);
+    }
+  }
+
+  function handleOnChange(evt) {
+    if (!disabled && !readOnly) { // Check for readOnly
+      setValue(isValue);
+      onChange(evt);
+    }
+  }
+
+  function handleOnBlur(evt) {
+    if (!disabled && !readOnly) { // Check for readOnly
+      setValue(isValue);
+      onBlur(evt);
+    }
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+###packages/react/src/components/TimePicker/TimePicker.js
+<<<<<<< SEARCH
+TimePicker.propTypes = {
+  /**
+   * Pass in the children that will be rendered next to the form control
+   */
+  children: PropTypes.node,
+
+  /**
+   * Specify an optional className to be applied to the container node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify whether the `<input>` should be disabled
+   */
+  disabled: PropTypes.bool,
+
+  /**
+   * Specify whether you want the underlying label to be visually hidden
+   */
+  hideLabel: PropTypes.bool,
+
+  /**
+   * Specify a custom `id` for the `<input>`
+   */
+  id: PropTypes.string.isRequired,
+
+  /**
+   * Specify whether the control is currently invalid
+   */
+  invalid: PropTypes.bool,
+
+  /**
+   * Provide the text that is displayed when the control is in an invalid state
+   */
+  invalidText: PropTypes.node,
+
+  /**
+   * Provide the text that will be read by a screen reader when visiting this
+   * control
+   */
+  labelText: PropTypes.node,
+
+  /**
+   * The `light` prop for `TimePicker` has been deprecated. It will be removed in v12. Use the `Layer` component instead.
+   */
+  light: deprecate(
+    PropTypes.bool,
+    'The `light` prop for `TimePicker` is no longer needed and has been deprecated. It will be removed in the next major release. Use the `Layer` component instead.'
+  ),
+
+  /**
+   * Specify the maximum length of the time string in `<input>`
+   */
+  maxLength: PropTypes.number,
+
+  /**
+   * Optionally provide an `onBlur` handler that is called whenever the
+   * `<input>` loses focus
+   */
+  onBlur: PropTypes.func,
+
+  /**
+   * Optionally provide an `onChange` handler that is called whenever `<input>`
+   * is updated
+   */
+  onChange: PropTypes.func,
+
+  /**
+   * Optionally provide an `onClick` handler that is called whenever the
+   * `<input>` is clicked
+   */
+  onClick: PropTypes.func,
+
+  /**
+   * Specify the regular expression working as the pattern of the time string in `<input>`
+   */
+  pattern: PropTypes.string,
+
+  /**
+   * Specify the placeholder attribute for the `<input>`
+   */
+  placeholder: PropTypes.string,
+
+  /**
+   * Specify the size of the Time Picker.
+   */
+  size: PropTypes.oneOf(['sm', 'md', 'lg']),
+
+  /**
+   * Specify the type of the `<input>`
+   */
+  type: PropTypes.string,
+
+  /**
+   * Specify the value of the `<input>`
+   */
+  value: PropTypes.string,
+};
+=======
+TimePicker.propTypes = {
+  /**
+   * Pass in the children that will be rendered next to the form control
+   */
+  children: PropTypes.node,
+
+  /**
+   * Specify an optional className to be applied to the container node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify whether the `<input>` should be disabled
+   */
+  disabled: PropTypes.bool,
+
+  /**
+   * Specify whether you want the underlying label to be visually hidden
+   */
+  hideLabel: PropTypes.bool,
+
+  /**
+   * Specify a custom `id` for the `<input>`
+   */
+  id: PropTypes.string.isRequired,
+
+  /**
+   * Specify whether the control is currently invalid
+   */
+  invalid: PropTypes.bool,
+
+  /**
+   * Provide the text that is displayed when the control is in an invalid state
+   */
+  invalidText: PropTypes.node,
+
+  /**
+   * Provide the text that will be read by a screen reader when visiting this
+   * control
+   */
+  labelText: PropTypes.node,
+
+  /**
+   * The `light` prop for `TimePicker` has been deprecated. It will be removed in v12. Use the `Layer` component instead.
+   */
+  light: deprecate(
+    PropTypes.bool,
+    'The `light` prop for `TimePicker` is no longer needed and has been deprecated. It will be removed in the next major release. Use the `Layer` component instead.'
+  ),
+
+  /**
+   * Specify the maximum length of the time string in `<input>`
+   */
+  maxLength: PropTypes.number,
+
+  /**
+   * Optionally provide an `onBlur` handler that is called whenever the
+   * `<input>` loses focus
+   */
+  onBlur: PropTypes.func,
+
+  /**
+   * Optionally provide an `onChange` handler that is called whenever `<input>`
+   * is updated
+   */
+  onChange: PropTypes.func,
+
+  /**
+   * Optionally provide an `onClick` handler that is called whenever the
+   * `<input>` is clicked
+   */
+  onClick: PropTypes.func,
+
+  /**
+   * Specify the regular expression working as the pattern of the time string in `<input>`
+   */
+  pattern: PropTypes.string,
+
+  /**
+   * Specify the placeholder attribute for the `<input>`
+   */
+  placeholder: PropTypes.string,
+
+  /**
+   * Specify the size of the Time Picker.
+   */
+  size: PropTypes.oneOf(['sm', 'md', 'lg']),
+
+  /**
+   * Specify the type of the `<input>`
+   */
+  type: PropTypes.string,
+
+  /**
+   * Specify the value of the `<input>`
+   */
+  value: PropTypes.string,
+
+  /**
+   * Specify whether the `<input>` should be read-only
+   */
+  readOnly: PropTypes.bool, // Add readOnly prop type
+};
+>>>>>>> REPLACE
+```
+
+These changes will add the `readOnly` prop, apply the necessary styles, and ensure the component behaves correctly in read-only mode. The playground controls, default story, and RTL tests should be added separately in the respective files.

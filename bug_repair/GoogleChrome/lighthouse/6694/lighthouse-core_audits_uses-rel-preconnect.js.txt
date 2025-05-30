@@ -1,0 +1,45 @@
+The issue is that Lighthouse is suggesting preconnect/dns-prefetch for origins that are already being preconnected to in the HTML. The audit should check the DOM for `link rel="preconnect"` or `link rel="dns-prefetch"` and exclude those origins from the audit results.
+
+To fix this, we need to modify the audit to check the DOM for these resource hints and exclude them from the results.
+
+```javascript
+### lighthouse-core/audits/uses-rel-preconnect.js
+<<<<<<< SEARCH
+    const [networkRecords, mainResource, loadSimulator] = await Promise.all([
+      NetworkRecords.request(devtoolsLog, context),
+      MainResource.request({devtoolsLog, URL}, context),
+      LoadSimulator.request({devtoolsLog, settings}, context),
+    ]);
+=======
+    const [networkRecords, mainResource, loadSimulator, domContent] = await Promise.all([
+      NetworkRecords.request(devtoolsLog, context),
+      MainResource.request({devtoolsLog, URL}, context),
+      LoadSimulator.request({devtoolsLog, settings}, context),
+      artifacts.DominatorTree,
+    ]);
+
+    // Extract preconnect and dns-prefetch origins from the DOM
+    const preconnectOrigins = new Set();
+    domContent.querySelectorAll('link[rel="preconnect"], link[rel="dns-prefetch"]').forEach(link => {
+      const href = link.getAttribute('href');
+      if (href) {
+        const parsedURL = new URL(href);
+        preconnectOrigins.add(parsedURL.origin);
+      }
+    });
+
+    const [networkRecords, mainResource, loadSimulator] = await Promise.all([
+      NetworkRecords.request(devtoolsLog, context),
+      MainResource.request({devtoolsLog, URL}, context),
+      LoadSimulator.request({devtoolsLog, settings}, context),
+    ]);
+    
+    // Filter out origins that are already preconnected or dns-prefetched in the DOM
+    networkRecords = networkRecords.filter(record => {
+      const securityOrigin = record.parsedURL.securityOrigin;
+      return !preconnectOrigins.has(securityOrigin);
+    });
+>>>>>>> REPLACE
+```
+
+This modification will ensure that the audit checks the DOM for `link rel="preconnect"` and `link rel="dns-prefetch"` and excludes those origins from the audit results, thus avoiding false positives.

@@ -1,0 +1,169 @@
+The issue described is related to the deformation of the diagram when a child lane is removed from a parent lane. The problem seems to be in the `computeLanesResize` function, which calculates the required resize operations for lanes adjacent to the given shape. The function may not be correctly handling the resizing of lanes when a child lane is removed.
+
+To fix this issue, we need to ensure that the function correctly calculates the new bounds for the remaining lanes after a child lane is removed. We can do this by adjusting the `computeLanesResize` function to properly handle the resizing of lanes when a child lane is removed.
+
+Here is the proposed fix:
+
+```javascript
+### lib/features/modeling/util/LaneUtil.js
+<<<<<<< SEARCH
+/**
+ * Compute the required resize operations for lanes
+ * adjacent to the given shape, assuming it will be
+ * resized to the given new bounds.
+ *
+ * @param {djs.model.Shape} shape
+ * @param {Bounds} newBounds
+ *
+ * @return {Array<Object>}
+ */
+export function computeLanesResize(shape, newBounds) {
+
+  var rootElement = getLanesRoot(shape);
+
+  var initialShapes = is(rootElement, 'bpmn:Process') ? [] : [ rootElement ];
+
+  var allLanes = collectLanes(rootElement, initialShapes),
+      shapeTrbl = asTRBL(shape),
+      shapeNewTrbl = asTRBL(newBounds),
+      trblResize = getTRBLResize(shape, newBounds),
+      resizeNeeded = [];
+
+  allLanes.forEach(function(other) {
+
+    if (other === shape) {
+      return;
+    }
+
+    var topResize = 0,
+        rightResize = trblResize.right,
+        bottomResize = 0,
+        leftResize = trblResize.left;
+
+    var otherTrbl = asTRBL(other);
+
+    if (trblResize.top) {
+      if (abs(otherTrbl.bottom - shapeTrbl.top) < 10) {
+        bottomResize = shapeNewTrbl.top - otherTrbl.bottom;
+      }
+
+      if (abs(otherTrbl.top - shapeTrbl.top) < 5) {
+        topResize = shapeNewTrbl.top - otherTrbl.top;
+      }
+    }
+
+    if (trblResize.bottom) {
+      if (abs(otherTrbl.top - shapeTrbl.bottom) < 10) {
+        topResize = shapeNewTrbl.bottom - otherTrbl.top;
+      }
+
+      if (abs(otherTrbl.bottom - shapeTrbl.bottom) < 5) {
+        bottomResize = shapeNewTrbl.bottom - otherTrbl.bottom;
+      }
+    }
+
+    if (topResize || rightResize || bottomResize || leftResize) {
+
+      resizeNeeded.push({
+        shape: other,
+        newBounds: resizeTRBL(other, {
+          top: topResize,
+          right: rightResize,
+          bottom: bottomResize,
+          left: leftResize
+        })
+      });
+    }
+
+  });
+
+  return resizeNeeded;
+}
+=======
+/**
+ * Compute the required resize operations for lanes
+ * adjacent to the given shape, assuming it will be
+ * resized to the given new bounds.
+ *
+ * @param {djs.model.Shape} shape
+ * @param {Bounds} newBounds
+ *
+ * @return {Array<Object>}
+ */
+export function computeLanesResize(shape, newBounds) {
+
+  var rootElement = getLanesRoot(shape);
+
+  var initialShapes = is(rootElement, 'bpmn:Process') ? [] : [ rootElement ];
+
+  var allLanes = collectLanes(rootElement, initialShapes),
+      shapeTrbl = asTRBL(shape),
+      shapeNewTrbl = asTRBL(newBounds),
+      trblResize = getTRBLResize(shape, newBounds),
+      resizeNeeded = [];
+
+  allLanes.forEach(function(other) {
+
+    if (other === shape) {
+      return;
+    }
+
+    var topResize = 0,
+        rightResize = trblResize.right,
+        bottomResize = 0,
+        leftResize = trblResize.left;
+
+    var otherTrbl = asTRBL(other);
+
+    if (trblResize.top) {
+      if (abs(otherTrbl.bottom - shapeTrbl.top) < 10) {
+        bottomResize = shapeNewTrbl.top - otherTrbl.bottom;
+      }
+
+      if (abs(otherTrbl.top - shapeTrbl.top) < 5) {
+        topResize = shapeNewTrbl.top - otherTrbl.top;
+      }
+    }
+
+    if (trblResize.bottom) {
+      if (abs(otherTrbl.top - shapeTrbl.bottom) < 10) {
+        topResize = shapeNewTrbl.bottom - otherTrbl.top;
+      }
+
+      if (abs(otherTrbl.bottom - shapeTrbl.bottom) < 5) {
+        bottomResize = shapeNewTrbl.bottom - otherTrbl.bottom;
+      }
+    }
+
+    // Adjust the resizing logic to handle the removal of a child lane
+    if (shape.children.length === 0) {
+      // If the shape has no children, adjust the resizing of adjacent lanes
+      if (otherTrbl.top < shapeTrbl.top) {
+        topResize = shapeNewTrbl.top - otherTrbl.top;
+      }
+      if (otherTrbl.bottom > shapeTrbl.bottom) {
+        bottomResize = shapeNewTrbl.bottom - otherTrbl.bottom;
+      }
+    }
+
+    if (topResize || rightResize || bottomResize || leftResize) {
+
+      resizeNeeded.push({
+        shape: other,
+        newBounds: resizeTRBL(other, {
+          top: topResize,
+          right: rightResize,
+          bottom: bottomResize,
+          left: leftResize
+        })
+      });
+    }
+
+  });
+
+  return resizeNeeded;
+}
+>>>>>>> REPLACE
+```
+
+This fix adjusts the resizing logic to handle the removal of a child lane by checking if the shape has no children and adjusting the resizing of adjacent lanes accordingly. This should prevent the deformation of the diagram when a child lane is removed.

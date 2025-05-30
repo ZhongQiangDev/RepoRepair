@@ -1,0 +1,94 @@
+The issue described is related to the change in tile loading behavior between OpenLayers versions 6.1 and 7.0. Specifically, the tile requests for layers within a `LayerGroup` are being sent sequentially in version 7.0, whereas they were sent concurrently in version 6.1. This change impacts the performance of imagery loading.
+
+To address this, we need to ensure that the tile requests for layers within a `LayerGroup` are sent concurrently. This can be achieved by modifying the `LayerGroup` class to handle the loading of tiles in a way that allows for concurrent requests.
+
+Here's a potential fix:
+
+```typescript
+### src/ol/layer/Group.js
+<<<<<<< SEARCH
+  /**
+   * @param {Array<import("./Layer.js").default>} [array] Array of layers (to be modified in place).
+   * @return {Array<import("./Layer.js").default>} Array of layers.
+   */
+  getLayersArray(array) {
+    array = array !== undefined ? array : [];
+    this.getLayers().forEach(function (layer) {
+      layer.getLayersArray(array);
+    });
+    return array;
+  }
+=======
+  /**
+   * @param {Array<import("./Layer.js").default>} [array] Array of layers (to be modified in place).
+   * @return {Array<import("./Layer.js").default>} Array of layers.
+   */
+  getLayersArray(array) {
+    array = array !== undefined ? array : [];
+    const layers = this.getLayers().getArray();
+    layers.forEach(function (layer) {
+      if (layer instanceof LayerGroup) {
+        layer.getLayersArray(array);
+      } else {
+        array.push(layer);
+      }
+    });
+    return array;
+  }
+
+  /**
+   * @param {Array<import("./Layer.js").State>} [dest] Optional list
+   * of layer states (to be modified in place).
+   * @return {Array<import("./Layer.js").State>} List of layer states.
+   */
+  getLayerStatesArray(dest) {
+    const states = dest !== undefined ? dest : [];
+    const layers = this.getLayers().getArray();
+    layers.forEach(function (layer) {
+      if (layer instanceof LayerGroup) {
+        layer.getLayerStatesArray(states);
+      } else {
+        states.push(layer.getLayerState());
+      }
+    });
+
+    const ownLayerState = this.getLayerState();
+    let defaultZIndex = ownLayerState.zIndex;
+    if (!dest && ownLayerState.zIndex === undefined) {
+      defaultZIndex = 0;
+    }
+    for (let i = 0, ii = states.length; i < ii; i++) {
+      const layerState = states[i];
+      layerState.opacity *= ownLayerState.opacity;
+      layerState.visible = layerState.visible && ownLayerState.visible;
+      layerState.maxResolution = Math.min(
+        layerState.maxResolution,
+        ownLayerState.maxResolution
+      );
+      layerState.minResolution = Math.max(
+        layerState.minResolution,
+        ownLayerState.minResolution
+      );
+      layerState.minZoom = Math.max(layerState.minZoom, ownLayerState.minZoom);
+      layerState.maxZoom = Math.min(layerState.maxZoom, ownLayerState.maxZoom);
+      if (ownLayerState.extent !== undefined) {
+        if (layerState.extent !== undefined) {
+          layerState.extent = getIntersection(
+            layerState.extent,
+            ownLayerState.extent
+          );
+        } else {
+          layerState.extent = ownLayerState.extent;
+        }
+      }
+      if (layerState.zIndex === undefined) {
+        layerState.zIndex = defaultZIndex;
+      }
+    }
+
+    return states;
+  }
+>>>>>>> REPLACE
+```
+
+This modification ensures that the `getLayersArray` and `getLayerStatesArray` methods handle the layers within a `LayerGroup` in a way that allows for concurrent tile requests. The `getLayersArray` method now iterates over the layers in the group and adds them to the array, while the `getLayerStatesArray` method ensures that the layer states are correctly propagated and modified. This should help restore the concurrent loading behavior observed in version 6.1.

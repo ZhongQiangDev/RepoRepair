@@ -1,0 +1,113 @@
+The issue described is that VoiceOver reads dropdown items twice. This is likely due to the way the `ListBoxMenuItem` components are being rendered within the `ListBoxMenu`. The `ListBoxMenuItem` might be adding unnecessary or redundant `aria-label` or `aria-labelledby` attributes, causing VoiceOver to read the item twice.
+
+To fix this, we need to ensure that the `ListBoxMenuItem` component is correctly setting the `aria-label` or `aria-labelledby` attributes so that VoiceOver reads the item only once.
+
+Here is the proposed fix:
+
+```javascript
+###packages/react/src/components/ListBox/ListBoxMenuItem.js
+<<<<<<< SEARCH
+import React from 'react';
+import PropTypes from 'prop-types';
+import { prefix } from 'carbon-components';
+
+const ListBoxMenuItem = React.forwardRef(
+  ({ children, className, disabled, href, id, index, onClick, onKeyDown, role, selected, tabIndex, ...rest }, ref) => {
+    const itemClassName = `${prefix}--list-box__menu-item${selected ? ` ${prefix}--list-box__menu-item--selected` : ''}`;
+    const itemProps = {
+      className: itemClassName,
+      disabled,
+      href,
+      id,
+      onClick,
+      onKeyDown,
+      role,
+      tabIndex,
+      ...rest,
+    };
+
+    if (selected) {
+      itemProps['aria-selected'] = true;
+    }
+
+    return (
+      <div ref={ref} {...itemProps}>
+        {children}
+      </div>
+    );
+  }
+);
+
+ListBoxMenuItem.propTypes = {
+  children: PropTypes.node,
+  className: PropTypes.string,
+  disabled: PropTypes.bool,
+  href: PropTypes.string,
+  id: PropTypes.string,
+  index: PropTypes.number,
+  onClick: PropTypes.func,
+  onKeyDown: PropTypes.func,
+  role: PropTypes.string,
+  selected: PropTypes.bool,
+  tabIndex: PropTypes.number,
+};
+
+ListBoxMenuItem.displayName = 'ListBoxMenuItem';
+
+export default ListBoxMenuItem;
+=======
+import React from 'react';
+import PropTypes from 'prop-types';
+import { prefix } from 'carbon-components';
+
+const ListBoxMenuItem = React.forwardRef(
+  ({ children, className, disabled, href, id, index, onClick, onKeyDown, role, selected, tabIndex, ...rest }, ref) => {
+    const itemClassName = `${prefix}--list-box__menu-item${selected ? ` ${prefix}--list-box__menu-item--selected` : ''}`;
+    const itemProps = {
+      className: itemClassName,
+      disabled,
+      href,
+      id,
+      onClick,
+      onKeyDown,
+      role,
+      tabIndex,
+      ...rest,
+    };
+
+    if (selected) {
+      itemProps['aria-selected'] = true;
+    }
+
+    // Ensure that the item is only read once by VoiceOver
+    itemProps['aria-label'] = children;
+
+    return (
+      <div ref={ref} {...itemProps}>
+        {children}
+      </div>
+    );
+  }
+);
+
+ListBoxMenuItem.propTypes = {
+  children: PropTypes.node,
+  className: PropTypes.string,
+  disabled: PropTypes.bool,
+  href: PropTypes.string,
+  id: PropTypes.string,
+  index: PropTypes.number,
+  onClick: PropTypes.func,
+  onKeyDown: PropTypes.func,
+  role: PropTypes.string,
+  selected: PropTypes.bool,
+  tabIndex: PropTypes.number,
+};
+
+ListBoxMenuItem.displayName = 'ListBoxMenuItem';
+
+export default ListBoxMenuItem;
+>>>>>>> REPLACE
+```
+
+This fix ensures that the `ListBoxMenuItem` component sets the `aria-label` attribute to the `children` content, which should help VoiceOver read the item only once.

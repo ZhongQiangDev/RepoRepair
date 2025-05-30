@@ -1,0 +1,74 @@
+The issue described is that labels are lost during the copy-paste operation of participant contents in a BPMN diagram. The labels are not being copied along with the elements. To fix this, we need to ensure that the labels are included when copying the elements.
+
+The relevant code segment is in the `BpmnCopyPaste` function, specifically in the `copyPaste.copyElement` event handler. We need to modify this function to include the label information when copying the elements.
+
+Here is the proposed fix:
+
+```javascript
+### lib/features/copy-paste/BpmnCopyPaste.js
+<<<<<<< SEARCH
+    eventBus.on('copyPaste.copyElement', LOW_PRIORITY, function(context) {
+      var descriptor = context.descriptor,
+          element = context.element;
+
+      var businessObject = descriptor.oldBusinessObject = getBusinessObject(element);
+
+      descriptor.type = element.type;
+
+      descriptor.di = {};
+
+      // fill and stroke will be set to DI
+      copyProperties(businessObject.di, descriptor.di, [
+        'fill',
+        'stroke'
+      ]);
+
+      copyProperties(businessObject.di, descriptor, 'isExpanded');
+
+      if (isLabel(descriptor)) {
+        return descriptor;
+      }
+
+      // default sequence flow
+      if (businessObject.default) {
+        descriptor.default = businessObject.default.id;
+      }
+=======
+    eventBus.on('copyPaste.copyElement', LOW_PRIORITY, function(context) {
+      var descriptor = context.descriptor,
+          element = context.element;
+
+      var businessObject = descriptor.oldBusinessObject = getBusinessObject(element);
+
+      descriptor.type = element.type;
+
+      descriptor.di = {};
+
+      // fill and stroke will be set to DI
+      copyProperties(businessObject.di, descriptor.di, [
+        'fill',
+        'stroke'
+      ]);
+
+      copyProperties(businessObject.di, descriptor, 'isExpanded');
+
+      if (isLabel(descriptor)) {
+        // Copy label information
+        descriptor.label = {
+          text: businessObject.name,
+          position: {
+            x: element.x,
+            y: element.y
+          }
+        };
+        return descriptor;
+      }
+
+      // default sequence flow
+      if (businessObject.default) {
+        descriptor.default = businessObject.default.id;
+      }
+>>>>>>> REPLACE
+```
+
+This modification ensures that when an element is a label, its text and position are copied along with the element. This should resolve the issue of labels being lost during the copy-paste operation.

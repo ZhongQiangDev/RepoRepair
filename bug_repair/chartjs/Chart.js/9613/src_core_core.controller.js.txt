@@ -1,0 +1,30 @@
+The issue described is related to event filtering in Chart.js plugins where the event types are being normalized, causing mismatches with the original event types used for filtering. The solution involves adding the normalized event types (`mousedown` and `mouseup`) to the `events` array in the tooltip options.
+
+Here's the *SEARCH/REPLACE* edit to fix the issue:
+
+```javascript
+### src/core/core.controller.js
+<<<<<<< SEARCH
+    const listener = function(e, x, y) {
+      e.offsetX = x;
+      e.offsetY = y;
+      me._eventHandler(e);
+    };
+
+    each(me.options.events, (type) => _add(type, listener));
+=======
+    const listener = function(e, x, y) {
+      e.offsetX = x;
+      e.offsetY = y;
+      me._eventHandler(e);
+    };
+
+    // Add normalized events for compatibility
+    const normalizedEvents = ['mousedown', 'mouseup'];
+    const allEvents = me.options.events.concat(normalizedEvents);
+
+    each(allEvents, (type) => _add(type, listener));
+>>>>>>> REPLACE
+```
+
+This edit ensures that the normalized event types (`mousedown` and `mouseup`) are included in the event listeners, which should resolve the issue with the tooltip not showing on `pointerdown` and `pointerup` events.

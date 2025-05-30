@@ -1,0 +1,24 @@
+The issue arises because the `displayName` of the `children.type` is not being set correctly due to the use of `createComponentToggle`, which wraps the original component with a `FeatureToggle` component. This causes the `displayName` check to fail, leading to the shark fin and offset not being applied.
+
+To fix this, we need to modify the check for the `OverflowMenu` component to account for the `FeatureToggle` wrapper. We can do this by checking if the `displayName` includes `'OverflowMenu'` instead of strictly equaling `'OverflowMenu'`.
+
+Here's the *SEARCH/REPLACE* edit:
+
+```javascript
+###packages/react/src/components/Breadcrumb/BreadcrumbItem.js
+<<<<<<< SEARCH
+if (
+  children.type &&
+  children.type.displayName !== undefined &&
+  children.type.displayName === 'OverflowMenu'
+) {
+=======
+if (
+  children.type &&
+  children.type.displayName !== undefined &&
+  children.type.displayName.includes('OverflowMenu')
+) {
+>>>>>>> REPLACE
+```
+
+This change will ensure that the `OverflowMenu` component is correctly identified even when wrapped by `FeatureToggle`, thus applying the shark fin and offset as expected.

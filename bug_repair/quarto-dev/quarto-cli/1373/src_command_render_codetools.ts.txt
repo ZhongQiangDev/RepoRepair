@@ -1,0 +1,22 @@
+The issue described is that the `code-tools` menu does not show up when using a URL for the `source` option in the YAML front matter. The problem seems to be in the `resolveCodeTools` function, where the `source` property is being incorrectly resolved when it is a string (URL).
+
+To fix this, we need to ensure that the `source` property is correctly handled when it is a string. Specifically, we should not overwrite the `source` property with `!!format.render[kKeepSource]` when it is a string.
+
+Here is the proposed fix:
+
+```typescript
+### src/command/render/codetools.ts
+<<<<<<< SEARCH
+  // if we have request source, make sure we are able to keep source
+  if (codeToolsResolved.source) {
+    codeToolsResolved.source = !!format.render[kKeepSource];
+  }
+=======
+  // if we have request source, make sure we are able to keep source
+  if (typeof codeToolsResolved.source === "boolean" && codeToolsResolved.source) {
+    codeToolsResolved.source = !!format.render[kKeepSource];
+  }
+>>>>>>> REPLACE
+```
+
+This change ensures that if `codeToolsResolved.source` is a string (URL), it is not overwritten with `!!format.render[kKeepSource]`. Instead, it only modifies the `source` property if it is a boolean and true. This should resolve the issue where the `code-tools` menu does not show up when using a URL for the `source` option.

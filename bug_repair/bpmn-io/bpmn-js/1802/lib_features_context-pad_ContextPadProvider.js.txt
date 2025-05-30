@@ -1,0 +1,74 @@
+To add an "append anything" entry to the context pad as described in the issue, we need to modify the `ContextPadProvider.prototype.getContextPadEntries` function. We'll add a new entry that opens a menu with all possible elements.
+
+Here's the required `SEARCH/REPLACE` edit:
+
+```javascript
+### lib/features/context-pad/ContextPadProvider.js
+<<<<<<< SEARCH
+  if (isAny(businessObject, [ 'bpmn:DataObjectReference', 'bpmn:DataStoreReference' ])) {
+    assign(actions, {
+      'connect': {
+        group: 'connect',
+        className: 'bpmn-icon-connection-multi',
+        title: translate('Connect using DataInputAssociation'),
+        action: {
+          click: startConnect,
+          dragstart: startConnect
+        }
+      }
+    });
+  }
+
+  if (is(businessObject, 'bpmn:Group')) {
+    assign(actions, {
+      'append.text-annotation': appendAction('bpmn:TextAnnotation', 'bpmn-icon-text-annotation')
+    });
+  }
+=======
+  if (isAny(businessObject, [ 'bpmn:DataObjectReference', 'bpmn:DataStoreReference' ])) {
+    assign(actions, {
+      'connect': {
+        group: 'connect',
+        className: 'bpmn-icon-connection-multi',
+        title: translate('Connect using DataInputAssociation'),
+        action: {
+          click: startConnect,
+          dragstart: startConnect
+        }
+      }
+    });
+  }
+
+  if (is(businessObject, 'bpmn:Group')) {
+    assign(actions, {
+      'append.text-annotation': appendAction('bpmn:TextAnnotation', 'bpmn-icon-text-annotation')
+    });
+  }
+
+  // Add "append anything" entry
+  assign(actions, {
+    'append.anything': {
+      group: 'model',
+      className: 'bpmn-icon-append-anything',
+      title: translate('Append Anything'),
+      action: {
+        click: function(event, element) {
+          // Open a menu with all possible elements
+          var position = {
+            x: event.x,
+            y: event.y
+          };
+
+          popupMenu.open(element, 'append-menu', position, {
+            title: translate('Append Element'),
+            width: 300,
+            search: true
+          });
+        }
+      }
+    }
+  });
+>>>>>>> REPLACE
+```
+
+This edit adds a new entry to the context pad called "append anything" which, when clicked, opens a menu with all possible elements that can be appended. The `popupMenu.open` function is used to display this menu. You may need to define the `append-menu` entry in the `popupMenu` configuration to list all possible elements.

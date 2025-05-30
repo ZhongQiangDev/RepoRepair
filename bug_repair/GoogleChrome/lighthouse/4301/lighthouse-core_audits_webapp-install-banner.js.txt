@@ -1,0 +1,54 @@
+The issue described is that Lighthouse hangs indefinitely on "Loading page & waiting for onload" when auditing the specified page. This suggests a problem with the page's loading process or the way Lighthouse interacts with it. The code provided is for the `WebappInstallBanner` audit, which checks if a page is configured to prompt users with the web app install banner. However, the issue seems to be related to the loading phase rather than the audit itself.
+
+To address this, we need to ensure that the page loads correctly and that there are no issues with the service worker or other resources that could cause Lighthouse to hang. Here are some steps to diagnose and potentially fix the issue:
+
+1. **Check for Console Errors**: Open the Chrome DevTools console and check for any errors that might be preventing the page from loading correctly.
+2. **Service Worker Registration**: Ensure that the service worker is registered correctly and does not have any issues.
+3. **Network Requests**: Check the network tab in DevTools to see if there are any requests that are failing or taking too long to complete.
+
+Since the issue is not directly related to the `WebappInstallBanner` audit code, we don't need to make changes to the provided code. Instead, we should focus on the page's loading behavior.
+
+However, if we want to ensure that the audit code is robust and can handle potential issues, we can add some logging to help diagnose problems. Here's an example of how we can add logging to the `audit_` method:
+
+```javascript
+###lighthouse-core/audits/webapp-install-banner.js
+<<<<<<< SEARCH
+  static audit_(artifacts) {
+    const failures = [];
+    const warnings = [];
+
+    return artifacts.requestManifestValues(artifacts.Manifest).then(manifestValues => {
+      const result = {warnings, failures, manifestValues};
+      WebappInstallBanner.assessManifest(artifacts, result);
+      WebappInstallBanner.assessServiceWorker(artifacts, result);
+      WebappInstallBanner.assessOfflineStartUrl(artifacts, result);
+
+      return result;
+    });
+  }
+=======
+  static audit_(artifacts) {
+    const failures = [];
+    const warnings = [];
+
+    console.log('Starting WebappInstallBanner audit...');
+    return artifacts.requestManifestValues(artifacts.Manifest).then(manifestValues => {
+      console.log('Manifest values retrieved:', manifestValues);
+      const result = {warnings, failures, manifestValues};
+      WebappInstallBanner.assessManifest(artifacts, result);
+      console.log('Manifest assessment complete');
+      WebappInstallBanner.assessServiceWorker(artifacts, result);
+      console.log('Service worker assessment complete');
+      WebappInstallBanner.assessOfflineStartUrl(artifacts, result);
+      console.log('Offline start URL assessment complete');
+
+      return result;
+    }).catch(error => {
+      console.error('Error during WebappInstallBanner audit:', error);
+      throw error;
+    });
+  }
+>>>>>>> REPLACE
+```
+
+This will help in diagnosing any issues that might occur during the audit process. If the issue persists, further investigation into the page's loading behavior and network requests would be necessary.

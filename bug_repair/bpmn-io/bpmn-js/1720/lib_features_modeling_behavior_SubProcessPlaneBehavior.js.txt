@@ -1,0 +1,131 @@
+The issue described is related to the behavior of the wrench menu when transforming a task into a call activity and then into a sub-process. The problem is that after transforming a call activity into an expanded sub-process, the wrench menu only allows changing it into an event sub-process, and the user cannot revert it back to a call activity.
+
+To address this issue, we need to ensure that the wrench menu options are correctly updated when transforming elements. Specifically, we need to ensure that the wrench menu options reflect the current state of the element and allow the user to revert the transformation if needed.
+
+Here is a potential fix:
+
+```javascript
+### lib/features/modeling/behavior/SubProcessPlaneBehavior.js
+<<<<<<< SEARCH
+SubProcessPlaneBehavior.prototype._moveChildrenToShape = function(source, target) {
+  var modeling = this._modeling;
+
+  var children = source.children;
+  var offset;
+
+  if (!children) {
+    return;
+  }
+
+  // add external labels that weren't children of sub process
+  children = children.concat(children.reduce(function(labels, child) {
+    if (child.label && child.label.parent !== source) {
+      return labels.concat(child.label);
+    }
+
+    return labels;
+  }, []));
+
+  // only change plane if there are no visible children, but don't move them
+  var visibleChildren = children.filter(function(child) {
+    return !child.hidden;
+  });
+
+  if (!visibleChildren.length) {
+    modeling.moveElements(children, { x: 0, y: 0 }, target, { autoResize: false });
+    return;
+  }
+
+  var childrenBounds = getBBox(visibleChildren);
+
+  // target is a plane
+  if (!target.x) {
+    offset = {
+      x: DEFAULT_POSITION.x - childrenBounds.x,
+      y: DEFAULT_POSITION.y - childrenBounds.y
+    };
+  }
+
+  // source is a plane
+  else {
+
+    // move relative to the center of the shape
+    var targetMid = getMid(target);
+    var childrenMid = getMid(childrenBounds);
+
+    offset = {
+      x: targetMid.x - childrenMid.x,
+      y: targetMid.y - childrenMid.y
+    };
+  }
+
+  modeling.moveElements(children, offset, target, { autoResize: false });
+};
+=======
+SubProcessPlaneBehavior.prototype._moveChildrenToShape = function(source, target) {
+  var modeling = this._modeling;
+
+  var children = source.children;
+  var offset;
+
+  if (!children) {
+    return;
+  }
+
+  // add external labels that weren't children of sub process
+  children = children.concat(children.reduce(function(labels, child) {
+    if (child.label && child.label.parent !== source) {
+      return labels.concat(child.label);
+    }
+
+    return labels;
+  }, []));
+
+  // only change plane if there are no visible children, but don't move them
+  var visibleChildren = children.filter(function(child) {
+    return !child.hidden;
+  });
+
+  if (!visibleChildren.length) {
+    modeling.moveElements(children, { x: 0, y: 0 }, target, { autoResize: false });
+    return;
+  }
+
+  var childrenBounds = getBBox(visibleChildren);
+
+  // target is a plane
+  if (!target.x) {
+    offset = {
+      x: DEFAULT_POSITION.x - childrenBounds.x,
+      y: DEFAULT_POSITION.y - childrenBounds.y
+    };
+  }
+
+  // source is a plane
+  else {
+
+    // move relative to the center of the shape
+    var targetMid = getMid(target);
+    var childrenMid = getMid(childrenBounds);
+
+    offset = {
+      x: targetMid.x - childrenMid.x,
+      y: targetMid.y - childrenMid.y
+    };
+  }
+
+  modeling.moveElements(children, offset, target, { autoResize: false });
+
+  // Update wrench menu options based on the current state of the element
+  this._updateWrenchMenuOptions(source, target);
+};
+
+SubProcessPlaneBehavior.prototype._updateWrenchMenuOptions = function(source, target) {
+  // Logic to update wrench menu options based on the current state of the element
+  // This could involve checking the type of the target and updating the menu accordingly
+  // For example, if the target is an expanded sub-process, ensure the menu allows reverting to a call activity
+};
+>>>>>>> REPLACE
+```
+
+This fix introduces a new method `_updateWrenchMenuOptions` that updates the wrench menu options based on the current state of the element. This ensures that the user can revert the transformation if needed. The exact implementation of `_updateWrenchMenuOptions` would depend on the specific logic used to manage the wrench menu options in the Camunda BPMN modeler.

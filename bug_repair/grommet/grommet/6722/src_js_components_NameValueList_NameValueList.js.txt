@@ -1,0 +1,133 @@
+To align the `Name` and `value` of `NameValuePair` in a column mode as described in the issue, we need to ensure that the `NameValuePair` component properly aligns its children vertically. The issue seems to be related to the styling and layout properties within the `NameValueList` and `NameValuePair` components.
+
+Here's a potential fix:
+
+```javascript
+### src/js/components/NameValueList/NameValueList.js
+<<<<<<< SEARCH
+const NameValueList = forwardRef(
+  (
+    {
+      align,
+      layout = 'column',
+      nameProps,
+      pairProps = { direction: 'row' },
+      valueProps,
+      ...rest
+    },
+    ref,
+  ) => {
+    const size = useContext(ResponsiveContext);
+    const theme = useContext(ThemeContext);
+
+    // If layout is grid, valueWidth sets the max width of the column.
+    // Grid will 'fit' as many columns of valueWidth per row as container's
+    // width allows.
+    let columns;
+    const valueWidth = valueProps?.width || theme.nameValueList.value.width;
+    const nameWidth = nameProps?.width || theme.nameValueList.name.width;
+    if (size === 'small' || layout === 'grid')
+      columns = {
+        count: 'fit',
+        size: !Array.isArray(valueWidth) ? ['auto', valueWidth] : valueWidth,
+      };
+    else if (layout === 'column' && pairProps.direction === 'row')
+      columns = [
+        nameWidth,
+        !Array.isArray(valueWidth) ? ['auto', valueWidth] : valueWidth,
+      ];
+    else columns = [valueWidth];
+
+    let { gap } = theme.nameValueList;
+    if (
+      (pairProps.direction === 'column' || size === 'small') &&
+      theme.nameValueList.pair?.column?.gap
+    ) {
+      gap = theme.nameValueList.pair.column.gap;
+    }
+
+    const listContextValue = useMemo(
+      () => ({ nameProps, pairProps, valueProps }),
+      [nameProps, pairProps, valueProps],
+    );
+
+    return (
+      <NameValueListContext.Provider value={listContextValue}>
+        <Grid
+          as="dl"
+          ref={ref}
+          columns={columns}
+          gap={gap}
+          margin="none" // override browser default margin for dl
+          {...rest}
+        />
+      </NameValueListContext.Provider>
+    );
+  },
+);
+=======
+const NameValueList = forwardRef(
+  (
+    {
+      align,
+      layout = 'column',
+      nameProps,
+      pairProps = { direction: 'row', align: 'center' }, // Add align property for centering
+      valueProps,
+      ...rest
+    },
+    ref,
+  ) => {
+    const size = useContext(ResponsiveContext);
+    const theme = useContext(ThemeContext);
+
+    // If layout is grid, valueWidth sets the max width of the column.
+    // Grid will 'fit' as many columns of valueWidth per row as container's
+    // width allows.
+    let columns;
+    const valueWidth = valueProps?.width || theme.nameValueList.value.width;
+    const nameWidth = nameProps?.width || theme.nameValueList.name.width;
+    if (size === 'small' || layout === 'grid')
+      columns = {
+        count: 'fit',
+        size: !Array.isArray(valueWidth) ? ['auto', valueWidth] : valueWidth,
+      };
+    else if (layout === 'column' && pairProps.direction === 'row')
+      columns = [
+        nameWidth,
+        !Array.isArray(valueWidth) ? ['auto', valueWidth] : valueWidth,
+      ];
+    else columns = [valueWidth];
+
+    let { gap } = theme.nameValueList;
+    if (
+      (pairProps.direction === 'column' || size === 'small') &&
+      theme.nameValueList.pair?.column?.gap
+    ) {
+      gap = theme.nameValueList.pair.column.gap;
+    }
+
+    const listContextValue = useMemo(
+      () => ({ nameProps, pairProps, valueProps }),
+      [nameProps, pairProps, valueProps],
+    );
+
+    return (
+      <NameValueListContext.Provider value={listContextValue}>
+        <Grid
+          as="dl"
+          ref={ref}
+          columns={columns}
+          gap={gap}
+          margin="none" // override browser default margin for dl
+          {...rest}
+          align="center" // Add align property for centering
+        />
+      </NameValueListContext.Provider>
+    );
+  },
+);
+>>>>>>> REPLACE
+```
+
+This change ensures that the `NameValuePair` components are aligned vertically by adding the `align` property to the `pairProps` and the `Grid` component. This should help in achieving the expected behavior where the `Name` and `value` are horizontally centered.

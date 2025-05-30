@@ -1,0 +1,162 @@
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+  createRenderer() {
+    const parsedStyle = parseStyle(this.style_, this.getSourceBandCount_());
+
+    return new WebGLTileLayerRenderer(this, {
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      cacheSize: this.cacheSize_,
+      paletteTextures: parsedStyle.paletteTextures,
+    });
+  }
+=======
+  createRenderer() {
+    const parsedStyle = parseStyle(this.style_, this.getSourceBandCount_());
+
+    const renderer = new WebGLTileLayerRenderer(this, {
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      cacheSize: this.cacheSize_,
+      paletteTextures: parsedStyle.paletteTextures,
+    });
+
+    // Ensure the palette textures are properly managed when the renderer is created
+    if (parsedStyle.paletteTextures) {
+      renderer.setPaletteTextures(parsedStyle.paletteTextures);
+    }
+
+    return renderer;
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+  setStyle(style) {
+    this.styleVariables_ = style.variables || {};
+    this.style_ = style;
+    const parsedStyle = parseStyle(this.style_, this.getSourceBandCount_());
+    const renderer = this.getRenderer();
+    renderer.reset({
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      paletteTextures: parsedStyle.paletteTextures,
+    });
+    this.changed();
+  }
+=======
+  setStyle(style) {
+    this.styleVariables_ = style.variables || {};
+    this.style_ = style;
+    const parsedStyle = parseStyle(this.style_, this.getSourceBandCount_());
+    const renderer = this.getRenderer();
+    renderer.reset({
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      paletteTextures: parsedStyle.paletteTextures,
+    });
+
+    // Ensure the palette textures are properly managed when the style is updated
+    if (parsedStyle.paletteTextures) {
+      renderer.setPaletteTextures(parsedStyle.paletteTextures);
+    }
+
+    this.changed();
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+  render(frameState, target) {
+    this.rendered = true;
+    const viewState = frameState.viewState;
+    const sources = this.getSources(frameState.extent, viewState.resolution);
+    let ready = true;
+    for (let i = 0, ii = sources.length; i < ii; ++i) {
+      const source = sources[i];
+      const sourceState = source.getState();
+      if (sourceState == 'loading') {
+        const onChange = () => {
+          if (source.getState() == 'ready') {
+            source.removeEventListener('change', onChange);
+            this.changed();
+          }
+        };
+        source.addEventListener('change', onChange);
+      }
+      ready = ready && sourceState == 'ready';
+    }
+    const canvas = this.renderSources(frameState, sources);
+    if (this.getRenderer().renderComplete && ready) {
+      // Fully rendered, done.
+      this.renderedResolution_ = viewState.resolution;
+      return canvas;
+    }
+    // Render sources from previously fully rendered frames
+    if (this.renderedResolution_ > 0.5 * viewState.resolution) {
+      const altSources = this.getSources(
+        frameState.extent,
+        this.renderedResolution_,
+      ).filter((source) => !sources.includes(source));
+      if (altSources.length > 0) {
+        return this.renderSources(frameState, altSources);
+      }
+    }
+    return canvas;
+  }
+=======
+  render(frameState, target) {
+    this.rendered = true;
+    const viewState = frameState.viewState;
+    const sources = this.getSources(frameState.extent, viewState.resolution);
+    let ready = true;
+    for (let i = 0, ii = sources.length; i < ii; ++i) {
+      const source = sources[i];
+      const sourceState = source.getState();
+      if (sourceState == 'loading') {
+        const onChange = () => {
+          if (source.getState() == 'ready') {
+            source.removeEventListener('change', onChange);
+            this.changed();
+          }
+        };
+        source.addEventListener('change', onChange);
+      }
+      ready = ready && sourceState == 'ready';
+    }
+    const canvas = this.renderSources(frameState, sources);
+    if (this.getRenderer().renderComplete && ready) {
+      // Fully rendered, done.
+      this.renderedResolution_ = viewState.resolution;
+      return canvas;
+    }
+    // Render sources from previously fully rendered frames
+    if (this.renderedResolution_ > 0.5 * viewState.resolution) {
+      const altSources = this.getSources(
+        frameState.extent,
+        this.renderedResolution_,
+      ).filter((source) => !sources.includes(source));
+      if (altSources.length > 0) {
+        return this.renderSources(frameState, altSources);
+      }
+    }
+
+    // Ensure the palette textures are properly managed when rendering
+    const renderer = this.getRenderer();
+    if (renderer && renderer.paletteTextures) {
+      renderer.updatePaletteTextures();
+    }
+
+    return canvas;
+  }
+>>>>>>> REPLACE
+```

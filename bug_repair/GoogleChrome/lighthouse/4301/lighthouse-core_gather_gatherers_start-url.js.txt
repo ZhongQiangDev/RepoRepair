@@ -1,0 +1,88 @@
+The issue described is that Lighthouse hangs indefinitely on "Loading page & waiting for onload" when performing a Progressive Web App audit on a specific page. The provided code segment is from the `start-url.js` file, which is responsible for fetching the start URL and handling the network requests.
+
+The problem seems to be related to the `executeFetchRequest` method, which uses `fetch` to request the start URL. The issue might be that the `fetch` request is not completing or is not being properly handled, causing the audit to hang.
+
+To address this, we can add a timeout to the `fetch` request to ensure it doesn't hang indefinitely. We can also add some logging to help diagnose the issue further.
+
+Here's the proposed fix:
+
+```javascript
+###lighthouse-core/gather/gatherers/start-url.js
+<<<<<<< SEARCH
+  executeFetchRequest(driver, url) {
+    return new Promise((resolve, reject) => {
+      let requestId;
+      const fetchRequestId = (data) => {
+        if (URL.equalWithExcludedFragments(data.request.url, url)) {
+          requestId = data.requestId;
+          driver.off('Network.requestWillBeSent', fetchRequestId);
+        }
+      };
+      const fetchDone = (data) => {
+        if (data.requestId === requestId) {
+          driver.off('Network.loadingFinished', fetchDone);
+          driver.off('Network.loadingFailed', fetchDone);
+
+          resolve();
+        }
+      };
+
+      driver.on('Network.requestWillBeSent', fetchRequestId);
+      driver.on('Network.loadingFinished', fetchDone);
+      driver.on('Network.loadingFailed', fetchDone);
+      driver.evaluateAsync(
+        `fetch('${url}')
+          .then(response => response.status)
+          .catch(err => -1)`
+      ).catch(err => reject(err));
+    });
+  }
+=======
+  executeFetchRequest(driver, url) {
+    return new Promise((resolve, reject) => {
+      let requestId;
+      const fetchRequestId = (data) => {
+        if (URL.equalWithExcludedFragments(data.request.url, url)) {
+          requestId = data.requestId;
+          driver.off('Network.requestWillBeSent', fetchRequestId);
+        }
+      };
+      const fetchDone = (data) => {
+        if (data.requestId === requestId) {
+          driver.off('Network.loadingFinished', fetchDone);
+          driver.off('Network.loadingFailed', fetchDone);
+
+          resolve();
+        }
+      };
+
+      driver.on('Network.requestWillBeSent', fetchRequestId);
+      driver.on('Network.loadingFinished', fetchDone);
+      driver.on('Network.loadingFailed', fetchDone);
+
+      // Add a timeout to the fetch request
+      const timeout = setTimeout(() => {
+        console.log('Fetch request timed out');
+        reject(new Error('Fetch request timed out'));
+      }, 10000); // 10 seconds timeout
+
+      driver.evaluateAsync(
+        `fetch('${url}')
+          .then(response => {
+            clearTimeout(timeout);
+            return response.status;
+          })
+          .catch(err => {
+            clearTimeout(timeout);
+            return -1;
+          })`
+      ).catch(err => {
+        clearTimeout(timeout);
+        reject(err);
+      });
+    });
+  }
+>>>>>>> REPLACE
+```
+
+This change adds a 10-second timeout to the `fetch` request. If the request does not complete within 10 seconds, it will be rejected with an error message. This should prevent the audit from hanging indefinitely and help diagnose the issue further.

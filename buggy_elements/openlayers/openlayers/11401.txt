@@ -1,0 +1,80 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem involves two main issues:
+- **Hit Detection Failure**: When the scale is negative and the rotation is 0, the hit detection mechanism fails to register clicks on the icon.
+- **Rendering Issue**: The icon does not render correctly at the edge of the map when the scale is negative.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issues likely stem from how negative scales are handled in the rendering and hit detection processes. Negative scales can invert the geometry, which might not be properly accounted for in the hit detection logic or the rendering pipeline. Specifically:
+- **Hit Detection**: The hit detection mechanism might not correctly map the inverted geometry back to the original feature.
+- **Rendering**: The rendering process might not handle the inverted geometry correctly, leading to the icon disappearing at the map edge.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### `examples/icon-negative.js`
+```
+examples/icon-negative.js
+function: createStyle
+function: function_4
+```
+- **createStyle**: This function sets up the icon style, including its scale. It might need to handle negative scales differently to ensure proper rendering and hit detection.
+- **function_4**: This function handles the pointer move event and checks for features at the pixel location. It might need to be adjusted to correctly handle negative scales in hit detection.
+
+#### `examples/icon-scale.js`
+```
+examples/icon-scale.js
+function: function_1
+function: function_2
+function: function_5
+function: function_6
+function: updateStyle
+```
+- **function_1**: This function scales the icon based on trigonometric calculations. It might need to handle negative scales correctly.
+- **function_2**: This function scales the icon and text during the postrender event. It might need to handle negative scales correctly.
+- **function_5**: This function handles the pointermove event and checks for features at the pixel location. It might need to be adjusted to correctly handle negative scales in hit detection.
+- **function_6**: This function also handles the pointermove event and checks for features at the pixel location. It might need to be adjusted to correctly handle negative scales in hit detection.
+- **updateStyle**: This function updates the icon style based on user inputs, including scale. It might need to handle negative scales correctly.
+
+#### `src/ol/geom/Point.js`
+```
+This file contains no relevant functions/classes.
+```
+The Point class handles point geometries but does not directly relate to the hit detection or rendering issues described.
+
+#### `src/ol/render/canvas/hitdetect.js`
+```
+src/ol/render/canvas/hitdetect.js
+function: createHitDetectionImageData
+function: hitDetect
+```
+- **createHitDetectionImageData**: This function creates the ImageData used for hit detection. It might need to handle negative scales correctly when rendering features.
+- **hitDetect**: This function performs the actual hit detection. It might need to be adjusted to correctly handle negative scales when mapping pixel coordinates to features.
+
+#### `src/ol/render/canvas/Immediate.js`
+```
+src/ol/render/canvas/Immediate.js
+class: CanvasImmediateRenderer
+```
+- **CanvasImmediateRenderer**: This class handles the immediate rendering of vector data. It might need to handle negative scales correctly when rendering features.
+
+### Summary of Relevant Locations
+```
+examples/icon-negative.js
+function: createStyle
+function: function_4
+
+examples/icon-scale.js
+function: function_1
+function: function_2
+function: function_5
+function: function_6
+function: updateStyle
+
+src/ol/render/canvas/hitdetect.js
+function: createHitDetectionImageData
+function: hitDetect
+
+src/ol/render/canvas/Immediate.js
+class: CanvasImmediateRenderer
+```

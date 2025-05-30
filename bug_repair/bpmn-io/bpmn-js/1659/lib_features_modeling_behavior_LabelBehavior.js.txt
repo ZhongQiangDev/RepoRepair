@@ -1,0 +1,62 @@
+The issue described is that labels and associations do not reconnect to the `SequenceFlow` after resizing a connected shape. The problem seems to be in the `shape.resize` event handler, where the label's position is not being updated correctly when the shape is resized.
+
+To fix this, we need to ensure that the label's position is recalculated based on the new position of the shape after resizing. The current code calculates the reference point based on the old bounds, which may not be accurate after resizing.
+
+Here's the proposed fix:
+
+```javascript
+###lib/features/modeling/behavior/LabelBehavior.js
+<<<<<<< SEARCH
+    // move external label after resizing
+    this.postExecute('shape.resize', function(event) {
+
+      var context = event.context,
+          shape = context.shape,
+          newBounds = context.newBounds,
+          oldBounds = context.oldBounds;
+
+      if (hasExternalLabel(shape)) {
+
+        var label = shape.label,
+            labelMid = getMid(label),
+            edges = asEdges(oldBounds);
+
+        // get nearest border point to label as reference point
+        var referencePoint = getReferencePoint(labelMid, edges);
+
+        var delta = getReferencePointDelta(referencePoint, oldBounds, newBounds);
+
+        modeling.moveShape(label, delta);
+
+      }
+
+    });
+=======
+    // move external label after resizing
+    this.postExecute('shape.resize', function(event) {
+
+      var context = event.context,
+          shape = context.shape,
+          newBounds = context.newBounds,
+          oldBounds = context.oldBounds;
+
+      if (hasExternalLabel(shape)) {
+
+        var label = shape.label,
+            labelMid = getMid(label),
+            edges = asEdges(newBounds); // Use newBounds instead of oldBounds
+
+        // get nearest border point to label as reference point
+        var referencePoint = getReferencePoint(labelMid, edges);
+
+        var delta = getReferencePointDelta(referencePoint, oldBounds, newBounds);
+
+        modeling.moveShape(label, delta);
+
+      }
+
+    });
+>>>>>>> REPLACE
+```
+
+This change ensures that the reference point is calculated based on the new bounds of the shape after resizing, which should correctly update the label's position.

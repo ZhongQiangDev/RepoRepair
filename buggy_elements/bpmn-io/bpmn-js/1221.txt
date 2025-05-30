@@ -1,0 +1,62 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that after copying and pasting elements onto flows, the `AdaptiveLabelPositioningBehavior` is not applied. Specifically, when a boundary event with a vertically aligned label is copied and pasted onto a flow with a vertical direction, the label alignment is not updated to match the flow direction.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely arises because the `AdaptiveLabelPositioningBehavior` is not triggered or does not properly adjust the label position after the paste operation. This could be due to the following reasons:
+- The paste operation does not trigger the necessary events that the `AdaptiveLabelPositioningBehavior` listens to.
+- The `AdaptiveLabelPositioningBehavior` does not correctly handle the new elements created by the paste operation.
+- The label positioning logic does not account for the orientation of the flow after the paste operation.
+
+### 3. Examine Each File One by One
+
+#### lib/features/copy-paste/ModdleCopy.js
+
+```
+lib/features/copy-paste/ModdleCopy.js
+function: function_6
+function: function_8
+```
+
+**Reasoning**: The `function_6` and `function_8` are involved in copying properties and individual properties, respectively. If the label positioning properties are not being copied correctly, this could contribute to the issue.
+
+#### lib/features/modeling/Modeling.js
+
+```
+lib/features/modeling/Modeling.js
+function: function_3
+function: function_4
+```
+
+**Reasoning**: The `function_3` (`updateLabel`) and `function_4` (`createConnection`) might be relevant if the label update or connection creation does not trigger the necessary label positioning adjustments.
+
+#### lib/features/modeling/behavior/AdaptiveLabelPositioningBehavior.js
+
+```
+lib/features/modeling/behavior/AdaptiveLabelPositioningBehavior.js
+function: AdaptiveLabelPositioningBehavior
+function: getOptimalPosition
+function: getTakenConnectionAlignments
+```
+
+**Reasoning**: The `AdaptiveLabelPositioningBehavior` function and its related functions (`getOptimalPosition`, `getTakenConnectionAlignments`) are directly responsible for label positioning. If these functions do not handle the newly pasted elements correctly, the label positioning will not be updated.
+
+#### lib/features/modeling/behavior/AppendBehavior.js
+
+```
+This file contains no relevant functions/classes.
+```
+
+**Reasoning**: The `AppendBehavior` is related to appending shapes but does not seem directly relevant to the label positioning issue after a paste operation.
+
+#### lib/util/LabelUtil.js
+
+```
+lib/util/LabelUtil.js
+function: getExternalLabelBounds
+function: getExternalLabelMid
+function: getFlowLabelPosition
+```
+
+**Reasoning**: The `LabelUtil` functions (`getExternalLabelBounds`, `getExternalLabelMid`, `getFlowLabelPosition`) are responsible for calculating label positions. If these functions do not account for the orientation of the flow after a paste operation, the label positioning will be incorrect.

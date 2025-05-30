@@ -1,0 +1,63 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that Lighthouse hangs indefinitely on the "Loading page & waiting for onload" step when performing the "Progressive Web App" audit on the specified website. This indicates that Lighthouse is unable to complete the loading and evaluation process for the page, which is necessary for the audit.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from one of the following causes:
+- **Service Worker Issues**: The service worker might be causing the page to hang or not properly trigger the `onload` event.
+- **Start URL Availability**: The start URL specified in the web app manifest might not be available offline or is not being fetched correctly by the service worker.
+- **Network Recorder Issues**: There might be a problem with how network requests are being recorded or managed, leading to the audit getting stuck.
+- **Gather Phase Issues**: The gather phase might be encountering an issue when collecting artifacts from the browser, causing the audit to hang.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### `lighthouse-core/runner.js`
+```
+lighthouse-core/runner.js
+class: Runner
+```
+The `Runner` class is responsible for orchestrating the entire Lighthouse run, including the gather and audit phases. Since the issue occurs during the "Loading page & waiting for onload" step, the gather phase is likely involved. The `_gatherArtifactsFromBrowser` method in this class is responsible for establishing a connection and collecting artifacts, which could be relevant.
+
+#### `lighthouse-core/audits/webapp-install-banner.js`
+```
+lighthouse-core/audits/webapp-install-banner.js
+class: WebappInstallBanner
+```
+The `WebappInstallBanner` class is focused on verifying if a web application qualifies for displaying an install banner. This could be relevant to the issue of Lighthouse hanging during the loading phase.
+
+#### `lighthouse-core/gather/gatherers/service-worker.js`
+```
+lighthouse-core/gather/gatherers/service-worker.js
+class: ServiceWorker
+```
+The `ServiceWorker` class gathers information about service workers, which could be relevant if the issue is related to service worker behavior causing the page to hang.
+
+#### `lighthouse-core/gather/gatherers/start-url.js`
+```
+lighthouse-core/gather/gatherers/start-url.js
+class: StartUrl
+```
+The `StartUrl` class evaluates the start URL of a web application to ensure it is available offline. This is directly relevant if the issue is related to the start URL not being fetched correctly or not being available offline.
+
+#### `lighthouse-core/lib/network-recorder.js`
+```
+lighthouse-core/lib/network-recorder.js
+class: NetworkRecorder
+```
+The `NetworkRecorder` class tracks network requests and manages their lifecycle. If there is an issue with network requests not being properly recorded or managed, this could cause the audit to hang. The `onRequestStarted`, `onRequestFinished`, and `isIdle` methods could be relevant.
+
+### Summary of Relevant Locations
+```
+lighthouse-core/runner.js
+class: Runner
+
+lighthouse-core/gather/gatherers/service-worker.js
+class: ServiceWorker
+
+lighthouse-core/gather/gatherers/start-url.js
+class: StartUrl
+
+lighthouse-core/lib/network-recorder.js
+class: NetworkRecorder
+```

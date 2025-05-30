@@ -1,0 +1,54 @@
+The issue described is that the VoiceOver screen reader reads the dropdown items twice. This is likely due to the `ListBox.MenuItem` component having redundant or conflicting `aria` attributes or text content that causes the screen reader to announce the item more than once.
+
+To fix this, we need to ensure that the `ListBox.MenuItem` component only has the necessary `aria` attributes and text content that will be correctly announced by the screen reader.
+
+Here's the proposed fix:
+
+```javascript
+###packages/react/src/components/Dropdown/Dropdown.js
+<<<<<<< SEARCH
+                <ListBox.MenuItem
+                  key={itemProps.id}
+                  isActive={selectedItem === item}
+                  isHighlighted={
+                    highlightedIndex === index || selectedItem === item
+                  }
+                  title={itemToElement ? item.text : itemToString(item)}
+                  {...itemProps}>
+                  {itemToElement ? (
+                    <ItemToElement key={itemProps.id} {...item} />
+                  ) : (
+                    itemToString(item)
+                  )}
+                  {selectedItem === item && (
+                    <Checkmark16
+                      className={`${prefix}--list-box__menu-item__selected-icon`}
+                    />
+                  )}
+                </ListBox.MenuItem>
+=======
+                <ListBox.MenuItem
+                  key={itemProps.id}
+                  isActive={selectedItem === item}
+                  isHighlighted={
+                    highlightedIndex === index || selectedItem === item
+                  }
+                  {...itemProps}>
+                  {itemToElement ? (
+                    <ItemToElement key={itemProps.id} {...item} />
+                  ) : (
+                    itemToString(item)
+                  )}
+                  {selectedItem === item && (
+                    <Checkmark16
+                      className={`${prefix}--list-box__menu-item__selected-icon`}
+                      aria-hidden="true"
+                    />
+                  )}
+                </ListBox.MenuItem>
+>>>>>>> REPLACE
+```
+
+Explanation:
+1. Removed the `title` attribute from the `ListBox.MenuItem` component. The `title` attribute can cause the screen reader to announce the text twice.
+2. Added `aria-hidden="true"` to the `Checkmark16` icon. This ensures that the icon is not announced by the screen reader, as it is only used for visual indication and not for accessibility purposes.

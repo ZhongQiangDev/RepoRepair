@@ -1,0 +1,43 @@
+The issue described is related to the dimensions of an Ad Hoc Collapsed Subprocess getting distorted after collapsing and then turning it into an Ad Hoc Subprocess. The problem seems to be in the `ToggleElementCollapseBehaviour` class, specifically in the `postExecuted` function where the bounds of the shape are being recalculated.
+
+The `postExecuted` function calculates the new bounds for the shape based on whether it is collapsed or expanded. However, it seems that the calculation for the collapsed bounds is not taking into account the specific case of an Ad Hoc Subprocess, which might be causing the dimensions to get distorted.
+
+To fix this issue, we need to modify the `collapsedBounds` function to handle the Ad Hoc Subprocess case correctly. We can add a check to see if the shape is an Ad Hoc Subprocess and then calculate the bounds accordingly.
+
+Here is the proposed fix:
+
+```javascript
+###lib/features/modeling/behavior/ToggleElementCollapseBehaviour.js
+<<<<<<< SEARCH
+function collapsedBounds(shape, defaultSize) {
+
+    return {
+      x: shape.x + (shape.width - defaultSize.width) / 2,
+      y: shape.y + (shape.height - defaultSize.height) / 2,
+      width: defaultSize.width,
+      height: defaultSize.height
+    };
+}
+=======
+function collapsedBounds(shape, defaultSize) {
+
+    if (is(shape, 'bpmn:AdHocSubProcess')) {
+        return {
+            x: shape.x,
+            y: shape.y,
+            width: defaultSize.width,
+            height: defaultSize.height
+        };
+    }
+
+    return {
+      x: shape.x + (shape.width - defaultSize.width) / 2,
+      y: shape.y + (shape.height - defaultSize.height) / 2,
+      width: defaultSize.width,
+      height: defaultSize.height
+    };
+}
+>>>>>>> REPLACE
+```
+
+This fix adds a check to see if the shape is an Ad Hoc Subprocess and then calculates the bounds accordingly. This should prevent the dimensions from getting distorted when an Ad Hoc Collapsed Subprocess is created.

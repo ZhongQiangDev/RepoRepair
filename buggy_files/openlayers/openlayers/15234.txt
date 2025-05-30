@@ -1,0 +1,21 @@
+1. **Identify the wrong behavior involved in `GitHub Problem Description`:**
+   The WebGLPointsLayer does not correctly respect the `useGeographic` setting when rendering points. Specifically, it appears to ignore the specified projection (e.g., EPSG:4326) and instead renders points in EPSG:3857, leading to incorrect point locations on the map.
+
+2. **Analyze the cause behind the wrong behavior:**
+   The issue likely stems from a mismatch in how the WebGLPointsLayer handles coordinate transformations. When `useGeographic` is enabled, the map's projection is set to EPSG:4326 (WGS84), but the WebGLPointsLayer may not be properly transforming the point coordinates from EPSG:4326 to the map's rendering projection. This could be due to a missing or incorrect transformation step in the WebGLPointsLayer's rendering pipeline.
+
+3. **Find up to 5 files most related to the cause from `Repository Information`:**
+
+```
+src/ol/layer/WebGLPoints.js
+src/ol/proj.js
+src/ol/renderer/webgl/PointsLayer.js
+src/ol/proj/epsg4326.js
+src/ol/proj/epsg3857.js
+```
+
+- `src/ol/layer/WebGLPoints.js`: This file defines the WebGLPointsLayer class, which is responsible for rendering points using WebGL. It likely needs to be updated to correctly handle coordinate transformations when `useGeographic` is enabled.
+- `src/ol/proj.js`: This file contains projection management functions, including `useGeographic`, which sets the user projection to WGS-84 (EPSG:4326). Ensuring that this function correctly interacts with the WebGLPointsLayer is crucial.
+- `src/ol/renderer/webgl/PointsLayer.js`: This file contains the WebGLPointsLayerRenderer class, which handles the actual rendering of points using WebGL. It may need adjustments to properly transform coordinates before rendering.
+- `src/ol/proj/epsg4326.js`: This file defines the EPSG:4326 projection, which is used when `useGeographic` is enabled. Ensuring that this projection is correctly applied is important.
+- `src/ol/proj/epsg3857.js`: This file defines the EPSG:3857 projection, which is the default projection used by many maps. The issue might involve incorrect transformations between EPSG:4326 and EPSG:3857.

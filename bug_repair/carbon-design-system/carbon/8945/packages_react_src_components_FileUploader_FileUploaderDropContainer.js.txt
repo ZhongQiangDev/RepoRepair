@@ -1,0 +1,57 @@
+The issue is caused by the `<div>` element with `role="button"` containing an `<input>` element, which violates the WCAG 2.1 checkpoint 4.1.2. To fix this, we need to remove the `role="button"` from the `<div>` and instead apply it to the `<label>` element, which is the interactive element that triggers the file input.
+
+Here's the required SEARCH/REPLACE edit:
+
+```javascript
+### packages/react/src/components/FileUploader/FileUploaderDropContainer.js
+<<<<<<< SEARCH
+          <div className={dropareaClasses} role={role || 'button'}>
+            {labelText}
+            <input
+              type="file"
+              id={uid}
+              className={`${prefix}--file-input`}
+              ref={inputRef}
+              tabIndex="-1"
+              disabled={disabled}
+              accept={accept}
+              name={name}
+              multiple={multiple}
+              onChange={handleChange}
+              onClick={(evt) => {
+                evt.target.value = null;
+              }}
+            />
+          </div>
+=======
+          <div className={dropareaClasses}>
+            {labelText}
+            <input
+              type="file"
+              id={uid}
+              className={`${prefix}--file-input`}
+              ref={inputRef}
+              tabIndex="-1"
+              disabled={disabled}
+              accept={accept}
+              name={name}
+              multiple={multiple}
+              onChange={handleChange}
+              onClick={(evt) => {
+                evt.target.value = null;
+              }}
+            />
+          </div>
+          <label className={labelClasses} htmlFor={uid} role={role || 'button'} tabIndex={tabIndex || 0} onKeyDown={(evt) => {
+            if (matches(evt, [keys.Enter, keys.Space])) {
+              inputRef.current.click();
+            }
+          }} {...rest}>
+            <div className={dropareaClasses}>
+              {labelText}
+            </div>
+          </label>
+>>>>>>> REPLACE
+```
+
+This change moves the `role="button"` attribute from the `<div>` to the `<label>` element, ensuring that the interactive control is not nested within another interactive control. The `<div>` now only contains the label text and the file input, which resolves the accessibility violation.

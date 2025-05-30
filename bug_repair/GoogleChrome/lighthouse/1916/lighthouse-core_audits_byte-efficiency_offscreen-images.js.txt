@@ -1,0 +1,61 @@
+The issue is that the audit is flagging SVG files as having 0 area, which is causing an error. To fix this, we need to modify the `computeWaste` method to ignore SVG files.
+
+```javascript
+###lighthouse-core/audits/byte-efficiency/offscreen-images.js
+<<<<<<< SEARCH
+  static computeWaste(image, viewportDimensions) {
+    const url = URL.getDisplayName(image.src, {preserveQuery: true});
+    const totalPixels = image.clientWidth * image.clientHeight;
+    const visiblePixels = this.computeVisiblePixels(image.clientRect, viewportDimensions);
+    const wastedRatio = 1 - visiblePixels / totalPixels;
+    const totalBytes = image.networkRecord.resourceSize;
+    const wastedBytes = Math.round(totalBytes * wastedRatio);
+
+    if (!Number.isFinite(wastedRatio)) {
+      return new Error(`Invalid image sizing information ${url}`);
+    }
+
+    return {
+      url,
+      preview: {
+        url: image.networkRecord.url,
+        mimeType: image.networkRecord.mimeType
+      },
+      requestStartTime: image.networkRecord.startTime,
+      totalBytes,
+      wastedBytes,
+      wastedPercent: 100 * wastedRatio,
+    };
+  }
+=======
+  static computeWaste(image, viewportDimensions) {
+    const url = URL.getDisplayName(image.src, {preserveQuery: true});
+    const totalPixels = image.clientWidth * image.clientHeight;
+    const visiblePixels = this.computeVisiblePixels(image.clientRect, viewportDimensions);
+    const wastedRatio = 1 - visiblePixels / totalPixels;
+    const totalBytes = image.networkRecord.resourceSize;
+    const wastedBytes = Math.round(totalBytes * wastedRatio);
+
+    // Ignore SVG files
+    if (image.networkRecord.mimeType === 'image/svg+xml') {
+      return null;
+    }
+
+    if (!Number.isFinite(wastedRatio)) {
+      return new Error(`Invalid image sizing information ${url}`);
+    }
+
+    return {
+      url,
+      preview: {
+        url: image.networkRecord.url,
+        mimeType: image.networkRecord.mimeType
+      },
+      requestStartTime: image.networkRecord.startTime,
+      totalBytes,
+      wastedBytes,
+      wastedPercent: 100 * wastedRatio,
+    };
+  }
+>>>>>>> REPLACE
+```

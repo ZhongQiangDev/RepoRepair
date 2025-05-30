@@ -1,0 +1,43 @@
+The issue is that the `blendMode()` function is not working as expected in WebGL mode. The provided code snippets show that when using `blendMode(MULTIPLY)` in WebGL mode, the overlapping colors do not blend the same way as they do in 2D mode. This suggests that the WebGL renderer is not correctly applying the blend mode.
+
+To fix this, we need to ensure that the WebGL renderer correctly sets the blend mode. This typically involves setting the appropriate WebGL blend function.
+
+Here's the proposed fix:
+
+```javascript
+### src/webgl/p5.RendererGL.js
+<<<<<<< SEARCH
+p5.RendererGL.prototype.noErase = function() {
+  if (this._isErasing) {
+    this._isErasing = false;
+    this.curFillColor = this._cachedFillStyle.slice();
+    this.curStrokeColor = this._cachedStrokeStyle.slice();
+    this.blendMode(this._cachedBlendMode);
+  }
+};
+=======
+p5.RendererGL.prototype.blendMode = function(mode) {
+  this._cachedBlendMode = mode;
+  switch (mode) {
+    case constants.MULTIPLY:
+      this.gl.blendFunc(this.gl.ZERO, this.gl.ONE_MINUS_SRC_COLOR);
+      break;
+    // Add other blend modes as needed
+    default:
+      this.gl.blendFunc(this.gl.ONE, this.gl.ZERO);
+  }
+  this.gl.enable(this.gl.BLEND);
+};
+
+p5.RendererGL.prototype.noErase = function() {
+  if (this._isErasing) {
+    this._isErasing = false;
+    this.curFillColor = this._cachedFillStyle.slice();
+    this.curStrokeColor = this._cachedStrokeStyle.slice();
+    this.blendMode(this._cachedBlendMode);
+  }
+};
+>>>>>>> REPLACE
+```
+
+This code adds a `blendMode` method to the `p5.RendererGL` prototype that sets the appropriate WebGL blend function based on the specified blend mode. It also ensures that the blend mode is correctly restored when `noErase` is called.

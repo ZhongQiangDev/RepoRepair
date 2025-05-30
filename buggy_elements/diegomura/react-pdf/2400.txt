@@ -1,0 +1,56 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when using both `fixed` and `minPresenceAhead` on a header component, the `minPresenceAhead` rule is not obeyed. Specifically, the header appears on a page by itself, which should not happen if `minPresenceAhead` is correctly implemented.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how the `fixed` and `minPresenceAhead` properties interact during the layout calculation. The `fixed` property might be overriding or interfering with the `minPresenceAhead` logic, causing the header to appear on a page by itself despite the `minPresenceAhead` rule.
+
+### 3. Examine Each File One by One
+
+#### --- packages/layout/src/node/shouldBreak.js ---
+```
+packages/layout/src/node/shouldBreak.js
+function: function_6
+```
+The `function_6` (or `shouldBreak`) function is crucial for determining whether a layout break should occur. It checks conditions like `minPresenceAhead` and `futureHeight`, which are relevant to the issue described. The interaction between `fixed` and `minPresenceAhead` might need to be reviewed here.
+
+#### --- packages/layout/src/page/getWrapArea.js ---
+```
+This file contains no relevant functions/classes.
+```
+This file calculates the usable wrap area height of a page, which is not directly related to the `fixed` and `minPresenceAhead` interaction.
+
+#### --- packages/layout/src/steps/resolveDimensions.js ---
+```
+This file contains no relevant functions/classes.
+```
+This file deals with resolving dimensions and setting heights, but it does not directly handle the `fixed` and `minPresenceAhead` properties.
+
+#### --- packages/layout/src/steps/resolvePagination.js ---
+```
+packages/layout/src/steps/resolvePagination.js
+function: function_3
+function: function_5
+function: function_20
+```
+- `function_3`: This function splits nodes based on height and might need to consider the `fixed` and `minPresenceAhead` properties.
+- `function_5`: This function splits a view and might need to handle the interaction between `fixed` and `minPresenceAhead`.
+- `function_20`: This function paginates content and might need to ensure that `minPresenceAhead` is respected when `fixed` is applied.
+
+#### --- packages/layout/src/steps/resolveStyles.js ---
+```
+This file contains no relevant functions/classes.
+```
+This file resolves styles and does not directly handle layout breaks or pagination rules.
+
+### Summary of Relevant Locations
+```
+packages/layout/src/node/shouldBreak.js
+function: function_6
+
+packages/layout/src/steps/resolvePagination.js
+function: function_3
+function: function_5
+function: function_20
+```

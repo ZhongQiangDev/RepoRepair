@@ -1,0 +1,23 @@
+The issue described is that comments on the same line as decorators are not being properly formatted as comments. The decorator line is being highlighted with the `hljs-meta` class, while the comment section should be highlighted with the `hljs-comment` class.
+
+To fix this, we need to adjust the regular expression for the decorator (`@`) to allow for comments on the same line. We can do this by modifying the `meta` rule to include comments.
+
+Here's the proposed fix:
+
+```javascript
+### src/languages/python.js
+<<<<<<< SEARCH
+{
+  className: 'meta',
+  begin: /^[\t ]*@/, end: /$/
+},
+=======
+{
+  className: 'meta',
+  begin: /^[\t ]*@/, end: /(?:#.*$|$)/,
+  contains: [hljs.HASH_COMMENT_MODE]
+},
+>>>>>>> REPLACE
+```
+
+This change will allow the decorator line to include comments and properly highlight them as comments. The `end` pattern now looks for either the end of the line (`$`) or a comment (`#.*$`). The `contains` array is updated to include `hljs.HASH_COMMENT_MODE` so that the comment is properly highlighted.

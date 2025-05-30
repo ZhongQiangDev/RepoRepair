@@ -1,0 +1,49 @@
+The issue described is related to connecting message flows to the boundary of a pool that previously had more than one lane. The problem seems to be that after removing a lane, the message flow can only be connected at the header of the pool and not inside the single lane. This suggests that the code responsible for determining the connection points for message flows might not be correctly handling the case where a pool has had lanes added and then removed.
+
+The `LaneUtil.js` file contains functions related to lane manipulation and resizing. However, the issue seems to be more related to the connection logic rather than lane resizing. The function `computeLanesResize` is not directly related to the connection of message flows. Instead, we need to look at the logic that determines where message flows can be connected.
+
+Since the provided code does not contain the specific logic for message flow connections, we need to infer that the issue might be in a different part of the codebase. However, we can still make an educated guess and propose a fix based on the provided code.
+
+Here is a potential fix that involves modifying the `collectLanes` function to ensure that it correctly handles the case where a pool has had lanes added and then removed:
+
+```javascript
+### lib/features/modeling/util/LaneUtil.js
+<<<<<<< SEARCH
+export function collectLanes(shape, collectedShapes) {
+
+  collectedShapes = collectedShapes || [];
+
+  shape.children.filter(function(s) {
+    if (is(s, 'bpmn:Lane')) {
+      collectLanes(s, collectedShapes);
+
+      collectedShapes.push(s);
+    }
+  });
+
+  return collectedShapes;
+}
+=======
+export function collectLanes(shape, collectedShapes) {
+
+  collectedShapes = collectedShapes || [];
+
+  shape.children.forEach(function(s) {
+    if (is(s, 'bpmn:Lane')) {
+      collectLanes(s, collectedShapes);
+
+      collectedShapes.push(s);
+    }
+  });
+
+  // Ensure that the pool itself is included in the collected shapes if it has no lanes
+  if (shape.children.length === 0 && LANE_PARENTS.includes(shape.type)) {
+    collectedShapes.push(shape);
+  }
+
+  return collectedShapes;
+}
+>>>>>>> REPLACE
+```
+
+This fix ensures that if a pool has no lanes (after having lanes added and removed), the pool itself is included in the collected shapes. This might help in correctly determining the connection points for message flows. However, a more comprehensive fix might require changes in other parts of the codebase that handle message flow connections.

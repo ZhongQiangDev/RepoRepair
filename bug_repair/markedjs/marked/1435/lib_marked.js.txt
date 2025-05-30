@@ -1,0 +1,16 @@
+The issue described is related to the need to escape parentheses `(` with a backslash `\` in order for them to be properly rendered in the markdown output. This suggests that the current regex patterns used for parsing inline content are not correctly handling unescaped parentheses.
+
+To fix this, we need to adjust the regex pattern for the `text` rule in the `inline` grammar to properly handle unescaped parentheses. Specifically, we need to ensure that parentheses are treated as regular text unless they are part of a link or other special syntax.
+
+Here's the proposed fix:
+
+```javascript
+###lib/marked.js
+<<<<<<< SEARCH
+inline.text = /^(`+|[^`])[\s\S]*?(?=[\\<!\[`*]|\b_| {2,}\n|$)/
+=======
+inline.text = /^(`+|[^`])[\s\S]*?(?=[\\<!\[`*]|\(|\)|\b_| {2,}\n|$)/
+>>>>>>> REPLACE
+```
+
+This change modifies the `inline.text` regex to include `(` and `)` as characters that can terminate a text segment, ensuring that unescaped parentheses are treated as regular text rather than special syntax. This should resolve the issue where parentheses need to be escaped with a backslash to be properly rendered.

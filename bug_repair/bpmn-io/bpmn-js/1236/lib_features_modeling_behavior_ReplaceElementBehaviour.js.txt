@@ -1,0 +1,62 @@
+The issue described is related to the dimensions of an Ad Hoc Collapsed Subprocess changing unexpectedly when it is turned into an Ad Hoc Subprocess. The code provided is related to the replacement behavior of elements in the BPMN modeler. However, the issue seems to be more related to the resizing or dimension handling of the elements rather than the replacement behavior.
+
+To address this issue, we need to ensure that the dimensions of the Subprocess are preserved when it is turned into an Ad Hoc Subprocess. This likely involves modifying the code that handles the resizing or dimension setting of the elements.
+
+Since the provided code does not directly handle the resizing or dimension setting of elements, we need to look for the relevant code that does. However, based on the provided code, we can make an educated guess that the issue might be related to the `replaceElements` function, which is responsible for replacing elements in the BPMN model.
+
+Here is a potential fix:
+
+```javascript
+### lib/features/modeling/behavior/ReplaceElementBehaviour.js
+<<<<<<< SEARCH
+ReplaceElementBehaviour.prototype.replaceElements = function(elements, newElements) {
+  var elementRegistry = this._elementRegistry,
+      bpmnReplace = this._bpmnReplace,
+      selection = this._selection;
+
+  forEach(newElements, function(replacement) {
+    var newElement = {
+      type: replacement.newElementType
+    };
+
+    var oldElement = elementRegistry.get(replacement.oldElementId);
+
+    var idx = elements.indexOf(oldElement);
+
+    elements[idx] = bpmnReplace.replaceElement(oldElement, newElement, { select: false });
+  });
+
+  if (newElements) {
+    selection.select(elements);
+  }
+};
+=======
+ReplaceElementBehaviour.prototype.replaceElements = function(elements, newElements) {
+  var elementRegistry = this._elementRegistry,
+      bpmnReplace = this._bpmnReplace,
+      selection = this._selection;
+
+  forEach(newElements, function(replacement) {
+    var newElement = {
+      type: replacement.newElementType
+    };
+
+    var oldElement = elementRegistry.get(replacement.oldElementId);
+
+    var idx = elements.indexOf(oldElement);
+
+    // Preserve the dimensions of the old element
+    newElement.width = oldElement.width;
+    newElement.height = oldElement.height;
+
+    elements[idx] = bpmnReplace.replaceElement(oldElement, newElement, { select: false });
+  });
+
+  if (newElements) {
+    selection.select(elements);
+  }
+};
+>>>>>>> REPLACE
+```
+
+This fix ensures that the dimensions of the old element are preserved when it is replaced with a new element. This should prevent the dimensions of the Ad Hoc Collapsed Subprocess from changing unexpectedly.

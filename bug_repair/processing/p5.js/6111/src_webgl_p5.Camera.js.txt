@@ -1,0 +1,243 @@
+The issue described in the bug report is related to the `ortho()` and `frustum()` functions not correctly setting the `cameraNear` and `cameraFar` values, as well as some other small bugs related to the default behavior of `frustum()` and the vertical direction being reversed.
+
+To address these issues, we need to make changes to the `p5.Camera.prototype.ortho` and `p5.Camera.prototype.frustum` methods. Specifically, we need to ensure that the `cameraNear` and `cameraFar` values are correctly set and that the default behavior of `frustum()` is adjusted.
+
+Here are the necessary *SEARCH/REPLACE* edits:
+
+```javascript
+### src/webgl/p5.Camera.js
+<<<<<<< SEARCH
+p5.Camera.prototype.ortho = function(left, right, bottom, top, near, far) {
+  if (left === undefined) left = -this._renderer.width / 2;
+  if (right === undefined) right = +this._renderer.width / 2;
+  if (bottom === undefined) bottom = -this._renderer.height / 2;
+  if (top === undefined) top = +this._renderer.height / 2;
+  if (near === undefined) near = 0;
+  if (far === undefined)
+    far = Math.max(this._renderer.width, this._renderer.height);
+
+  const w = right - left;
+  const h = top - bottom;
+  const d = far - near;
+
+  const x = +2.0 / w;
+  const y = +2.0 / h * this.yScale;
+  const z = -2.0 / d;
+
+  const tx = -(right + left) / w;
+  const ty = -(top + bottom) / h;
+  const tz = -(far + near) / d;
+
+  this.projMatrix = p5.Matrix.identity();
+
+  /* eslint-disable indent */
+  this.projMatrix.set(  x,  0,  0,  0,
+                        0, -y,  0,  0,
+                        0,  0,  z,  0,
+                        tx, ty, tz,  1);
+  /* eslint-enable indent */
+
+  if (this._isActive()) {
+    this._renderer.uPMatrix.set(
+      this.projMatrix.mat4[0],
+      this.projMatrix.mat4[1],
+      this.projMatrix.mat4[2],
+      this.projMatrix.mat4[3],
+      this.projMatrix.mat4[4],
+      this.projMatrix.mat4[5],
+      this.projMatrix.mat4[6],
+      this.projMatrix.mat4[7],
+      this.projMatrix.mat4[8],
+      this.projMatrix.mat4[9],
+      this.projMatrix.mat4[10],
+      this.projMatrix.mat4[11],
+      this.projMatrix.mat4[12],
+      this.projMatrix.mat4[13],
+      this.projMatrix.mat4[14],
+      this.projMatrix.mat4[15]
+    );
+  }
+
+  this.cameraNear = near;
+  this.cameraFar = far;
+
+  this.cameraType = 'custom';
+};
+=======
+p5.Camera.prototype.ortho = function(left, right, bottom, top, near, far) {
+  if (left === undefined) left = -this._renderer.width / 2;
+  if (right === undefined) right = +this._renderer.width / 2;
+  if (bottom === undefined) bottom = -this._renderer.height / 2;
+  if (top === undefined) top = +this._renderer.height / 2;
+  if (near === undefined) near = -Math.max(this._renderer.width, this._renderer.height);
+  if (far === undefined)
+    far = Math.max(this._renderer.width, this._renderer.height);
+
+  const w = right - left;
+  const h = top - bottom;
+  const d = far - near;
+
+  const x = +2.0 / w;
+  const y = +2.0 / h * this.yScale;
+  const z = -2.0 / d;
+
+  const tx = -(right + left) / w;
+  const ty = -(top + bottom) / h;
+  const tz = -(far + near) / d;
+
+  this.projMatrix = p5.Matrix.identity();
+
+  /* eslint-disable indent */
+  this.projMatrix.set(  x,  0,  0,  0,
+                        0, -y,  0,  0,
+                        0,  0,  z,  0,
+                        tx, ty, tz,  1);
+  /* eslint-enable indent */
+
+  if (this._isActive()) {
+    this._renderer.uPMatrix.set(
+      this.projMatrix.mat4[0],
+      this.projMatrix.mat4[1],
+      this.projMatrix.mat4[2],
+      this.projMatrix.mat4[3],
+      this.projMatrix.mat4[4],
+      this.projMatrix.mat4[5],
+      this.projMatrix.mat4[6],
+      this.projMatrix.mat4[7],
+      this.projMatrix.mat4[8],
+      this.projMatrix.mat4[9],
+      this.projMatrix.mat4[10],
+      this.projMatrix.mat4[11],
+      this.projMatrix.mat4[12],
+      this.projMatrix.mat4[13],
+      this.projMatrix.mat4[14],
+      this.projMatrix.mat4[15]
+    );
+  }
+
+  this.cameraNear = near;
+  this.cameraFar = far;
+
+  this.cameraType = 'custom';
+};
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/webgl/p5.Camera.js
+<<<<<<< SEARCH
+p5.Camera.prototype.frustum = function(left, right, bottom, top, near, far) {
+  if (left === undefined) left = -this._renderer.width / 2;
+  if (right === undefined) right = +this._renderer.width / 2;
+  if (bottom === undefined) bottom = -this._renderer.height / 2;
+  if (top === undefined) top = +this._renderer.height / 2;
+  if (near === undefined) near = 0;
+  if (far === undefined)
+    far = Math.max(this._renderer.width, this._renderer.height);
+
+  const w = right - left;
+  const h = top - bottom;
+  const d = far - near;
+
+  const x = +(2.0 * near) / w;
+  const y = +(2.0 * near) / h * this.yScale;
+  const z = -(2.0 * far * near) / d;
+
+  const tx = (right + left) / w;
+  const ty = (top + bottom) / h;
+  const tz = -(far + near) / d;
+
+  this.projMatrix = p5.Matrix.identity();
+
+  /* eslint-disable indent */
+  this.projMatrix.set(  x,  0,  0,  0,
+                        0,  y,  0,  0,
+                       tx, ty, tz, -1,
+                        0,  0,  z,  0);
+  /* eslint-enable indent */
+
+  if (this._isActive()) {
+    this._renderer.uPMatrix.set(
+      this.projMatrix.mat4[0],
+      this.projMatrix.mat4[1],
+      this.projMatrix.mat4[2],
+      this.projMatrix.mat4[3],
+      this.projMatrix.mat4[4],
+      this.projMatrix.mat4[5],
+      this.projMatrix.mat4[6],
+      this.projMatrix.mat4[7],
+      this.projMatrix.mat4[8],
+      this.projMatrix.mat4[9],
+      this.projMatrix.mat4[10],
+      this.projMatrix.mat4[11],
+      this.projMatrix.mat4[12],
+      this.projMatrix.mat4[13],
+      this.projMatrix.mat4[14],
+      this.projMatrix.mat4[15]
+    );
+  }
+
+  this.cameraNear = near;
+  this.cameraFar = far;
+
+  this.cameraType = 'custom';
+};
+=======
+p5.Camera.prototype.frustum = function(left, right, bottom, top, near, far) {
+  if (left === undefined) left = -this._renderer.width / 2;
+  if (right === undefined) right = +this._renderer.width / 2;
+  if (bottom === undefined) bottom = -this._renderer.height / 2;
+  if (top === undefined) top = +this._renderer.height / 2;
+  if (near === undefined) near = 0.1 * Math.max(this._renderer.width, this._renderer.height);
+  if (far === undefined)
+    far = 1000 * Math.max(this._renderer.width, this._renderer.height);
+
+  const w = right - left;
+  const h = top - bottom;
+  const d = far - near;
+
+  const x = +(2.0 * near) / w;
+  const y = +(2.0 * near) / h * this.yScale;
+  const z = -(2.0 * far * near) / d;
+
+  const tx = (right + left) / w;
+  const ty = (top + bottom) / h;
+  const tz = -(far + near) / d;
+
+  this.projMatrix = p5.Matrix.identity();
+
+  /* eslint-disable indent */
+  this.projMatrix.set(  x,  0,  0,  0,
+                        0,  y,  0,  0,
+                       tx, ty, tz, -1,
+                        0,  0,  z,  0);
+  /* eslint-enable indent */
+
+  if (this._isActive()) {
+    this._renderer.uPMatrix.set(
+      this.projMatrix.mat4[0],
+      this.projMatrix.mat4[1],
+      this.projMatrix.mat4[2],
+      this.projMatrix.mat4[3],
+      this.projMatrix.mat4[4],
+      this.projMatrix.mat4[5],
+      this.projMatrix.mat4[6],
+      this.projMatrix.mat4[7],
+      this.projMatrix.mat4[8],
+      this.projMatrix.mat4[9],
+      this.projMatrix.mat4[10],
+      this.projMatrix.mat4[11],
+      this.projMatrix.mat4[12],
+      this.projMatrix.mat4[13],
+      this.projMatrix.mat4[14],
+      this.projMatrix.mat4[15]
+    );
+  }
+
+  this.cameraNear = near;
+  this.cameraFar = far;
+
+  this.cameraType = 'custom';
+};
+>>>>>>> REPLACE
+```

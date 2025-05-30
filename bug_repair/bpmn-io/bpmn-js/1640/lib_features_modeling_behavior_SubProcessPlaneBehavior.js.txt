@@ -1,0 +1,52 @@
+The issue described is related to the loss of multi-instance properties when switching between parallel and sequential multi-instance configurations in a BPMN model. The provided code does not directly address the multi-instance properties, so the bug is likely located in a different part of the codebase, possibly in the BPMN modeler's behavior for handling multi-instance properties.
+
+However, based on the issue description and the provided code, it seems that the code is responsible for managing the creation and deletion of BPMN planes for collapsed subprocesses. The issue might be related to how the properties are being handled during the transition between parallel and sequential multi-instance configurations.
+
+To address this issue, we need to ensure that the multi-instance properties are preserved when switching between parallel and sequential configurations. This might involve modifying the behavior of the `shape.replace` command or adding additional logic to handle the preservation of properties.
+
+Here is a potential fix:
+
+```javascript
+### lib/features/modeling/behavior/SubProcessPlaneBehavior.js
+<<<<<<< SEARCH
+this.postExecuted('shape.replace', function(context) {
+    var newShape = context.newShape,
+        source = context.oldRoot,
+        target = canvas.findRoot(getPlaneIdFromShape(newShape));
+
+    if (!source || !target) {
+      return;
+    }
+    var elements = source.children;
+
+    modeling.moveElements(elements, { x: 0, y: 0 }, target);
+  }, true);
+=======
+this.postExecuted('shape.replace', function(context) {
+    var newShape = context.newShape,
+        source = context.oldRoot,
+        target = canvas.findRoot(getPlaneIdFromShape(newShape));
+
+    if (!source || !target) {
+      return;
+    }
+
+    // Preserve multi-instance properties
+    var sourceBusinessObject = getBusinessObject(source);
+    var targetBusinessObject = getBusinessObject(target);
+
+    if (sourceBusinessObject && targetBusinessObject) {
+      targetBusinessObject.loopCardinality = sourceBusinessObject.loopCardinality;
+      targetBusinessObject.collection = sourceBusinessObject.collection;
+      targetBusinessObject.elementVariable = sourceBusinessObject.elementVariable;
+      targetBusinessObject.completionCondition = sourceBusinessObject.completionCondition;
+    }
+
+    var elements = source.children;
+
+    modeling.moveElements(elements, { x: 0, y: 0 }, target);
+  }, true);
+>>>>>>> REPLACE
+```
+
+This fix ensures that the multi-instance properties (loop cardinality, collection, element variable, and completion condition) are preserved when switching between parallel and sequential multi-instance configurations. The properties are copied from the source business object to the target business object before moving the elements.

@@ -1,0 +1,103 @@
+The issue described is that after pasting certain elements, with a task on the first position, direct editing is activated for the task element. This behavior is not expected, and the bug persists even though a previous issue (#1152) aimed to solve this by selecting all elements after pasting.
+
+The problem seems to be related to the `activateDirectEdit` function, which is called after pasting elements. This function checks if the element is a task, text annotation, or group and activates direct editing if it is. The issue might be that this function is being called immediately after pasting, before the elements are fully rendered or selected.
+
+To fix this, we can modify the `activateDirectEdit` function to check if the element is being pasted and avoid activating direct editing in that case. We can also add a delay before activating direct editing to ensure that the elements are fully rendered and selected.
+
+Here is the proposed fix:
+
+```javascript
+### lib/features/label-editing/LabelEditingProvider.js
+<<<<<<< SEARCH
+function activateDirectEdit(element, force) {
+  if (force ||
+      isAny(element, [ 'bpmn:Task', 'bpmn:TextAnnotation', 'bpmn:Group' ]) ||
+      isCollapsedSubProcess(element)) {
+
+    directEditing.activate(element);
+  }
+}
+=======
+function activateDirectEdit(element, force, isPasting) {
+  if (isPasting) {
+    return;
+  }
+
+  if (force ||
+      isAny(element, [ 'bpmn:Task', 'bpmn:TextAnnotation', 'bpmn:Group' ]) ||
+      isCollapsedSubProcess(element)) {
+
+    setTimeout(function() {
+      directEditing.activate(element);
+    }, 0);
+  }
+}
+>>>>>>> REPLACE
+```
+
+We also need to modify the `eventBus.on('create.end', 500, function(event) { ... })` and `eventBus.on('autoPlace.end', 500, function(event) { ... })` event handlers to pass the `isPasting` flag to the `activateDirectEdit` function:
+
+```javascript
+### lib/features/label-editing/LabelEditingProvider.js
+<<<<<<< SEARCH
+eventBus.on('create.end', 500, function(event) {
+
+  var element = event.shape,
+      canExecute = event.context.canExecute,
+      isTouch = event.isTouch;
+
+  // TODO(nikku): we need to find a way to support the
+  // direct editing on mobile devices; right now this will
+  // break for desworkflowediting on mobile devices
+  // as it breaks the user interaction workflow
+
+  // TODO(nre): we should temporarily focus the edited element
+  // here and release the focused viewport after the direct edit
+  // operation is finished
+  if (isTouch) {
+    return;
+  }
+
+  if (!canExecute) {
+    return;
+  }
+
+  activateDirectEdit(element);
+});
+
+eventBus.on('autoPlace.end', 500, function(event) {
+  activateDirectEdit(event.shape);
+});
+=======
+eventBus.on('create.end', 500, function(event) {
+
+  var element = event.shape,
+      canExecute = event.context.canExecute,
+      isTouch = event.isTouch;
+
+  // TODO(nikku): we need to find a way to support the
+  // direct editing on mobile devices; right now this will
+  // break for desworkflowediting on mobile devices
+  // as it breaks the user interaction workflow
+
+  // TODO(nre): we should temporarily focus the edited element
+  // here and release the focused viewport after the direct edit
+  // operation is finished
+  if (isTouch) {
+    return;
+  }
+
+  if (!canExecute) {
+    return;
+  }
+
+  activateDirectEdit(element, false, false);
+});
+
+eventBus.on('autoPlace.end', 500, function(event) {
+  activateDirectEdit(event.shape, false, false);
+});
+>>>>>>> REPLACE
+```
+
+These changes should prevent direct editing from being activated immediately after pasting elements, and instead activate it after a short delay to ensure that the elements are fully rendered and selected.

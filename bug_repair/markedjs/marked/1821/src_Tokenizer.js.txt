@@ -1,0 +1,37 @@
+The issue described is that the strikethrough markdown (`~~`) is not rendering correctly in certain cases. Specifically, the text `~~67890~` and `~13579~` are not being rendered as strikethrough. This suggests that the current implementation of the `del` method in the `Tokenizer` class is not handling these cases properly.
+
+To fix this, we need to adjust the regular expression used in the `del` method to correctly match and handle these cases.
+
+Here's the proposed fix:
+
+```javascript
+### src/Tokenizer.js
+<<<<<<< SEARCH
+  del(src) {
+    const cap = this.rules.inline.del.exec(src);
+    if (cap) {
+      return {
+        type: 'del',
+        raw: cap[0],
+        text: cap[1]
+      };
+    }
+  }
+=======
+  del(src) {
+    const cap = this.rules.inline.del.exec(src);
+    if (cap) {
+      return {
+        type: 'del',
+        raw: cap[0],
+        text: cap[1].replace(/^~~|~~$/g, '').replace(/^~|~$/g, '')
+      };
+    }
+  }
+>>>>>>> REPLACE
+```
+
+Explanation:
+1. The `del` method is modified to include additional logic to handle cases where the strikethrough markdown is not correctly matched.
+2. The `text` property is updated to remove the leading and trailing `~~` or `~` characters using the `replace` method with appropriate regular expressions.
+3. This ensures that the text inside the strikethrough markdown is correctly extracted and rendered.

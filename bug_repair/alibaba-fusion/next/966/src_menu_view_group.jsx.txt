@@ -1,0 +1,38 @@
+The issue arises because the `children` prop in the `Group` component is being treated as an array of children, but when there is a single child with a space in the label, it is being split into multiple children, causing the `map` function to fail when it tries to access properties on `undefined`.
+
+To fix this, we need to ensure that `children` is always treated as an array, even if it contains a single child. We can achieve this by using `React.Children.toArray` to convert `children` into an array.
+
+Here is the fix:
+
+```javascript
+### src/menu/view/group.jsx
+<<<<<<< SEARCH
+        const newChildren = children.map(child => {
+            const { className } = child.props;
+            const newChildClassName = cx({
+                [`${prefix}menu-group-item`]: true,
+                [className]: !!className,
+            });
+
+            return cloneElement(child, {
+                parentMode,
+                className: newChildClassName,
+            });
+        });
+=======
+        const newChildren = React.Children.toArray(children).map(child => {
+            const { className } = child.props;
+            const newChildClassName = cx({
+                [`${prefix}menu-group-item`]: true,
+                [className]: !!className,
+            });
+
+            return cloneElement(child, {
+                parentMode,
+                className: newChildClassName,
+            });
+        });
+>>>>>>> REPLACE
+```
+
+This change ensures that `children` is always treated as an array, even if it contains a single child, thus preventing the `TypeError` from occurring.

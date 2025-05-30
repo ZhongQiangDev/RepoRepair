@@ -1,0 +1,115 @@
+The issue described is related to the `onLeave` event not being consistently called when the mouse moves outside the legend area, causing the highlight effect to persist. This can be addressed by ensuring that the `onLeave` event is triggered reliably when the mouse exits the legend area.
+
+To fix this, we can add a `mouseout` event listener to the legend container that will call the `onLeave` function when the mouse exits the legend area. This will ensure that the `onLeave` event is always called when the mouse leaves the legend area.
+
+Here's the proposed fix:
+
+```typescript
+### src/plugins/plugin.legend.js
+<<<<<<< SEARCH
+  handleEvent(e) {
+    const opts = this.options;
+    if (!isListened(e.type, opts)) {
+      return;
+    }
+
+    // Chart event already has relative position in it
+    const hoveredItem = this._getLegendItemAt(e.x, e.y);
+
+    if (e.type === 'mousemove') {
+      const previous = this._hoveredItem;
+      const sameItem = itemsEqual(previous, hoveredItem);
+      if (previous && !sameItem) {
+        call(opts.onLeave, [e, previous, this], this);
+      }
+
+      this._hoveredItem = hoveredItem;
+
+      if (hoveredItem && !sameItem) {
+        call(opts.onHover, [e, hoveredItem, this], this);
+      }
+    } else if (hoveredItem) {
+      call(opts.onClick, [e, hoveredItem, this], this);
+    }
+  }
+=======
+  handleEvent(e) {
+    const opts = this.options;
+    if (!isListened(e.type, opts)) {
+      return;
+    }
+
+    // Chart event already has relative position in it
+    const hoveredItem = this._getLegendItemAt(e.x, e.y);
+
+    if (e.type === 'mousemove') {
+      const previous = this._hoveredItem;
+      const sameItem = itemsEqual(previous, hoveredItem);
+      if (previous && !sameItem) {
+        call(opts.onLeave, [e, previous, this], this);
+      }
+
+      this._hoveredItem = hoveredItem;
+
+      if (hoveredItem && !sameItem) {
+        call(opts.onHover, [e, hoveredItem, this], this);
+      }
+    } else if (hoveredItem) {
+      call(opts.onClick, [e, hoveredItem, this], this);
+    }
+  }
+
+  // Add mouseout event listener to handle onLeave reliably
+  addMouseOutListener() {
+    const legendContainer = this.chart.legend.legendContainer;
+    legendContainer.addEventListener('mouseout', (e) => {
+      if (this._hoveredItem) {
+        call(this.options.onLeave, [e, this._hoveredItem, this], this);
+        this._hoveredItem = null;
+      }
+    });
+  }
+
+  // Call the addMouseOutListener method in the constructor
+  constructor(config) {
+    super();
+
+    this._added = false;
+
+    // Contains hit boxes for each dataset (in dataset order)
+    this.legendHitBoxes = [];
+
+    /**
+     * @private
+     */
+    this._hoveredItem = null;
+
+    // Are we in doughnut mode which has a different data type
+    this.doughnutMode = false;
+
+    this.chart = config.chart;
+    this.options = config.options;
+    this.ctx = config.ctx;
+    this.legendItems = undefined;
+    this.columnSizes = undefined;
+    this.lineWidths = undefined;
+    this.maxHeight = undefined;
+    this.maxWidth = undefined;
+    this.top = undefined;
+    this.bottom = undefined;
+    this.left = undefined;
+    this.right = undefined;
+    this.height = undefined;
+    this.width = undefined;
+    this._margins = undefined;
+    this.position = undefined;
+    this.weight = undefined;
+    this.fullSize = undefined;
+
+    // Add mouseout listener
+    this.addMouseOutListener();
+  }
+>>>>>>> REPLACE
+```
+
+This solution adds a `mouseout` event listener to the legend container, which will call the `onLeave` function when the mouse exits the legend area. This ensures that the `onLeave` event is always called, preventing the highlight effect from persisting.

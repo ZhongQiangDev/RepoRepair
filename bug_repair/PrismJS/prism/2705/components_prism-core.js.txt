@@ -1,0 +1,31 @@
+The issue described in the bug report seems to be related to how template literals are being parsed and highlighted in the PrismJS syntax highlighter. Specifically, the problem arises when a template literal is used after a comment containing a template literal and a regex with a single quote.
+
+To address this issue, we need to ensure that the template literal parsing is not affected by the presence of comments or regex patterns earlier in the code. This can be achieved by adjusting the grammar rules for template literals in the PrismJS language definition.
+
+Here's a potential fix:
+
+```javascript
+###components/prism-core.js
+<<<<<<< SEARCH
+				var patterns = grammar[token];
+				patterns = Array.isArray(patterns) ? patterns : [patterns];
+=======
+				var patterns = grammar[token];
+				patterns = Array.isArray(patterns) ? patterns : [patterns];
+
+				// Ensure template literals are correctly parsed even after comments or regex patterns
+				if (token === 'template-string') {
+					patterns = patterns.map(pattern => {
+						if (pattern.pattern && pattern.pattern.source.includes('`')) {
+							return {
+								...pattern,
+								pattern: new RegExp(pattern.pattern.source.replace(/`/g, '\\`'), pattern.pattern.flags)
+							};
+						}
+						return pattern;
+					});
+				}
+>>>>>>> REPLACE
+```
+
+This change ensures that template literals are correctly parsed even after comments or regex patterns by escaping backticks in the pattern source. This should prevent the highlighting issues described in the bug report.

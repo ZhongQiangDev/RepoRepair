@@ -1,0 +1,95 @@
+The issue is that the names of message elements on message flows are not being rendered. To fix this, we need to ensure that the label for the message elements is rendered correctly. The `getExternalLabelBounds` function is responsible for calculating the bounds of the label, but it seems that it is not handling message elements properly.
+
+We need to modify the `getExternalLabelBounds` function to include the logic for rendering the label of message elements. Here's the proposed fix:
+
+```javascript
+### lib/util/LabelUtil.js
+<<<<<<< SEARCH
+/**
+ * Returns the bounds of an elements label, parsed from the elements DI or
+ * generated from its bounds.
+ *
+ * @param {BpmnElement} semantic
+ * @param {djs.model.Base} element
+ */
+export function getExternalLabelBounds(semantic, element) {
+
+  var mid,
+      size,
+      bounds,
+      di = semantic.di,
+      label = di.label;
+
+  if (label && label.bounds) {
+    bounds = label.bounds;
+
+    size = {
+      width: Math.max(DEFAULT_LABEL_SIZE.width, bounds.width),
+      height: bounds.height
+    };
+
+    mid = {
+      x: bounds.x + bounds.width / 2,
+      y: bounds.y + bounds.height / 2
+    };
+  } else {
+
+    mid = getExternalLabelMid(element);
+
+    size = DEFAULT_LABEL_SIZE;
+  }
+
+  return assign({
+    x: mid.x - size.width / 2,
+    y: mid.y - size.height / 2
+  }, size);
+}
+=======
+/**
+ * Returns the bounds of an elements label, parsed from the elements DI or
+ * generated from its bounds.
+ *
+ * @param {BpmnElement} semantic
+ * @param {djs.model.Base} element
+ */
+export function getExternalLabelBounds(semantic, element) {
+
+  var mid,
+      size,
+      bounds,
+      di = semantic.di,
+      label = di.label;
+
+  if (label && label.bounds) {
+    bounds = label.bounds;
+
+    size = {
+      width: Math.max(DEFAULT_LABEL_SIZE.width, bounds.width),
+      height: bounds.height
+    };
+
+    mid = {
+      x: bounds.x + bounds.width / 2,
+      y: bounds.y + bounds.height / 2
+    };
+  } else {
+
+    mid = getExternalLabelMid(element);
+
+    size = DEFAULT_LABEL_SIZE;
+
+    // Check if the element is a message element and adjust the label position accordingly
+    if (is(semantic, 'bpmn:Message')) {
+      mid.y += DEFAULT_LABEL_SIZE.height; // Adjust the y position to render the label below the message element
+    }
+  }
+
+  return assign({
+    x: mid.x - size.width / 2,
+    y: mid.y - size.height / 2
+  }, size);
+}
+>>>>>>> REPLACE
+```
+
+This modification checks if the element is a message element and adjusts the label position accordingly to render the label below the message element. This should resolve the issue of message element names not being rendered on message flows.

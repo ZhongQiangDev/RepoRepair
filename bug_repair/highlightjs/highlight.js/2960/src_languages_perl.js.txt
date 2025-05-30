@@ -1,0 +1,41 @@
+The issue described is that the regex detection after the `m` keyword fails when using arbitrary delimiters, such as `m(/$)` or `m|/$|`. The current regex pattern for detecting Perl regexes only matches when the delimiter is a forward slash `/`, which is why it fails to highlight other valid delimiters.
+
+To fix this, we need to modify the regex pattern to support arbitrary delimiters. We can do this by changing the pattern to match any character that can be used as a delimiter, and then matching the same delimiter at the end of the regex.
+
+Here's the fix:
+
+```javascript
+### src/languages/perl.js
+<<<<<<< SEARCH
+{
+  className: 'regexp',
+  begin: /(m|qr)?\//,
+  end: regex.concat(
+    /\//,
+    REGEX_MODIFIERS
+  ),
+  contains: [ hljs.BACKSLASH_ESCAPE ],
+  relevance: 0 // allows empty "//" which is a common comment delimiter in other languages
+}
+=======
+{
+  className: 'regexp',
+  begin: /(m|qr)?([^\w\s])(?:(?!\2)[\s\S])*?\2/,
+  end: regex.concat(
+    REGEX_MODIFIERS
+  ),
+  contains: [ hljs.BACKSLASH_ESCAPE ],
+  relevance: 0 // allows empty "//" which is a common comment delimiter in other languages
+}
+>>>>>>> REPLACE
+```
+
+Explanation:
+- The `begin` pattern is changed to `(m|qr)?([^\w\s])(?:(?!\2)[\s\S])*?\2`:
+  - `(m|qr)?` matches the optional `m` or `qr` keyword.
+  - `([^\w\s])` captures any character that is not a word character or whitespace as the delimiter.
+  - `(?:(?!\2)[\s\S])*?` matches any character that is not the captured delimiter, non-greedily.
+  - `\2` matches the same delimiter at the end of the regex.
+- The `end` pattern is kept the same, but it will now correctly match the end of the regex with the correct delimiter.
+
+This change should now correctly highlight Perl regexes with arbitrary delimiters.

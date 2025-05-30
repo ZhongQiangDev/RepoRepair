@@ -1,0 +1,86 @@
+To address the issue of correctly rendering pool/lane labels in vertical collaboration, we need to ensure that the label positioning logic takes into account the orientation of the pool (whether it is horizontal or vertical). The current code does not consider the `isHorizontal` property when determining the optimal label position.
+
+We need to modify the `getOptimalPosition` function to check the `isHorizontal` property of the pool and adjust the label positioning accordingly.
+
+```javascript
+### lib/features/modeling/behavior/AdaptiveLabelPositioningBehavior.js
+<<<<<<< SEARCH
+function getOptimalPosition(element) {
+
+  var labelMid = getMid(element.label);
+
+  var elementMid = getMid(element);
+
+  var labelOrientation = getApproximateOrientation(elementMid, labelMid);
+
+  if (!isAligned(labelOrientation)) {
+    return;
+  }
+
+  var takenAlignments = getTakenConnectionAlignments(element);
+
+  if (element.host) {
+    var takenHostAlignments = getTakenHostAlignments(element);
+
+    takenAlignments = takenAlignments.concat(takenHostAlignments);
+  }
+
+  var freeAlignments = ALIGNMENTS.filter(function(alignment) {
+
+    return takenAlignments.indexOf(alignment) === -1;
+  });
+
+  // NOTHING TO DO; label already aligned a.O.K.
+  if (freeAlignments.indexOf(labelOrientation) !== -1) {
+    return;
+  }
+
+  return freeAlignments[0];
+}
+=======
+function getOptimalPosition(element) {
+
+  var labelMid = getMid(element.label);
+
+  var elementMid = getMid(element);
+
+  var labelOrientation = getApproximateOrientation(elementMid, labelMid);
+
+  if (!isAligned(labelOrientation)) {
+    return;
+  }
+
+  var takenAlignments = getTakenConnectionAlignments(element);
+
+  if (element.host) {
+    var takenHostAlignments = getTakenHostAlignments(element);
+
+    takenAlignments = takenAlignments.concat(takenHostAlignments);
+  }
+
+  // Check if the element is a vertical pool
+  var isVerticalPool = element.di && element.di.isHorizontal === 'false';
+
+  var freeAlignments = ALIGNMENTS.filter(function(alignment) {
+
+    return takenAlignments.indexOf(alignment) === -1;
+  });
+
+  // Adjust alignments for vertical pools
+  if (isVerticalPool) {
+    freeAlignments = freeAlignments.filter(function(alignment) {
+      return alignment === 'top' || alignment === 'bottom';
+    });
+  }
+
+  // NOTHING TO DO; label already aligned a.O.K.
+  if (freeAlignments.indexOf(labelOrientation) !== -1) {
+    return;
+  }
+
+  return freeAlignments[0];
+}
+>>>>>>> REPLACE
+```
+
+This modification ensures that for vertical pools, only 'top' and 'bottom' alignments are considered for label positioning, which should resolve the issue of incorrect label rendering in vertical collaboration.

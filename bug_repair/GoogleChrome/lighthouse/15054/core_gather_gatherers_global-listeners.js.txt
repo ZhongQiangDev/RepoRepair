@@ -1,0 +1,77 @@
+The issue described is related to the fact that the `no-unload-listeners` audit passes even when there are unload listeners added by extensions in an isolated execution context. This is because the current implementation of the `GlobalListeners` gatherer only checks the main execution context and does not cycle through all execution contexts.
+
+To fix this, we need to modify the `getArtifact` method to cycle through all execution contexts and check for unload listeners in each context.
+
+Here is the proposed fix:
+
+```javascript
+###core/gather/gatherers/global-listeners.js
+<<<<<<< SEARCH
+  async getArtifact(passContext) {
+    const session = passContext.driver.defaultSession;
+
+    // Get a RemoteObject handle to `window`.
+    const {result: {objectId}} = await session.sendCommand('Runtime.evaluate', {
+      expression: 'window',
+      returnByValue: false,
+    });
+    if (!objectId) {
+      throw new Error('Error fetching information about the global object');
+    }
+
+    // And get all its listeners of interest.
+    const {listeners} = await session.sendCommand('DOMDebugger.getEventListeners', {objectId});
+    const filteredListeners = listeners.filter(GlobalListeners._filterForAllowlistedTypes)
+    .map(listener => {
+      const {type, scriptId, lineNumber, columnNumber} = listener;
+      return {
+        type,
+        scriptId,
+        lineNumber,
+        columnNumber,
+      };
+    });
+
+    // Dedupe listeners with same underlying data.
+    return this.dedupeListeners(filteredListeners);
+  }
+=======
+  async getArtifact(passContext) {
+    const session = passContext.driver.defaultSession;
+
+    // Get all execution contexts.
+    const {result: contexts} = await session.sendCommand('Runtime.executionContextIds');
+    const allListeners = [];
+
+    for (const contextId of contexts) {
+      // Get a RemoteObject handle to `window` in the current context.
+      const {result: {objectId}} = await session.sendCommand('Runtime.evaluate', {
+        expression: 'window',
+        returnByValue: false,
+        contextId,
+      });
+      if (!objectId) {
+        continue;
+      }
+
+      // Get all its listeners of interest.
+      const {listeners} = await session.sendCommand('DOMDebugger.getEventListeners', {objectId});
+      const filteredListeners = listeners.filter(GlobalListeners._filterForAllowlistedTypes)
+      .map(listener => {
+        const {type, scriptId, lineNumber, columnNumber} = listener;
+        return {
+          type,
+          scriptId,
+          lineNumber,
+          columnNumber,
+        };
+      });
+
+      allListeners.push(...filteredListeners);
+    }
+
+    // Dedupe listeners with same underlying data.
+    return this.dedupeListeners(allListeners);
+  }
+>>>>>>> REPLACE
+```

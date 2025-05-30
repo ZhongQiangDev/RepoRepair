@@ -1,0 +1,79 @@
+The issue described is that after pasting elements with a task in the first position, direct editing is activated for the task element. This behavior is not expected, and the goal is to prevent direct editing from being activated after pasting.
+
+To address this, we need to ensure that the direct editing mode is not activated when pasting elements. This likely involves modifying the event handling for the `copyPaste.pasteElement` event to prevent the activation of direct editing.
+
+Here's a potential fix:
+
+```javascript
+### lib/features/copy-paste/BpmnCopyPaste.js
+<<<<<<< SEARCH
+eventBus.on('copyPaste.pasteElement', function(context) {
+    var cache = context.cache,
+        descriptor = context.descriptor,
+        oldBusinessObject = descriptor.oldBusinessObject,
+        newBusinessObject;
+
+    // do NOT copy business object if external label
+    if (isLabel(descriptor)) {
+      descriptor.businessObject = getBusinessObject(cache[ descriptor.labelTarget ]);
+
+      return;
+    }
+
+    newBusinessObject = bpmnFactory.create(oldBusinessObject.$type);
+
+    descriptor.businessObject = moddleCopy.copyElement(
+      oldBusinessObject,
+      newBusinessObject
+    );
+
+    // resolve references e.g. default sequence flow
+    resolveReferences(descriptor);
+
+    copyProperties(descriptor, newBusinessObject, [
+      'isExpanded',
+      'name'
+    ]);
+
+    removeProperties(descriptor, 'oldBusinessObject');
+  });
+=======
+eventBus.on('copyPaste.pasteElement', function(context) {
+    var cache = context.cache,
+        descriptor = context.descriptor,
+        oldBusinessObject = descriptor.oldBusinessObject,
+        newBusinessObject;
+
+    // do NOT copy business object if external label
+    if (isLabel(descriptor)) {
+      descriptor.businessObject = getBusinessObject(cache[ descriptor.labelTarget ]);
+
+      return;
+    }
+
+    newBusinessObject = bpmnFactory.create(oldBusinessObject.$type);
+
+    descriptor.businessObject = moddleCopy.copyElement(
+      oldBusinessObject,
+      newBusinessObject
+    );
+
+    // resolve references e.g. default sequence flow
+    resolveReferences(descriptor);
+
+    copyProperties(descriptor, newBusinessObject, [
+      'isExpanded',
+      'name'
+    ]);
+
+    // Prevent direct editing after pasting
+    if (is(descriptor.businessObject, 'bpmn:Task')) {
+      eventBus.fire('directEditing.deactivate');
+    }
+
+    removeProperties(descriptor, 'oldBusinessObject');
+  });
+>>>>>>> REPLACE
+```
+
+This modification adds a check to see if the pasted element is a task (`bpmn:Task`). If it is, it fires an event to deactivate direct editing, preventing the issue described in the bug report.

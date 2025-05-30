@@ -1,0 +1,57 @@
+The issue described is related to the dimensions of an Ad Hoc Collapsed Subprocess getting altered unexpectedly when it is turned into an Ad Hoc Subprocess. The provided code segment is from `BpmnUpdater.js`, which is responsible for updating the BPMN 2.0 XML and DI when changes occur in the diagram. The `updateBounds` function is likely the one that needs to be modified to ensure that the dimensions of the Ad Hoc Collapsed Subprocess remain unchanged.
+
+To fix this issue, we need to ensure that the `updateBounds` function does not alter the dimensions of the Ad Hoc Collapsed Subprocess when it is turned into an Ad Hoc Subprocess. We can achieve this by adding a condition to check if the shape is an Ad Hoc Collapsed Subprocess before updating its bounds.
+
+Here is the proposed fix:
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+BpmnUpdater.prototype.updateBounds = function(shape) {
+
+  var di = shape.businessObject.di;
+
+  var target = (shape instanceof Label) ? this._getLabel(di) : di;
+
+  var bounds = target.bounds;
+
+  if (!bounds) {
+    bounds = this._bpmnFactory.createDiBounds();
+    target.set('bounds', bounds);
+  }
+
+  assign(bounds, {
+    x: shape.x,
+    y: shape.y,
+    width: shape.width,
+    height: shape.height
+  });
+};
+=======
+BpmnUpdater.prototype.updateBounds = function(shape) {
+
+  var di = shape.businessObject.di;
+
+  var target = (shape instanceof Label) ? this._getLabel(di) : di;
+
+  var bounds = target.bounds;
+
+  if (!bounds) {
+    bounds = this._bpmnFactory.createDiBounds();
+    target.set('bounds', bounds);
+  }
+
+  // Check if the shape is an Ad Hoc Collapsed Subprocess
+  if (!is(shape.businessObject, 'bpmn:AdHocSubProcess') || !shape.collapsed) {
+    assign(bounds, {
+      x: shape.x,
+      y: shape.y,
+      width: shape.width,
+      height: shape.height
+    });
+  }
+};
+>>>>>>> REPLACE
+```
+
+This fix adds a condition to check if the shape is an Ad Hoc Collapsed Subprocess before updating its bounds. If the shape is an Ad Hoc Collapsed Subprocess, the bounds will not be updated, ensuring that the dimensions remain unchanged.

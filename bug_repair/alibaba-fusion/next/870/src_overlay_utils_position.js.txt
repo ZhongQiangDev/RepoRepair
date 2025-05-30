@@ -1,0 +1,122 @@
+The issue described involves two separate components: `Overlay` and `NumberPicker`. The `Overlay` component has a problem with the position of the datepicker popup when there are two scrollbars, and the `NumberPicker` component has a styling issue with `innerBefore` and `innerAfter`.
+
+### Overlay Component Issue
+
+The issue with the `Overlay` component seems to be related to the calculation of the element's position, especially when there are multiple scrollbars. The `_getElementRect` function in `src/overlay/utils/position.js` might need to be adjusted to correctly account for the scroll positions.
+
+### NumberPicker Component Issue
+
+The `NumberPicker` component has a styling issue with `innerBefore` and `innerAfter`. The images provided show that the `innerBefore` and `innerAfter` elements are not being styled correctly. This might be due to missing CSS rules or incorrect class names.
+
+### Proposed Fixes
+
+#### Overlay Component Fix
+
+We need to ensure that the `_getElementRect` function correctly calculates the position of the element, taking into account the scroll positions of all parent elements.
+
+```javascript
+### src/overlay/utils/position.js
+<<<<<<< SEARCH
+function _getElementRect(elem) {
+    let offsetTop = 0,
+        offsetLeft = 0,
+        scrollTop = 0,
+        scrollLeft = 0;
+
+    const offsetHeight = elem.offsetHeight;
+    const offsetWidth = elem.offsetWidth;
+
+    do {
+        if (!isNaN(elem.offsetTop)) {
+            offsetTop += elem.offsetTop;
+        }
+        if (!isNaN(elem.offsetLeft)) {
+            offsetLeft += elem.offsetLeft;
+        }
+        if (!isNaN(elem.scrollTop)) {
+            scrollTop += elem.scrollTop;
+        }
+        if (!isNaN(elem.scrollLeft)) {
+            scrollLeft += elem.scrollLeft;
+        }
+    } while ((elem = elem.offsetParent) !== null);
+
+    return {
+        top:
+            offsetTop -
+            scrollTop -
+            (document.documentElement.scrollTop || document.body.scrollTop),
+        left:
+            offsetLeft -
+            scrollLeft -
+            (document.documentElement.scrollLeft || document.body.scrollLeft),
+        height: offsetHeight,
+        width: offsetWidth,
+    };
+}
+=======
+function _getElementRect(elem) {
+    let offsetTop = 0,
+        offsetLeft = 0,
+        scrollTop = 0,
+        scrollLeft = 0;
+
+    const offsetHeight = elem.offsetHeight;
+    const offsetWidth = elem.offsetWidth;
+
+    do {
+        if (!isNaN(elem.offsetTop)) {
+            offsetTop += elem.offsetTop;
+        }
+        if (!isNaN(elem.offsetLeft)) {
+            offsetLeft += elem.offsetLeft;
+        }
+        if (!isNaN(elem.scrollTop)) {
+            scrollTop += elem.scrollTop;
+        }
+        if (!isNaN(elem.scrollLeft)) {
+            scrollLeft += elem.scrollLeft;
+        }
+        if (elem !== document.body && elem !== document.documentElement) {
+            scrollTop += elem.scrollTop;
+            scrollLeft += elem.scrollLeft;
+        }
+    } while ((elem = elem.offsetParent) !== null);
+
+    return {
+        top:
+            offsetTop -
+            scrollTop -
+            (document.documentElement.scrollTop || document.body.scrollTop),
+        left:
+            offsetLeft -
+            scrollLeft -
+            (document.documentElement.scrollLeft || document.body.scrollLeft),
+        height: offsetHeight,
+        width: offsetWidth,
+    };
+}
+>>>>>>> REPLACE
+```
+
+#### NumberPicker Component Fix
+
+We need to ensure that the `innerBefore` and `innerAfter` elements are styled correctly. This might involve adding the correct CSS rules or ensuring that the class names are correct.
+
+```javascript
+### src/components/NumberPicker/style.js
+<<<<<<< SEARCH
+// Existing CSS rules
+=======
+// Existing CSS rules
+.innerBefore {
+    // Add correct styling for innerBefore
+}
+
+.innerAfter {
+    // Add correct styling for innerAfter
+}
+>>>>>>> REPLACE
+```
+
+These changes should help resolve the issues described in the issue statement.

@@ -1,0 +1,108 @@
+The issue described is that numbers directly followed by keywords are not being properly separated in the syntax highlighting. This is likely due to the regex patterns used for matching numbers and keywords not accounting for this specific case.
+
+To fix this, we need to adjust the regex pattern for numbers to ensure that it properly terminates before a keyword starts. Specifically, we need to ensure that the number pattern does not consume the subsequent keyword.
+
+Here's the proposed fix:
+
+```javascript
+### src/languages/python.js
+<<<<<<< SEARCH
+const NUMBER = {
+    className: 'number',
+    relevance: 0,
+    variants: [
+      // exponentfloat, pointfloat
+      // https://docs.python.org/3.9/reference/lexical_analysis.html#floating-point-literals
+      // optionally imaginary
+      // https://docs.python.org/3.9/reference/lexical_analysis.html#imaginary-literals
+      // Note: no leading \b because floats can start with a decimal point
+      // and we don't want to mishandle e.g. `fn(.5)`,
+      // no trailing \b for pointfloat because it can end with a decimal point
+      // and we don't want to mishandle e.g. `0..hex()`; this should be safe
+      // because both MUST contain a decimal point and so cannot be confused with
+      // the interior part of an identifier
+      {
+        begin: `(\\b(${digitpart})|(${pointfloat}))[eE][+-]?(${digitpart})[jJ]?\\b`
+      },
+      {
+        begin: `(${pointfloat})[jJ]?`
+      },
+
+      // decinteger, bininteger, octinteger, hexinteger
+      // https://docs.python.org/3.9/reference/lexical_analysis.html#integer-literals
+      // optionally "long" in Python 2
+      // https://docs.python.org/2.7/reference/lexical_analysis.html#integer-and-long-integer-literals
+      // decinteger is optionally imaginary
+      // https://docs.python.org/3.9/reference/lexical_analysis.html#imaginary-literals
+      {
+        begin: '\\b([1-9](_?[0-9])*|0+(_?0)*)[lLjJ]?\\b'
+      },
+      {
+        begin: '\\b0[bB](_?[01])+[lL]?\\b'
+      },
+      {
+        begin: '\\b0[oO](_?[0-7])+[lL]?\\b'
+      },
+      {
+        begin: '\\b0[xX](_?[0-9a-fA-F])+[lL]?\\b'
+      },
+
+      // imagnumber (digitpart-based)
+      // https://docs.python.org/3.9/reference/lexical_analysis.html#imaginary-literals
+      {
+        begin: `\\b(${digitpart})[jJ]\\b`
+      }
+    ]
+  };
+=======
+const NUMBER = {
+    className: 'number',
+    relevance: 0,
+    variants: [
+      // exponentfloat, pointfloat
+      // https://docs.python.org/3.9/reference/lexical_analysis.html#floating-point-literals
+      // optionally imaginary
+      // https://docs.python.org/3.9/reference/lexical_analysis.html#imaginary-literals
+      // Note: no leading \b because floats can start with a decimal point
+      // and we don't want to mishandle e.g. `fn(.5)`,
+      // no trailing \b for pointfloat because it can end with a decimal point
+      // and we don't want to mishandle e.g. `0..hex()`; this should be safe
+      // because both MUST contain a decimal point and so cannot be confused with
+      // the interior part of an identifier
+      {
+        begin: `(\\b(${digitpart})|(${pointfloat}))[eE][+-]?(${digitpart})[jJ]?\\b`
+      },
+      {
+        begin: `(${pointfloat})[jJ]?`
+      },
+
+      // decinteger, bininteger, octinteger, hexinteger
+      // https://docs.python.org/3.9/reference/lexical_analysis.html#integer-literals
+      // optionally "long" in Python 2
+      // https://docs.python.org/2.7/reference/lexical_analysis.html#integer-and-long-integer-literals
+      // decinteger is optionally imaginary
+      // https://docs.python.org/3.9/reference/lexical_analysis.html#imaginary-literals
+      {
+        begin: '\\b([1-9](_?[0-9])*|0+(_?0)*)[lLjJ]?\\b(?!\\w)'
+      },
+      {
+        begin: '\\b0[bB](_?[01])+[lL]?\\b(?!\\w)'
+      },
+      {
+        begin: '\\b0[oO](_?[0-7])+[lL]?\\b(?!\\w)'
+      },
+      {
+        begin: '\\b0[xX](_?[0-9a-fA-F])+[lL]?\\b(?!\\w)'
+      },
+
+      // imagnumber (digitpart-based)
+      // https://docs.python.org/3.9/reference/lexical_analysis.html#imaginary-literals
+      {
+        begin: `\\b(${digitpart})[jJ]\\b(?!\\w)`
+      }
+    ]
+  };
+>>>>>>> REPLACE
+```
+
+The key change here is the addition of `(?!\\w)` at the end of each number pattern. This negative lookahead ensures that the number pattern does not consume any subsequent word characters, thus allowing the keyword to be properly recognized.

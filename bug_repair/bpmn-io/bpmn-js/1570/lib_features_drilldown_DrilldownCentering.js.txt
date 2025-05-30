@@ -1,0 +1,71 @@
+The issue described is that the diagram jumps when wrapping a process in a pool. This behavior is likely caused by the `DrilldownCentering` function, which handles the viewbox and scrolling when the root element changes. The function is currently saving and restoring the viewbox position and zoom level when the root element changes, which might cause the diagram to jump.
+
+To fix this issue, we need to ensure that the viewbox position and zoom level are not changed when wrapping a process in a pool. We can do this by adding a condition to check if the new root element is a pool and, if so, not change the viewbox position and zoom level.
+
+Here is the proposed fix:
+
+```javascript
+### lib/features/drilldown/DrilldownCentering.js
+<<<<<<< SEARCH
+  eventBus.on('root.set', function(event) {
+    var currentViewbox = canvas.viewbox();
+
+    positionMap.set(currentRoot, {
+      x: currentViewbox.x,
+      y: currentViewbox.y,
+      zoom: currentViewbox.scale
+    });
+
+    var newRoot = event.element;
+    var storedViewbox = positionMap.get(newRoot) || { x: 0, y: 0, zoom: 1 };
+
+    var dx = (currentViewbox.x - storedViewbox.x) * currentViewbox.scale,
+        dy = (currentViewbox.y - storedViewbox.y) * currentViewbox.scale;
+
+    if (dx !== 0 || dy !== 0) {
+      canvas.scroll({
+        dx: dx,
+        dy: dy
+      });
+    }
+
+    if (storedViewbox.zoom !== currentViewbox.scale) {
+      canvas.zoom(storedViewbox.zoom, { x: 0, y: 0 });
+    }
+
+    currentRoot = newRoot;
+  });
+=======
+  eventBus.on('root.set', function(event) {
+    var currentViewbox = canvas.viewbox();
+
+    positionMap.set(currentRoot, {
+      x: currentViewbox.x,
+      y: currentViewbox.y,
+      zoom: currentViewbox.scale
+    });
+
+    var newRoot = event.element;
+    var storedViewbox = positionMap.get(newRoot) || { x: 0, y: 0, zoom: 1 };
+
+    // Check if the new root element is a pool
+    if (newRoot.type !== 'bpmn:Pool') {
+      var dx = (currentViewbox.x - storedViewbox.x) * currentViewbox.scale,
+          dy = (currentViewbox.y - storedViewbox.y) * currentViewbox.scale;
+
+      if (dx !== 0 || dy !== 0) {
+        canvas.scroll({
+          dx: dx,
+          dy: dy
+        });
+      }
+
+      if (storedViewbox.zoom !== currentViewbox.scale) {
+        canvas.zoom(storedViewbox.zoom, { x: 0, y: 0 });
+      }
+    }
+
+    currentRoot = newRoot;
+  });
+>>>>>>> REPLACE
+```

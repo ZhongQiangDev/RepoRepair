@@ -1,0 +1,45 @@
+The issue described is related to duplicated stack packs and the visibility of experimental entries in the `js-libraries` audit. To address these issues, we need to make changes in the `js-libraries.js` file to handle the duplication and visibility of experimental entries.
+
+### Fix for Duplicated Stack Packs
+
+To fix the duplicated stack packs, we need to ensure that each stack pack has a unique identifier. This can be achieved by adding an `id` property to the stack packs and then filtering out duplicates based on this `id`.
+
+### Fix for Hiding Experimental Entries
+
+To hide the experimental entries from the user, we can add a condition to filter out entries that are marked as experimental before displaying them in the audit results.
+
+Here are the necessary changes:
+
+```javascript
+###lighthouse-core/audits/dobetterweb/js-libraries.js
+<<<<<<< SEARCH
+const libDetails = artifacts.Stacks
+  .filter(stack => stack.detector === 'js')
+  .map(stack => ({
+    name: stack.name,
+    version: stack.version,
+    npm: stack.npm,
+  }));
+=======
+const libDetails = artifacts.Stacks
+  .filter(stack => stack.detector === 'js' && !stack.experimental) // Filter out experimental entries
+  .reduce((acc, stack) => {
+    if (!acc.find(item => item.id === stack.id)) { // Ensure unique stack packs
+      acc.push({
+        id: stack.id,
+        name: stack.name,
+        version: stack.version,
+        npm: stack.npm,
+      });
+    }
+    return acc;
+  }, []);
+>>>>>>> REPLACE
+```
+
+### Explanation
+
+1. **Filtering Out Experimental Entries**: The `filter` method now includes a condition to exclude entries that have the `experimental` property set to `true`.
+2. **Ensuring Unique Stack Packs**: The `reduce` method is used to create an array of unique stack packs based on the `id` property. If a stack pack with the same `id` is already in the array, it is not added again.
+
+These changes should resolve the issues of duplicated stack packs and the visibility of experimental entries in the `js-libraries` audit.

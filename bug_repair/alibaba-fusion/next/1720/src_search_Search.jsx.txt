@@ -1,0 +1,112 @@
+The issue described is that when a user types a character and presses Enter, the search term does not match the selected suggestion. This is likely due to the fact that the `onSearch` method is being called with the current input value instead of the selected suggestion.
+
+To fix this, we need to ensure that the `onSearch` method is called with the selected suggestion when the Enter key is pressed.
+
+Here's the proposed fix:
+
+```javascript
+### src/search/Search.jsx
+<<<<<<< SEARCH
+    onSearch = () => {
+        if (this.props.disabled) {
+            return;
+        }
+        this.props.onSearch(this.state.value, this.state.filterValue);
+    };
+
+    onKeyDown = e => {
+        if (this.props.disabled) {
+            return;
+        }
+        if (e.keyCode !== KEYCODE.ENTER) {
+            return;
+        }
+        this.onSearch();
+    };
+=======
+    onSearch = (value) => {
+        if (this.props.disabled) {
+            return;
+        }
+        this.props.onSearch(value, this.state.filterValue);
+    };
+
+    onKeyDown = e => {
+        if (this.props.disabled) {
+            return;
+        }
+        if (e.keyCode !== KEYCODE.ENTER) {
+            return;
+        }
+        const selectedValue = this.state.value; // Assuming the selected value is stored in state
+        this.onSearch(selectedValue);
+    };
+>>>>>>> REPLACE
+```
+
+However, the above fix assumes that the selected value is stored in the state. If the selected value is not stored in the state, we need to modify the `onChange` method to update the state with the selected value when a suggestion is selected.
+
+Here's the complete fix:
+
+```javascript
+### src/search/Search.jsx
+<<<<<<< SEARCH
+    onChange = (value, ...argv) => {
+        if (!('value' in this.props)) {
+            this.setState({ value });
+        }
+
+        this.props.onChange(value, ...argv);
+    };
+
+    onSearch = () => {
+        if (this.props.disabled) {
+            return;
+        }
+        this.props.onSearch(this.state.value, this.state.filterValue);
+    };
+
+    onKeyDown = e => {
+        if (this.props.disabled) {
+            return;
+        }
+        if (e.keyCode !== KEYCODE.ENTER) {
+            return;
+        }
+        this.onSearch();
+    };
+=======
+    onChange = (value, ...argv) => {
+        if (!('value' in this.props)) {
+            this.setState({ value });
+        }
+
+        this.props.onChange(value, ...argv);
+    };
+
+    onSearch = (value) => {
+        if (this.props.disabled) {
+            return;
+        }
+        this.props.onSearch(value, this.state.filterValue);
+    };
+
+    onKeyDown = e => {
+        if (this.props.disabled) {
+            return;
+        }
+        if (e.keyCode !== KEYCODE.ENTER) {
+            return;
+        }
+        const selectedValue = this.state.value; // Assuming the selected value is stored in state
+        this.onSearch(selectedValue);
+    };
+
+    // Assuming the AutoComplete component has an onSelect prop that is called when a suggestion is selected
+    onSelect = (value) => {
+        this.setState({ value });
+    };
+>>>>>>> REPLACE
+```
+
+In this fix, we added an `onSelect` method to handle the selection of a suggestion and update the state with the selected value. We also modified the `onKeyDown` method to call `onSearch` with the selected value when the Enter key is pressed.

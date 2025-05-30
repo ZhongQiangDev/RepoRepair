@@ -1,0 +1,87 @@
+The issue described is that anonymous functions without a block (`{}`) are not being highlighted correctly in PHP code. The highlighter is incorrectly recognizing the arrow function's body as a title instead of variables or expressions.
+
+To fix this, we need to adjust the regular expression that matches the function definition to correctly handle arrow functions without a block. Specifically, we need to ensure that the body of the arrow function is not incorrectly matched as a title.
+
+Here's the proposed fix:
+
+```javascript
+### src/languages/php.js
+<<<<<<< SEARCH
+{
+  className: 'function',
+  relevance: 0,
+  beginKeywords: 'fn function', end: /[;{]/, excludeEnd: true,
+  illegal: '[$%\\[]',
+  contains: [
+    hljs.UNDERSCORE_TITLE_MODE,
+    {
+      begin: '=>' // No markup, just a relevance booster
+    },
+    {
+      className: 'params',
+      begin: '\\(', end: '\\)',
+      excludeBegin: true,
+      excludeEnd: true,
+      keywords: KEYWORDS,
+      contains: [
+        'self',
+        VARIABLE,
+        hljs.C_BLOCK_COMMENT_MODE,
+        STRING,
+        NUMBER
+      ]
+    }
+  ]
+},
+=======
+{
+  className: 'function',
+  relevance: 0,
+  beginKeywords: 'fn function', end: /[;{]/, excludeEnd: true,
+  illegal: '[$%\\[]',
+  contains: [
+    {
+      begin: '\\(', end: '\\)', // Match the parameters
+      excludeBegin: true,
+      excludeEnd: true,
+      keywords: KEYWORDS,
+      contains: [
+        'self',
+        VARIABLE,
+        hljs.C_BLOCK_COMMENT_MODE,
+        STRING,
+        NUMBER
+      ]
+    },
+    {
+      begin: '=>', // Match the arrow function body
+      relevance: 0,
+      contains: [
+        {
+          begin: /[^{]/, // Match the body without a block
+          relevance: 0,
+          contains: [
+            VARIABLE,
+            STRING,
+            NUMBER,
+            hljs.C_BLOCK_COMMENT_MODE
+          ]
+        },
+        {
+          begin: '{', end: '}', // Match the body with a block
+          relevance: 0,
+          contains: [
+            VARIABLE,
+            STRING,
+            NUMBER,
+            hljs.C_BLOCK_COMMENT_MODE
+          ]
+        }
+      ]
+    }
+  ]
+},
+>>>>>>> REPLACE
+```
+
+This change ensures that the body of the arrow function is correctly matched and highlighted as variables, strings, numbers, etc., rather than being incorrectly recognized as a title.

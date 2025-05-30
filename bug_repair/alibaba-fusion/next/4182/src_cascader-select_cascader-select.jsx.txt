@@ -1,0 +1,55 @@
+The issue seems to be related to the `popupProps` property being passed to the `CascaderSelect` component with the `v2: true` option. The error message "Cannot read properties of null (reading 'getInstance')" suggests that there might be an issue with how the `popupProps` is being handled when `v2` is set to `true`.
+
+To fix this, we need to ensure that the `popupProps` object is properly initialized and that the `ref` and `afterOpen` functions are correctly defined and called.
+
+Here's the proposed fix:
+
+```javascript
+### src/cascader-select/cascader-select.jsx
+<<<<<<< SEARCH
+    if (showSearch) {
+        props.popupProps = {
+            ...popupProps,
+            ref: this.getPopup,
+            afterOpen: this.handleAfterOpen,
+        };
+        props.autoWidth = resultAutoWidth && !!searchValue;
+    }
+=======
+    if (showSearch) {
+        props.popupProps = {
+            ...popupProps,
+            ref: this.getPopup,
+            afterOpen: this.handleAfterOpen,
+            v2: popupProps.v2 || false, // Ensure v2 is properly initialized
+        };
+        props.autoWidth = resultAutoWidth && !!searchValue;
+    }
+>>>>>>> REPLACE
+```
+
+Additionally, we should ensure that the `getPopup` method is correctly handling the `ref` and `afterOpen` functions:
+
+```javascript
+### src/cascader-select/cascader-select.jsx
+<<<<<<< SEARCH
+    getPopup(ref) {
+        this.popup = ref;
+        if (typeof this.props.popupProps.ref === 'function') {
+            this.props.popupProps.ref(ref);
+        }
+    }
+=======
+    getPopup(ref) {
+        this.popup = ref;
+        if (typeof this.props.popupProps.ref === 'function') {
+            this.props.popupProps.ref(ref);
+        }
+        if (this.props.popupProps.v2 && typeof this.props.popupProps.afterOpen === 'function') {
+            this.props.popupProps.afterOpen(); // Ensure afterOpen is called if v2 is true
+        }
+    }
+>>>>>>> REPLACE
+```
+
+These changes should help resolve the issue by ensuring that the `popupProps` object is properly initialized and that the `ref` and `afterOpen` functions are correctly handled when `v2` is set to `true`.

@@ -1,0 +1,43 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that iframes and data URIs are being considered as part of the critical request chains (CRCs) even though they are not render-blocking. This leads to unnecessary inclusion of these elements in the CRC tree, which can misrepresent the actual critical resources needed for the initial render of a webpage.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior likely lies in the logic that determines whether a network request should be considered "critical." Specifically, the current implementation may be treating iframes and data URIs as critical requests based on their priority level, even though they do not block the initial render. Additionally, data URIs are not actual network requests and should not be included in the CRC analysis.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### lighthouse-core/audits/critical-request-chains.js
+```
+lighthouse-core/audits/critical-request-chains.js
+class: CriticalRequestChains
+```
+This file contains the `CriticalRequestChains` class, which is responsible for analyzing and generating critical request chains. The `_traverse` and `_getLongestChain` methods may need to be adjusted to exclude iframes and data URIs from the CRC tree.
+
+#### lighthouse-core/gather/computed/critical-request-chains.js
+```
+lighthouse-core/gather/computed/critical-request-chains.js
+class: CriticalRequestChains
+```
+This file contains the `CriticalRequestChains` class, which includes the `isCritical` method. This method determines whether a network request is critical based on its priority and resource type. It may need to be modified to exclude iframes and data URIs from being considered critical.
+
+#### lighthouse-core/lib/url-shim.js
+```
+lighthouse-core/lib/url-shim.js
+function: elideDataURI
+```
+This file contains the `elideDataURI` function, which processes data URIs. While this function is not directly responsible for determining critical requests, it may be relevant for handling data URIs in the context of CRC analysis.
+
+#### lighthouse-core/report/v2/renderer/crc-details-renderer.js
+```
+lighthouse-core/report/v2/renderer/crc-details-renderer.js
+class: CriticalRequestChainRenderer
+```
+This file contains the `CriticalRequestChainRenderer` class, which is responsible for rendering the CRC tree. While it does not directly determine which requests are critical, it may need to be updated to reflect changes in the CRC tree structure if iframes and data URIs are excluded.
+
+#### lighthouse-core/audits/redirects.js
+```
+This file contains no relevant functions/classes.
+```
+This file is related to evaluating HTTP redirects and does not directly impact the determination of critical requests or the inclusion of iframes and data URIs in the CRC tree.

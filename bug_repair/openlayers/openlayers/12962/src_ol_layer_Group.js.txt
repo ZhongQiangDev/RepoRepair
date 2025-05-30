@@ -1,0 +1,33 @@
+The issue described is related to the stacking of layer opacities in OpenLayers (OL) versions 6.8.1 and above. The problem arises when multiple layers with the same opacity value are rendered, causing the top-most layer to appear opaque relative to other OL layers. This behavior is not observed in OL versions 6.7.0 and below.
+
+The issue seems to be related to how the opacity values are being applied and combined when rendering the layers. Specifically, the `getLayerStatesArray` method in the `LayerGroup` class is responsible for calculating the final opacity values for each layer. The current implementation multiplies the opacity of each layer by the opacity of the parent layer group, which can lead to unexpected results when multiple layers have the same opacity value.
+
+To fix this issue, we need to ensure that the opacity values are applied correctly and independently for each layer. One possible solution is to modify the `getLayerStatesArray` method to apply the opacity values in a way that preserves the intended transparency for each layer.
+
+Here's the proposed fix:
+
+```typescript
+### src/ol/layer/Group.js
+<<<<<<< SEARCH
+layerState.opacity *= ownLayerState.opacity;
+=======
+layerState.opacity = ownLayerState.opacity * (layerState.opacity || 1);
+>>>>>>> REPLACE
+```
+
+This change ensures that the opacity value of each layer is multiplied by the opacity of the parent layer group, but only if the layer's opacity is defined. If the layer's opacity is not defined, it defaults to 1, which preserves the intended transparency for the layer.
+
+Additionally, we can add a check to ensure that the opacity values are within the valid range of 0 to 1:
+
+```typescript
+### src/ol/layer/Group.js
+<<<<<<< SEARCH
+layerState.opacity *= ownLayerState.opacity;
+=======
+layerState.opacity = Math.max(0, Math.min(1, ownLayerState.opacity * (layerState.opacity || 1)));
+>>>>>>> REPLACE
+```
+
+This ensures that the opacity values are always within the valid range, preventing any unexpected behavior when rendering the layers.
+
+By making these changes, we can ensure that the opacity values are applied correctly and independently for each layer, resolving the issue with layer opacity stacking in OL versions 6.8.1 and above.

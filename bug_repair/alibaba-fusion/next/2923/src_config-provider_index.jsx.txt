@@ -1,0 +1,71 @@
+The issue described is related to memory leakage in the `ConfigProvider` component when used in a Server-Side Rendering (SSR) environment. The problem arises because the `componentWillUnmount` lifecycle method is not called in SSR, which means the cache entries added to `childContextCache` are not being removed, leading to memory growth.
+
+To address this, we can provide a manual way to clear the cache. We can add a static method to the `ConfigProvider` class that allows users to clear the cache explicitly.
+
+Here's the proposed fix:
+
+```javascript
+### src/config-provider/index.jsx
+<<<<<<< SEARCH
+    static getContext = () => {
+        const {
+            nextPrefix,
+            nextLocale,
+            nextDefaultPropsConfig,
+            nextPure,
+            nextRtl,
+            nextWarning,
+            nextDevice,
+            nextPopupContainer,
+            nextErrorBoundary,
+        } = childContextCache.root() || {};
+
+        return {
+            prefix: nextPrefix,
+            locale: nextLocale,
+            defaultPropsConfig: nextDefaultPropsConfig,
+            pure: nextPure,
+            rtl: nextRtl,
+            warning: nextWarning,
+            device: nextDevice,
+            popupContainer: nextPopupContainer,
+            errorBoundary: nextErrorBoundary,
+        };
+    };
+=======
+    static getContext = () => {
+        const {
+            nextPrefix,
+            nextLocale,
+            nextDefaultPropsConfig,
+            nextPure,
+            nextRtl,
+            nextWarning,
+            nextDevice,
+            nextPopupContainer,
+            nextErrorBoundary,
+        } = childContextCache.root() || {};
+
+        return {
+            prefix: nextPrefix,
+            locale: nextLocale,
+            defaultPropsConfig: nextDefaultPropsConfig,
+            pure: nextPure,
+            rtl: nextRtl,
+            warning: nextWarning,
+            device: nextDevice,
+            popupContainer: nextPopupContainer,
+            errorBoundary: nextErrorBoundary,
+        };
+    };
+
+    /**
+     * Manually clear the cache to prevent memory leaks in SSR scenarios.
+     */
+    static clearCache = () => {
+        childContextCache.clear();
+    };
+>>>>>>> REPLACE
+```
+
+This change adds a `clearCache` static method to the `ConfigProvider` class, which users can call to manually clear the cache when necessary, especially in SSR scenarios where `componentWillUnmount` is not called.
