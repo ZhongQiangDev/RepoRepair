@@ -93,7 +93,7 @@ python bug_repair.py  # Output: bug_repair/
 
 ## Directory Structure
 
-```angular2html
+```bash
 ├── repo_doc_meta/            # Parsed repository metadata
 ├── repo_document_func/       # Function-level documentation
 ├── repo_document_file/       # File-level documentation
