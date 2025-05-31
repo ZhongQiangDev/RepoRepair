@@ -94,12 +94,12 @@ python bug_repair.py  # Output: bug_repair/
 ## Directory Structure
 
 ```bash
-├── repo_doc_meta/            # Parsed repository metadata
-├── repo_document_func/       # Function-level documentation
-├── repo_document_file/       # File-level documentation
+├── repo_doc_meta/              # Parsed repository metadata
+├── repo_document_func/         # Function-level documentation
+├── repo_document_file/         # File-level documentation
 ├── problem_statement_analysis/ # Issue analysis results
-├── repo_file_rag/            # Retrieved files
-├── buggy_files/              # Localized problematic files  
-├── buggy_elements/           # Localized functions/classes
-└── bug_repair/               # Generated patches
+├── repo_file_rag/              # Retrieved files
+├── buggy_files/                # Localized problematic files  
+├── buggy_elements/             # Localized functions/classes
+└── bug_repair/                 # Generated patches
 ```
