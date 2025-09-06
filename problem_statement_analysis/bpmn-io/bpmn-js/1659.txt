@@ -1,11 +1,25 @@
+Based on the provided GitHub problem description and GIF demonstration, I'll analyze the wrong behaviors and their causes:
+
 ### Answer 1
-**Wrong Behavior**: Labels and Associations are not moved with the Connection after resizing the connected shape.
-**Cause**: The issue likely stems from the way the layout algorithm handles the repositioning of labels and associations when the shape is resized. The algorithm may not be updating the positions of these elements in relation to the new shape dimensions, causing them to remain in their original positions.
+**Wrong Behavior**: Labels don't move with the sequence flow when connected shapes are resized
+**Cause**: The label position update logic is not properly linked to the sequence flow's layout recalculation. When the subprocess is resized, the sequence flow updates its path, but the label maintains its absolute position instead of maintaining its relative position to the sequence flow.
 
 ### Answer 2
-**Wrong Behavior**: The Connection does not adjust its waypoints correctly after the shape is resized.
-**Cause**: The resizing of the shape may not trigger a proper recalculation of the waypoints for the Connection. This could be due to a lack of event listeners or a flaw in the logic that determines how waypoints should be updated when a connected shape changes size.
+**Wrong Behavior**: Text annotations (with their association lines) don't follow the sequence flow after resize
+**Cause**: The association lines and text annotations are likely using absolute coordinates or fixed anchor points, rather than maintaining relative positioning to their parent sequence flow. When the sequence flow is re-laid out, there's no mechanism to update the positions of associated elements.
+
+### Answer 3
+**Wrong Behavior**: Bendpoints in the sequence flow maintain their absolute positions instead of adjusting relative to the resized shape
+**Cause**: The bendpoint coordinates are probably stored as absolute positions rather than relative positions to the connected shapes. When the subprocess is resized, the bendpoints don't adjust their positions proportionally to maintain the flow's original shape and intent.
 
 ### Conclusion
-**Summary**: The primary issues are that labels and associations are not moved with the Connection after resizing, and the Connection itself does not adjust its waypoints correctly. These problems are likely caused by flaws in the layout algorithm and the logic for updating waypoints. Addressing these issues will require improvements to the event handling and recalculation processes within the library.  
-Video 1: ![](https://user-images.githubusercontent.com/21984219/169510262-f80040f3-b078-481b-b62b-a934ca55b106.gif)
+**Summary**: The core issue stems from improper handling of relative positioning between connected elements in the BPMN diagram. There are three main components affected:
+1. Labels losing their connection to sequence flows
+2. Text annotations and their associations not maintaining their relationships with sequence flows
+3. Bendpoints not adjusting properly during shape resizing
+
+The solution would likely involve implementing a comprehensive layout update mechanism that:
+- Maintains relative positioning of all connected elements
+- Updates all dependent elements (labels, annotations, associations) when parent elements are modified
+- Handles bendpoints using relative positioning rather than absolute coordinates
+- Implements proper event propagation for layout changes

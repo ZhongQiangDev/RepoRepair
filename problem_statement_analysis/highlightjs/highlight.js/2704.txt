@@ -1,14 +1,16 @@
+Let me analyze the GitHub issue and break down the problems and causes.
+
 ### Answer 1
-**Wrong Behavior**: The code highlighter incorrectly interprets the `Operators.(*)` as the start of a multi-line comment, causing the rest of the code to be highlighted as a comment.
-**Cause**: The syntax highlighting algorithm is not correctly distinguishing between the `Operators.(*)` function call and the multi-line comment syntax `(* ... *)` in F#. This is likely due to the algorithm not being sophisticated enough to recognize the context in which `(*)` is used.
+**Wrong Behavior**: The syntax highlighter incorrectly interprets `Operators.(*)` as the start of a multi-line comment
+**Cause**: The syntax highlighter is mistakenly treating the `(*)` pattern as the F# multi-line comment delimiter `(* ... *)`, rather than recognizing it as the multiplication operator being accessed through the Operators module
 
 ### Answer 2
-**Wrong Behavior**: The highlighting issue persists even when using the `fs` language identifier, indicating that the problem is not specific to the `fsharp` identifier but rather a broader issue with the syntax highlighting for F#.
-**Cause**: The syntax highlighting rules for both `fsharp` and `fs` are likely using the same underlying definitions, which do not properly account for the `Operators.(*)` syntax. This suggests a need for an update to the syntax highlighting definitions for F# to better handle this specific case.
+**Wrong Behavior**: The code highlighting continues to treat the rest of the code block as a comment
+**Cause**: Once the highlighter incorrectly identifies the start of a multi-line comment with `(*)`, it continues looking for the closing `*)` delimiter, causing all subsequent code to be highlighted as comment content
 
 ### Answer 3
-**Wrong Behavior**: The expected behavior of having no highlighted comments, except for the inline comments in the last three lines, is not met.
-**Cause**: The current syntax highlighting rules are not correctly identifying the inline comments and are instead treating the `Operators.(*)` as the start of a multi-line comment, which affects the highlighting of the entire code block.
+**Wrong Behavior**: The syntax highlighter doesn't properly handle qualified operator access
+**Cause**: The highlighter's parsing rules don't seem to account for the F# syntax pattern of accessing operators as functions through module qualification (e.g., `Operators.(*)`)
 
 ### Conclusion
-**Summary**: The primary issue is that the syntax highlighting algorithm for F# in the code block is not correctly distinguishing between the `Operators.(*)` function call and the multi-line comment syntax. This results in the rest of the code being incorrectly highlighted as a comment. The problem affects both `fsharp` and `fs` language identifiers, indicating a need for an update to the syntax highlighting definitions for F# to properly handle the `Operators.(*)` syntax and ensure that inline comments are correctly identified.
+**Summary**: The core issue stems from Discord's syntax highlighter for F# having overly simplistic parsing rules that don't properly distinguish between multi-line comment delimiters and qualified operator access. The highlighter incorrectly treats `Operators.(*)` as the start of a comment block `(*`, leading to cascading highlighting errors throughout the rest of the code. This is particularly problematic for F# code that makes use of operator functions through the Operators module. The highlighter needs to be updated to recognize the context-specific meaning of `(*)` when it appears as part of a qualified operator access.

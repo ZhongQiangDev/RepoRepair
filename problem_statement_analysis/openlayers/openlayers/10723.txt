@@ -1,14 +1,16 @@
+Let me analyze the GitHub problem description and break down the issues:
+
 ### Answer 1
-**Wrong Behavior**: Most meridians do not appear when the projection crosses the dateline.
-**Cause**: The issue arises because the graticule generation logic does not handle the discontinuity at the dateline (180° longitude) correctly. When the projection spans the dateline, the algorithm fails to properly render meridians that cross this boundary, leading to their absence in the display.
+**Wrong Behavior**: Missing meridian lines when the projection crosses the international date line
+**Cause**: The projection system likely has difficulty handling the coordinate discontinuity at the date line (180°/-180° longitude). When the view crosses this boundary, the coordinate calculations may fail to properly render meridians that cross this line.
 
 ### Answer 2
-**Wrong Behavior**: Parallels begin at the dateline and/or extend too far.
-**Cause**: The parallels are not correctly clipped or adjusted for the dateline crossing. The algorithm likely assumes a continuous longitude range and does not account for the wrap-around at 180°, causing the parallels to start or end at the dateline inappropriately or extend beyond the intended projection extent.
+**Wrong Behavior**: Parallels (latitude lines) either start incorrectly at the date line or extend too far
+**Cause**: The proj4 library returns normalized longitudes (between -180° and +180°), which makes it challenging to properly determine where parallel lines should begin and end when the projection crosses the date line. The normalization process may cause incorrect start/end points for parallel lines.
 
 ### Answer 3
-**Wrong Behavior**: The graticule does not display all meridians and parallels within the projection extent.
-**Cause**: The current implementation of the graticule generation does not dynamically adjust to the specific characteristics of the projection when it crosses the dateline. This results in incomplete rendering of the graticule, as the algorithm fails to correctly determine which meridians and parallels should be displayed within the visible area.
+**Wrong Behavior**: Inconsistent graticule display on different sides of the date line
+**Cause**: The projection system doesn't properly handle the determination of which side of the date line contains the majority of the projection area. This leads to incorrect rendering decisions for the graticule lines.
 
 ### Conclusion
-**Summary**: The primary issues stem from the graticule generation algorithm's inability to handle the discontinuity at the dateline. The absence of meridians, incorrect starting or ending points of parallels, and incomplete display of the graticule within the projection extent are all symptoms of this underlying problem. Addressing these issues will require modifications to the algorithm to properly account for the dateline crossing and ensure accurate rendering of the graticule in all cases.
+**Summary**: The main issues revolve around the handling of the international date line (180°/-180° longitude) in the projection system. The problems manifest in three ways: missing meridian lines, incorrect parallel line extents, and inconsistent graticule display. The root cause appears to be the coordinate normalization in proj4 and the challenges in properly handling the discontinuity at the date line. The solution would require special handling of coordinates near the date line and potentially implementing logic to determine the dominant side of the projection relative to the date line.

@@ -1,14 +1,16 @@
+Let me analyze the GitHub problem description:
+
 ### Answer 1
-**Wrong Behavior**: Lighthouse does not handle Out-of-Process Iframes (OOPIFs) properly.
-**Cause**: Lighthouse's current implementation focuses on the main frame and does not perform target discovery for iframes, which is necessary to gather network data from OOPIFs. This is evident from the observation that Chrome DevTools uses `Target.sendMessageToTarget` to send `Network.enable` to discovered targets, but Lighthouse's source code in the `lighthouse/lighthouse-core/gather` folder does not show similar target discovery mechanisms.
+**Wrong Behavior**: Lighthouse appears to be unable to analyze network requests from Out-of-Process IFrames (OOPIFs)
+**Cause**: Lighthouse is not implementing the target discovery mechanism that Chrome DevTools uses (Target.sendMessageToTarget and Target.receivedMessageFromTarget) to communicate with and gather data from iframes
 
 ### Answer 2
-**Wrong Behavior**: Lighthouse may miss network data from iframes.
-**Cause**: Without proper target discovery and enabling network monitoring for iframes, Lighthouse cannot capture and analyze network requests initiated by iframes. This limitation restricts Lighthouse's ability to provide a comprehensive audit of a web page's performance and resource usage.
+**Wrong Behavior**: Limited visibility of network activity in Lighthouse reports
+**Cause**: Lighthouse seems to only capture network requests from the main frame, missing requests initiated from embedded iframes since it's not doing the iframe target discovery and monitoring
 
 ### Answer 3
-**Wrong Behavior**: Lighthouse's audit results may be incomplete or inaccurate.
-**Cause**: If Lighthouse only analyzes the main frame and ignores iframes, especially OOPIFs, the audit results will not reflect the full picture of the web page's behavior. This can lead to inaccurate performance metrics and missing potential issues related to iframes.
+**Wrong Behavior**: Potential incomplete performance analysis
+**Cause**: Without monitoring OOPIF network activity, Lighthouse may provide incomplete or inaccurate performance metrics when analyzing pages with significant iframe content
 
 ### Conclusion
-**Summary**: The primary issue is that Lighthouse lacks the capability to handle OOPIFs effectively. This is due to the absence of target discovery mechanisms similar to those used by Chrome DevTools. As a result, Lighthouse may miss network data from iframes, leading to incomplete or inaccurate audit results. To address this, Lighthouse needs to implement target discovery and network monitoring for iframes to ensure comprehensive analysis of web pages.
+**Summary**: The core issue is that Lighthouse lacks the capability to properly handle Out-of-Process IFrames (OOPIFs) unlike Chrome DevTools. This stems from not implementing the target discovery and communication mechanism (Target.sendMessageToTarget/Target.receivedMessageFromTarget) that DevTools uses. As a result, Lighthouse can only analyze network requests from the main frame, potentially missing important network activity from iframes and providing incomplete performance analysis for pages with iframe content. This limitation needs to be addressed by implementing proper OOPIF handling similar to how Chrome DevTools does it.

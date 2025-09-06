@@ -1,14 +1,21 @@
+Let me analyze the GitHub issue and break down the problems and their causes.
+
 ### Answer 1
-**Wrong Behavior**: Drawn circles and other custom geometry do not have the expected shape/size in the view when `useGeographic` is specified.
-**Cause**: The `useGeographic` option is designed to work with geographic coordinates (latitude and longitude) rather than Cartesian coordinates. When drawing shapes like circles, the algorithm assumes a flat, Cartesian space, which leads to distortions when applied to a geographic coordinate system, especially at higher latitudes where the curvature of the Earth becomes more pronounced.
+**Wrong Behavior**: Drawn circles don't extend to the pointer position as expected when useGeographic is enabled, especially noticeable in higher latitudes.
+**Cause**: This is likely due to the difference between geographic coordinates (lat/long) and screen coordinates. In geographic mode, the distance between longitude lines varies with latitude (they converge at the poles), while in screen space, distances are uniform. This distortion becomes more pronounced at higher latitudes due to map projection mathematics.
 
 ### Answer 2
-**Wrong Behavior**: Regular shapes produced by `createRegularPolygon` can be far from regular.
-**Cause**: The `createRegularPolygon` function likely generates vertices based on a fixed angular increment in a Cartesian space. When these vertices are then projected onto a geographic coordinate system, the distances between the vertices become distorted due to the varying scale of the geographic projection, particularly at higher latitudes. This results in shapes that are not regular.
+**Wrong Behavior**: Regular shapes created using createRegularPolygon appear distorted and irregular in the view.
+**Cause**: The distortion occurs because regular polygons are being drawn in geographic coordinates (WGS84) but displayed in a projected coordinate system. What appears regular in one coordinate system becomes distorted in another due to the mathematical transformations involved in map projections.
 
 ### Answer 3
-**Wrong Behavior**: If the view projection is not parallel to WGS84, using `createBox` to draw a box is not possible as expected.
-**Cause**: The `createBox` function probably assumes a specific projection (likely WGS84) when calculating the box's dimensions and orientation. When the view projection is different, the box's coordinates are not correctly transformed, leading to a misalignment or distortion of the box shape. This is because the function does not account for the differences in scale and orientation between the assumed projection and the actual view projection.
+**Wrong Behavior**: Creating perfect boxes using createBox becomes impossible when the view projection is not parallel to WGS84.
+**Cause**: The box creation tool assumes a rectangular shape in the input coordinate system, but when displayed in a different projection (especially when not parallel to WGS84), the transformation causes the shape to become distorted. This is fundamentally a projection mismatch issue between the coordinate system used for drawing and the display projection.
 
 ### Conclusion
-**Summary**: The issues arise from the mismatch between the assumptions made by the drawing functions (Cartesian space and specific projections) and the actual geographic coordinate system and view projections being used. To fix these problems, the drawing functions need to be adapted to handle geographic coordinates and different projections correctly, possibly by incorporating projection transformations or providing options to specify the desired behavior in different projections.
+**Summary**: The core issues stem from the interaction between different coordinate systems and projections. When useGeographic is enabled, there's a fundamental mismatch between how shapes are drawn (in geographic coordinates) and how they're displayed (in projected coordinates). This affects three main aspects:
+1. Circle drawing accuracy and size
+2. Regular polygon shape preservation
+3. Box drawing functionality
+
+The main underlying cause across all these issues is the challenge of maintaining geometric properties (like shape and size) when transforming between geographic and projected coordinate systems. The current implementation doesn't properly account for these transformations, leading to unexpected visual results.

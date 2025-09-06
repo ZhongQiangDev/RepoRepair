@@ -1,10 +1,20 @@
+Let me analyze the GitHub issue and break down the problems and causes.
+
 ### Answer 1
-**Wrong Behavior**: Clicking on a multi-line legend label triggers the action for the label above it instead of the intended label.
-**Cause**: The issue arises from how the click event is being handled in the Chart.js library. When the legend is positioned on the right and labels are multi-line, the click event's coordinates might be misaligned with the intended label due to incorrect calculation of the label's bounding box or event target. This misalignment becomes more pronounced with an increasing number of labels.
+**Wrong Behavior**: Legend label click actions are targeting the wrong items when labels are multi-line and legend is positioned on the right
+**Cause**: The click event handler is likely using incorrect vertical position calculations that don't properly account for multi-line text spacing and positioning, causing a mismatch between the visual position and the actual clickable areas
 
 ### Answer 2
-**Wrong Behavior**: The problem worsens with more labels, indicating a cumulative error in the event handling.
-**Cause**: The cumulative error is likely due to the way the library calculates the vertical spacing between labels. If the spacing calculation does not account for the additional height of multi-line labels, it can lead to a progressive misalignment as more labels are added. This results in the click event being consistently off by a certain number of pixels for each additional label.
+**Wrong Behavior**: The offset/misalignment gets worse as more legend items are added
+**Cause**: There appears to be a cumulative positioning error where each additional legend item increases the vertical position discrepancy, suggesting the spacing/padding calculations between legend items may not be properly accounting for variable height items
+
+### Answer 3
+**Wrong Behavior**: Hover events are also affected by the same misalignment issue
+**Cause**: The hover event detection is likely using the same incorrect position calculation logic as the click events, indicating this is a fundamental issue with the legend item position mapping rather than just click handling
+
+### Answer 4
+**Wrong Behavior**: The issue specifically occurs with right-aligned legends
+**Cause**: The position calculation logic for right-aligned legends may be using different positioning math compared to other legend positions (top, bottom, left), suggesting special handling for right-aligned legends isn't properly implementing multi-line support
 
 ### Conclusion
-**Summary**: The primary issue is the incorrect handling of click events on multi-line legend labels, caused by misalignment in the calculation of label positions and bounding boxes. This misalignment is exacerbated by the cumulative error in vertical spacing calculations as the number of labels increases. Addressing this requires a fix in the event handling logic to accurately determine the target label based on the click coordinates, taking into account the height of multi-line labels.
+**Summary**: The core issue appears to be incorrect position calculations for legend items when using right-aligned legends with multi-line labels. This manifests in both click and hover events targeting wrong items, with the problem becoming more pronounced as more items are added. The root cause seems to be in the positioning logic specifically for right-aligned legends that doesn't properly account for multi-line text heights and spacing, leading to a cumulative positioning error that affects event handling.

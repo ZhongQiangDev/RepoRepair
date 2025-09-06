@@ -1,10 +1,16 @@
+Let me analyze the GitHub problem and break down the wrong behaviors and their causes.
+
 ### Answer 1
-**Wrong Behavior**: Tooltip does not appear when the user touches any part of the graph using `pointerdown` and `pointerup` events after upgrading from v2.9.4 to v3.5.1.
-**Cause**: The event types are being normalized in the new version of Chart.js. The original event types (`pointerdown` and `pointerup`) are not matching the normalized event types (`mousedown` and `mouseup`) used by the tooltip plugin. This mismatch prevents the tooltip from being triggered.
+**Wrong Behavior**: Tooltip not showing up when using pointerdown/pointerup events on touchscreen after upgrading from Chart.js v2.9.4 to v3.5.1
+**Cause**: The event types are being normalized in Chart.js v3.x, but the plugin event filters are still using the original event types. Specifically, pointer events are being normalized to mouse events in the platform.dom.js file, causing a mismatch between the expected and actual event types.
 
 ### Answer 2
-**Wrong Behavior**: The tooltip only shows when the point is hovered, but not when the user touches the graph.
-**Cause**: The configuration for the tooltip plugin in the new version of Chart.js does not include the normalized event types (`mousedown` and `mouseup`). As a result, the tooltip plugin does not recognize the `pointerdown` and `pointerup` events, leading to the tooltip not being displayed.
+**Wrong Behavior**: Event filtering system failing to recognize touch interactions
+**Cause**: The tooltip plugin configuration is expecting pointer events ('pointerdown', 'pointerup'), but the events are being normalized to mouse events ('mousedown', 'mouseup'). The event filter doesn't recognize these normalized events because they don't match the original pointer event types.
 
 ### Conclusion
-**Summary**: The primary issue is the mismatch between the original event types (`pointerdown` and `pointerup`) and the normalized event types (`mousedown` and `mouseup`) used by the tooltip plugin in the new version of Chart.js. This mismatch prevents the tooltip from being triggered when the user touches the graph. To fix this, the normalized event types should be added to the `options.plugins.tooltip` configuration. This will ensure that the tooltip is displayed when the user touches any part of the graph.
+**Summary**: The core issue stems from an architectural change in Chart.js v3.x where events are normalized to mouse events, but the plugin event filtering system isn't properly handling this normalization. This creates a disconnect between the expected pointer events and the actual normalized mouse events. The problem can be resolved by either:
+1. Adding the normalized event types ('mousedown', 'mouseup') to the tooltip plugin configuration
+2. Or updating the event filtering system to handle both original and normalized event types
+
+The immediate workaround is to update the tooltip plugin configuration to include the normalized mouse events, but a more comprehensive solution might involve updating the event handling system to better handle event normalization.

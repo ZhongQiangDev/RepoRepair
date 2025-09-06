@@ -1,10 +1,20 @@
+Let me analyze the GitHub issue:
+
 ### Answer 1
-**Wrong Behavior**: The label "Andy&amp;apos;s" is not being properly decoded, resulting in the display of the character code instead of the intended apostrophe.
-**Cause**: The text in the label is encoded using HTML entities (`&amp;apos;`), but the renderer or the `ol/style/Text` component is not decoding these entities before rendering the text. This suggests that the responsibility for decoding the text is not being handled by the appropriate component in the rendering pipeline.
+**Wrong Behavior**: XML/HTML character entities (like &apos;) are showing up directly in the rendered label text instead of being decoded to their actual characters
+**Cause**: The text parsing system is not properly decoding XML/HTML entities when processing the KML/XML input. The raw encoded value "&amp;apos;" is being passed through to the label renderer instead of being converted to an apostrophe (')
 
 ### Answer 2
-**Wrong Behavior**: The parser responsible for reading the KML data is not converting the encoded text into its proper form before passing it to the rendering component.
-**Cause**: The parser may not be configured to automatically decode HTML entities in the text data. This could be due to a lack of a built-in decoding function or the absence of a configuration setting that enables entity decoding.
+**Wrong Behavior**: Inconsistent text processing between data storage and display
+**Cause**: There appears to be a gap in the processing pipeline - while the data is properly stored with encoded entities (as required for XML), there's no corresponding decode step before displaying the text in the UI layer
+
+### Answer 3
+**Wrong Behavior**: Unclear responsibility for text decoding in the architecture
+**Cause**: The system design doesn't clearly specify whether text decoding should happen in:
+1. The XML/KML parser
+2. The ol/style/Text component
+3. The renderer
+This architectural ambiguity leads to the encoding/decoding step being missed entirely
 
 ### Conclusion
-**Summary**: The issue arises from two main causes: the renderer or `ol/style/Text` component not decoding the HTML entities in the label text, and the parser not converting the encoded text into its proper form. To resolve this, either the renderer should be modified to automatically decode the text, or the parser should be configured to decode HTML entities before passing the data to the rendering component. This ensures that the label text is displayed correctly with the intended characters.
+**Summary**: The core issue stems from XML/HTML entities not being properly decoded when displaying text labels. This manifests as encoded characters appearing verbatim in the UI instead of their intended readable form. The root causes are a combination of missing decode logic in the processing pipeline and unclear architectural responsibilities for where this decoding should occur. The solution likely requires either adding decoding logic to one of the existing components (parser, text style, or renderer) or clearly defining which component should handle this responsibility.

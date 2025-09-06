@@ -1,14 +1,16 @@
+Let me analyze the GitHub problem description:
+
 ### Answer 1
-**Wrong Behavior**: The YAML string `"world"` with a trailing comment `# test` is not properly highlighted.
-**Cause**: The Prism.js YAML parser might not be correctly handling the syntax where a string is followed by a comment on the same line. This could be due to the parser not recognizing the comment syntax after a string, causing it to misinterpret the string and comment as a single entity.
+**Wrong Behavior**: YAML string highlighting breaks when there is a trailing comment on the same line
+**Cause**: The syntax highlighting parser likely doesn't properly handle the string termination when encountering a comment character (#) on the same line. It appears to prematurely end the string highlighting when it sees the comment symbol.
 
 ### Answer 2
-**Wrong Behavior**: The comment `# test` following the string `"world"` is not highlighted as a comment.
-**Cause**: The Prism.js YAML grammar might not be configured to recognize comments immediately following a string. This could be due to the grammar rules not accounting for the specific case where a comment follows a string on the same line, leading to improper syntax highlighting.
+**Wrong Behavior**: Inconsistent highlighting between strings with and without comments
+**Cause**: The syntax highlighting rules in Prism.js version 1.15.0 don't properly separate the string tokenization from comment tokenization in YAML, causing the highlighting to fail for the first string ("world" # test) while working correctly for the second string ("world").
 
 ### Answer 3
-**Wrong Behavior**: The second string `"world"` without a trailing comment is highlighted correctly, but the first string with the comment is not.
-**Cause**: There might be a discrepancy in how Prism.js handles strings with and without trailing comments. The parser might be treating the string with the comment as an invalid syntax, causing it to fail to highlight the string correctly.
+**Wrong Behavior**: Loss of string syntax recognition
+**Cause**: The YAML language definition in Prism.js likely has an incorrect regex pattern that doesn't account for the possibility of comments following quoted strings, causing the parser to fail to properly identify the complete string token when followed by a comment.
 
 ### Conclusion
-**Summary**: The main issue is that Prism.js is not correctly handling YAML strings with trailing comments. The parser is likely misinterpreting the syntax, leading to improper highlighting of both the string and the comment. To resolve this, the YAML grammar in Prism.js needs to be updated to correctly recognize and handle strings followed by comments on the same line. This would ensure that both the string and the comment are highlighted appropriately.
+**Summary**: The core issue stems from Prism.js's YAML syntax highlighting implementation having improper handling of comments that follow strings on the same line. This manifests in three related ways: broken string highlighting with trailing comments, inconsistent highlighting behavior, and incorrect string token recognition. The root cause appears to be in the syntax highlighting regex patterns that don't properly account for the YAML specification's allowance of trailing comments after quoted strings. This would need to be fixed in the Prism.js YAML language definition to properly tokenize strings independently of any trailing comments.

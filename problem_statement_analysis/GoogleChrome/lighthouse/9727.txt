@@ -1,18 +1,20 @@
+Let me analyze the GitHub problem description and break down the issues:
+
 ### Answer 1
-**Wrong Behavior**: The parent page (with iframe) has a higher performance score (71) compared to the child page (only iframe) which has a lower score (39), despite the iframe being the primary content and having poor performance metrics.
-**Cause**: Lighthouse currently does not adequately consider the performance of iframes when calculating the overall performance score of the parent page. The metrics for the parent page are not negatively impacted by the poor performance of the iframe, leading to a misleadingly high score.
+**Wrong Behavior**: Lighthouse reports better performance scores for pages with iframes compared to directly accessing the iframe content, even when the iframe content is causing significant performance issues.
+**Cause**: Lighthouse's current implementation doesn't properly account for or aggregate performance metrics from iframes into the parent page's performance evaluation.
 
 ### Answer 2
-**Wrong Behavior**: The First Contentful Paint (FCP) metric for the parent page (0.6s) is significantly lower than the FCP for the child page (3.2s), even though the iframe content is the main content of the parent page.
-**Cause**: Lighthouse may be measuring the FCP based on the initial content of the parent page, which loads quickly, and not accounting for the time it takes for the iframe content to load. This results in an inaccurate FCP metric for the parent page.
+**Wrong Behavior**: Misleading performance metrics when dealing with bandwidth-limited iframes
+**Cause**: The testing shows that when an iframe is artificially limited to 50kbps, the performance impact isn't properly reflected in the parent page's Lighthouse score (70 points vs 40 points for direct access).
 
 ### Answer 3
-**Wrong Behavior**: The Speed Index and Time to Interactive metrics for the parent page (4.9s and 6.6s respectively) are lower than those for the child page (8.5s and 8.8s respectively), despite the iframe content being the primary content of the parent page.
-**Cause**: Similar to the FCP metric, Lighthouse may not be adequately considering the time it takes for the iframe content to load when calculating the Speed Index and Time to Interactive metrics for the parent page. This results in inaccurate metrics for the parent page.
+**Wrong Behavior**: Incomplete performance auditing for multi-company service architectures
+**Cause**: Many architectures still use iframes to include services from different companies, but Lighthouse's current implementation doesn't adequately measure cross-origin iframe performance impacts.
 
 ### Answer 4
-**Wrong Behavior**: The Max Potential First Input Delay metric for the parent page (490ms) is higher than that for the child page (460ms), despite the iframe content being the primary content of the parent page.
-**Cause**: Lighthouse may not be accurately measuring the input delay for the iframe content, leading to an inaccurate Max Potential First Input Delay metric for the parent page.
+**Wrong Behavior**: Resource consumption of iframes isn't properly factored into the overall performance score
+**Cause**: The evaluation system appears to treat iframe content as secondary to the main page content, rather than considering it as an integral part of the total page load and performance characteristics.
 
 ### Conclusion
-**Summary**: The main issue is that Lighthouse does not adequately consider the performance of iframes when calculating the overall performance score and metrics for the parent page. This leads to misleadingly high scores and inaccurate metrics for the parent page. To address this issue, Lighthouse needs to gather and evaluate the performance of iframes along with the parent page, and aggregate the results in a way that accurately reflects the overall performance of the page.
+**Summary**: The core issue is that Lighthouse's current implementation has significant limitations in how it handles iframe performance measurement. The tool fails to properly aggregate and reflect iframe performance metrics in the parent page's score, leading to misleading results especially in cases with resource-intensive iframes or cross-origin content. This is particularly problematic for modern web architectures that rely on iframes for cross-company service integration. The disparity between direct content access scores and iframe-embedded content scores indicates a fundamental gap in how Lighthouse evaluates composite page performance.

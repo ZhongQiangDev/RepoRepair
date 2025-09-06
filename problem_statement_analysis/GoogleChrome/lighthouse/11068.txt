@@ -1,14 +1,30 @@
+Let me analyze the GitHub problem description and break down the issues:
+
 ### Answer 1
-**Wrong Behavior**: Lighthouse is unable to automatically check the font-display value for multiple font URLs.
-**Cause**: The CSSUsage artifact does not have any stylesheets referencing these fonts. This could be due to the fonts being loaded dynamically or not being properly linked in the CSS files that Lighthouse is analyzing.
+**Wrong Behavior**: Lighthouse is unable to automatically check font-display values for multiple font URLs from Google Fonts and Disqus CDN
+**Cause**: The CSSUsage artifact doesn't contain any stylesheets that reference these fonts, suggesting that the font references are either:
+1. Loaded dynamically
+2. Located within iframes
+3. Not properly captured during the CSS usage collection phase
 
 ### Answer 2
-**Wrong Behavior**: The font-display audit warnings are specifically for iframes.
-**Cause**: Iframes may have their own separate stylesheets or font loading mechanisms that are not being properly detected or analyzed by Lighthouse. This could be due to the iframe content being loaded from a different domain or having a different structure that Lighthouse is not accounting for.
+**Wrong Behavior**: Font-display audit warnings specifically appearing for iframes (as mentioned in the title)
+**Cause**: The cross-origin iframes (indicated by OOPIF - Out of Process IFrames in the test URL) create a separate context that makes it difficult for Lighthouse to:
+1. Access and analyze CSS rules within those iframes
+2. Track font loading behavior across frame boundaries
+3. Properly collect font-related stylesheet information
 
 ### Answer 3
-**Wrong Behavior**: The issue was noticed during the migration to flatten protocol.
-**Cause**: The migration to flatten protocol may have introduced changes in how fonts are loaded or referenced, which could have caused Lighthouse to be unable to properly check the font-display values. This could be due to changes in the URL structure, file paths, or the way the fonts are being embedded in the HTML.
+**Wrong Behavior**: The audit system cannot track font resources across different origins
+**Cause**: The fonts are being loaded from different domains (fonts.gstatic.com and c.disquscdn.com), which creates cross-origin resource sharing complications that may prevent Lighthouse from:
+1. Accessing the font-display properties
+2. Properly analyzing the font loading strategies
+3. Collecting complete stylesheet information across different origins
 
 ### Conclusion
-**Summary**: The main issues are that Lighthouse is unable to check the font-display values for multiple font URLs, specifically for iframes, and this issue was noticed during a migration to flatten protocol. The causes include the CSSUsage artifact not having stylesheets referencing the fonts, iframes having separate font loading mechanisms, and changes introduced during the migration to flatten protocol. Addressing these causes will likely involve ensuring that the fonts are properly referenced in the CSS files, properly detecting and analyzing iframe content, and accounting for any changes introduced during the migration.
+**Summary**: The core issue revolves around Lighthouse's inability to properly audit font-display values in a complex web environment involving iframes and cross-origin resources. The main causes are:
+1. Limitations in collecting CSS usage data from iframes
+2. Cross-origin restrictions affecting font resource analysis
+3. Possible gaps in the CSS artifact collection process
+4. The distributed nature of font resources across different domains
+The problem appears to be a pre-existing bug related to how Lighthouse handles font auditing in more complex webpage structures, particularly those involving iframes and cross-origin resources.

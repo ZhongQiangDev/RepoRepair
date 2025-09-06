@@ -1,14 +1,16 @@
+I'll analyze the GitHub problem description and break down the wrong behaviors and their causes.
+
 ### Answer 1
-**Wrong Behavior**: Embedded Crowdsignal surveys are not displayed in the Reader.
-**Cause**: The current detection mechanism in the code only recognizes Polldaddy polls but does not have a similar rule to detect and render Crowdsignal surveys. This results in the surveys not being displayed as expected.
+**Wrong Behavior**: Crowdsignal (formerly Polldaddy) surveys are not displaying at all in the Reader view
+**Cause**: Missing detection rule for Crowdsignal surveys in the post-normalizer. While there is existing code to detect Polldaddy polls (rule-content-detect-polls.js), there is no equivalent rule to detect and handle surveys which use a different embedding method.
 
 ### Answer 2
-**Wrong Behavior**: Polldaddy embeds are not being displayed in the Reader.
-**Cause**: The detection and rendering logic for Polldaddy embeds in the Reader is either missing or not functioning correctly. This leads to the embeds not being displayed, leaving the post empty if the embed is the only content.
+**Wrong Behavior**: Empty post display when survey is the only content
+**Cause**: The Reader's content processing system is completely ignoring/stripping the survey embed code rather than rendering it, resulting in an empty post when there is no other content besides the survey.
 
 ### Answer 3
-**Wrong Behavior**: The post appears completely empty in the Reader when it contains only a Polldaddy survey.
-**Cause**: The absence of a proper fallback or placeholder content when the embed fails to display results in an empty post. This can be due to the lack of error handling or content rendering logic for such cases.
+**Wrong Behavior**: Inconsistency between direct post view and Reader view
+**Cause**: The survey embed works correctly in direct post view but fails in Reader view, indicating that the Reader's content processing pipeline is not properly configured to handle and transform survey embeds into their displayable format.
 
 ### Conclusion
-**Summary**: The primary issues stem from the lack of proper detection and rendering rules for both Crowdsignal surveys and Polldaddy embeds in the Reader. Additionally, there is a need for better error handling and fallback content to prevent posts from appearing empty when embeds fail to display. Addressing these causes will ensure that embedded content is displayed correctly and enhance the user experience in the Reader.
+**Summary**: The core issue stems from incomplete support for Crowdsignal (Polldaddy) content in the Reader view. While polls are properly detected and displayed through an existing detection rule, surveys use a different embedding method that isn't currently supported. This results in three main problems: surveys not displaying at all, empty posts when surveys are the only content, and inconsistent behavior between direct and Reader views. The primary technical fix needed is to implement a new detection rule specifically for surveys, similar to the existing poll detection rule.

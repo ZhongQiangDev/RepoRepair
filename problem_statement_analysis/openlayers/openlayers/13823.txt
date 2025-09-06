@@ -1,10 +1,16 @@
+Let me analyze the GitHub problem description and break down the issues.
+
 ### Answer 1
-**Wrong Behavior**: The image layer renderer creates a canvas with a size based on the display pixel ratio instead of the image ratio of the source.
-**Cause**: The renderer does not take into account the pixel ratio of the image source when creating the canvas. As a result, for HiDPI devices, the canvas size is unnecessarily large, leading to excessive memory usage.
+**Wrong Behavior**: Canvas size is being created based on display pixel ratio instead of image source ratio
+**Cause**: The renderer is using the device's display pixel ratio to determine canvas dimensions, rather than using the image source's native pixel ratio (which is 1 in this case)
 
 ### Answer 2
-**Wrong Behavior**: The canvas size is twice as big as it needs to be for HiDPI devices.
-**Cause**: The renderer assumes the display pixel ratio for all image sources, without considering the actual pixel ratio of the image source. This leads to a canvas that is larger than necessary, consuming 4 times the memory required.
+**Wrong Behavior**: Excessive memory consumption on HiDPI devices
+**Cause**: Due to using display pixel ratio (2x) instead of image ratio (1x), the canvas dimensions are doubled in both width and height, resulting in a canvas that's 4 times larger in total area (2² = 4), thus consuming 4 times more memory than necessary
+
+### Answer 3
+**Wrong Behavior**: Inefficient resource utilization for WMS image sources
+**Cause**: The code doesn't optimize for WMS (Web Map Service) sources which already provide images at a specific pixel ratio, leading to unnecessary upscaling and memory overhead
 
 ### Conclusion
-**Summary**: The main issue is that the image layer renderer does not properly account for the pixel ratio of the image source when creating the canvas. This results in an unnecessarily large canvas size for HiDPI devices, leading to excessive memory usage. To fix this, the renderer should consider the actual pixel ratio of the image source when determining the canvas size. This would ensure that the canvas is only as large as necessary, reducing memory usage and improving performance.
+**Summary**: The core issue stems from a mismatch between how the image layer renderer handles pixel ratios. Instead of respecting the image source's native pixel ratio (1x), it uses the device's display pixel ratio (2x on HiDPI devices). This creates unnecessarily large canvases that consume quadratically more memory (4x) than required. This is particularly problematic for WMS sources where the extra resolution provides no benefit but consumes significant additional memory. The fix would involve ensuring the renderer uses the image source's pixel ratio rather than the display pixel ratio when creating canvases.

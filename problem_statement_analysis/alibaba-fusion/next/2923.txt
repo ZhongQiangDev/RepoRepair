@@ -1,14 +1,34 @@
+Let me analyze the problem and its causes based on the provided GitHub issue description:
+
 ### Answer 1
-**Wrong Behavior**: Memory leakage occurs in the ConfigProvider component during Server-Side Rendering (SSR) due to the internal cache not being cleared.
-**Cause**: The `componentWillUnmount` lifecycle method, which is supposed to remove the cache, does not get executed in SSR scenarios. This is a known issue in React (referenced in the GitHub issue: https://github.com/facebook/react/issues/3714). As a result, the cache remains in memory and cannot be garbage collected (GC).
+**Wrong Behavior**: Memory leak in ConfigProvider component during Server-Side Rendering (SSR)
+**Cause**: 
+- The ConfigProvider component has an internal cache mechanism
+- The cache cleanup is implemented in componentWillUnmount lifecycle method
+- During SSR, componentWillUnmount is not executed (as documented in React Issue #3714)
+- This results in the cache continuously growing without being garbage collected
 
 ### Answer 2
-**Wrong Behavior**: The internal cache of ConfigProvider continues to grow during SSR load testing.
-**Cause**: The cache is stored in a Map structure, and the instances of ConfigProvider are not being properly released. The image shows multiple instances of ConfigProvider with significant memory usage, indicating that these instances are not being garbage collected. This is likely due to the fact that the `componentWillUnmount` method, which should clear the cache, is not being called in SSR.
+**Wrong Behavior**: No manual cache cleanup mechanism available
+**Cause**:
+- The current implementation only relies on React's lifecycle method for cache cleanup
+- There's no exposed API or alternative method to manually clear the cache
+- This becomes problematic especially in SSR scenarios where automatic cleanup fails
 
 ### Answer 3
-**Wrong Behavior**: The ConfigProvider component does not provide a mechanism to manually clear the cache.
-**Cause**: There is no API or method provided by the ConfigProvider component to manually clear the cache. This lack of a manual clearing mechanism means that developers have no way to explicitly release the cache when it is no longer needed, leading to potential memory leaks.
+**Wrong Behavior**: Inefficient cache management strategy
+**Cause**:
+- The current caching strategy appears to create new cache entries for each instance of ConfigProvider
+- As shown in the memory snapshot, multiple instances of ConfigProvider are being created (@3653969, @2788589, etc.)
+- Without proper cleanup, these cache entries accumulate over time
 
 ### Conclusion
-**Summary**: The primary issue is that the `componentWillUnmount` lifecycle method does not execute in SSR scenarios, leading to memory leakage in the ConfigProvider component. This is compounded by the lack of a manual cache clearing mechanism. To address this, a manual cache clearing API should be provided, or an alternative method should be implemented to ensure the cache is properly cleared in SSR environments. Additionally, developers should be aware of this limitation and take appropriate measures to manage memory usage when using ConfigProvider in SSR scenarios.
+**Summary**: The core issue stems from a memory leak in the ConfigProvider component during SSR scenarios. This occurs because:
+1. The cache cleanup relies solely on componentWillUnmount which doesn't execute in SSR
+2. There's no alternative mechanism to clear the cache manually
+3. The caching strategy creates multiple entries that accumulate over time
+
+To resolve these issues, potential solutions could include:
+- Implementing a manual cache cleanup API
+- Redesigning the caching strategy to be more SSR-friendly
+- Adding alternative cleanup mechanisms that don't rely on React lifecycle methods

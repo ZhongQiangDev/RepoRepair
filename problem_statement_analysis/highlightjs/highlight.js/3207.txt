@@ -1,12 +1,16 @@
-### Answer 1
-**Wrong Behavior**: The function capture `&letter?/1` is not highlighted correctly, and the highlighting seems to break after the `/` character, affecting the rest of the code.
+Let me analyze the GitHub issue and break down the problems and causes.
 
-**Cause**: The highlighting library is misinterpreting the `/` character in the function capture syntax `&letter?/1`. It appears to treat the `/` as the start of a regular expression or a division operator, which causes the highlighting to break until the next `/` is encountered. This misinterpretation leads to incorrect syntax highlighting for the rest of the code.
+### Answer 1
+**Wrong Behavior**: The syntax highlighting breaks after the function capture operator `&` and treats code differently until the next forward slash `/`
+**Cause**: The syntax highlighter appears to be misinterpreting the forward slash in the function capture syntax (`&function_name/arity`) as a regex delimiter or string delimiter, causing it to treat everything between the slashes as a different context
 
 ### Answer 2
-**Wrong Behavior**: The expected behavior is for the function capture `&letter?/1` to be highlighted as a single unit, similar to how `&letter?(&1)` is highlighted.
+**Wrong Behavior**: The function capture expression `&letter?/1` is not highlighted consistently with the rest of the code
+**Cause**: The syntax highlighting rules for Elixir in the highlighter likely don't have proper handling for the function capture syntax pattern (`&name/arity`), which is a special syntax specific to Elixir
 
-**Cause**: The highlighting library lacks specific rules or patterns to correctly identify and handle the function capture syntax `&function_name/arity`. As a result, it fails to recognize `&letter?/1` as a complete function capture and instead treats it as separate components, leading to incorrect highlighting.
+### Answer 3
+**Wrong Behavior**: The code after the function capture expression has incorrect highlighting
+**Cause**: The highlighter loses its proper context after encountering the unhandled function capture syntax, affecting the tokenization and highlighting of subsequent code until it encounters another delimiter or reaches the end of the block
 
 ### Conclusion
-**Summary**: The primary issue is that the highlighting library does not correctly interpret the function capture syntax `&function_name/arity` in Elixir. This misinterpretation causes the highlighting to break after the `/` character, affecting the rest of the code. To fix this, the highlighting library needs to be updated with specific rules or patterns to correctly identify and handle the function capture syntax, ensuring that `&letter?/1` is highlighted as a single unit, similar to `&letter?(&1)`.
+**Summary**: The core issue stems from improper handling of Elixir's function capture syntax (`&function_name/arity`) in the syntax highlighter. The forward slash in this syntax is being misinterpreted as a delimiter, which breaks the highlighting context. This causes three main problems: incorrect highlighting of the function capture itself, treating code between slashes differently, and breaking the highlighting of subsequent code. The fact that the alternative syntax `&letter?(&1)` works correctly suggests that this is specifically related to the `/arity` syntax pattern recognition in the highlighter's rules for Elixir.

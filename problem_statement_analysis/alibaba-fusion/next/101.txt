@@ -1,10 +1,23 @@
+Let me analyze the problem with the NumberPicker component:
+
 ### Answer 1
-**Wrong Behavior**: The NumberPicker displays `4.029999999999999` instead of `4.03` when the `+` button is clicked.
-**Cause**: This issue arises due to the inherent limitations of floating-point arithmetic in JavaScript. When adding `4.02` and `0.01`, the result is not exactly `4.03` due to the way floating-point numbers are represented in binary. This leads to a small rounding error, resulting in `4.029999999999999`.
+**Wrong Behavior**: The NumberPicker displays 4.029999 instead of 4.03 when incrementing from 4.02 by 0.01
+**Cause**: This is caused by JavaScript's floating-point arithmetic precision limitation. JavaScript uses 64-bit floating-point numbers (IEEE 754), which can't precisely represent some decimal fractions. When performing arithmetic with decimals (like 4.02 + 0.01), it can result in small rounding errors.
 
 ### Answer 2
-**Wrong Behavior**: The NumberPicker does not round the result to the specified precision (2 decimal places) as expected.
-**Cause**: The NumberPicker component may not be correctly implementing rounding logic to handle the precision specified. Even though the `precision` prop is set to `2`, the component might not be rounding the result to two decimal places after the addition operation.
+**Wrong Behavior**: The precision prop is not properly handling the floating-point rounding
+**Cause**: Even though the precision prop is set to 2 decimal places, the component is displaying the raw floating-point calculation result instead of rounding it to the specified precision before display.
+
+### Answer 3
+**Wrong Behavior**: The issue is specifically noticeable in Safari browser
+**Cause**: While floating-point arithmetic is a JavaScript language feature that affects all browsers, Safari might be handling the number-to-string conversion differently than other browsers, making the issue more visible.
 
 ### Conclusion
-**Summary**: The primary issue is the inherent inaccuracy of floating-point arithmetic in JavaScript, which causes the result of `4.02 + 0.01` to be `4.029999999999999` instead of `4.03`. Additionally, the NumberPicker component may not be correctly rounding the result to the specified precision. To fix this, the component should implement proper rounding logic to ensure that the displayed value is rounded to the correct number of decimal places. This can be achieved by using methods like `toFixed()` or `Math.round()` in combination with appropriate scaling to handle the precision.
+**Summary**: The core issue stems from JavaScript's inherent floating-point precision limitations, which causes 4.02 + 0.01 to evaluate to 4.029999999999999 instead of 4.03. This is exacerbated by:
+1. The NumberPicker component not properly rounding the result to the specified precision before display
+2. Safari's number formatting behavior making the issue more apparent
+
+To fix this, the component should:
+- Implement proper rounding to the specified precision after calculations
+- Consider using a decimal arithmetic library for precise calculations
+- Ensure consistent number formatting across all browsers

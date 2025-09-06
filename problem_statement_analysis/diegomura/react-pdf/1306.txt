@@ -1,14 +1,20 @@
+Let me analyze the GitHub problem description and break down the issues:
+
 ### Answer 1
-**Wrong Behavior**: The type definition in `@react-pdf/types/image.d.ts` does not support a function that returns a `Promise<string>`.
-**Cause**: The `SourceObject` type definition in the code does not include a function that returns a `Promise<string>` as one of its possible types. According to the documentation, a function that returns a `Promise<string>` should be a valid source object, but the type definition does not reflect this.
+**Wrong Behavior**: Type mismatch between documentation and actual implementation for Image SourceObject
+**Cause**: The documentation states that an Image source object can be a function returning a string or promise string `() => String | Promise<String>`, but the actual type definition in `@react-pdf/types/image.d.ts` doesn't include this function type in its SourceObject definition.
 
 ### Answer 2
-**Wrong Behavior**: The code snippet provided results in a compilation error.
-**Cause**: The `src` prop of the `Image` component is being assigned a function that returns a `Promise<string>`, which is not a valid type according to the current `SourceObject` type definition. This mismatch between the expected type and the provided type causes the compilation error.
+**Wrong Behavior**: Compilation error when using async function as image source
+**Cause**: The current type definition for SourceObject only allows:
+- string
+- object with Buffer data and format
+- object with URI and HTTP method details
+But doesn't support function types that return promises, causing TypeScript compilation errors when trying to use async functions as image sources.
 
 ### Answer 3
-**Wrong Behavior**: The documentation and the type definition are inconsistent.
-**Cause**: The documentation states that a function returning a `Promise<string>` is a valid source object, but the type definition in the code does not include this as a valid type. This inconsistency leads to confusion and errors when developers try to use the library as described in the documentation.
+**Wrong Behavior**: Inconsistency between implementation and use cases
+**Cause**: The implementation doesn't account for modern React patterns where dynamic image loading through async functions is common practice, limiting developers from implementing certain image loading patterns that should be valid according to the documentation.
 
 ### Conclusion
-**Summary**: The main issue is the inconsistency between the documentation and the type definition in the code. The `SourceObject` type definition does not include a function that returns a `Promise<string>` as a valid type, which leads to compilation errors when developers try to use such a function as the `src` prop of the `Image` component. To fix this issue, the `SourceObject` type definition should be updated to include a function that returns a `Promise<string>` as a valid type. This will ensure that the code matches the documentation and that developers can use the library as intended.
+**Summary**: The core issue stems from a discrepancy between the documented API and its actual TypeScript implementation. The documentation suggests support for function-based image sources that can return promises, but the TypeScript type definitions don't reflect this capability. This leads to compilation errors when developers try to use async functions for image sources, even though it should be supported according to the documentation. The solution would require updating the TypeScript type definitions to include function types that return promises, as suggested in the problem description with the addition of `{(): Promise<string>}` to the SourceObject type.

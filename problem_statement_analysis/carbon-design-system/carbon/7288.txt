@@ -1,16 +1,16 @@
+Based on the GitHub problem description and the provided GIFs, I'll analyze the wrong behaviors and their causes:
+
 ### Answer 1
-**Wrong Behavior**: The row gets disabled immediately when nothing is selected in the multiselect, and the dropdown is closed.
-**Cause**: The current implementation only uses the `onChange` event, which triggers on any change in the selection. This event does not provide a way to determine if the user has finished their selection, leading to premature row disabling and dropdown closure.
+**Wrong Behavior**: The row gets disabled immediately when all selections are cleared in the multiselect dropdown, without waiting for the user to finish their interaction with the dropdown menu.
+**Cause**: The `onChange` event triggers immediately for each selection change, causing premature state updates before the user has finished making their selections.
 
 ### Answer 2
-**Wrong Behavior**: The workaround to make it work involves hacky solutions.
-**Cause**: The lack of an `onMenuChange` event forces developers to implement custom logic to handle menu visibility changes. This custom logic can be complex and may not always work as expected, leading to inconsistent behavior.
+**Wrong Behavior**: The dropdown menu closes abruptly when the row gets disabled, interrupting the user's selection process.
+**Cause**: The immediate row disable action triggered by the `onChange` event forces the dropdown to close, creating a poor user experience since there's no distinction between intermediate selection states and final selection states.
 
 ### Answer 3
-**Wrong Behavior**: The desired functionality of knowing when the user has finished their selection is not available.
-**Cause**: The absence of an `onMenuChange` event means there is no direct way to detect when the menu visibility changes. This makes it difficult to implement the desired behavior of enabling/disabling rows based on the final selection.
+**Wrong Behavior**: No way to differentiate between in-progress selection changes and final selection state.
+**Cause**: The current implementation only provides an `onChange` event, lacking a separate event (`onMenuChange`) to track the dropdown menu's open/close state, which would help determine when the user has finished their selection process.
 
 ### Conclusion
-**Summary**: The main issue is the lack of an `onMenuChange` event in the multiselect component. This absence leads to premature row disabling, the need for hacky workarounds, and difficulty in implementing the desired functionality. Adding the `onMenuChange` event would provide a straightforward way to detect menu visibility changes and improve the overall user experience.  
-Video 1: ![wkc-role-change-wrong](https://user-images.githubusercontent.com/3808948/99061929-7dc62780-25a2-11eb-9c8d-86bcc074dfb6.gif)  
-Video 2: ![wkc-role-change-correct](https://user-images.githubusercontent.com/3808948/99061955-84ed3580-25a2-11eb-9afd-323677fb3418.gif)
+**Summary**: The core issue stems from the lack of proper event handling for multiselect dropdowns in the Carbon component. The current implementation only uses `onChange` events, which trigger immediate updates and can cause premature row disabling and dropdown closing. This creates a poor user experience when users need to make multiple selections. The addition of an `onMenuChange` event would allow developers to properly handle the difference between in-progress selections and final selection states, enabling them to implement more user-friendly behavior like waiting for the dropdown to close before applying certain changes. The current workaround exists but requires hacky solutions, making it important to implement this feature properly in the Carbon component itself.

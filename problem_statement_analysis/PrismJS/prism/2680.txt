@@ -1,18 +1,22 @@
+Let me analyze the GitHub issue and provide a structured response:
+
 ### Answer 1
-**Wrong Behavior**: The backtick character (`) is not being properly highlighted as a template literal in the JavaScript code.
-**Cause**: The current grammar for template literals in the Prism JavaScript language definition might not be correctly configured to handle the backtick character in all contexts. Specifically, the pattern for template literals may not be capturing the backtick correctly when it appears in certain positions within the code.
+**Wrong Behavior**: The code highlighting breaks when scrolling down to about 90% of the page, specifically around a backtick character
+**Cause**: Based on the code and screenshot, this appears to be an issue with the template string parsing in the JavaScript language definition. The backtick (`) character is being incorrectly handled as a string delimiter when it appears in code comments or documentation.
 
 ### Answer 2
-**Wrong Behavior**: The `var` keyword is not highlighted as a keyword in the JavaScript code.
-**Cause**: The keyword pattern in the Prism JavaScript language definition might not be capturing the `var` keyword correctly. This could be due to the pattern not being inclusive of all possible keyword contexts or the pattern being overridden by other patterns in the grammar.
+**Wrong Behavior**: The syntax highlighting is not properly handling documentation blocks containing code examples with backticks
+**Cause**: The regex pattern for template strings in Prism's JavaScript language definition is too greedy and doesn't properly account for backticks appearing within documentation comments. The pattern `/`(?:\\[\s\S]|\${(?:[^{}]|{(?:[^{}]|{[^}]*})*})+}|(?!\${)[^\\`])*`/` is matching across comment boundaries.
 
 ### Answer 3
-**Wrong Behavior**: The `STATUS_ATTR`, `STATUS_LOADING`, `STATUS_LOADED`, and `STATUS_FAILED` constants are not highlighted as constants.
-**Cause**: The constant pattern in the Prism JavaScript language definition might not be capturing these specific constants. The pattern for constants may need to be adjusted to include these specific variable names or the pattern might be too restrictive.
-
-### Answer 4
-**Wrong Behavior**: The `SELECTOR` variable is not highlighted as a string.
-**Cause**: The string pattern in the Prism JavaScript language definition might not be capturing the string value assigned to `SELECTOR` correctly. This could be due to the string pattern not being inclusive of all possible string contexts or the pattern being overridden by other patterns in the grammar.
+**Wrong Behavior**: The comment highlighting breaks after encountering a code example in documentation
+**Cause**: The comment tokenizer in the JavaScript language definition is not properly coordinating with the template string tokenizer, leading to incorrect token boundaries when comments contain code examples using backticks.
 
 ### Conclusion
-**Summary**: The issues identified are primarily related to the grammar patterns in the Prism JavaScript language definition not capturing certain elements correctly. The backtick character, `var` keyword, constants, and string values are not being highlighted as expected. Adjusting the grammar patterns to be more inclusive and specific to these elements should resolve the highlighting issues. Specifically, the template literal, keyword, constant, and string patterns need to be reviewed and potentially modified to ensure they correctly capture the relevant elements in the code.
+**Summary**: The core issue stems from Prism.js's JavaScript syntax highlighting having conflicting patterns between template strings and documentation comments. The backtick character serves dual purposes - as both a template string delimiter and as a code block marker in documentation. The current implementation doesn't properly handle this ambiguity, causing the highlighting to break when these patterns intersect. The tokenizer needs to be updated to properly recognize context and prevent the template string pattern from matching across comment boundaries.
+
+The fix would likely involve:
+1. Modifying the template string regex to be less greedy
+2. Adding proper look-behind/look-ahead assertions to respect comment boundaries
+3. Improving coordination between the comment and template string tokenizers
+4. Potentially adding special handling for documentation code blocks

@@ -1,10 +1,16 @@
+Let me analyze the GitHub issue and break down the problems and causes.
+
 ### Answer 1
-**Wrong Behavior**: The heredoc without interpolation (`<<-'MESSAGE'`) is not highlighted correctly as a string.
-**Cause**: The syntax highlighting logic may not be recognizing the single-quoted heredoc syntax (`<<-'MESSAGE'`) as a string. This could be due to the highlighting rules not being updated to handle the specific case of heredocs with single quotes, which are used to disable interpolation.
+**Wrong Behavior**: The heredoc without interpolation (with single quotes around MESSAGE) is not being highlighted as a string
+**Cause**: The syntax highlighter likely doesn't recognize the single-quoted heredoc syntax (`<<-'MESSAGE'`) as a valid heredoc opener, treating only the standard `<<-MESSAGE` format as a proper heredoc delimiter
 
 ### Answer 2
-**Wrong Behavior**: The ending of the heredoc without interpolation is not being detected properly.
-**Cause**: The highlighting engine might be failing to correctly identify the closing delimiter (`MESSAGE`) for the heredoc without interpolation. This could be because the engine is not properly configured to handle the nuances of single-quoted heredocs, leading to incorrect parsing and highlighting.
+**Wrong Behavior**: The closing delimiter 'MESSAGE' for the non-interpolated heredoc is not being detected/highlighted correctly
+**Cause**: The syntax highlighter's pattern matching rules probably don't account for the relationship between single-quoted opening delimiters and their corresponding closing delimiters, failing to properly pair `<<-'MESSAGE'` with its closing `MESSAGE`
+
+### Answer 3
+**Wrong Behavior**: The code after the non-interpolated heredoc appears to be treated as part of the string content
+**Cause**: Because the syntax highlighter fails to properly recognize the closing delimiter of the single-quoted heredoc, it loses track of where the string actually ends, causing subsequent code to be incorrectly highlighted
 
 ### Conclusion
-**Summary**: The primary issues are related to the syntax highlighting engine's inability to correctly identify and highlight heredocs without interpolation in Ruby. The engine needs to be updated to recognize the single-quoted heredoc syntax and properly detect the closing delimiter to ensure accurate highlighting. Addressing these causes will ensure that both standard and non-interpolated heredocs are highlighted correctly.
+**Summary**: The core issue stems from incomplete handling of Ruby's heredoc syntax variations in the syntax highlighter. While it correctly handles standard heredocs (`<<-MESSAGE`), it fails to properly process heredocs without interpolation (`<<-'MESSAGE'`). This results in three related problems: incorrect highlighting of the heredoc content, failure to recognize the closing delimiter, and incorrect highlighting of subsequent code. The highlighter needs to be updated to recognize and properly handle both interpolated and non-interpolated heredoc syntax patterns according to Ruby's documentation.

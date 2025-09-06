@@ -1,14 +1,18 @@
+Let me analyze the wrong behaviors and their causes based on the GitHub issue description:
+
 ### Answer 1
-**Wrong Behavior**: The ComboBox does not correctly interpret and display the Chinese characters inputted via IME.
-**Cause**: The issue likely stems from the specific commit mentioned (141a85fd7f81c57e622ce159761b0d51d2f1502c), which may have altered the way the ComboBox handles input events or character encoding. This could have disrupted the IME's ability to properly convert phonetic input into Chinese characters.
+**Wrong Behavior**: The ComboBox component doesn't properly handle Chinese IME input, showing raw phonetic symbols (ㄓㄨㄥ ㄨㄣˊㄘㄜˋㄕˋ) instead of converted Chinese characters (中文測試)
+**Cause**: The ComboBox component likely doesn't properly handle the IME composition events, which are special events fired during the process of composing characters using an Input Method Editor. The component may be interrupting the IME composition process or not waiting for the final character conversion.
 
 ### Answer 2
-**Wrong Behavior**: The ComboBox displays phonetic input (ㄓㄨㄥ ㄨㄣˊㄘㄜˋㄕˋ) instead of the expected Chinese characters (中文測試).
-**Cause**: The ComboBox might not be properly handling the IME composition events. When using an IME, the input is initially in a phonetic form, and the IME converts it to the final character form. If the ComboBox is not listening for or correctly processing these composition events, it will display the intermediate phonetic form instead of the final characters.
+**Wrong Behavior**: The issue appeared after a specific commit (141a85fd7f81c57e622ce159761b0d51d2f1502c)
+**Cause**: A code change in that commit likely modified the input handling logic or event listeners in the ComboBox component, breaking the IME support that previously worked. This suggests the change either:
+1. Removed necessary event handlers for IME composition
+2. Modified the input processing logic in a way that conflicts with IME functionality
 
 ### Answer 3
-**Wrong Behavior**: The ComboBox does not show the IME candidate window or selection options as expected.
-**Cause**: The IME candidate window is a part of the operating system's IME functionality. If the ComboBox is not properly integrating with the operating system's IME, it may not trigger the candidate window to appear. This could be due to the ComboBox not correctly setting the input method context or not handling focus events in a way that the IME recognizes.
+**Wrong Behavior**: The issue affects multiple browsers (Chrome, Safari) and IME systems
+**Cause**: Since the problem occurs across different browsers and IME systems, the root cause is likely in the core input handling logic of the ComboBox component rather than being browser-specific. This suggests fundamental issues with how the component handles input events and text composition.
 
 ### Conclusion
-**Summary**: The primary issues are related to the ComboBox's handling of IME input events and character encoding. The specific commit mentioned likely introduced changes that disrupted the IME functionality. The ComboBox needs to properly handle IME composition events to display the correct Chinese characters and integrate with the operating system's IME to show the candidate window. Reverting to an earlier version of `carbon-components-react` (7.4.0) where the IME functionality works correctly is a temporary workaround until the issue is resolved in the newer version.
+**Summary**: The primary issue is the ComboBox component's inability to properly handle IME input, which was introduced by a specific commit. The problem stems from incorrect handling of IME composition events, preventing proper character conversion from phonetic input to Chinese characters. The issue's presence across multiple browsers indicates it's a fundamental problem with the component's input handling logic rather than a browser-specific implementation issue. A proper fix would require implementing correct IME composition event handling and ensuring the input process isn't interrupted before character conversion is complete.

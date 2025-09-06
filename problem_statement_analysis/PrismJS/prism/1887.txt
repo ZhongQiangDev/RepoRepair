@@ -1,14 +1,20 @@
+Let me analyze the problem and break down the wrong behaviors and their causes.
+
 ### Answer 1
-**Wrong Behavior**: The current highlighting incorrectly treats single quotes within integer and floating-point literals as string delimiters, leading to improper syntax highlighting.
-**Cause**: The existing regular expression used for identifying numbers in the Prism library does not account for single quotes as valid characters within numeric literals. This causes the parser to misinterpret the quotes as string delimiters, resulting in incorrect highlighting.
+**Wrong Behavior**: Single quotes within numeric literals are being interpreted as string delimiters instead of digit separators
+**Cause**: The current syntax highlighting regex pattern in Prism treats single quotes as string markers, causing the numbers to be incorrectly split and partially highlighted as strings
 
 ### Answer 2
-**Wrong Behavior**: The highlighting issue becomes more pronounced with numbers containing multiple single quotes, leading to further misinterpretation of the syntax.
-**Cause**: The regex pattern used for number detection does not accommodate multiple single quotes within a single numeric literal. As a result, each segment separated by a quote is treated as a separate entity, causing the highlighting to break down further.
+**Wrong Behavior**: Inconsistent highlighting of hexadecimal numbers with single quote separators (e.g., 0x10'0000)
+**Cause**: The current regex pattern in components/prism-cpp.js doesn't properly handle single quotes in hexadecimal number representations
 
 ### Answer 3
-**Wrong Behavior**: The attempted fix by modifying the regex pattern in `prism-cpp.js` did not resolve the issue, as parts of the numbers were still interpreted as strings.
-**Cause**: The modified regex pattern, while attempting to include single quotes as valid characters within numbers, did not correctly handle the context in which these quotes appear. This led to parts of the numbers being misinterpreted as strings, indicating that the regex pattern needs further refinement to properly distinguish between valid numeric literals and string delimiters.
+**Wrong Behavior**: Incorrect highlighting of floating-point numbers with single quote separators (e.g., 1.602'176'565e-19)
+**Cause**: The floating-point number regex pattern doesn't account for single quotes as valid digit separators in the mantissa and exponent parts
+
+### Answer 4
+**Wrong Behavior**: Octal numbers with single quote separators (e.g., 0'004'000'000) are not properly highlighted
+**Cause**: The current regex pattern doesn't recognize single quotes as valid separators in octal number representations
 
 ### Conclusion
-**Summary**: The primary issue stems from the existing regex pattern in the Prism library not accounting for single quotes as valid characters within numeric literals in C++. This leads to incorrect syntax highlighting, especially with numbers containing multiple single quotes. The attempted fix by modifying the regex pattern was insufficient, highlighting the need for a more refined pattern that can accurately distinguish between numeric literals and string delimiters. Addressing this will require a thorough review and adjustment of the regex pattern used for number detection in the Prism library.
+**Summary**: The core issue stems from Prism's syntax highlighting engine not properly supporting C++'s single quote digit separators in numeric literals. The current regex patterns need to be updated to treat single quotes as valid digit separators rather than string delimiters. This affects all types of numeric literals in C++ (decimal, hexadecimal, octal, and floating-point numbers). The attempted fix by modifying the regex pattern wasn't successful because the single quotes are still being interpreted with higher precedence as string delimiters rather than as part of the number pattern.

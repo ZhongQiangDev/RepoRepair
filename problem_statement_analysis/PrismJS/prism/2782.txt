@@ -1,10 +1,16 @@
+Let me analyze the GitHub problem description:
+
 ### Answer 1
-**Wrong Behavior**: The first line of code is not correctly highlighted, indicating that the opening quotes are not recognized when an '@' symbol is included within the string.
-**Cause**: The current string pattern in `prism-basic.js` does not include the '@' symbol as a valid character within a string. This causes the parser to misinterpret the '@' symbol as the end of the string, leading to incorrect highlighting.
+**Wrong Behavior**: The syntax highlighting breaks when a string contains an '@' symbol in VB.NET code
+**Cause**: The string pattern regex in prism-basic.js doesn't include the '@' character in its allowed character set for string contents, causing incorrect tokenization when @ appears in strings
 
 ### Answer 2
-**Wrong Behavior**: The second line of code works correctly, with proper highlighting of the string.
-**Cause**: The second line of code does not include an '@' symbol within the string, so the current string pattern in `prism-basic.js` correctly identifies the opening and closing quotes, resulting in proper highlighting.
+**Wrong Behavior**: The first SQL command string is not properly highlighted while the second identical command (without @) works fine
+**Cause**: The current regex pattern `/"(?:""|[!#$%&'()*,\/:;<=>?^_ +\-.A-Z\d])*"/i` in prism-basic.js specifically excludes '@' from the allowed characters within string literals
+
+### Answer 3
+**Wrong Behavior**: The syntax highlighting inconsistency affects SQL parameter declarations specifically
+**Cause**: VB.NET's common use case of SQL parameters with @ prefix (like @Code) isn't accounted for in the basic language definition, despite being a standard practice in ADO.NET database programming
 
 ### Conclusion
-**Summary**: The primary issue is that the current string pattern in `prism-basic.js` does not include the '@' symbol as a valid character within a string. This causes the parser to misinterpret the '@' symbol as the end of the string, leading to incorrect highlighting in the first line of code. The second line of code works correctly because it does not include an '@' symbol within the string. To fix this issue, the '@' symbol should be added to the string pattern in `prism-basic.js`. However, it is important to be cautious of potential regression issues on other languages that extend it.
+**Summary**: The core issue stems from an incomplete regular expression pattern in prism-basic.js that doesn't account for the '@' character in string literals. This particularly affects VB.NET code when using SQL commands with parameterized queries, which commonly use @ as a parameter prefix. The solution would involve adding '@' to the character class in the string pattern regex, though careful consideration needs to be given to potential impacts on other languages that extend the basic language definition.

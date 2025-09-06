@@ -1,14 +1,16 @@
+Let me analyze the GitHub problem description and break down the issues:
+
 ### Answer 1
-**Wrong Behavior**: The JSON tokenization breaks when encountering the string `"/*"` in the value of key `"A"`.
-**Cause**: The JSON parser or tokenizer is likely misinterpreting the `/*` sequence as the start of a comment, which is not valid in JSON. JSON does not support comments, and the presence of `/*` within a string value is causing the tokenizer to incorrectly treat it as a comment delimiter.
+**Wrong Behavior**: The JSON syntax highlighting is broken when the JSON contains a string value with "/*"
+**Cause**: Prism's tokenizer appears to be incorrectly interpreting the "/*" string value as the start of a multi-line comment, even though comments are not valid in JSON. This suggests the tokenizer is applying JavaScript/C-style comment rules to JSON content.
 
 ### Answer 2
-**Wrong Behavior**: The entire JSON structure after the `"/*"` string is not being properly tokenized.
-**Cause**: Once the tokenizer encounters the `/*` sequence, it may enter a state where it expects a corresponding `*/` to close the comment. Since this is not a valid comment in JSON, the tokenizer gets stuck or misinterprets the rest of the JSON structure, leading to incorrect tokenization.
+**Wrong Behavior**: The rest of the JSON structure after "/*" is not properly highlighted
+**Cause**: Once the tokenizer mistakenly identifies "/*" as a comment start, it continues treating the following content as part of the comment until it finds a matching "*/", which doesn't exist in this case. This causes the tokenizer to fail to properly recognize the remaining valid JSON syntax.
 
 ### Answer 3
-**Wrong Behavior**: The HTTP header `Accept: */*` seems to trigger the problem.
-**Cause**: The `Accept: */*` header might be influencing the way the server or the client handles the response. It's possible that the server or client-side code is not properly escaping or handling the `/*` sequence in the JSON response, leading to the tokenization issue. This could be related to how the response is being logged or processed before it reaches the JSON tokenizer.
+**Wrong Behavior**: The issue is specifically triggered when using the HTTP header `Accept: */*`
+**Cause**: The presence of this header in the server response logging scenario suggests that the content type detection or language grammar selection might be affected by the HTTP headers, causing Prism to potentially apply incorrect tokenization rules.
 
 ### Conclusion
-**Summary**: The primary issue is the misinterpretation of the `/*` sequence within a JSON string value, which is not a valid comment in JSON. This causes the tokenizer to break and incorrectly handle the rest of the JSON structure. The `Accept: */*` header might be indirectly contributing to the problem by influencing how the response is handled or logged. To fix this, the JSON tokenizer needs to be updated to correctly handle string values containing `/*` without treating them as comment delimiters. Additionally, ensuring proper escaping or handling of such sequences in the server or client-side code could prevent this issue.
+**Summary**: The core issue stems from Prism's JSON tokenizer incorrectly handling comment syntax that shouldn't exist in JSON. When encountering the string "/*", it wrongly applies JavaScript/C-style comment tokenization rules, which breaks the highlighting of both the current token and all subsequent JSON content. This is particularly problematic in server response logging scenarios with specific HTTP headers. The tokenizer needs to be modified to treat "/*" as a literal string value in JSON context, rather than as the start of a comment.

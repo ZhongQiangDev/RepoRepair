@@ -1,10 +1,16 @@
+Let me analyze the problem and break down the wrong behaviors and their causes.
+
 ### Answer 1
-**Wrong Behavior**: In the MULTIPLY blend mode, the text appears as solid rectangles instead of displaying the expected transparency and blending effects.
-**Cause**: The issue arises because the alpha channel of the text's pixels is being ignored in the MULTIPLY blend mode. This blend mode multiplies the color components of the source and destination pixels but does not consider the alpha channel, leading to the text appearing as solid rectangles.
+**Wrong Behavior**: In MULTIPLY blend mode, text appears as solid rectangles instead of showing proper transparency for the text glyphs.
+**Cause**: The alpha channel is being ignored during the MULTIPLY blend operation in WebGL. The blending is only considering the RGB values, treating the text's bounding rectangle as fully opaque rather than respecting the alpha values that define the text shapes.
 
 ### Answer 2
-**Wrong Behavior**: The text does not blend correctly with the background or other text layers when using the MULTIPLY blend mode.
-**Cause**: The blending equation used in the MULTIPLY mode does not account for the transparency of the text. As a result, the text's alpha values are not factored into the blending process, causing the text to lose its transparency and blend incorrectly with other elements.
+**Wrong Behavior**: The overlapping text areas in MULTIPLY mode show incorrect color blending.
+**Cause**: Since the alpha channel isn't being properly handled, the MULTIPLY blend mode is applying the multiplication operation to the entire rectangular area of the text bounds, rather than just the actual glyph shapes. This results in the wrong visual effect where the background color is being multiplied with the text color across the entire text bounding box.
+
+### Answer 3
+**Wrong Behavior**: Inconsistent behavior between different blend modes (MULTIPLY vs ADD)
+**Cause**: The ADD blend mode works correctly because it handles alpha differently in the WebGL pipeline. ADD blend mode combines colors additively while properly respecting transparency, while MULTIPLY mode's implementation in the WebGL renderer isn't properly configured to handle alpha transparency in text rendering.
 
 ### Conclusion
-**Summary**: The primary issue is that the MULTIPLY blend mode in p5.js does not properly handle the alpha channel of transparent textures, leading to text appearing as solid rectangles and blending incorrectly with other elements. This behavior is specific to the MULTIPLY blend mode and does not occur with other blend modes like ADD, which correctly handle transparency. To resolve this, the blending equation for the MULTIPLY mode should be adjusted to consider the alpha channel of the text's pixels.
+**Summary**: The core issue stems from improper alpha channel handling in WebGL's MULTIPLY blend mode when rendering text. While the ADD blend mode correctly handles transparency, the MULTIPLY mode ignores alpha values, causing text to render as solid rectangles instead of properly shaped glyphs. This results in incorrect visual output when trying to blend transparent text elements. The problem appears to be specific to the WebGL renderer's implementation of the MULTIPLY blend mode and its interaction with text rendering.

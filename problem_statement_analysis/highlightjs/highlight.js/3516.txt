@@ -1,10 +1,16 @@
+Based on the GitHub problem description, I'll analyze the wrong behaviors and their causes:
+
 ### Answer 1
-**Wrong Behavior**: The closing parenthesis `)` within the string is incorrectly highlighted, causing the string to be prematurely terminated.
-**Cause**: The `highlight` library version 11.5.0 may not properly handle parentheses within quoted strings. It seems to treat the `)` as a closing delimiter for the `url()` function, rather than recognizing it as part of the string content.
+**Wrong Behavior**: The CSS syntax highlighter incorrectly interprets parentheses within URL strings, breaking the string highlighting at the parenthesis.
+**Cause**: The syntax highlighter appears to be treating the parenthesis "(" in filenames (like "background (01).jpg") as a syntax boundary, rather than recognizing it as part of the string content within the URL quotes.
 
 ### Answer 2
-**Wrong Behavior**: The string content after the `)` is not recognized as part of the same string, leading to incorrect syntax highlighting.
-**Cause**: The `highlight` library might not be correctly parsing the string delimiters (`'` or `"`). It appears to lose track of the string context when encountering the `)` character, failing to recognize that the string is still open and should continue until the matching closing quote.
+**Wrong Behavior**: The highlighting is inconsistent between single and double quoted strings containing parentheses.
+**Cause**: The highlighter's string parsing logic likely prioritizes parentheses matching over string boundary detection, causing it to prematurely end string highlighting when it encounters a parenthesis.
+
+### Answer 3
+**Wrong Behavior**: The syntax highlighting fails to properly maintain the string context within the url() function.
+**Cause**: The highlighter's tokenization rules for CSS functions (like url()) don't properly handle nested delimiters (parentheses) when they appear within quoted strings.
 
 ### Conclusion
-**Summary**: The issue arises from the `highlight` library's inability to properly handle parentheses within quoted strings. The library prematurely terminates the string upon encountering the `)` character, leading to incorrect syntax highlighting. This behavior suggests a parsing issue where the library fails to maintain the correct string context when processing characters within quotes. Updating the library or applying a custom parsing rule might resolve the problem.
+**Summary**: The core issue stems from the CSS syntax highlighter's incorrect precedence rules when handling nested delimiters. The highlighter is treating parentheses as higher priority than string quotes, causing it to break string highlighting when it encounters parentheses in filenames. This affects both the visual presentation and the semantic understanding of the code. The highlighter needs to be modified to properly respect string boundaries before considering parentheses matching, especially within the context of CSS URL functions.

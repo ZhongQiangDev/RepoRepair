@@ -1,10 +1,16 @@
+Let me analyze the problem based on the provided GitHub issue description and image:
+
 ### Answer 1
-**Wrong Behavior**: The `label` property still exists as `null` after removing the label of a Task.
-**Cause**: The code responsible for removing the label does not properly delete the `label` property from the `di` object. Instead, it sets the `label` property to `null`, which causes issues with other tools that expect the property to be completely removed.
+**Wrong Behavior**: The `label` property remains in the task object with a `null` value even after clearing/removing the label
+**Cause**: This appears to be related to how the property handling was implemented when adding support for embedded label DIs (Diagram Interchange). Instead of completely removing the property when the label is cleared, the code is setting it to `null` while maintaining the property in the object structure.
 
 ### Answer 2
-**Wrong Behavior**: The presence of the `label: null` property causes linting errors and issues with other tools.
-**Cause**: The tools and linters being used are not designed to handle a `label` property with a `null` value. They expect the property to either have a valid value or not exist at all. This mismatch between the expected and actual behavior leads to errors and warnings.
+**Wrong Behavior**: Linting tools are reporting errors due to the presence of null label property
+**Cause**: The linting tools expect the label property to be completely absent when there is no label, rather than having a null value. This incompatibility was introduced with the embedded label DIs support implementation (referenced issue #1540).
+
+### Answer 3
+**Wrong Behavior**: Inconsistency between expected data structure and actual implementation
+**Cause**: The implementation doesn't align with the expected behavior where removing a label should result in complete removal of the label property from the data structure, not just nullifying it.
 
 ### Conclusion
-**Summary**: The primary issue is that the `label` property is not being properly removed when the label is cleared, leading to the property existing with a `null` value. This causes problems with linting tools and other systems that expect the property to either have a valid value or not exist. To resolve this, the code responsible for clearing the label should be updated to completely remove the `label` property from the `di` object instead of setting it to `null`. Additionally, the tools and linters should be configured or updated to handle the `null` value if it is not feasible to change the code.
+**Summary**: The core issue stems from improper property cleanup when removing labels from tasks in the BPMN editor. Instead of completely removing the `label` property, the current implementation sets it to `null`, which causes compatibility issues with linting tools and deviates from the expected behavior. This was introduced as a side effect of adding support for embedded label DIs. The fix would require modifying the property handling logic to completely remove the label property when a label is cleared, rather than setting it to null.

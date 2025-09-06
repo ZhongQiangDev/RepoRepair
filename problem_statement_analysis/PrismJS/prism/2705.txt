@@ -1,14 +1,29 @@
+Let me analyze the GitHub problem description and break down the issues:
+
 ### Answer 1
-**Wrong Behavior**: The template literal in the comment `// `load bearing comment`` is not being properly ignored, leading to incorrect parsing of subsequent template literals.
-**Cause**: The syntax highlighter is likely not correctly distinguishing between template literals within comments and actual template literals in the code. This causes the parser to treat the template literal in the comment as part of the code, disrupting the parsing of subsequent template literals.
+**Wrong Behavior**: Template literal syntax highlighting breaks after specific code patterns appear in a particular order
+**Cause**: The PrismJS parser's state management seems to get confused when it encounters three specific patterns in sequence:
+1. A regex with a single quote followed by a template literal containing a single quote
+2. A comment containing a template literal
+3. Regular template literals after these patterns
 
 ### Answer 2
-**Wrong Behavior**: The template literal `const var3 = `break starts here`;` is not being highlighted correctly, and the parser seems to treat it as part of the previous template literal.
-**Cause**: The parser is not correctly closing the template literal started in the comment, leading it to incorrectly interpret the subsequent template literals. This results in the parser treating the backticks as part of an ongoing template literal rather than as the start of a new one.
+**Wrong Behavior**: The first template tag token is being ignored in affected lines
+**Cause**: The parser appears to lose track of template literal boundaries after processing the specific combination of regex and comment patterns, causing it to miss the opening backtick token
 
 ### Answer 3
-**Wrong Behavior**: The template literal `const var4 = `break ends here`;` is also not being highlighted correctly and is treated as part of the previous template literal.
-**Cause**: The parser's incorrect handling of the template literal in the comment and the subsequent template literals leads to a cascading effect where all subsequent template literals are misinterpreted. The parser fails to recognize the closing backtick of `var3` and thus treats the entire block as a single, incorrectly formatted template literal.
+**Wrong Behavior**: Template tag parsing becomes inverted for the rest of the file
+**Cause**: Once the parser's state becomes corrupted after the triggering patterns, it fails to properly reset its internal state for subsequent template literals, causing all following template literal highlighting to be incorrect
 
 ### Conclusion
-**Summary**: The primary issue stems from the syntax highlighter's inability to properly distinguish template literals within comments from actual template literals in the code. This causes the parser to incorrectly interpret subsequent template literals, leading to a cascading effect where all template literals after the comment are misparsed. To resolve this, the syntax highlighter needs to be updated to correctly handle template literals within comments and ensure that they do not interfere with the parsing of actual template literals in the code.
+**Summary**: The core issue appears to be a parser state management problem in PrismJS when handling template literals. The bug is triggered by a specific sequence of patterns:
+1. A regex containing a single quote followed by a template literal with a single quote
+2. A comment containing a template literal
+3. Regular template literals
+
+This sequence causes the parser to:
+- Miss opening template literal tokens
+- Incorrectly process all subsequent template literals
+- Maintain this broken state throughout the rest of the file
+
+The fix would likely involve reviewing and correcting how the parser maintains state when processing these specific patterns, especially focusing on proper state reset between different syntax constructs.

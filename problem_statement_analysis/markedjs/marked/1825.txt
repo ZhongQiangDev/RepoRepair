@@ -1,10 +1,16 @@
+Let me analyze the GitHub issue and break down the wrong behaviors and their causes.
+
 ### Answer 1
-**Wrong Behavior**: Task lists are rendered even when `gfm: false` is set.
-**Cause**: The `gfm` option in Marked is not properly disabling all GFM extensions, including task lists. This could be due to a bug in the implementation where the `gfm` flag does not fully disable all GFM-specific features, or there might be a separate configuration or default setting that is overriding the `gfm` flag for task lists.
+**Wrong Behavior**: Task lists are being rendered as interactive checkboxes even when GFM (GitHub Flavored Markdown) is disabled with `gfm: false`
+**Cause**: The Marked parser appears to be processing task list syntax (- [ ] or - [x]) independently of the GFM setting, treating it as a core feature rather than a GFM extension. This contradicts the GFM specification which defines task lists as a GFM-specific extension.
 
 ### Answer 2
-**Wrong Behavior**: The table is not rendered as expected when `gfm: false` is set.
-**Cause**: When `gfm: false` is set, it correctly disables GFM extensions like tables, which is expected behavior. However, this indicates that the `gfm` flag is partially working, as it disables some GFM features but not others (like task lists). This inconsistency suggests a potential issue with how the `gfm` flag is applied to different GFM extensions within the Marked library.
+**Wrong Behavior**: Inconsistency between table and task list rendering when GFM is disabled
+**Cause**: The parser correctly respects the `gfm: false` setting for tables (not rendering them as tables) but fails to apply the same logic to task lists. This suggests an implementation oversight where the task list detection and rendering logic is not properly gated behind the GFM feature flag.
+
+### Answer 3
+**Wrong Behavior**: Output differs from CommonMark specification when GFM is disabled
+**Cause**: The parser is not falling back to standard CommonMark behavior for task list syntax when GFM is disabled. In CommonMark, the `[ ]` should be treated as literal text within list items rather than being transformed into checkbox inputs.
 
 ### Conclusion
-**Summary**: The primary issue is that the `gfm: false` option does not fully disable all GFM extensions, specifically task lists, while it correctly disables others like tables. This inconsistency points to a potential bug in the Marked library where the `gfm` flag's implementation is incomplete or flawed. To resolve this, the library should ensure that setting `gfm: false` disables all GFM-specific features uniformly. This would align the behavior with the expected CommonMark standard and user expectations.
+**Summary**: The core issue stems from Marked's implementation not properly respecting the `gfm: false` setting for task lists. While other GFM features like tables are correctly disabled, task lists are being treated as a core feature rather than a GFM extension. This creates inconsistent behavior and deviates from both the GFM specification and CommonMark standard. The parser needs to be modified to properly gate task list rendering behind the GFM feature flag, ensuring that when GFM is disabled, task list syntax is treated as literal text just like in standard CommonMark.

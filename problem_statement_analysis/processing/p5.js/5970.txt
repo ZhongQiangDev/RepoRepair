@@ -1,10 +1,21 @@
+Based on the detailed GitHub problem description, I'll analyze the wrong behaviors and their causes:
+
 ### Answer 1
-**Wrong Behavior**: The square created by `p5.Geometry` is not drawn on the Android smartphone.
-**Cause**: The UV information from the textured triangle remains in the texture registers when the square is drawn. Since the square has 4 vertices and the UV data only has 3 vertices, the insufficient data causes the Android environment to recognize this as an error and not draw the square.
+**Wrong Behavior**: Square object disappears when viewing on Android devices while drawing textured triangle followed by an untextured square with lighting
+**Cause**: The shader's texture register retains data from the previous textured triangle (3 vertices) when drawing the square (4 vertices). While most environments handle this mismatch by filling missing data with zeros, some Android devices treat this data insufficiency as an error and skip rendering.
 
 ### Answer 2
-**Wrong Behavior**: The square is drawn correctly on the note PC but not on the Android smartphone.
-**Cause**: Different environments handle insufficient UV data differently. The note PC seems to fill the missing data with zeros, allowing the square to be drawn, while the Android smartphone recognizes the insufficient data as an error and skips drawing the square.
+**Wrong Behavior**: Shader attributes that are unused still maintain active registers
+**Cause**: The current implementation doesn't properly disable unused attribute registers after they're no longer needed. This is particularly problematic with shaders like lightingShader where not all attributes are used in every drawing operation.
+
+### Answer 3
+**Wrong Behavior**: Inconsistent rendering behavior across different platforms
+**Cause**: Lack of proper register management in WebGL implementation leads to different handling of incomplete attribute data across various devices and browsers. While some platforms are more forgiving and fill missing data with defaults, others strictly enforce data completeness requirements.
 
 ### Conclusion
-**Summary**: The core issue is the handling of unused or insufficient UV data in the texture registers. The note PC and Android smartphone handle this situation differently, leading to inconsistent rendering results. The proposed solution involves disabling registers for unused attributes to prevent such issues. This change would ensure that the rendering process is consistent across different environments by explicitly managing the state of the registers.
+**Summary**: The core issue stems from improper management of WebGL shader registers and attributes, particularly when switching between different rendering operations (textured vs untextured). The main problems are:
+1. Retention of previous texture data in registers
+2. Lack of proper cleanup for unused attributes
+3. Platform-dependent handling of incomplete attribute data
+
+The proposed solution suggests implementing a register management system that tracks enabled states and properly disables unused attributes, which would prevent these rendering inconsistencies across different platforms.

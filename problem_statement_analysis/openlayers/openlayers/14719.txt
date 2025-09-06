@@ -1,10 +1,16 @@
+Let me analyze the GitHub problem description and break down the issues:
+
 ### Answer 1
-**Wrong Behavior**: The WMS image gets blurry when the ratio is not a round integer.
-**Cause**: When the ratio is not a round integer, the image scaling process may introduce interpolation artifacts. Interpolation is a method used to estimate values between two known data points, and when the ratio is not a round integer, the interpolation process can cause the image to appear blurry. This is because the image scaling process is trying to fit the image into a new size that is not a simple multiple of the original size, leading to a loss of sharpness.
+**Wrong Behavior**: WMS image appears blurry when the map ratio is not a round integer
+**Cause**: This likely occurs because of pixel interpolation when the browser tries to scale the WMS tiles to fit non-integer ratios. When the image needs to be scaled to dimensions that don't perfectly align with the original pixel grid, the browser applies anti-aliasing which creates the blurry effect.
 
 ### Answer 2
-**Wrong Behavior**: The WMS image gets blurry when the map width or map height is not even.
-**Cause**: When the map width or map height is not even, the image rendering process may not align properly with the pixel grid of the display. This misalignment can cause the image to appear blurry because the image pixels are not perfectly aligned with the display pixels. This can be especially noticeable when the image is scaled or transformed, as the misalignment can cause the image to appear less sharp.
+**Wrong Behavior**: WMS image becomes blurry when map width is not even
+**Cause**: When the map width is an odd number of pixels, it can cause sub-pixel rendering issues. The WMS tiles might need to be stretched or compressed to fit the container, leading to interpolation and blur. Even-numbered widths allow for perfect pixel alignment.
+
+### Answer 3
+**Wrong Behavior**: WMS image becomes blurry when map height is not even
+**Cause**: Similar to the width issue, odd-numbered heights can cause rendering problems. The browser needs to perform anti-aliasing when scaling the image to fit non-even dimensions, resulting in blur. Even heights ensure proper pixel alignment.
 
 ### Conclusion
-**Summary**: The WMS image gets blurry due to two main causes. The first cause is when the ratio is not a round integer, which leads to interpolation artifacts during the image scaling process. The second cause is when the map width or map height is not even, which can cause the image to misalign with the display pixel grid, leading to a loss of sharpness. To fix these issues, the image scaling process could be modified to use a different interpolation method that preserves sharpness, and the image rendering process could be adjusted to ensure proper alignment with the display pixel grid.
+**Summary**: The blurriness issues in the WMS image rendering are primarily caused by three dimensional factors: non-integer ratios, odd-numbered widths, and odd-numbered heights. All these scenarios force the browser to perform pixel interpolation and anti-aliasing when scaling or fitting the images, resulting in blur instead of pixel-perfect rendering. The solution would likely involve ensuring that all dimensions and ratios are maintained as even numbers or integer values to achieve proper pixel alignment and sharp image display.

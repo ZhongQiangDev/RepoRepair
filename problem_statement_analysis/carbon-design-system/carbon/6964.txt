@@ -1,18 +1,36 @@
+Based on the GitHub problem description, I'll identify the wrong behaviors and analyze their causes:
+
 ### Answer 1
-**Wrong Behavior**: The Tabs component is still generating code that wraps the tablist in `role="navigation"`.
-**Cause**: The `role` prop is still being used in the Tabs component, specifically in the line [Tabs.js#L45](https://github.com/carbon-design-system/carbon-components-react/blob/master/src/components/Tabs/Tabs.js#L45). This allows the `role` to be set to "navigation" even though it has been previously fixed in separate PRs.
+**Wrong Behavior**: The Tabs component is incorrectly using `role="navigation"` or `<nav>` element
+**Cause**: 
+- Code still allows setting navigation role through props
+- Previous fixes were incomplete or overridden
+- Line 45 in Tabs.js still includes role as a prop option
+- Line 90 in Tabs.js still contains navigation role implementation
+- Documentation and examples (like Storybook) still show navigation role usage
 
 ### Answer 2
-**Wrong Behavior**: The Storybook for Tabs uses a navigation role.
-**Cause**: The Storybook example code for the Tabs component still includes the `role="navigation"` attribute, as shown in the screenshot. This is likely due to the fact that the previous fixes did not update the Storybook examples, leading to the continued use of the navigation role in the documentation.
+**Wrong Behavior**: Developers are adding aria-labels to fix accessibility violations
+**Cause**: 
+- The presence of navigation role triggers accessibility warnings about "navigation landmark needs a label"
+- Developers are applying the wrong fix (adding aria-label) instead of removing the navigation role
+- Lack of clear documentation about proper landmark usage
 
 ### Answer 3
-**Wrong Behavior**: The comment in [Tabs.js#L31](https://github.com/carbon-design-system/carbon-components-react/blob/master/src/components/Tabs/Tabs.js#L31) still mentions `<nav>`.
-**Cause**: The comment has not been updated to reflect the changes made in the previous PRs. This can lead to confusion for developers who may see the comment and assume that using `<nav>` is still an acceptable practice.
+**Wrong Behavior**: Component-level landmark implementation
+**Cause**: 
+- Carbon components are implementing landmarks at the component level
+- This violates the principle that landmarks should be part of the overall page design
+- No clear guidelines preventing components from implementing landmarks
+- Lack of mechanism to override or disable landmark roles when needed
 
 ### Answer 4
-**Wrong Behavior**: The line [Tabs.js#L90](https://github.com/carbon-design-system/carbon-components-react/blob/master/src/components/Tabs/Tabs.js#L90) still exists.
-**Cause**: This line has not been deleted as suggested in the GitHub issue. It is likely that this line is still present due to oversight or a lack of thorough review during the previous fixes.
+**Wrong Behavior**: Inconsistent documentation and examples
+**Cause**: 
+- Code comments still reference `<nav>` (Line 31 in Tabs.js)
+- Storybook examples show navigation role usage
+- Incomplete cleanup of documentation and example code
+- Previous fixes didn't address all documentation instances
 
 ### Conclusion
-**Summary**: The Tabs component is still generating code that wraps the tablist in `role="navigation"` due to the continued use of the `role` prop, the Storybook examples still include the navigation role, the comment in the code still mentions `<nav>`, and the line that should have been deleted is still present. These issues need to be addressed to ensure that the Tabs component does not inadvertently add navigation landmarks, which can cause accessibility issues.
+**Summary**: The core issue stems from improper implementation of navigation landmarks in the Tabs component, which persists despite previous fix attempts. This manifests in four main problems: incorrect role usage, developers applying wrong fixes for accessibility violations, inappropriate component-level landmark implementation, and inconsistent documentation. The root causes include incomplete code cleanup, lack of clear guidelines on landmark usage, and insufficient documentation updates. To properly fix this, all navigation role references should be removed from the component, documentation should be updated, and clear guidelines should be established for landmark implementation at the page level rather than component level.

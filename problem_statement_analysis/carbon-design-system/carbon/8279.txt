@@ -1,16 +1,16 @@
+Based on the GitHub problem description and provided GIFs, I'll analyze the wrong behaviors and their causes:
+
 ### Answer 1
-**Wrong Behavior**: The last selected item loses its selected state when performing a multi-selection using the Shift key.
-**Cause**: The issue arises from the logic in the `Tile.js` component where the selected state does not respect the `selected` prop value. Specifically, the code at lines 228 and 239-247 does not correctly handle the selected state when a tile is clicked while the Shift key is held down. This causes the selected state to toggle instead of persisting based on the `selected` prop.
+**Wrong Behavior**: When using shift+click for multi-selection, the last selected tile becomes deselected even though it should remain selected according to the `selected` props.
+**Cause**: The issue stems from the Tile component's click handler not properly respecting the `selected` props value. Instead of using the props value to determine the selection state, it's automatically toggling the state on click, which conflicts with the shift+click multi-selection logic.
 
 ### Answer 2
-**Wrong Behavior**: The selected state of a tile is not maintained when it is clicked again while the Shift key is held down.
-**Cause**: The current implementation of the `handleClick` function in the `Tile.js` component does not properly check if the tile was previously selected. As a result, it toggles the selected state regardless of the `selected` prop value, leading to unexpected behavior where the tile gets deselected even if it should remain selected.
+**Wrong Behavior**: Inconsistent selection behavior between single click and shift+click operations
+**Cause**: The code at the referenced location (Tile.js lines 239-247) is handling the click event without properly distinguishing between regular clicks and shift+clicks. The selection state management doesn't properly account for the shift key modifier in the click handler logic.
 
 ### Answer 3
-**Wrong Behavior**: The selected state of the tiles does not match the expected behavior based on the `selected` prop values.
-**Cause**: The `selected` prop values are not being correctly applied to the tiles during multi-selection. This could be due to an issue in the state management or the way the `selected` prop is being passed down to the `Tile` component. The state management logic in the parent component might not be updating the `selected` prop values correctly for each tile.
+**Wrong Behavior**: The selection state becomes out of sync with the parent component's intended state
+**Cause**: There appears to be a state management issue where the local state in the Tile component is overriding the controlled state from the parent component through props. This violates the React principle of controlled components where the parent should be the source of truth for the selection state.
 
 ### Conclusion
-**Summary**: The main issues are related to the incorrect handling of the selected state in the `Tile.js` component and the state management logic in the parent component. The selected state does not respect the `selected` prop values, leading to unexpected toggling of the selected state during multi-selection. To fix these issues, the logic in the `Tile.js` component needs to be updated to correctly handle the selected state based on the `selected` prop values, and the state management in the parent component should ensure that the `selected` prop values are correctly updated and passed down to each tile.  
-Video 1: The video shows the expected behavior of multi-selection using the Shift key, where the selected state of the tiles is maintained correctly.  
-Video 2: The video shows the implementation of the `handleClick` function in the `Tile.js` component and highlights the lines of code that need to be fixed to address the issues.
+**Summary**: The core issue revolves around improper state management in the SelectableTile component. The component is not properly respecting the `selected` props passed from the parent component, especially during shift+click operations. The click handler is implementing a toggle behavior that conflicts with the multi-selection logic, causing tiles to become deselected when they should remain selected. This creates an inconsistency between the component's internal state and the expected state based on the props. The fix would likely involve modifying the click handler to properly respect the `selected` props and implementing proper multi-selection logic that works in harmony with both single clicks and shift+clicks.

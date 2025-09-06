@@ -1,14 +1,21 @@
+Let me analyze the problem based on the GitHub description and screenshots provided:
+
 ### Answer 1
-**Wrong Behavior**: The `title="[Object object]"` appears in the output of the selected icon.
-**Cause**: The `itemToString` function is returning an object instead of a string. When the `title` attribute is added to the button in the Dropdown, it expects a string value. Since an object is being returned, it is converted to a string, resulting in `[Object object]`.
+**Wrong Behavior**: The dropdown button shows "[object Object]" in its title attribute when an icon is selected
+**Cause**: The `itemToString` function is being used to render both the button text and title attribute. When returning an object (for icon rendering) instead of a string, the object gets converted to "[object Object]" in the title attribute.
 
 ### Answer 2
-**Wrong Behavior**: The selected icon is not being rendered correctly in the dropdown.
-**Cause**: The Dropdown component is using the `itemToString` function to render the selected item, which is not suitable for rendering complex elements like icons. The `itemToElement` function is more appropriate for rendering complex elements, but it is not being used for the selected item.
+**Wrong Behavior**: Inconsistency in rendering between dropdown list items and selected item display
+**Cause**: The component uses `itemToElement` for rendering items in the dropdown list, but only uses `itemToString` for the selected item display in the button. There's no option to specify which function should be used for rendering the selected item.
 
 ### Answer 3
-**Wrong Behavior**: The dropdown visually works, but the selected item's title attribute is incorrect.
-**Cause**: There is no prop available to determine which function (`itemToElement` or `itemToString`) is used to render the selected item in the dropdown. This lack of flexibility leads to the incorrect rendering of the selected item's title attribute.
+**Wrong Behavior**: The workaround of hijacking `itemToString` to return objects no longer works properly after version 10.43/7.43
+**Cause**: The addition of the title attribute in newer versions exposed a limitation in the current architecture where `itemToString` is expected to return strings (as its name implies) but was being used to handle complex rendering logic.
 
 ### Conclusion
-**Summary**: The main issues are the incorrect rendering of the selected icon's title attribute and the lack of flexibility in choosing the appropriate function for rendering the selected item. The `itemToString` function is returning an object instead of a string, leading to the `title="[Object object]"` issue. Additionally, the Dropdown component is not using the `itemToElement` function for the selected item, which is more suitable for rendering complex elements like icons. To fix these issues, a new prop should be added to determine which function is used to render the selected item in the dropdown.
+**Summary**: The core issue stems from the Dropdown component's architecture not providing sufficient flexibility in how selected items are rendered. The current implementation forces the use of `itemToString` for both the button's text content and title attribute, which breaks when trying to render icons or complex elements. The component needs a way to separately handle:
+1. String representation (for accessibility/title attributes)
+2. Visual rendering of the selected item
+3. List item rendering
+
+A new prop to control which function (`itemToElement` or `itemToString`) is used for rendering the selected item would solve these issues while maintaining backward compatibility.

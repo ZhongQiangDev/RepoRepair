@@ -1,14 +1,20 @@
+Let me analyze the GitHub issue and break down the problems and causes.
+
 ### Answer 1
-**Wrong Behavior**: The regex `m(/$)` is not correctly highlighted as a regex pattern.
-**Cause**: The current regex parser in Highlight.js does not support Perl's `m` style regex with arbitrary delimiters. It expects a specific format and fails to recognize the unescaped `/` as a valid delimiter.
+**Wrong Behavior**: The regex pattern after the `m` operator with alternative delimiters (like parentheses) is not being properly highlighted in the syntax highlighting
+**Cause**: The syntax highlighter doesn't recognize Perl's alternative delimiter syntax for the match operator `m`. While Perl allows various delimiters like `m(...)`, `m{...}`, `m|...|`, etc., the highlighter seems to only recognize the traditional `/.../ `pattern.
 
 ### Answer 2
-**Wrong Behavior**: The regex `qr(/$)` is not correctly highlighted as a regex pattern.
-**Cause**: Similar to the `m` style regex, the `qr` operator in Perl also allows for arbitrary delimiters. The Highlight.js parser does not correctly identify this syntax, leading to improper highlighting.
+**Wrong Behavior**: Similar highlighting issues with the `qr` operator when using alternative delimiters
+**Cause**: The regex parser in the syntax highlighter doesn't properly handle Perl's Regexp Quote-Like Operators (`qr`) with alternative delimiters. This is related to the first issue but specifically affects the `qr` operator which is used for creating regex objects.
 
 ### Answer 3
-**Wrong Behavior**: Other regex patterns with different delimiters (e.g., `m|/$|`, `m#/$#`, `m{/$}`) are not correctly highlighted.
-**Cause**: The Highlight.js parser is not configured to recognize Perl's flexibility in using different delimiters for regex patterns. It only supports a limited set of delimiters, causing these patterns to be misinterpreted.
+**Wrong Behavior**: Unescaped forward slashes within regex patterns using alternative delimiters are not properly handled
+**Cause**: The highlighter's regex parser appears to be too restrictive in its handling of forward slashes, likely assuming they must be escaped when they appear within patterns, even though Perl allows them to be unescaped when using alternative delimiters.
 
 ### Conclusion
-**Summary**: The main issue is that Highlight.js's regex parser does not fully support Perl's regex syntax, particularly the use of arbitrary delimiters with the `m` and `qr` operators. This leads to incorrect highlighting of regex patterns in Perl code. To fix this, the parser needs to be updated to recognize and handle Perl's flexible regex syntax correctly.
+**Summary**: The core issue stems from incomplete implementation of Perl's flexible regex delimiter system in the syntax highlighter. The highlighter needs to be updated to recognize:
+1. Alternative delimiters for the `m` operator
+2. Alternative delimiters for quote-like operators such as `qr`
+3. Proper handling of unescaped forward slashes within patterns using alternative delimiters
+These limitations make the current syntax highlighting inconsistent with Perl's actual regex syntax rules.

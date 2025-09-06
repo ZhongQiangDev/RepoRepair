@@ -1,14 +1,16 @@
+Let me analyze the problem and break it down according to the format requested.
+
 ### Answer 1
-**Wrong Behavior**: The attributions from the WMS layer are displayed in the info popup even when the group layer is set to invisible.
-**Cause**: The `visible` property of the group layer is set to `false`, but the sub-layer within the group layer is still visible. This causes the attributions of the sub-layer to be displayed in the info popup, despite the group layer being invisible. The current implementation does not properly handle the visibility of the group layer when determining whether to display the attributions.
+**Wrong Behavior**: Attribution text is showing in the info popup even when the parent group layer is set to invisible (visibility: false)
+**Cause**: OpenLayers is still processing and displaying attributions from child layers even when their parent group layer is invisible. This happens because the attribution control is likely checking the visibility of individual layers rather than considering the visibility state of their parent group layers.
 
 ### Answer 2
-**Wrong Behavior**: The attributions are displayed in the info popup for the "i" icon, even though the group layer is not visible.
-**Cause**: The code snippet provided does not include any logic to check the visibility of the group layer before displaying the attributions. As a result, the attributions are displayed regardless of the group layer's visibility status. This could be due to a lack of proper conditional checks in the code that manages the display of attributions.
+**Wrong Behavior**: The visibility state inheritance between group and child layers isn't working as expected
+**Cause**: There appears to be a disconnect in how OpenLayers handles visibility inheritance in its layer hierarchy. While the group layer is set to invisible, the child layer's individual visibility property remains true and continues to contribute its attributions to the attribution control.
 
 ### Answer 3
-**Wrong Behavior**: The attributions are displayed in the info popup despite the group layer being set to invisible.
-**Cause**: The `TileWMS` source is configured with attributions that are always displayed, regardless of the visibility of the group layer. The attributions are not dynamically updated based on the visibility of the group layer, leading to the attributions being displayed even when the group layer is not visible.
+**Wrong Behavior**: Local storage visibility settings might be conflicting with group layer visibility
+**Cause**: The code shows that the layer visibility is being managed through localStorage (`localStorage.getItem("budynki sezon-vi")`). This local storage-based visibility management might be operating independently of the group layer visibility settings, causing inconsistent behavior.
 
 ### Conclusion
-**Summary**: The main issue is that the attributions from the WMS layer are displayed in the info popup even when the group layer is set to invisible. This is caused by the lack of proper handling of the group layer's visibility in the code, the absence of conditional checks to determine whether to display the attributions, and the static configuration of the `TileWMS` source with attributions that are always displayed. To fix this issue, the code should include logic to check the visibility of the group layer before displaying the attributions and dynamically update the attributions based on the visibility status of the group layer.
+**Summary**: The core issue stems from OpenLayers' attribution handling mechanism not properly respecting the group layer visibility hierarchy. This is compounded by potential conflicts between local storage-based visibility management and group layer visibility settings. The attribution control appears to be checking layer visibility at the individual layer level without considering parent group layer states, resulting in attributions being displayed even when they should be hidden due to an invisible parent group layer. A proper fix would need to ensure that attribution visibility respects the complete layer hierarchy and properly inherits visibility states from parent layers.

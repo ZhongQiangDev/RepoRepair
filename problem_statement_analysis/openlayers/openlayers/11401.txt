@@ -1,14 +1,16 @@
+Based on the GitHub problem description, I'll analyze the wrong behaviors and their causes:
+
 ### Answer 1
-**Wrong Behavior**: Hit detection does not work when the scale is negative and the rotation is 0.
-**Cause**: The hit detection algorithm likely assumes a positive scale for calculating the hit area. When the scale is negative, the algorithm may incorrectly interpret the hit area, leading to no detection. This could be due to the way the bounding box or hit area is calculated, which might not account for negative scaling.
+**Wrong Behavior**: Hit detection not working when icon scale is negative and rotation is 0
+**Cause**: The negative scale likely inverts the hit detection area calculation, causing the hit detection system to look for interactions in the wrong location. The coordinate system for hit testing might not properly account for negative scale transformations.
 
 ### Answer 2
-**Wrong Behavior**: The icon is not rendered at the edge of the map when the scale is negative and the rotation is 0.
-**Cause**: The rendering engine might be clipping the icon based on its original position and size, without accounting for the negative scale. Negative scaling can flip the icon, and if the engine does not handle this correctly, parts of the icon that should be visible might be clipped out, especially when the icon is near the edge of the map.
+**Wrong Behavior**: Icon not rendering properly at the edge of the map
+**Cause**: The rendering system probably calculates the icon's clipping boundaries based on the original (positive) scale values, not accounting for the negative scale transformation. This leads to incorrect boundary calculations when the icon reaches the map edges.
 
 ### Answer 3
-**Wrong Behavior**: The icon disappears instead of getting cut off at the edge of the map.
-**Cause**: The clipping logic in the rendering engine might not handle negative scales properly. When an icon is scaled negatively, the engine might incorrectly determine that the entire icon is outside the map bounds and thus clip it entirely, rather than rendering the part that should be visible.
+**Wrong Behavior**: Icon disappears instead of getting partially cut off at map edges
+**Cause**: The viewport culling system likely isn't handling negative scales correctly. When an object has a negative scale, the bounding box calculations might become inverted or invalid, causing the entire icon to be incorrectly culled (removed from rendering) instead of being properly clipped.
 
 ### Conclusion
-**Summary**: The issues stem from the rendering and hit detection algorithms not properly handling negative scales. The hit detection fails because it likely assumes positive scaling, leading to incorrect hit area calculations. The rendering issues arise from clipping logic that does not account for the effects of negative scaling, causing the icon to disappear instead of being partially rendered at the map edge. Addressing these issues would require modifications to both the hit detection and rendering algorithms to correctly handle negative scales.
+**Summary**: The issues stem from the rendering and interaction systems not properly handling negative scale values. Three main problems are identified: broken hit detection, incorrect edge rendering, and improper viewport culling. All these issues appear to be related to how geometric calculations (for hit testing, clipping, and culling) handle negative scale transformations. The fix would likely involve updating these systems to properly account for negative scale values in their calculations.

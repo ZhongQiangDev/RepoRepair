@@ -1,10 +1,16 @@
+Let me analyze the GitHub issue and break down the problems and causes.
+
 ### Answer 1
-**Wrong Behavior**: When using `--max-warnings` in combination with `--quiet`, the warnings are not displayed even when the number of warnings exceeds the specified limit.
-**Cause**: The `--quiet` flag is designed to suppress all warnings, which conflicts with the intention of `--max-warnings` to display warnings when the limit is exceeded. The current implementation does not prioritize `--max-warnings` over `--quiet`.
+**Wrong Behavior**: The `--max-warnings` flag becomes ineffective when used together with `--quiet`
+**Cause**: The `--quiet` flag is suppressing all warnings, including those that should trigger the `--max-warnings` threshold, making the warning limit check useless
 
 ### Answer 2
-**Wrong Behavior**: The exit code is not set to 1 when the number of warnings exceeds the `--max-warnings` limit while using `--quiet`.
-**Cause**: The logic for setting the exit code does not account for the `--max-warnings` limit when `--quiet` is enabled. As a result, the exit code remains 0, indicating success, even when the warning limit is exceeded.
+**Wrong Behavior**: The exit code remains 0 even when warnings exceed the max-warnings threshold in quiet mode
+**Cause**: The warning count check appears to be performed after the quiet flag filters out the warnings, resulting in an incorrect count comparison against the threshold
+
+### Answer 3
+**Wrong Behavior**: Lack of visibility into important warnings when using both flags
+**Cause**: The current implementation prioritizes the `--quiet` flag's behavior over the `--max-warnings` threshold, preventing users from seeing warnings that should be considered critical enough to fail the process
 
 ### Conclusion
-**Summary**: The primary issue is the conflict between `--quiet` and `--max-warnings`. The `--quiet` flag suppresses all warnings, which prevents `--max-warnings` from functioning as intended. Additionally, the exit code is not correctly set when the warning limit is exceeded while using `--quiet`. To resolve these issues, the implementation should prioritize `--max-warnings` over `--quiet` when the warning limit is exceeded, either by displaying the warnings or setting the exit code to 1.
+**Summary**: The core issue stems from the interaction between two CLI flags: `--quiet` and `--max-warnings`. The quiet mode is taking precedence and suppressing all warnings before the max-warnings threshold can be properly evaluated. This creates three main problems: ineffective warning limits, incorrect exit codes, and hidden critical warnings. The solution needs to either prioritize the max-warnings threshold over quiet mode or ensure the warning count is evaluated before quiet mode suppression occurs.

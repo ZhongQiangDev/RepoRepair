@@ -1,14 +1,30 @@
+Let me analyze the GitHub problem description and break down the issues:
+
 ### Answer 1
-**Wrong Behavior**: The ByteEfficiency report shows a score of 100 despite a significant potential saving of almost 5MB when converting an animated GIF to a video format.
-**Cause**: The `computeWasteWithTTIGraph` function reports 0 savings because it only considers the impact on the estimated Time to Interactive (TTI). In this case, there is only one network request affected and no long tasks touched, which means the TTI is not significantly impacted. However, the end of the graph shows a difference of 23 seconds, indicating that the current method of calculating savings is not capturing the full impact of the optimization.
+**Wrong Behavior**: ByteEfficiency audit reports 100 (no savings) despite having almost 5MB of potential savings when converting GIF to video
+**Cause**: The current implementation only considers network requests and long tasks that affect TTI (Time to Interactive), rather than looking at the total savings or impact on final load time
 
 ### Answer 2
-**Wrong Behavior**: The report does not reflect the actual byte savings that could be achieved by converting the animated GIF to a video format.
-**Cause**: The current method of calculating byte savings is based on the impact on TTI, which may not be the best metric for evaluating the effectiveness of converting large animated GIFs to video formats. The savings are more evident in terms of the total byte size and the overall page load time, especially when focusing on a single problematic request like a large animated GIF.
+**Wrong Behavior**: `computeWasteWithTTIGraph` function reports 0 savings incorrectly
+**Cause**: The function's logic is too narrowly focused on:
+1. Number of network requests affected (only 1 in this case)
+2. Long tasks impacted (none in this case)
+This approach misses the bigger picture of actual performance improvements
 
 ### Answer 3
-**Wrong Behavior**: The report does not provide a clear indication of the potential performance improvement by converting the animated GIF to a video format.
-**Cause**: The report focuses on the impact on TTI, which may not be the most relevant metric for this specific optimization. Other metrics, such as the total byte savings and the impact on the end of the graph or onload time, could provide a more accurate representation of the potential performance improvement.
+**Wrong Behavior**: The metric doesn't reflect the significant 23-second difference in load time between GIF and video formats
+**Cause**: The current implementation doesn't consider:
+1. End-of-graph timing differences
+2. Overall page load time impacts
+3. Final resource size differences
 
 ### Conclusion
-**Summary**: The ByteEfficiency report is not accurately reflecting the potential savings and performance improvements when converting an animated GIF to a video format. The current method of calculating savings based on the impact on TTI is not capturing the full impact of the optimization. To address this issue, the report should consider other metrics, such as the total byte savings and the impact on the end of the graph or onload time, to provide a more accurate representation of the potential performance improvement.
+**Summary**: The core issue stems from ByteEfficiency's overly narrow focus on TTI-related metrics while ignoring other important performance indicators. The audit fails to account for significant improvements in three key areas:
+1. Total byte savings (5MB in this case)
+2. End-to-end load time differences (23 seconds)
+3. Overall page performance impact
+
+The suggested solutions include:
+- Calculating impact based on end-of-graph timing
+- Considering onload timing, especially for cases with 1-2 problematic requests
+- Broadening the metrics beyond just TTI-affecting factors

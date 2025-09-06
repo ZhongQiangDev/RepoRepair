@@ -1,14 +1,19 @@
+Let me analyze the GitHub problem description and break down the issues:
+
 ### Answer 1
-**Wrong Behavior**: Prettier fails to detect the language of a fenced code block when attributes are present after the language identifier.
-**Cause**: The current implementation of Prettier's language detection logic does not account for additional attributes that may follow the language identifier in a fenced code block. It strictly expects the language identifier to be followed by whitespace or the end of the line, and any non-whitespace characters after the identifier cause it to fail in recognizing the language.
+**Wrong Behavior**: Prettier fails to format code blocks when language identifiers are followed by attributes
+**Cause**: Prettier's parser is currently designed to only recognize the language identifier (e.g., `js`, `python`) and doesn't handle additional attributes that follow it. It stops processing when it encounters non-whitespace characters after the language identifier.
 
 ### Answer 2
-**Wrong Behavior**: The code inside the fenced block with attributes is not formatted according to the specified language rules.
-**Cause**: Since Prettier fails to detect the language due to the presence of attributes, it does not apply the appropriate formatting rules for that language. As a result, the code remains unformatted or is formatted incorrectly.
+**Wrong Behavior**: Inconsistent formatting between code blocks with and without attributes
+**Cause**: When Prettier encounters a code block with attributes (e.g., `{cmd=node .line-numbers}`), it doesn't recognize it as a valid language-specific code block, so it skips the formatting that would normally be applied to that language. This results in the code remaining unformatted while similar code blocks without attributes get properly formatted.
 
 ### Answer 3
-**Wrong Behavior**: Inconsistent behavior between different editors (Atom and VSCode) regarding the presence of a whitespace before the attributes.
-**Cause**: The handling of whitespace before attributes in fenced code blocks is not standardized across different markdown parsers and editors. Atom and VSCode may have different implementations for parsing these attributes, leading to inconsistent behavior. This inconsistency can cause confusion and make it difficult to predict how the code will be formatted or displayed.
+**Wrong Behavior**: Inconsistent behavior across different markdown preview implementations
+**Cause**: Different markdown processors and editors (Atom vs VSCode) handle the whitespace requirement between language identifier and attributes differently. For example, VSCode requires a space between language identifier and attributes (`js {cmd=true}`), while Atom works without the space (`js{cmd=true}`).
 
 ### Conclusion
-**Summary**: The primary issue is that Prettier's language detection logic does not account for attributes following the language identifier in fenced code blocks. This causes it to fail in recognizing the language and applying the appropriate formatting rules. Additionally, there is inconsistent behavior between different editors regarding the handling of whitespace before attributes, which can further complicate the issue. To resolve these problems, Prettier's language detection logic needs to be updated to handle attributes correctly, and a standardized approach for handling whitespace before attributes should be adopted to ensure consistent behavior across different editors.
+**Summary**: The core issue stems from Prettier's limited parsing of fenced code block headers. It currently doesn't support the extended syntax used by various markdown flavors that allow attributes after the language identifier. This leads to inconsistent formatting behavior and breaks compatibility with popular markdown extensions and editors. The parser needs to be modified to:
+1. Recognize language identifiers even when followed by attributes
+2. Ignore the attributes when determining the language for formatting purposes
+3. Potentially standardize the handling of whitespace between language identifiers and attributes

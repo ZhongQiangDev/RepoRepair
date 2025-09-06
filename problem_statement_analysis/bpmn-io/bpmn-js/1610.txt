@@ -1,11 +1,16 @@
+Based on the GitHub problem description and the provided GIF, I'll analyze the wrong behaviors and their causes:
+
 ### Answer 1
-**Wrong Behavior**: The direct editing box remains open after switching planes.
-**Cause**: The direct editing feature does not properly detect the plane switch event and fails to close the editing box when the element is no longer visible.
+**Wrong Behavior**: The direct editing text box remains visible and active even after switching to a different plane in the BPMN diagram.
+**Cause**: The direct editing component's lifecycle is not properly synchronized with the plane switching event. The cleanup/destruction of the editing state is not triggered when the plane changes.
 
 ### Answer 2
-**Wrong Behavior**: The direct editing box does not cancel when the element is no longer visible.
-**Cause**: There might be a missing event listener or a bug in the event handling mechanism that fails to trigger the cancellation of direct editing when the element is moved out of the current plane.
+**Wrong Behavior**: The editing box stays in its original screen position despite the edited element no longer being visible.
+**Cause**: The direct editing component's visibility state is not tied to the visibility of its parent element (the plane). When the plane becomes hidden, there's no mechanism to automatically hide or remove its child editing components.
+
+### Answer 3
+**Wrong Behavior**: The user can still interact with the editing box even though it's no longer contextually relevant.
+**Cause**: The event handlers for direct editing are not being properly cleaned up or disabled when switching between planes. The editing context isn't being invalidated when the parent context (plane) changes.
 
 ### Conclusion
-**Summary**: The primary issue is that the direct editing box remains open after switching planes, which is caused by the failure to detect the plane switch event and cancel the editing. This could be due to a missing event listener or a bug in the event handling mechanism. Addressing these causes will ensure that the direct editing box is properly closed when the element is no longer visible.  
-Video 1:
+**Summary**: The core issue stems from improper handling of the direct editing component's lifecycle during plane navigation. There are three main problems: (1) the editing state persists across plane switches, (2) the editing box's visibility isn't linked to its parent element's visibility, and (3) the editing context remains active when it should be invalidated. These issues likely arise from missing cleanup logic in the plane switching implementation. To fix this, the application should ensure that any active direct editing is canceled and cleaned up properly before allowing plane navigation to complete.

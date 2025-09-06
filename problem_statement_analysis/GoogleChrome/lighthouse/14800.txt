@@ -1,10 +1,21 @@
+Let me analyze the GitHub issue and break down the problems and causes:
+
 ### Answer 1
-**Wrong Behavior**: The `FrameCommittedInBrowser` event contains a `processPseudoId` instead of a `processId`, leading to `mainFramePids` only containing `undefined`.
-**Cause**: The event data structure has changed or is not being correctly parsed, resulting in the absence of a valid `processId`. This could be due to a mismatch between the expected event format in Lighthouse and the actual event data provided by the browser.
+**Wrong Behavior**: Lighthouse returns an error "Unable to determine tid for renderer process"
+**Cause**: The "FrameCommittedInBrowser" event contains a `processPseudoId` instead of the expected `processId`, leading to undefined values in `mainFramePids`
 
 ### Answer 2
-**Wrong Behavior**: Lighthouse throws an error "Unable to determine tid for renderer process" when it cannot find a valid thread ID (`tid`) for the renderer process.
-**Cause**: The `mainFramePids` array contains `undefined` values, which means the subsequent search for a `thread_name` event with the name `CrRendererMain` fails, leading to `tid` being `undefined`. This is likely because the `processId` is not correctly identified, preventing the proper mapping of process IDs to thread IDs.
+**Wrong Behavior**: Process identification mechanism failure
+**Cause**: The Chrome DevTools Protocol appears to be returning a different identifier format than what Lighthouse expects (pseudoId vs regular processId), suggesting a potential protocol mismatch or change in Chrome's behavior
+
+### Answer 3
+**Wrong Behavior**: Inconsistent process ID handling across Chrome versions
+**Cause**: The issue occurs across multiple Chrome versions (including Canary 112.0.5597.0), indicating this might be a broader change in how Chrome handles process IDs rather than a version-specific bug
 
 ### Conclusion
-**Summary**: The core issue stems from the `FrameCommittedInBrowser` event containing a `processPseudoId` instead of a `processId`, which disrupts the expected data structure Lighthouse relies on. This results in `mainFramePids` containing `undefined`, causing the failure to find a valid `tid` for the renderer process. The mismatch between the expected event format and the actual data provided by the browser is the root cause. To resolve this, the event parsing logic in Lighthouse needs to be updated to handle `processPseudoId` appropriately, ensuring that `processId` is correctly identified and used to map to the corresponding `tid`.
+**Summary**: The core issue stems from a mismatch between Lighthouse's expected process identification mechanism and what Chrome is actually providing. The main technical problem is that Chrome is sending `processPseudoId` instead of `processId` in the "FrameCommittedInBrowser" event, which breaks Lighthouse's ability to track renderer processes. This appears to be a systematic issue affecting multiple Chrome versions, suggesting either a change in Chrome's architecture or a need for Lighthouse to update its process identification handling to accommodate both types of IDs.
+
+The fix would likely require either:
+1. Updating Lighthouse to handle both `processPseudoId` and `processId`
+2. Understanding why Chrome is sending `processPseudoId` and potentially requesting a fix from the Chrome team
+3. Implementing a fallback mechanism in Lighthouse for cases where `processId` is not available

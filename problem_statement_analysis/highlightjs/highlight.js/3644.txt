@@ -1,10 +1,16 @@
+Let me analyze the GitHub issue:
+
 ### Answer 1
-**Wrong Behavior**: Multi-line comments in CMake are not being properly recognized and highlighted as comments. Instead, they are being treated as regular code.
-**Cause**: The `highlight.js` library is not correctly configured to recognize CMake's multi-line comment syntax (`#[[ ... ]]`). It seems to only recognize single-line comments that start with `#`.
+**Wrong Behavior**: CMake multi-line comments using `#[[...]]` syntax are not being highlighted correctly as comments
+**Cause**: The highlight.js CMake language definition appears to only recognize single-line comments starting with `#` but doesn't have proper support for the bracket comment syntax (`#[[...]]`) that CMake uses for multi-line comments
 
 ### Answer 2
-**Wrong Behavior**: The sample code provided does not display the expected behavior where the multi-line comment is grayed out.
-**Cause**: The `highlight.js` library version being used (11.6.0) may not have the necessary language definition for CMake's multi-line comments. The library might need an update or a custom language definition to properly handle CMake's multi-line comment syntax.
+**Wrong Behavior**: The comment text is being displayed in the default text color instead of the comment color
+**Cause**: Since the multi-line comment syntax isn't properly recognized, the text between `#[[` and `]]` is being treated as regular code rather than comment content, resulting in incorrect syntax highlighting
+
+### Answer 3
+**Wrong Behavior**: The comment opening/closing delimiters (`#[[` and `]]`) are not being treated as a single token
+**Cause**: The language parser in highlight.js likely splits these into separate tokens (`#` and `[[`), causing it to miss the multi-line comment pattern matching
 
 ### Conclusion
-**Summary**: The main issue is that `highlight.js` does not properly recognize CMake's multi-line comment syntax. This can be caused by either the library not being configured correctly or the library version not supporting the necessary language definition. To fix this, either an update to the library or a custom language definition may be needed.
+**Summary**: The core issue stems from incomplete implementation of CMake's bracket comment syntax in highlight.js's CMake language definition. The parser appears to only handle simple single-line `#` comments, failing to properly recognize and highlight the `#[[...]]` bracket comment syntax as a multi-line comment construct. This results in incorrect syntax highlighting where multi-line comments appear as regular code instead of being properly styled as comment text. The fix would require updating the CMake language definition in highlight.js to properly handle bracket comments.

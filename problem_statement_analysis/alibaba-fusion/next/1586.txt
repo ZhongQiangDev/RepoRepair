@@ -1,10 +1,26 @@
+Let me analyze the Tree component issue based on the provided information and images:
+
 ### Answer 1
-**Wrong Behavior**: The `selected` parameter in the `extra` object does not toggle between `true` and `false` as expected. After the first click, it remains `false` regardless of subsequent clicks.
-**Cause**: The issue lies in the logic of the `onCategoryTreeNodeSelect` function. Specifically, the condition `extra.selected ? selectedKeys[0] : undefined` only sets the `selectedCategoryId` to `selectedKeys[0]` if `extra.selected` is `true`. However, `extra.selected` is not being toggled correctly, which means the condition is not being met after the first click. Additionally, the `selected` value in `extra` is not being updated in the state or passed correctly, leading to the value remaining `false`.
+**Wrong Behavior**: The selected state of tree nodes doesn't toggle properly after the first click. Once a node is deselected (false), subsequent clicks don't change its state anymore.
+**Cause**: In the onCategoryTreeNodeSelect function, the state setting logic is flawed. The current implementation only sets selectedCategoryId to either the first selected key or undefined, but doesn't properly maintain the toggle state.
 
 ### Answer 2
-**Wrong Behavior**: The CSS styles for the selected node do not change as expected, making it impossible to visually distinguish between selected and unselected states.
-**Cause**: The CSS styles are likely tied to the `selected` state of the node. Since the `selected` state is not being toggled correctly, the styles are not being updated. This could be due to the fact that the `selected` state is not being properly managed in the component's state or the styles are not being applied conditionally based on the `selected` state.
+**Wrong Behavior**: The CSS styles for selected/unselected states don't update properly with node selection changes.
+**Cause**: The visual state is likely not being properly synchronized with the actual selected state because the component isn't re-rendering when the selected state changes, or the CSS classes aren't being properly applied based on the current state.
+
+### Answer 3
+**Wrong Behavior**: The selected state in extra parameter is not being properly updated after the first change.
+**Cause**: Looking at the code, the extra.selected value is only being used to determine the initial state, but there's no logic to update this value when the selection changes. The state management is one-way instead of bi-directional.
 
 ### Conclusion
-**Summary**: The primary issue is that the `selected` state of the tree node is not being toggled correctly, which affects both the functionality and the visual representation of the selected state. The `onCategoryTreeNodeSelect` function needs to be updated to properly toggle the `selected` state and ensure that the `selected` value is correctly passed and managed in the component's state. Additionally, the CSS styles should be applied conditionally based on the `selected` state to visually indicate the selection status.
+**Summary**: The core issues stem from incomplete state management in the Tree component:
+1. The selection toggle logic is broken after first deselection due to improper state updates in onCategoryTreeNodeSelect
+2. The visual feedback system isn't properly connected to the selection state
+3. The extra.selected parameter isn't being maintained throughout the component lifecycle
+
+To fix these issues, the component needs:
+- Proper toggle state management that maintains the selected state
+- Consistent synchronization between the internal state and visual representation
+- Better handling of the extra.selected parameter to maintain bi-directional state updates
+
+The code should be modified to properly toggle the selectedCategoryId between the selected value and undefined, while also ensuring the visual states and extra parameters are updated accordingly.

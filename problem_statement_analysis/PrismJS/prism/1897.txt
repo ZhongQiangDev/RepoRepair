@@ -1,14 +1,25 @@
+Let me analyze the GitHub problem description and break down the issues:
+
 ### Answer 1
-**Wrong Behavior**: The punctuation of italic text with `*` and `_` matches any number of leading `*`s and `_`s, causing unintended formatting.
-**Cause**: The current regex pattern used for matching italic text is too greedy, capturing more characters than necessary. This results in incorrect formatting when multiple `*` or `_` characters are present.
+**Wrong Behavior**: Markdown parser is incorrectly handling nested emphasis/formatting markers (`*__foo__*` or `_**bar**_`)
+**Cause**: The current pattern matching is too greedy and doesn't properly distinguish between inner and outer formatting markers, leading to incorrect syntax highlighting and parsing of nested styles.
 
 ### Answer 2
-**Wrong Behavior**: The code snippet `*__foo__*` or `_**bar**_` is not rendered as expected, with the text inside not being properly italicized or bolded.
-**Cause**: The regex pattern does not correctly handle nested styles, leading to improper parsing of the markdown syntax. The pattern fails to recognize the correct boundaries for italic and bold formatting when they are combined.
+**Wrong Behavior**: Multiple leading asterisks (*) and underscores (_) are being matched incorrectly
+**Cause**: The regular expression pattern is not properly constrained to match only single instances of formatting markers, instead matching any number of them, which goes against standard Markdown syntax rules.
 
 ### Answer 3
-**Wrong Behavior**: The issue is similar for scratch and bold text, indicating a broader problem with the handling of punctuation in markdown formatting.
-**Cause**: The underlying regex pattern used for parsing markdown syntax is not robust enough to handle various punctuation scenarios, especially when dealing with nested or combined formatting styles.
+**Wrong Behavior**: Lack of proper support for nested Markdown styles
+**Cause**: The current implementation doesn't include recursive parsing of nested Markdown elements within emphasized text, as evidenced by the suggestion to add `$3: Prism.languages.markdown` for nested style support.
+
+### Answer 4
+**Wrong Behavior**: Inconsistent handling of line breaks within emphasized text
+**Cause**: The pattern matching doesn't properly handle line break scenarios, which is why the proposed fix specifically includes a pattern to allow only one line break: `(?:(?:\r?\n|\r)(?!\r?\n|\r)|.)+?`
 
 ### Conclusion
-**Summary**: The primary issue lies in the regex pattern used for parsing markdown syntax, which is too greedy and does not correctly handle nested or combined formatting styles. This results in unintended formatting and improper rendering of text. To fix this, a more precise regex pattern is needed, as suggested in the possible solution, to ensure correct parsing and rendering of markdown text.
+**Summary**: The main issues stem from overly greedy pattern matching in the Markdown parser, which affects nested formatting, multiple markers, and line break handling. The root cause appears to be inadequate regular expression patterns that don't properly constrain the matching behavior. The proposed solution addresses these issues by:
+1. Adding proper lookbehind assertions
+2. Limiting greedy matching
+3. Adding support for nested styles
+4. Implementing proper line break handling
+These changes would result in more accurate Markdown parsing and syntax highlighting.

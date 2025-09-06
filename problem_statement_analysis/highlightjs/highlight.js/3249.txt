@@ -1,12 +1,12 @@
-### Answer 1
-**Wrong Behavior**: The `MAGIC_COMMENT` rule only highlights the first line containing `TeX` (case-sensitive) and does not highlight the second line containing `TEX` (case-insensitive).
+Let me analyze the GitHub issue and break down the problems and causes.
 
-**Cause**: The `MAGIC_COMMENT` rule in the LaTeX language definition is currently case-sensitive. It only matches the exact string `TeX` and does not account for variations like `TEX` or `tex`. This is because the rule does not include a case-insensitive flag or option.
+### Answer 1
+**Wrong Behavior**: The syntax highlighting only recognizes "TeX" but not "TEX" in magic comments
+**Cause**: The regular expression pattern in the MAGIC_COMMENT rule is case-sensitive, only matching the exact "TeX" spelling, while LaTeX magic comments are supposed to be case-insensitive by convention
 
 ### Answer 2
-**Wrong Behavior**: Line 3, which contains a regular comment, is not highlighted correctly as a `COMMENT`.
-
-**Cause**: The current language definition for LaTeX may not have a specific rule to handle regular comments that start with `%` but do not match the `MAGIC_COMMENT` pattern. As a result, this line is not being highlighted as a `COMMENT`.
+**Wrong Behavior**: Inconsistent highlighting between identical magic comments with different cases
+**Cause**: The current implementation in highlight.js (latex.js) doesn't implement case-insensitive matching in its regex pattern for magic comments, leading to different highlighting behavior for "TeX" versus "TEX"
 
 ### Conclusion
-**Summary**: The primary issue is that the `MAGIC_COMMENT` rule is case-sensitive, which prevents it from correctly highlighting lines with case variations like `TEX`. Additionally, there may be a lack of a specific rule to handle regular comments, leading to incorrect highlighting of line 3. To fix these issues, the `MAGIC_COMMENT` rule should be made case-insensitive, and a rule for regular comments should be added or ensured to be functioning correctly.
+**Summary**: The core issue stems from the syntax highlighting implementation being too strict with case sensitivity. The MAGIC_COMMENT rule in the LaTeX language definition only matches the exact "TeX" spelling, while LaTeX editors and processors typically treat these magic comments as case-insensitive. This creates an inconsistency between how the code is actually processed and how it's displayed in the editor. The fix would likely involve modifying the regular expression pattern to include case-insensitive matching (usually by adding the 'i' flag or including both upper and lower case variants in the pattern).

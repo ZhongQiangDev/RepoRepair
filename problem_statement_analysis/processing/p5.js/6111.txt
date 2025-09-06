@@ -1,14 +1,26 @@
+I'll analyze the wrong behaviors and their causes from the GitHub problem description.
+
 ### Answer 1
-**Wrong Behavior**: The `ortho()` and `frustum()` functions do not correctly set the `cameraNear` and `cameraFar` values.
-**Cause**: The issue arises because the `ortho()` and `frustum()` functions are not properly updating the internal camera properties (`cameraNear` and `cameraFar`). The values passed to these functions are not being reflected in the camera settings, leading to the default values being logged instead of the specified ones.
+**Wrong Behavior**: ortho() and frustum() functions are not correctly setting the near and far clip planes
+**Cause**: The camera properties (cameraNear and cameraFar) are not being properly updated in the renderer's current camera object after setting the orthographic or frustum projection
 
 ### Answer 2
-**Wrong Behavior**: The `frustum()` function behaves like `perspective()` when called without arguments, causing objects to disappear.
-**Cause**: The default values for `near` and `far` in the `frustum()` function are set to `0` and `Math.max(this._renderer.width, this._renderer.height)`, respectively. This configuration results in a projection matrix that does not properly handle depth, causing objects to be clipped or not rendered correctly. Additionally, the sign of the `y` component in the matrix calculation needs to be reversed to correct the vertical direction.
+**Wrong Behavior**: frustum() defaults to ortho()-like parameters when called without arguments, causing objects to disappear
+**Cause**: The default parameters for frustum() are incorrectly set to match orthographic projection values instead of perspective projection values, which is more appropriate for frustum projection
 
 ### Answer 3
-**Wrong Behavior**: The vertical rotation direction is reversed when the 3rd and 4th arguments of `ortho()` and `frustum()` are reversed.
-**Cause**: This issue is caused by the determinant of the projection matrix being negative, which leads to an incorrect transformation. Multiplying by the sign of the determinant can resolve this problem, ensuring that the vertical direction is correctly oriented.
+**Wrong Behavior**: Inverted Y-direction in the projection matrix calculation
+**Cause**: The sign for the Y component in the matrix calculation is not properly handled, leading to inverted vertical directions in the rendered scene
+
+### Answer 4
+**Wrong Behavior**: Incorrect rotation behavior when swapping the 3rd and 4th arguments in ortho() and frustum()
+**Cause**: The determinant of the projection matrix becomes negative when arguments are swapped, affecting the rotation direction. This needs to be compensated for by multiplying with the appropriate sign
 
 ### Conclusion
-**Summary**: The primary issues identified are related to the incorrect setting of `cameraNear` and `cameraFar` values, improper default behavior of the `frustum()` function, and incorrect handling of vertical direction in transformations. These problems stem from the internal implementation of the `ortho()` and `frustum()` functions, where the specified parameters are not correctly applied to the camera settings, and the default values and matrix calculations need adjustments. Addressing these causes will ensure that the functions behave as expected and produce the correct visual results.
+**Summary**: The issues primarily revolve around incorrect parameter handling and matrix calculations in the WebGL rendering pipeline. The main problems are:
+1. Near/far clip planes not being properly set in the camera object
+2. Inappropriate default parameters for frustum projection
+3. Incorrect sign handling in matrix calculations affecting Y-direction
+4. Rotation direction issues due to negative determinants when swapping parameters
+
+These issues affect the basic functionality of 3D rendering and need to be addressed in the core WebGL implementation of p5.js.

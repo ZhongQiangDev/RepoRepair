@@ -1,10 +1,21 @@
+Let me analyze the GitHub problem description and break down the issues and causes.
+
 ### Answer 1
-**Wrong Behavior**: In Scala, comments after the class declaration are incorrectly rendered as class titles.
-**Cause**: The issue arises from the way `highlight.js` processes the code. When the curly brace `{` is on a new line, `highlight.js` misinterprets the comment as part of the class title. This is likely due to the regex patterns used by `highlight.js` for identifying class declarations and comments. The version `9.12.0` of `highlight.js` may not have the necessary updates to handle this specific edge case correctly.
+**Wrong Behavior**: In Scala code, when a comment follows a class declaration on a separate line (before the curly brace), the comment text is incorrectly rendered as class title spans instead of a comment span.
+**Cause**: The Highlight.js parser for Scala appears to incorrectly extend the class declaration context when there's a line break between the class name and the opening curly brace, causing it to interpret the comment as part of the class title.
 
 ### Answer 2
-**Wrong Behavior**: In JavaScript, comments inside function parameters are not highlighted.
-**Cause**: The `highlight.js` library does not properly recognize comments within function parameters. This is likely due to the grammar rules defined for JavaScript in `highlight.js`. The library may not have rules that specifically account for comments within the parameter list of a function, leading to the comments being ignored during the highlighting process.
+**Wrong Behavior**: In JavaScript code, comments within function parameters are not being highlighted/detected at all.
+**Cause**: The Highlight.js JavaScript parser seems to have limitations in recognizing comments within parameter lists, suggesting the parser may be prioritizing parameter parsing over comment detection in these contexts.
+
+### Answer 3
+**Wrong Behavior**: Similar comment highlighting issues exist in other programming languages (as shown in the screenshot), indicating this is a broader parser issue.
+**Cause**: This suggests a fundamental limitation in Highlight.js's parsing approach across multiple language parsers, where comment detection may be secondary to other syntax elements, particularly in nested or complex contexts.
 
 ### Conclusion
-**Summary**: Both issues stem from limitations in the `highlight.js` library's ability to correctly parse and highlight specific code structures. In the Scala case, the library misinterprets comments as part of the class title when the curly brace is on a new line. In the JavaScript case, the library fails to recognize comments within function parameters. Updating to a newer version of `highlight.js` or customizing the grammar rules may resolve these issues.
+**Summary**: The issues primarily revolve around Highlight.js's parsing limitations in version 9.12.0, specifically:
+1. Incorrect context extension in Scala class declarations leading to misclassified comments
+2. Failure to detect comments in JavaScript parameter lists
+3. Similar comment detection issues across multiple languages
+
+These problems appear to stem from how Highlight.js prioritizes different syntax elements during parsing and how it handles context boundaries, particularly in more complex code structures. The parser seems to struggle with maintaining proper context separation and recognizing comments in nested or non-standard locations.

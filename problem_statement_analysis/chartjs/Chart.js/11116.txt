@@ -1,10 +1,16 @@
+Let me analyze the problem and break down the wrong behaviors and their causes.
+
 ### Answer 1
-**Wrong Behavior**: A tick is sometimes rendered outside of the user-defined `max` axis limit when `includeBounds=false`.
-**Cause**: The calculation of the tick positions does not properly account for the `includeBounds=false` setting, especially when dealing with small axis limits. This can lead to ticks being placed beyond the `max` limit, as the algorithm may not correctly truncate or adjust the tick generation to fit within the specified bounds.
+**Wrong Behavior**: A tick mark appears outside the user-defined maximum axis limit when `includeBounds` is set to `false`
+**Cause**: The tick generation algorithm is not properly respecting the axis boundaries when calculating tick positions, especially with small numerical ranges (like in the example where min: 2.404e-8, max: 2.4141e-8)
 
 ### Answer 2
-**Wrong Behavior**: The visual representation of the eye diagram appears with extra space next to it when the issue occurs.
-**Cause**: The incorrect placement of ticks outside the `max` limit causes the chart to allocate additional space for these ticks, leading to an unbalanced and less aesthetically pleasing visualization. This disrupts the intended compactness of the eye diagram, which is crucial for its proper interpretation.
+**Wrong Behavior**: Extra white space appears next to the eye diagram visualization
+**Cause**: The improper tick placement forces the chart to allocate additional space beyond the specified maximum limit to accommodate the extra tick, resulting in unwanted padding in the visualization
+
+### Answer 3
+**Wrong Behavior**: The axis scaling doesn't strictly adhere to the `includeBounds=false` setting
+**Cause**: The current implementation of the tick generation logic doesn't properly filter out ticks that fall outside the specified range when `includeBounds` is false, particularly when dealing with very small numerical differences between min and max values
 
 ### Conclusion
-**Summary**: The primary issue stems from the tick generation algorithm not fully respecting the `includeBounds=false` setting, particularly in scenarios with small axis limits. This results in ticks being placed outside the `max` limit, which in turn affects the visual presentation of the eye diagram by introducing unnecessary space. The proposed fix aims to address this by ensuring that ticks are strictly confined within the user-defined limits, thereby improving the visual accuracy and compactness of the chart.
+**Summary**: The core issue stems from the tick generation algorithm not properly handling edge cases with small numerical ranges while respecting the `includeBounds=false` setting. This manifests in three main ways: incorrect tick placement outside the max limit, unwanted white space in visualizations, and improper adherence to the `includeBounds` setting. The proposed fix suggests modifying how ticks are filtered to ensure they stay within the specified bounds, which would address all these issues simultaneously. The visual impact is particularly noticeable in eye diagram visualizations where precise boundary control is important for proper display.

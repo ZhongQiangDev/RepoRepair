@@ -1,14 +1,31 @@
+Let me analyze the syntax highlighting issues in the cshtml code:
+
 ### Answer 1
-**Wrong Behavior**: The `@Localize.GetLabelHtml("PLACEHOLDER")` and `@Localize.GetLabelHtml("TITLE")` expressions are not highlighted correctly in the input placeholder and h1 tag.
-**Cause**: The current version of Prism does not properly recognize and highlight Razor expressions within HTML attributes and tags. This is likely due to limitations in the grammar rules used by Prism for parsing and highlighting cshtml files.
+**Wrong Behavior**: The `@helper` directive is not highlighted properly - it's treated as a regular Razor expression
+**Cause**: The Prism syntax highlighter likely doesn't have specific rules to recognize and highlight the `@helper` directive, which is a special Razor syntax for defining reusable code blocks
 
 ### Answer 2
-**Wrong Behavior**: The `@helper` keyword and its associated block are not highlighted correctly.
-**Cause**: The `@helper` keyword is a legacy feature in Razor that has been replaced by `@functions` in newer versions of ASP.NET Core. Prism may not have updated its grammar rules to properly recognize and highlight this legacy syntax, leading to incorrect highlighting.
+**Wrong Behavior**: C# code inside `@{ }` blocks has inconsistent highlighting - some C# keywords and strings are not properly colored
+**Cause**: The parser may not be correctly identifying the scope of C# code blocks within Razor syntax, leading to improper language context switching between HTML and C#
 
 ### Answer 3
-**Wrong Behavior**: The `@{ ... }` block is not highlighted correctly.
-**Cause**: The `@{ ... }` block is used to write C# code within a cshtml file. Prism may not be correctly identifying and highlighting this block as C# code, leading to incorrect highlighting.
+**Wrong Behavior**: The `@Localize.GetLabelHtml()` calls are not highlighted consistently with how Visual Studio renders them
+**Cause**: The syntax highlighter appears to be treating these as simple Razor expressions rather than recognizing them as method calls that should have proper C# method highlighting
+
+### Answer 4
+**Wrong Behavior**: String literals within C# code (like `"PLACEHOLDER"`, `"Federico"`) don't have consistent string highlighting
+**Cause**: The syntax highlighter seems to have trouble maintaining proper string token recognition when switching between HTML and C# contexts within Razor syntax
+
+### Answer 5
+**Wrong Behavior**: HTML attributes containing Razor expressions (like the placeholder attribute) aren't highlighted correctly
+**Cause**: The parser likely struggles with properly handling nested Razor expressions within HTML attribute values, leading to incorrect tokenization
 
 ### Conclusion
-**Summary**: The incorrect highlighting of Razor expressions within HTML attributes and tags, the `@helper` keyword and its associated block, and the `@{ ... }` block are all caused by limitations in the grammar rules used by Prism for parsing and highlighting cshtml files. These limitations may be due to the legacy nature of some Razor syntax and the need for Prism to be updated to properly recognize and highlight these features.
+**Summary**: The core issue appears to be that Prism's cshtml/Razor syntax highlighter has several limitations in properly handling the complex interplay between HTML and C# code contexts. The main problems center around:
+1. Missing support for Razor-specific directives
+2. Inconsistent context switching between HTML and C# code blocks
+3. Improper handling of nested expressions
+4. Incomplete recognition of C# language constructs within Razor contexts
+5. Poor handling of mixed HTML attribute values containing Razor expressions
+
+These issues make the highlighting significantly different from Visual Studio's more sophisticated Razor syntax highlighting implementation.

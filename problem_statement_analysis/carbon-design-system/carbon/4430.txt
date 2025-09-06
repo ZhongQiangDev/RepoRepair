@@ -1,14 +1,25 @@
+Let me analyze the DataTable selection behavior issue:
+
 ### Answer 1
-**Wrong Behavior**: After searching for specific items, clicking the "Select All" checkbox selects all items in the table, not just the filtered items.
-**Cause**: The "Select All" checkbox is likely programmed to select all items in the entire dataset rather than just the items currently visible after filtering. This could be due to the checkbox not being aware of the current filter state or not being updated to reflect the filtered dataset.
+**Wrong Behavior**: The "Select All" checkbox selects all items in the table even when a search filter is applied, instead of only selecting the filtered/visible items.
+**Cause**: The DataTable's "Select All" functionality is likely implemented to work on the entire dataset rather than the currently filtered/visible rows. The selection logic is not considering the search/filter state of the table.
 
 ### Answer 2
-**Wrong Behavior**: The expectation is to select only the filtered items, but the result includes all items in the table.
-**Cause**: The implementation of the "Select All" functionality might not be considering the current view or filtered state of the table. It could be selecting items based on the original dataset instead of the filtered dataset.
+**Wrong Behavior**: The selection count shows "3 items selected" when only 1 item is visible in the filtered view.
+**Cause**: The selection counter is counting all selected items in the underlying data array, not just the visible/filtered items. This creates a misleading user experience as it doesn't match what users can see on screen.
 
 ### Answer 3
-**Wrong Behavior**: The user interface does not provide clear feedback that only the filtered items should be selected when using "Select All" after a search.
-**Cause**: There might be a lack of clear documentation or user interface cues indicating that the "Select All" checkbox should only apply to the currently visible items after a search. This can lead to user confusion and unexpected behavior.
+**Wrong Behavior**: There's no visual indication that hidden rows are being selected.
+**Cause**: The UI design doesn't provide feedback about selections happening outside the current view. Users have no way to know that their "Select All" action is affecting rows they can't see.
 
 ### Conclusion
-**Summary**: The primary issue is that the "Select All" checkbox is not functioning as expected when used after filtering the table. The checkbox is selecting all items in the original dataset instead of just the filtered items. This could be due to the checkbox not being aware of the current filter state or not being updated to reflect the filtered dataset. Additionally, there is a lack of clear user interface cues or documentation indicating the expected behavior of the "Select All" checkbox after a search. To fix this issue, the "Select All" checkbox should be updated to only select the currently visible items after a search, and clear user interface cues or documentation should be provided to indicate this behavior.
+**Summary**: The core issue stems from a disconnect between the table's filtering and selection mechanisms. The selection logic operates on the full dataset while users expect it to work only on their current filtered view. This creates three main problems:
+1. Unexpected selection of hidden rows
+2. Misleading selection count
+3. Poor visibility of selection scope
+
+To fix these issues, the DataTable implementation should:
+- Modify the "Select All" behavior to only affect filtered/visible rows
+- Update the selection counter to reflect only visible selected items
+- Add clear visual feedback about selection scope
+- Consider adding warnings when actions might affect hidden items
