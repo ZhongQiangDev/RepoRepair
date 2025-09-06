@@ -56,7 +56,7 @@ python gif_slice.py  # Uses scikit-image for keyframe extraction
 
 ```bash
 # Parse code and analyze dependencies
-python CodeParser.py  # Uses Tree-sitter for JS/TS parsing
+python CodeParser.py  # Uses Tree-sitter for PY/JS/TS parsing
 python DependencyGraph.py
 python generate_doc_meta.py  # Output: repo_doc_meta/
 ```
