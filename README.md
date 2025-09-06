@@ -1,26 +1,29 @@
 # RepoRepair
 
-RepoRepair is a novel **language-agnostic** approach for repository-level bug fixing, leveraging LLM-generated code documentation to achieve precise fault localization and cost-effective repairs. Evaluated on SWE-bench Multimodal, it
-outperforms state-of-the-art tools by **10% accuracy** while reducing costs to **\$0.21 per repair**.
+RepoRepair is a novel documentation-driven approach for repository-level automated program repair, which leverages hierarchically generated code documentation to achieve precise fault localization and cost-effective patch generation across diverse programming languages. Evaluated on both SWE-bench Lite and SWE-bench Multimodal benchmarks, it achieves state-of-the-art repair rates (52.33% and 40.23%, respectively) while maintaining high cost efficiency.
 
 ## Key Features
 
-- 🧠 **Hierarchical Localization**:  
-  Combines file-level localization (49.8% accuracy) with function-level verification
 - 📚 **Documentation-Aware**:  
   Uses LLM-generated code documentation for cross-file context understanding
+- 🧠 **Hierarchical Localization**:  
+  Combines file-level and function-level localization with documentation-aware verification, achieving 58.4% accuracy on SWE-bench Multimodal
+- 🌐 **Language-Agnostic Design**:  
+  Supports JavaScript/TypeScript and Python repositories through AST-based parsing and generalized documentation generation
 - 💰 **Cost-Efficient**:  
-  82.3% fewer tokens than non-retrieval baselines (23.5M vs 132.6M)
-- 🌐 **Multimodal Ready**:  
-  Processes visual issue descriptions (screenshots/GIFs) via QWen2.5-VL
+  82.3% fewer tokens than non-retrieval baselines (23.5M vs 132.6M) with an average cost of $0.55 per fix on SWE-bench Multimodal
 
 ## Performance Highlights
 
-| Metric               | RepoRepair | Agentless Lite | Improvement |
-|----------------------|------------|----------------|-------------|
-| %Resolved            | 36.18%     | 26.1%          | +10%        |
-| Avg. Cost/Repair     | \$0.21     | \$0.34         | 38% cheaper |
-| Correct Localization | 49.8%      | 30.4%          | +19.4%      |
+| Metric                            | RepoRepair | Agentless Lite | Improvement |
+|-----------------------------------|------------|----------------|-------------|
+| %Resolved (Lite)                  | 52.33%     | 32.33%         | +14.89%     |
+| %Resolved (Multimodal)            | 40.23%     | 25.34%         | +20.00%     |
+| Correct Localization (Lite)       | 77.7%      | 74.7%          | +3.0%         |
+| Correct Localization (Multimodal) | 58.4%      | 30.4%          | +28.0%      |
+| Avg. Cost/Repair (Lite)           | \$0.38     | \$0.21*        | -           |
+| Avg. Cost/Repair (Multimodal)     | \$0.55     | \$0.38*        | -           |
+
 
 ## Installation
 
