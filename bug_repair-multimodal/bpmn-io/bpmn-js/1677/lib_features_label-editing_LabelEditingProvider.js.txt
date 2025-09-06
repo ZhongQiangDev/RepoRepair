@@ -1,0 +1,312 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when a user deletes an element while direct editing is active. Looking at the error message:
+
+```
+Error: illegal invocation in <execute> or <revert> phase (action: element.updateLabel)
+```
+
+This suggests that when an element is deleted during direct editing, the system still tries to update its label, which is no longer possible since the element has been removed.
+
+In the code, I can see that there are event listeners for `shape.remove` and `connection.remove` that cancel direct editing when an element is removed. However, the issue is that when the element is deleted, the direct editing is canceled, but there's still an attempt to update the label afterward.
+
+The problem is in the `LabelEditingProvider.prototype.update` method. When an element is deleted, this method is still called, but the element no longer exists in the diagram, causing the error.
+
+## Fix
+
+We need to modify the `update` method to check if the element still exists before attempting to update its label:
+
+```javascript
+### lib/features/label-editing/LabelEditingProvider.js
+<<<<<<< SEARCH
+LabelEditingProvider.prototype.update = function(
+    element, newLabel,
+    activeContextText, bounds) {
+
+  var newBounds,
+      bbox;
+
+  if (is(element, 'bpmn:TextAnnotation')) {
+
+    bbox = this._canvas.getAbsoluteBBox(element);
+
+    newBounds = {
+      x: element.x,
+      y: element.y,
+      width: element.width / bbox.width * bounds.width,
+      height: element.height / bbox.height * bounds.height
+    };
+  }
+
+  if (is(element, 'bpmn:Group')) {
+
+    var businessObject = getBusinessObject(element);
+
+    // initialize categoryValue if not existing
+    if (!businessObject.categoryValueRef) {
+
+      var rootElement = this._canvas.getRootElement(),
+          definitions = getBusinessObject(rootElement).$parent;
+
+      var categoryValue = createCategoryValue(definitions, this._bpmnFactory);
+
+      getBusinessObject(element).categoryValueRef = categoryValue;
+    }
+
+  }
+
+  if (isEmptyText(newLabel)) {
+    newLabel = null;
+  }
+
+  this._modeling.updateLabel(element, newLabel, newBounds);
+=======
+LabelEditingProvider.prototype.update = function(
+    element, newLabel,
+    activeContextText, bounds) {
+
+  // Check if the element still exists in the canvas
+  // This prevents errors when trying to update labels of deleted elements
+  if (!this._canvas.getRootElement().contains(element)) {
+    return;
+  }
+
+  var newBounds,
+      bbox;
+
+  if (is(element, 'bpmn:TextAnnotation')) {
+
+    bbox = this._canvas.getAbsoluteBBox(element);
+
+    newBounds = {
+      x: element.x,
+      y: element.y,
+      width: element.width / bbox.width * bounds.width,
+      height: element.height / bbox.height * bounds.height
+    };
+  }
+
+  if (is(element, 'bpmn:Group')) {
+
+    var businessObject = getBusinessObject(element);
+
+    // initialize categoryValue if not existing
+    if (!businessObject.categoryValueRef) {
+
+      var rootElement = this._canvas.getRootElement(),
+          definitions = getBusinessObject(rootElement).$parent;
+
+      var categoryValue = createCategoryValue(definitions, this._bpmnFactory);
+
+      getBusinessObject(element).categoryValueRef = categoryValue;
+    }
+
+  }
+
+  if (isEmptyText(newLabel)) {
+    newLabel = null;
+  }
+
+  this._modeling.updateLabel(element, newLabel, newBounds);
+>>>>>>> REPLACE
+```
+
+Wait, I need to revise my solution. The `contains` method might not be available or appropriate for this context. Let's use a more reliable approach:
+
+```javascript
+### lib/features/label-editing/LabelEditingProvider.js
+<<<<<<< SEARCH
+LabelEditingProvider.prototype.update = function(
+    element, newLabel,
+    activeContextText, bounds) {
+
+  var newBounds,
+      bbox;
+
+  if (is(element, 'bpmn:TextAnnotation')) {
+
+    bbox = this._canvas.getAbsoluteBBox(element);
+
+    newBounds = {
+      x: element.x,
+      y: element.y,
+      width: element.width / bbox.width * bounds.width,
+      height: element.height / bbox.height * bounds.height
+    };
+  }
+
+  if (is(element, 'bpmn:Group')) {
+
+    var businessObject = getBusinessObject(element);
+
+    // initialize categoryValue if not existing
+    if (!businessObject.categoryValueRef) {
+
+      var rootElement = this._canvas.getRootElement(),
+          definitions = getBusinessObject(rootElement).$parent;
+
+      var categoryValue = createCategoryValue(definitions, this._bpmnFactory);
+
+      getBusinessObject(element).categoryValueRef = categoryValue;
+    }
+
+  }
+
+  if (isEmptyText(newLabel)) {
+    newLabel = null;
+  }
+
+  this._modeling.updateLabel(element, newLabel, newBounds);
+=======
+LabelEditingProvider.prototype.update = function(
+    element, newLabel,
+    activeContextText, bounds) {
+
+  // Check if the element still exists in the canvas
+  try {
+    // This will throw an error if the element has been removed
+    this._canvas.getGraphics(element);
+  } catch (error) {
+    // Element was removed, don't proceed with label update
+    return;
+  }
+
+  var newBounds,
+      bbox;
+
+  if (is(element, 'bpmn:TextAnnotation')) {
+
+    bbox = this._canvas.getAbsoluteBBox(element);
+
+    newBounds = {
+      x: element.x,
+      y: element.y,
+      width: element.width / bbox.width * bounds.width,
+      height: element.height / bbox.height * bounds.height
+    };
+  }
+
+  if (is(element, 'bpmn:Group')) {
+
+    var businessObject = getBusinessObject(element);
+
+    // initialize categoryValue if not existing
+    if (!businessObject.categoryValueRef) {
+
+      var rootElement = this._canvas.getRootElement(),
+          definitions = getBusinessObject(rootElement).$parent;
+
+      var categoryValue = createCategoryValue(definitions, this._bpmnFactory);
+
+      getBusinessObject(element).categoryValueRef = categoryValue;
+    }
+
+  }
+
+  if (isEmptyText(newLabel)) {
+    newLabel = null;
+  }
+
+  this._modeling.updateLabel(element, newLabel, newBounds);
+>>>>>>> REPLACE
+```
+
+Actually, let me revise this one more time to use a more direct approach:
+
+```javascript
+### lib/features/label-editing/LabelEditingProvider.js
+<<<<<<< SEARCH
+LabelEditingProvider.prototype.update = function(
+    element, newLabel,
+    activeContextText, bounds) {
+
+  var newBounds,
+      bbox;
+
+  if (is(element, 'bpmn:TextAnnotation')) {
+
+    bbox = this._canvas.getAbsoluteBBox(element);
+
+    newBounds = {
+      x: element.x,
+      y: element.y,
+      width: element.width / bbox.width * bounds.width,
+      height: element.height / bbox.height * bounds.height
+    };
+  }
+
+  if (is(element, 'bpmn:Group')) {
+
+    var businessObject = getBusinessObject(element);
+
+    // initialize categoryValue if not existing
+    if (!businessObject.categoryValueRef) {
+
+      var rootElement = this._canvas.getRootElement(),
+          definitions = getBusinessObject(rootElement).$parent;
+
+      var categoryValue = createCategoryValue(definitions, this._bpmnFactory);
+
+      getBusinessObject(element).categoryValueRef = categoryValue;
+    }
+
+  }
+
+  if (isEmptyText(newLabel)) {
+    newLabel = null;
+  }
+
+  this._modeling.updateLabel(element, newLabel, newBounds);
+=======
+LabelEditingProvider.prototype.update = function(
+    element, newLabel,
+    activeContextText, bounds) {
+
+  // Check if the element has been removed from the canvas
+  if (!element.parent) {
+    return;
+  }
+
+  var newBounds,
+      bbox;
+
+  if (is(element, 'bpmn:TextAnnotation')) {
+
+    bbox = this._canvas.getAbsoluteBBox(element);
+
+    newBounds = {
+      x: element.x,
+      y: element.y,
+      width: element.width / bbox.width * bounds.width,
+      height: element.height / bbox.height * bounds.height
+    };
+  }
+
+  if (is(element, 'bpmn:Group')) {
+
+    var businessObject = getBusinessObject(element);
+
+    // initialize categoryValue if not existing
+    if (!businessObject.categoryValueRef) {
+
+      var rootElement = this._canvas.getRootElement(),
+          definitions = getBusinessObject(rootElement).$parent;
+
+      var categoryValue = createCategoryValue(definitions, this._bpmnFactory);
+
+      getBusinessObject(element).categoryValueRef = categoryValue;
+    }
+
+  }
+
+  if (isEmptyText(newLabel)) {
+    newLabel = null;
+  }
+
+  this._modeling.updateLabel(element, newLabel, newBounds);
+>>>>>>> REPLACE
+```
+
+This fix checks if the element has a parent, which would indicate it's still part of the diagram. If the element has been removed, its parent reference would be null, and we can safely return without attempting to update the label.

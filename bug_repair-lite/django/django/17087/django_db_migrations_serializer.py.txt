@@ -1,0 +1,28 @@
+Based on the issue description, the bug is in the `FunctionTypeSerializer.serialize()` method where it doesn't properly handle class methods from nested classes. When serializing a class method from a nested class (like `Capability.default` inside `Profile`), it's not including the parent class name in the path.
+
+Here's the fix:
+
+```python
+### django/db/migrations/serializer.py
+<<<<<<< SEARCH
+            klass = self.value.__self__
+            module = klass.__module__
+            return "%s.%s.%s" % (module, klass.__name__, self.value.__name__), {
+                "import %s" % module
+            }
+=======
+            klass = self.value.__self__
+            module = klass.__module__
+            # Get the full qualified name including parent classes
+            class_path = klass.__qualname__
+            return "%s.%s.%s" % (module, class_path, self.value.__name__), {
+                "import %s" % module
+            }
+>>>>>>> REPLACE
+```
+
+This change uses `__qualname__` instead of `__name__` to get the full qualified name of the class, which includes any parent classes. For the example in the issue, this would correctly generate `appname.models.Profile.Capability.default` instead of `appname.models.Capability.default`.
+
+The `__qualname__` attribute was introduced in Python 3.3 specifically to handle nested class names. It contains the dot-separated path of the class from the module's global scope, which is exactly what we need in this case.
+
+This fix ensures that class methods from nested classes are properly serialized with their complete path, allowing them to be correctly used as default values in model fields.

@@ -1,0 +1,25 @@
+Let me follow the steps:
+
+1. Wrong Behavior:
+- When a figure is unpickled on M1 Mac, its DPI value doubles each time
+- This exponential increase in DPI eventually leads to an OverflowError
+- This only happens on M1 MacBooks regardless of Python version
+
+2. Cause Analysis:
+- The issue appears to be related to figure serialization/deserialization (pickling/unpickling)
+- The problem occurs during figure reconstruction in the backend_macosx module
+- When a figure is unpickled, it's trying to create a new figure manager with the existing figure
+- The DPI value is being incorrectly handled during this process specifically on M1 Macs
+- The issue is likely in the interaction between the figure state restoration and the MacOSX backend
+
+3. Most relevant files:
+
+```
+lib/matplotlib/figure.py
+lib/matplotlib/backends/backend_macosx.py
+lib/matplotlib/pyplot.py
+```
+
+The `figure.py` file is most important as it handles figure serialization/deserialization through `__setstate__`. The `backend_macosx.py` would be crucial as the error occurs in the MacOSX backend during figure canvas initialization. `pyplot.py` is included as it provides the high-level interface for figure management and could be involved in the DPI handling chain.
+
+I limited to 3 files since these would be the most directly involved in the bug. The other files in the repository information don't appear to be as relevant to this specific DPI/pickling issue.

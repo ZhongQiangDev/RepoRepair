@@ -1,0 +1,33 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about having to escape parentheses in Markdown links. According to the screenshot and description, users need to add a backslash before parentheses in link text, otherwise the parser doesn't handle it correctly.
+
+Looking at the code, the problem is in the `inline._label` regular expression which is used for parsing link labels. The current implementation doesn't properly handle parentheses in link text.
+
+The issue is that when a user writes something like `[text with (parentheses)](url)`, the parser gets confused about which parentheses are part of the link text and which ones are delimiting the URL.
+
+## Fix
+
+We need to modify the `inline._label` regular expression to properly handle parentheses in link text. The current implementation allows escaping square brackets but doesn't handle parentheses properly.
+
+```javascript
+### lib/marked.js
+<<<<<<< SEARCH
+block._label = /(?!\s*\])(?:\\[\[\]]|[^\[\]])+/;
+=======
+block._label = /(?!\s*\])(?:\\[\[\]]|\\[\(\)]|[^\[\]])+/;
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/marked.js
+<<<<<<< SEARCH
+inline._label = /(?:\[[^\[\]]*\]|\\[\[\]]?|`[^`]*`|`(?!`)|[^\[\]\\`])*?/;
+=======
+inline._label = /(?:\[[^\[\]]*\]|\\[\[\]]?|\\[\(\)]?|`[^`]*`|`(?!`)|[^\[\]\\`])*?/;
+>>>>>>> REPLACE
+```
+
+These changes allow for escaped parentheses in link labels by adding `\\[\(\)]` to the pattern, which matches escaped parentheses like `\(` and `\)`. This way, when users write `[text with \(parentheses\)](url)`, the parser will correctly interpret the escaped parentheses as part of the link text rather than as URL delimiters.

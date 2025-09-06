@@ -1,0 +1,26 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that the Critical Request Chain (CRC) is showing incorrect size information. According to the screenshots, all requests in the chain are showing the same size, which doesn't match the actual sizes of the requests.
+
+Looking at the code, I found the problem in the `createSegment` function. When calculating the `transferSize` for a segment, it's adding the current node's transfer size to the parent's transfer size and passing this cumulative value down to all children. This causes all nodes in a chain to show the same cumulative size rather than their individual sizes.
+
+## Fix
+
+The issue is in the `createChainNode` function where it's using `details.longestChain.transferSize` for all nodes instead of using the individual node's transfer size (`segment.node.request.transferSize`).
+
+Here's the fix:
+
+```javascript
+### lighthouse-core/report/v2/renderer/crc-details-renderer.js
+<<<<<<< SEARCH
+      const span2 = dom.createElement('span', 'crc-node__chain-duration');
+      span2.textContent = Util.formatBytesToKB(details.longestChain.transferSize);
+=======
+      const span2 = dom.createElement('span', 'crc-node__chain-duration');
+      span2.textContent = Util.formatBytesToKB(segment.node.request.transferSize);
+>>>>>>> REPLACE
+```
+
+This change ensures that each node in the critical request chain displays its own transfer size rather than showing the size of the longest chain for every node. This matches the expected behavior shown in the issue reference from February.

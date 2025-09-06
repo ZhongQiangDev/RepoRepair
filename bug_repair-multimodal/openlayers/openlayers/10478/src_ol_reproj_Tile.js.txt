@@ -1,0 +1,75 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when zooming in and out on a map with a reprojected Tile layer, sometimes there are white areas. This happens because the underlying Tile object has been disposed and is therefore excluded from the stitching process to make the source canvas for the reprojection.
+
+Looking at the code, I can see that in the `reproject_()` method, only tiles with state `TileState.LOADED` are included in the sources array:
+
+```javascript
+this.sourceTiles_.forEach(function(tile, i, arr) {
+  if (tile && tile.getState() == TileState.LOADED) {
+    sources.push({
+      extent: this.sourceTileGrid_.getTileCoordExtent(tile.tileCoord),
+      image: tile.getImage()
+    });
+  }
+});
+```
+
+The issue is that some tiles might be in an `ABORT` state but still have valid image data that could be used. According to the issue description, simply including tiles in the `ABORT` state doesn't work because it causes problems later on.
+
+The root cause is likely in the `disposeInternal()` method, which is disposing of tiles that are still in the `LOADING` state:
+
+```javascript
+disposeInternal() {
+  if (this.state == TileState.LOADING) {
+    this.unlistenSources_();
+  }
+  super.disposeInternal();
+}
+```
+
+## Fix
+
+We need to modify the code to prevent disposing of tiles that are still needed for reprojection. The best approach is to ensure that we don't dispose of tiles that are in the `LOADING` state, and to properly handle tiles that might be in other states but still have valid image data.
+
+Here's the fix:
+
+```javascript
+### src/ol/reproj/Tile.js
+<<<<<<< SEARCH
+  reproject_() {
+    const sources = [];
+    this.sourceTiles_.forEach(function(tile, i, arr) {
+      if (tile && tile.getState() == TileState.LOADED) {
+        sources.push({
+          extent: this.sourceTileGrid_.getTileCoordExtent(tile.tileCoord),
+          image: tile.getImage()
+        });
+      }
+    }.bind(this));
+    this.sourceTiles_.length = 0;
+=======
+  reproject_() {
+    const sources = [];
+    this.sourceTiles_.forEach(function(tile, i, arr) {
+      // Include tiles that are LOADED or have a valid image (even if ABORT)
+      if (tile && (tile.getState() == TileState.LOADED || 
+          (tile.getState() != TileState.IDLE && 
+           tile.getState() != TileState.LOADING && 
+           tile.getState() != TileState.ERROR && 
+           tile.getImage()))) {
+        sources.push({
+          extent: this.sourceTileGrid_.getTileCoordExtent(tile.tileCoord),
+          image: tile.getImage()
+        });
+      }
+    }.bind(this));
+    this.sourceTiles_.length = 0;
+>>>>>>> REPLACE
+```
+
+This change allows tiles that are in states other than `LOADED` (such as `ABORT`) to be included in the reprojection process as long as they have a valid image. This should prevent the white areas from appearing when zooming in and out on the map.
+
+The fix checks if the tile is in the `LOADED` state OR if it's not in any of the problematic states (`IDLE`, `LOADING`, `ERROR`) and has a valid image. This way, we can use tiles that might have been aborted but still have usable image data.

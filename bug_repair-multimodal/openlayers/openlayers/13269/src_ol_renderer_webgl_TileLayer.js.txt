@@ -1,0 +1,105 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when using `ol/source/TileWMS` with the `gutter` option and rendering with `ol/layer/WebGLTile`, the gutter (extra pixels around the tile edges to prevent seams) is not being clipped before creating textures. This causes misplacement and duplication in the rendered output.
+
+In a traditional tile layer, the gutter is clipped before rendering, but the WebGL tile renderer is not handling this properly. The WebGL renderer needs to be modified to account for the gutter when creating textures from tile images.
+
+Looking at the code, I can see that the `TileTexture` class is used to create textures from tiles, but there's no handling for the gutter property that might be present in WMS tile sources.
+
+## Fix
+
+We need to modify the `WebGLTileLayerRenderer` to handle the gutter property when creating textures. The issue is that when a tile with a gutter is loaded, the texture coordinates need to be adjusted to exclude the gutter area.
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+        const tileTexture = tileTextures[i];
+        if (!tileTexture.loaded) {
+          continue;
+        }
+        const tile = tileTexture.tile;
+        const tileCoord = tile.tileCoord;
+        const tileCoordKey = getTileCoordKey(tileCoord);
+
+        const tileCenterI = tileCoord[1];
+        const tileCenterJ = tileCoord[2];
+=======
+        const tileTexture = tileTextures[i];
+        if (!tileTexture.loaded) {
+          continue;
+        }
+        const tile = tileTexture.tile;
+        const tileCoord = tile.tileCoord;
+        const tileCoordKey = getTileCoordKey(tileCoord);
+
+        // Handle gutter for WMS sources
+        let gutter = 0;
+        if (tileSource.getGutter) {
+          gutter = tileSource.getGutter();
+        }
+
+        const tileCenterI = tileCoord[1];
+        const tileCenterJ = tileCoord[2];
+>>>>>>> REPLACE
+```
+
+Now we need to adjust the texture coordinates when there's a gutter:
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+        this.helper.setUniformMatrixValue(
+          Uniforms.TILE_TRANSFORM,
+          mat4FromTransform(this.tempMat4_, this.tileTransform_)
+        );
+
+        this.helper.bindBuffer(tileTexture.coords);
+        this.helper.bindBuffer(this.indices_);
+        this.helper.enableAttributes(attributeDescriptions);
+=======
+        this.helper.setUniformMatrixValue(
+          Uniforms.TILE_TRANSFORM,
+          mat4FromTransform(this.tempMat4_, this.tileTransform_)
+        );
+
+        // If there's a gutter, we need to adjust the texture coordinates
+        if (gutter > 0) {
+          const tileSize = toSize(tileGrid.getTileSize(tileZ), this.tempSize_);
+          const gutterRatio = {
+            x: gutter / tileSize[0],
+            y: gutter / tileSize[1]
+          };
+          
+          // Create adjusted texture coordinates that exclude the gutter
+          const adjustedCoords = new WebGLArrayBuffer(tileTexture.coords.getType());
+          const originalCoords = tileTexture.coords.getArray();
+          
+          // Original coords are typically [0,0, 1,0, 1,1, 0,1] for the four corners
+          // We need to adjust them to exclude the gutter
+          const adjusted = [
+            gutterRatio.x, gutterRatio.y,                    // bottom-left
+            1 - gutterRatio.x, gutterRatio.y,                // bottom-right
+            1 - gutterRatio.x, 1 - gutterRatio.y,            // top-right
+            gutterRatio.x, 1 - gutterRatio.y                 // top-left
+          ];
+          
+          adjustedCoords.fromArray(adjusted);
+          this.helper.bindBuffer(adjustedCoords);
+        } else {
+          this.helper.bindBuffer(tileTexture.coords);
+        }
+        
+        this.helper.bindBuffer(this.indices_);
+        this.helper.enableAttributes(attributeDescriptions);
+>>>>>>> REPLACE
+```
+
+This solution:
+1. Checks if the tile source has a gutter property
+2. If there is a gutter, calculates the gutter ratio relative to the tile size
+3. Creates adjusted texture coordinates that exclude the gutter area
+4. Uses these adjusted coordinates when rendering the tile
+
+This will ensure that when using WMS tiles with a gutter, the WebGL renderer will properly clip the gutter area, resulting in correct tile placement without duplication or misalignment.

@@ -1,0 +1,44 @@
+Based on the issue description, the bug occurs when using autowrap with the Cython backend when array arguments don't appear in the wrapped expression. The issue is that the code generator creates incorrect C function signatures for array arguments that aren't used in the expression.
+
+Looking at the code, the problem appears to be in the `routine()` method of the `CodeGen` class. When creating argument metadata for symbols, it only checks if the symbol is in `array_symbols` which is populated from `expressions.atoms(Indexed)` and `expressions.atoms(MatrixSymbol)`. This means that if a MatrixSymbol argument isn't used in the expression, it won't get the proper array dimensions metadata.
+
+Here's the fix:
+
+```python
+### sympy/utilities/codegen.py
+<<<<<<< SEARCH
+        for symbol in sorted(symbols, key=str):
+            if symbol in array_symbols:
+                dims = []
+                array = array_symbols[symbol]
+                for dim in array.shape:
+                    dims.append((S.Zero, dim - 1))
+                metadata = {'dimensions': dims}
+            else:
+                metadata = {}
+
+            arg_list.append(InputArgument(symbol, **metadata))
+=======
+        for symbol in sorted(symbols, key=str):
+            if symbol in array_symbols:
+                dims = []
+                array = array_symbols[symbol]
+                for dim in array.shape:
+                    dims.append((S.Zero, dim - 1))
+                metadata = {'dimensions': dims}
+            elif isinstance(symbol, MatrixSymbol):
+                # Handle MatrixSymbol arguments even if they don't appear in expression
+                dims = []
+                for dim in symbol.shape:
+                    dims.append((S.Zero, dim - 1))
+                metadata = {'dimensions': dims}
+            else:
+                metadata = {}
+
+            arg_list.append(InputArgument(symbol, **metadata))
+>>>>>>> REPLACE
+```
+
+This fix adds a special case to check if the symbol is a MatrixSymbol, even if it doesn't appear in the expression. When it is a MatrixSymbol, we create the appropriate dimensions metadata based on its shape. This ensures that array arguments get proper C function signatures (like `double *` instead of just `double`) even when they don't appear in the wrapped expression.
+
+The fix maintains proper indentation and handles the case described in the issue where a MatrixSymbol argument that doesn't appear in the expression should still be treated as an array in the generated code.

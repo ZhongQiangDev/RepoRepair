@@ -1,0 +1,58 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that "WebGL renderer incorrectly expects the source to have a tile grid" when using view projection with `wrapX: false`. This happens when switching from `ol/layer/Tile` to `ol/layer/WebGLTile`.
+
+Looking at the code, I notice that the `WebGLTileLayer` class creates a renderer but doesn't handle sources that don't have a tile grid. The issue is likely in the renderer creation or initialization process.
+
+The problem is that the `WebGLTileLayer` class doesn't properly handle sources that use view projection with `wrapX: false`. When creating the renderer, it doesn't pass any configuration related to the source's projection or wrapping behavior.
+
+## Fix
+
+We need to modify the `createRenderer` method to properly handle sources without a tile grid, especially when using view projection with `wrapX: false`.
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+  createRenderer() {
+    const parsedStyle = parseStyle(this.style_, this.getSourceBandCount_());
+
+    return new WebGLTileLayerRenderer(this, {
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      cacheSize: this.cacheSize_,
+      paletteTextures: parsedStyle.paletteTextures,
+    });
+  }
+=======
+  createRenderer() {
+    const parsedStyle = parseStyle(this.style_, this.getSourceBandCount_());
+    const source = this.getSource();
+    
+    const options = {
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      cacheSize: this.cacheSize_,
+      paletteTextures: parsedStyle.paletteTextures,
+    };
+    
+    // If the source has a projection that doesn't wrap on the x-axis,
+    // we need to pass this information to the renderer
+    if (source && source.getProjection && source.getProjection()) {
+      const projection = source.getProjection();
+      if (projection && projection.getWrapX && projection.getWrapX() === false) {
+        options.wrapX = false;
+      }
+    }
+
+    return new WebGLTileLayerRenderer(this, options);
+  }
+>>>>>>> REPLACE
+```
+
+This change checks if the source has a projection with `wrapX: false` and passes that information to the renderer. This ensures that the WebGLTileLayer behaves the same as the regular TileLayer when dealing with sources that use view projection with `wrapX: false`.
+
+Note: This fix assumes that the `WebGLTileLayerRenderer` can handle the `wrapX` option. If the renderer doesn't currently support this option, additional changes would be needed in the renderer implementation as well.

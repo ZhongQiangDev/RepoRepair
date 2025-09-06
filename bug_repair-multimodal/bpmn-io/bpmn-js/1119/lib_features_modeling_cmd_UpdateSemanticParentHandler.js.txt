@@ -1,0 +1,79 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about replacing a message flow with a sequence flow, where the sequence flow is not being properly assigned to the correct parent. This happens specifically when the previous connection source is a Participant.
+
+Looking at the provided code, I notice that `UpdateSemanticParentHandler.js` is designed to update the semantic parent of a data store object. However, the issue is about connections (sequence flows and message flows), not data stores.
+
+The problem is likely that the handler is too specific to data stores and doesn't properly handle other BPMN elements like connections. The variable names (`dataStoreBo`) suggest this handler was designed specifically for data stores but is being used for other elements as well.
+
+## Fix
+
+We need to make the handler more generic to handle different types of BPMN elements, not just data stores:
+
+```javascript
+### lib/features/modeling/cmd/UpdateSemanticParentHandler.js
+<<<<<<< SEARCH
+UpdateSemanticParentHandler.prototype.execute = function(context) {
+  var dataStoreBo = context.dataStoreBo,
+      newSemanticParent = context.newSemanticParent,
+      newDiParent = context.newDiParent;
+
+  context.oldSemanticParent = dataStoreBo.$parent;
+  context.oldDiParent = dataStoreBo.di.$parent;
+
+  // update semantic parent
+  this._bpmnUpdater.updateSemanticParent(dataStoreBo, newSemanticParent);
+
+  // update DI parent
+  this._bpmnUpdater.updateDiParent(dataStoreBo.di, newDiParent);
+};
+
+UpdateSemanticParentHandler.prototype.revert = function(context) {
+  var dataStoreBo = context.dataStoreBo,
+      oldSemanticParent = context.oldSemanticParent,
+      oldDiParent = context.oldDiParent;
+
+  // update semantic parent
+  this._bpmnUpdater.updateSemanticParent(dataStoreBo, oldSemanticParent);
+
+  // update DI parent
+  this._bpmnUpdater.updateDiParent(dataStoreBo.di, oldDiParent);
+};
+=======
+UpdateSemanticParentHandler.prototype.execute = function(context) {
+  var element = context.element || context.dataStoreBo,
+      newSemanticParent = context.newSemanticParent,
+      newDiParent = context.newDiParent;
+
+  context.oldSemanticParent = element.$parent;
+  context.oldDiParent = element.di.$parent;
+
+  // update semantic parent
+  this._bpmnUpdater.updateSemanticParent(element, newSemanticParent);
+
+  // update DI parent
+  this._bpmnUpdater.updateDiParent(element.di, newDiParent);
+};
+
+UpdateSemanticParentHandler.prototype.revert = function(context) {
+  var element = context.element || context.dataStoreBo,
+      oldSemanticParent = context.oldSemanticParent,
+      oldDiParent = context.oldDiParent;
+
+  // update semantic parent
+  this._bpmnUpdater.updateSemanticParent(element, oldSemanticParent);
+
+  // update DI parent
+  this._bpmnUpdater.updateDiParent(element.di, oldDiParent);
+};
+>>>>>>> REPLACE
+```
+
+This change makes the handler more generic by:
+
+1. Using `context.element || context.dataStoreBo` to support both the new generic approach and maintain backward compatibility with existing code that might still use `dataStoreBo`.
+2. Keeping the same functionality but making it work for any BPMN element, not just data stores.
+
+This should fix the issue where sequence flows aren't properly assigned to the correct parent after replacing a message flow, especially when the source is a Participant.

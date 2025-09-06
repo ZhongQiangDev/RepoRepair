@@ -1,0 +1,29 @@
+I'll analyze the issue and provide a fix.
+
+Looking at the issue, the report page is blank when running the tool. The screenshot shows that the page loads but no content is displayed.
+
+After examining the code, I found the issue. In the `generateReportHtml` method, there's a problem with how the JavaScript is being sanitized. The code is replacing all instances of `</` with `\\u003c/` in the JavaScript, which would break any closing HTML tags in the JavaScript code. This is likely causing script errors that prevent the report from rendering properly.
+
+The sanitization should only be applied to the JSON data, not to the JavaScript code. Here's the fix:
+
+```javascript
+### lighthouse-core/report/v2/report-generator.js
+<<<<<<< SEARCH
+  generateReportHtml(reportAsJson) {
+    const sanitizedJson = JSON.stringify(reportAsJson).replace(/</g, '\\u003c');
+    const sanitizedJavascript = REPORT_JAVASCRIPT.replace(/<\//g, '\\u003c/');
+
+    return ReportGeneratorV2.replaceStrings(REPORT_TEMPLATE, [
+      {search: '%%LIGHTHOUSE_JSON%%', replacement: sanitizedJson},
+      {search: '%%LIGHTHOUSE_JAVASCRIPT%%', replacement: sanitizedJavascript},
+=======
+  generateReportHtml(reportAsJson) {
+    const sanitizedJson = JSON.stringify(reportAsJson).replace(/</g, '\\u003c');
+
+    return ReportGeneratorV2.replaceStrings(REPORT_TEMPLATE, [
+      {search: '%%LIGHTHOUSE_JSON%%', replacement: sanitizedJson},
+      {search: '%%LIGHTHOUSE_JAVASCRIPT%%', replacement: REPORT_JAVASCRIPT},
+>>>>>>> REPLACE
+```
+
+The issue is that the JavaScript code is being unnecessarily sanitized, which is breaking the functionality. By removing the sanitization of the JavaScript code and using the original `REPORT_JAVASCRIPT` directly, the report should render correctly.

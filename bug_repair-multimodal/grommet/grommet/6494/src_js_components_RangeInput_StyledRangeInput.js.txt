@@ -1,0 +1,78 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description and screenshot, the RangeInput component is not properly centered within the FormField and extends beyond its edges. This is a styling issue related to the positioning and width of the RangeInput component.
+
+Looking at the code, I can see that the StyledRangeInput component is set to have `width: 100%` but doesn't account for the padding or margin that might be needed to properly center it within a FormField. The issue is particularly visible with the thumb element of the range input.
+
+Here's my fix:
+
+```javascript
+### src/js/components/RangeInput/StyledRangeInput.js
+<<<<<<< SEARCH
+  box-sizing: border-box;
+  position: relative;
+  -webkit-appearance: none;
+  border-color: transparent;
+
+  width: 100%;
+  padding: 0px;
+
+  background: transparent;
+=======
+  box-sizing: border-box;
+  position: relative;
+  -webkit-appearance: none;
+  border-color: transparent;
+
+  width: 100%;
+  padding: 0px;
+  margin: 0;
+
+  background: transparent;
+>>>>>>> REPLACE
+```
+
+Additionally, we need to fix the thumb positioning:
+
+```javascript
+### src/js/components/RangeInput/StyledRangeInput.js
+<<<<<<< SEARCH
+  &::-webkit-slider-thumb {
+    margin-top: -${(props) => (parseMetricToNum(props.theme.global.spacing) - parseMetricToNum(props.theme.rangeInput.track.height || 0)) * 0.5}px;
+    ${rangeThumbStyle}
+
+
+  }
+=======
+  &::-webkit-slider-thumb {
+    margin-top: -${(props) => (parseMetricToNum(props.theme.global.spacing) - parseMetricToNum(props.theme.rangeInput.track.height || 0)) * 0.5}px;
+    ${rangeThumbStyle}
+  }
+>>>>>>> REPLACE
+```
+
+The main issue is that the RangeInput needs proper alignment within its container. Let's also adjust the rangeTrackStyle to ensure it's properly centered:
+
+```javascript
+### src/js/components/RangeInput/StyledRangeInput.js
+<<<<<<< SEARCH
+const rangeTrackStyle = css`
+  box-sizing: border-box;
+  width: 100%;
+  height: ${(props) => props.theme.rangeInput.track.height};
+
+
+
+`;
+=======
+const rangeTrackStyle = css`
+  box-sizing: border-box;
+  width: 100%;
+  height: ${(props) => props.theme.rangeInput.track.height};
+  margin: 0;
+  padding: 0;
+`;
+>>>>>>> REPLACE
+```
+
+These changes will ensure that the RangeInput is properly centered within the FormField by removing any unnecessary spacing and ensuring consistent margins and padding.

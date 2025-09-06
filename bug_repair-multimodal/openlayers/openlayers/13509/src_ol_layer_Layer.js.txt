@@ -1,0 +1,104 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when a WebGlTile layer is placed inside a Group layer, changing the visibility of the Group to false doesn't hide the WebGlTile layer. This works correctly for regular Tile layers, but not for WebGlTile layers.
+
+Looking at the code, the issue is likely in the `inView` function in `src/ol/layer/Layer.js`. This function determines whether a layer should be rendered based on its visibility and other properties. When a layer is in a group, the group's visibility should be considered when determining if the layer should be rendered.
+
+The problem is that the WebGlTile layer is not respecting the visibility of its parent group. This suggests that the WebGlTile layer's rendering logic isn't properly checking the visibility of its parent group.
+
+## Fix
+
+The issue is in the `inView` function in `src/ol/layer/Layer.js`. This function only checks the layer's own visibility property but doesn't consider if the layer is part of a group that's been set to invisible.
+
+Here's the fix:
+
+```javascript
+### src/ol/layer/Layer.js
+<<<<<<< SEARCH
+/**
+ * Return `true` if the layer is visible and if the provided view state
+ * has resolution and zoom levels that are in range of the layer's min/max.
+ * @param {State} layerState Layer state.
+ * @param {import("../View.js").State} viewState View state.
+ * @return {boolean} The layer is visible at the given view state.
+ */
+export function inView(layerState, viewState) {
+  if (!layerState.visible) {
+    return false;
+  }
+  const resolution = viewState.resolution;
+  if (
+    resolution < layerState.minResolution ||
+    resolution >= layerState.maxResolution
+  ) {
+    return false;
+  }
+  const zoom = viewState.zoom;
+  return zoom > layerState.minZoom && zoom <= layerState.maxZoom;
+}
+=======
+/**
+ * Return `true` if the layer is visible and if the provided view state
+ * has resolution and zoom levels that are in range of the layer's min/max.
+ * @param {State} layerState Layer state.
+ * @param {import("../View.js").State} viewState View state.
+ * @return {boolean} The layer is visible at the given view state.
+ */
+export function inView(layerState, viewState) {
+  if (!layerState.visible) {
+    return false;
+  }
+  const resolution = viewState.resolution;
+  if (
+    resolution < layerState.minResolution ||
+    resolution >= layerState.maxResolution
+  ) {
+    return false;
+  }
+  const zoom = viewState.zoom;
+  return zoom > layerState.minZoom && zoom <= layerState.maxZoom;
+}
+>>>>>>> REPLACE
+```
+
+After reviewing the code more carefully, I see that the issue might not be in the `inView` function itself. The problem is likely in how the WebGlTile layer handles visibility changes from its parent group.
+
+Since we don't have access to the WebGlTile layer implementation in the provided code, I need to make an educated guess. The issue is likely that the WebGlTile layer isn't properly checking its parent group's visibility when rendering.
+
+Let me provide a more targeted fix:
+
+```javascript
+### src/ol/layer/Layer.js
+<<<<<<< SEARCH
+  /**
+   * @param {Array<import("./Layer.js").State>} [opt_states] Optional list of layer states (to be modified in place).
+   * @return {Array<import("./Layer.js").State>} List of layer states.
+   */
+  getLayerStatesArray(opt_states) {
+    const states = opt_states ? opt_states : [];
+    states.push(this.getLayerState());
+    return states;
+  }
+=======
+  /**
+   * @param {Array<import("./Layer.js").State>} [opt_states] Optional list of layer states (to be modified in place).
+   * @return {Array<import("./Layer.js").State>} List of layer states.
+   */
+  getLayerStatesArray(opt_states) {
+    const states = opt_states ? opt_states : [];
+    states.push(this.getLayerState());
+    return states;
+  }
+>>>>>>> REPLACE
+```
+
+After further analysis, I believe the issue is in how the WebGlTile layer handles visibility changes. Since we don't have access to the WebGlTile layer implementation in the provided code, I'll need to make a more general recommendation:
+
+The issue is likely that the WebGlTile layer isn't properly respecting the visibility state of its parent group. This could be because:
+
+1. The WebGlTile layer might be using a different rendering path that doesn't check the parent group's visibility
+2. There might be a bug in how the WebGlTile layer processes visibility changes
+
+Without seeing the WebGlTile implementation, I can't provide a specific code fix. However, the solution would involve ensuring that the WebGlTile layer properly checks its parent group's visibility before rendering.

@@ -1,0 +1,92 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that the vertex ordering for `beginShape(QUADS)` is different in WebGL mode compared to 2D mode. In WebGL mode, it's currently treating the vertex ordering the same way as `QUAD_STRIP`, which causes self-intersections in the rendered shape.
+
+Looking at the code, the problem is in the `vertex()` method of `p5.RendererGL.prototype`. When handling `QUADS` mode, it's duplicating vertices to convert quads into triangles, but the way it's doing this is causing the wrong triangulation pattern.
+
+Currently, when the 4th vertex (index 3) is added, it's duplicating vertices to create triangles, but the order is incorrect. It's creating triangles that don't follow the proper quad winding order.
+
+## Fix
+
+```javascript
+### src/webgl/p5.RendererGL.Immediate.js
+<<<<<<< SEARCH
+  if (this.immediateMode.shapeMode === constants.QUADS) {
+    // A finished quad turned into triangles should leave 6 vertices in the
+    // buffer:
+    // 0--2     0--2   3
+    // |  | --> | /  / |
+    // 1--3     1   4--5
+    // When vertex index 3 is being added, add the necessary duplicates.
+    if (this.immediateMode.geometry.vertices.length % 6 === 3) {
+      for (const key in immediateBufferStrides) {
+        const stride = immediateBufferStrides[key];
+        const buffer = this.immediateMode.geometry[key];
+        buffer.push(
+          ...buffer.slice(buffer.length - stride, buffer.length),
+          ...buffer.slice(buffer.length - 2 * stride, buffer.length - stride)
+        );
+      }
+    }
+  }
+=======
+  if (this.immediateMode.shapeMode === constants.QUADS) {
+    // A finished quad turned into triangles should leave 6 vertices in the
+    // buffer:
+    // 0--3     0--3   2
+    // |  | --> | /  / |
+    // 1--2     1   5--4
+    // When vertex index 3 is being added, add the necessary duplicates.
+    if (this.immediateMode.geometry.vertices.length % 6 === 3) {
+      for (const key in immediateBufferStrides) {
+        const stride = immediateBufferStrides[key];
+        const buffer = this.immediateMode.geometry[key];
+        // For proper quad triangulation, we need to duplicate vertices 0 and 2
+        // to create the second triangle (0,2,3)
+        const vertexOffset = buffer.length - 3 * stride;
+        buffer.push(
+          ...buffer.slice(vertexOffset, vertexOffset + stride),
+          ...buffer.slice(buffer.length - stride, buffer.length)
+        );
+      }
+    }
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/webgl/p5.RendererGL.Immediate.js
+<<<<<<< SEARCH
+    case constants.QUADS:
+      // Quads have been broken up into two triangles by `vertex()`:
+      // 0---2  3
+      // | /  / |
+      // 1  4---5
+      for (i = 0; i < verts.length - 5; i += 6) {
+        res.push([i, i + 1]);
+        res.push([i, i + 2]);
+        res.push([i + 4, i + 5]);
+        res.push([i + 3, i + 5]);
+      }
+      break;
+=======
+    case constants.QUADS:
+      // Quads have been broken up into two triangles by `vertex()`:
+      // 0---3  2
+      // | /  / |
+      // 1  5---4
+      for (i = 0; i < verts.length - 5; i += 6) {
+        res.push([i, i + 1]);
+        res.push([i + 1, i + 2]);
+        res.push([i + 2, i + 4]);
+        res.push([i, i + 3]);
+      }
+      break;
+>>>>>>> REPLACE
+```
+
+This fix changes how vertices are duplicated when converting quads to triangles. Instead of creating triangles with vertices (0,1,2) and (2,3,0), we now create triangles with vertices (0,1,2) and (0,2,3), which follows the proper quad winding order. This ensures that the quad is rendered correctly in WebGL mode, matching the behavior in 2D mode.
+
+The second part of the fix updates the edge calculation for quads to match the new triangulation pattern, ensuring that stroke rendering also works correctly.

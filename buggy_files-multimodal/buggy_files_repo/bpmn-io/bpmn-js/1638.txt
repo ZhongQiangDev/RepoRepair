@@ -1,0 +1,34 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When removing a label from a Task in the BPMN diagram, the `di` object still retains the `label` property with a value of `null`
+- This causes issues with linting tools since they expect the `label` property to not exist at all when there is no label
+
+2. Cause Analysis:
+- The issue stems from how label properties are handled during removal
+- Instead of completely removing the `label` property from the `di` object when clearing a label, the code is only setting it to `null`
+- This was introduced when adding support for embedded label DIs
+- The root cause appears to be in the label editing and property updating logic
+
+3. Most Related Files:
+```
+lib/features/modeling/cmd/UpdatePropertiesHandler.js
+lib/features/label-editing/LabelEditingProvider.js
+lib/features/modeling/BpmnUpdater.js
+lib/util/LabelUtil.js
+lib/features/modeling/cmd/UpdateModdlePropertiesHandler.js
+```
+
+These files are most relevant because:
+
+1. UpdatePropertiesHandler.js handles property updates including label changes and is responsible for how properties are set/removed
+
+2. LabelEditingProvider.js manages label editing operations and would be involved in label removal logic
+
+3. BpmnUpdater.js synchronizes the BPMN model with visual changes including label updates
+
+4. LabelUtil.js contains utility functions for label handling and validation
+
+5. UpdateModdlePropertiesHandler.js handles low-level property updates on the BPMN model elements
+
+The fix would likely need to modify how these components handle label removal to ensure the property is completely removed rather than set to null.

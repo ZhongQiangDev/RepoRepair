@@ -1,0 +1,33 @@
+Based on the issue description, the bug is that man pages are being generated into a single directory instead of being organized into section-specific subdirectories like `man1`, `man3`, etc. This needs to be fixed in the `write()` method of the `ManualPageBuilder` class where the output files are created.
+
+Here's the fix that will create section-specific subdirectories and place man pages in them:
+
+```python
+### sphinx/builders/manpage.py
+<<<<<<< SEARCH
+            targetname = '%s.%s' % (name, section)
+            logger.info(darkgreen(targetname) + ' { ', nonl=True)
+            destination = FileOutput(
+                destination_path=path.join(self.outdir, targetname),
+                encoding='utf-8')
+=======
+            # Create section directory (e.g., man1, man3, etc.)
+            section_dir = path.join(self.outdir, 'man%s' % section)
+            if not path.exists(section_dir):
+                self.create_directories(section_dir)
+                
+            targetname = '%s.%s' % (name, section)
+            logger.info(darkgreen(targetname) + ' { ', nonl=True)
+            destination = FileOutput(
+                destination_path=path.join(section_dir, targetname),
+                encoding='utf-8')
+>>>>>>> REPLACE
+```
+
+This change:
+1. Creates a section-specific directory (e.g., `man1`, `man3`) inside the output directory
+2. Places each man page in its corresponding section directory instead of the root output directory
+3. Uses the existing `create_directories()` method from the Builder class to ensure the section directory exists
+4. Maintains the same file naming convention but organizes files into the proper directory structure
+
+This change will make the generated man pages compatible with the `MANPATH` environment variable and standard Unix man page organization, while maintaining backward compatibility since the files are still generated with the same names, just in subdirectories.

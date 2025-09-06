@@ -1,0 +1,37 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The bug is that when multiple boundary events are selected and moved to the canvas in a batch operation, they are not properly converted to intermediate events. This happens because the current code only handles the case when a single boundary event is moved, but doesn't properly handle batch moves of multiple boundary events.
+
+Looking at the code, the issue is in the `elements.move` post-execution handler. The problem is in this section:
+
+```javascript
+// Change target to host when the moving element is a `bpmn:BoundaryEvent`
+if (elements.length === 1 && newHost) {
+  target = newHost;
+}
+```
+
+This condition only applies when there's a single element being moved (`elements.length === 1`). For batch operations with multiple boundary events, this condition is not met, so the boundary events aren't properly processed.
+
+## Fix
+
+We need to modify the code to handle batch operations with multiple boundary events. Here's the fix:
+
+```javascript
+### lib/features/modeling/behavior/ReplaceElementBehaviour.js
+<<<<<<< SEARCH
+    // Change target to host when the moving element is a `bpmn:BoundaryEvent`
+    if (elements.length === 1 && newHost) {
+      target = newHost;
+    }
+=======
+    // Change target to host when moving elements are bpmn:BoundaryEvents
+    if (newHost) {
+      target = newHost;
+    }
+>>>>>>> REPLACE
+```
+
+This change removes the condition that checks for a single element, allowing the code to work with multiple boundary events in a batch operation. When boundary events are moved out of their host, they should be converted to intermediate events regardless of whether it's a single event or multiple events being moved.

@@ -1,0 +1,73 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that character codes like `&amp;apos;` are appearing in labels instead of being decoded to their actual characters (like apostrophes). This happens when reading text from KML files, which are XML-based.
+
+Looking at the code, I need to find where text content is read from XML nodes, particularly in functions that handle text for labels. The issue is likely in the `readString` function which is used to parse text content from XML nodes.
+
+After examining the code, I can see that the issue is that XML entities in text content aren't being properly decoded. Let's fix this by modifying the `readString` function to decode HTML entities.
+
+```javascript
+### src/ol/format/KML.js
+<<<<<<< SEARCH
+/**
+ * @param {Node} node Node.
+ * @return {string} URI.
+ */
+function readURI(node) {
+  const s = getAllTextContent(node, false);
+  // KML is an XML format and the standard XML parser cannot handle
+  // entity references in the URI (e.g. &amp;foo=bar&amp;baz=bam).
+  // We assume the KML file creator knew what they were doing and
+  // any entity references in the URI were intentional.
+  return s;
+}
+=======
+/**
+ * @param {Node} node Node.
+ * @return {string} URI.
+ */
+function readURI(node) {
+  const s = getAllTextContent(node, false);
+  // KML is an XML format and the standard XML parser cannot handle
+  // entity references in the URI (e.g. &amp;foo=bar&amp;baz=bam).
+  // We assume the KML file creator knew what they were doing and
+  // any entity references in the URI were intentional.
+  return s;
+}
+
+/**
+ * @param {string} text Text with XML entities.
+ * @return {string} Text with XML entities replaced.
+ */
+function decodeEntities(text) {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = text;
+  return textarea.value;
+}
+>>>>>>> REPLACE
+```
+
+Now let's modify the `readString` function to use our new `decodeEntities` function:
+
+```javascript
+### src/ol/format/KML.js
+<<<<<<< SEARCH
+/**
+ * @param {Node} node Node.
+ * @return {string} String.
+ */
+function readString(node) {
+  return getAllTextContent(node, false);
+}
+=======
+/**
+ * @param {Node} node Node.
+ * @return {string} String.
+ */
+function readString(node) {
+  return decodeEntities(getAllTextContent(node, false));
+}
+>>>>>>> REPLACE
+```
+
+This fix will decode XML entities like `&amp;apos;` to their actual characters (like apostrophes) when reading text content from KML files, which will fix the issue with character codes appearing in labels.

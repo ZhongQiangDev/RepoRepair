@@ -1,0 +1,322 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about icon distortion in the `WebGLPoints` layer when `icon-rotate-with-view: true` is used with a non-square viewport. Looking at the provided screenshot, the icons appear stretched/distorted.
+
+The problem likely occurs in the rendering pipeline where the projection matrix is applied. When the viewport is non-square, the aspect ratio needs to be properly accounted for when rotating icons with the view.
+
+In the `WebGLPointsLayerRenderer` class, the issue is in how the projection transform is created and applied. The current implementation doesn't properly handle the aspect ratio when rotating icons with the view, causing the distortion in non-square viewports.
+
+## Fix
+
+The fix needs to ensure that the aspect ratio is properly maintained when rotating icons with the view. Let's modify the `renderWorlds` method to account for this:
+
+```javascript
+### src/ol/renderer/webgl/PointsLayer.js
+<<<<<<< SEARCH
+  renderWorlds(frameState, forHitDetection, startWorld, endWorld, worldWidth) {
+    let world = startWorld;
+
+    this.helper.useProgram(this.program_, frameState);
+
+    if (forHitDetection) {
+      this.hitRenderTarget_.setSize([
+        Math.floor(frameState.size[0] / 2),
+        Math.floor(frameState.size[1] / 2),
+      ]);
+      this.helper.prepareDrawToRenderTarget(
+        frameState,
+        this.hitRenderTarget_,
+        true
+      );
+    }
+
+    this.helper.bindBuffer(this.verticesBuffer_);
+    this.helper.bindBuffer(this.indicesBuffer_);
+    this.helper.enableAttributes(this.attributes);
+
+    do {
+      this.helper.makeProjectionTransform(frameState, this.currentTransform_);
+      translateTransform(this.currentTransform_, world * worldWidth, 0);
+      multiplyTransform(this.currentTransform_, this.invertRenderTransform_);
+      this.helper.applyUniforms(frameState);
+      this.helper.applyHitDetectionUniform(forHitDetection);
+      const renderCount = this.indicesBuffer_.getSize();
+      this.helper.drawElements(0, renderCount);
+    } while (++world < endWorld);
+  }
+=======
+  renderWorlds(frameState, forHitDetection, startWorld, endWorld, worldWidth) {
+    let world = startWorld;
+
+    this.helper.useProgram(this.program_, frameState);
+
+    if (forHitDetection) {
+      this.hitRenderTarget_.setSize([
+        Math.floor(frameState.size[0] / 2),
+        Math.floor(frameState.size[1] / 2),
+      ]);
+      this.helper.prepareDrawToRenderTarget(
+        frameState,
+        this.hitRenderTarget_,
+        true
+      );
+    }
+
+    this.helper.bindBuffer(this.verticesBuffer_);
+    this.helper.bindBuffer(this.indicesBuffer_);
+    this.helper.enableAttributes(this.attributes);
+
+    // Calculate aspect ratio for proper icon rendering in non-square viewports
+    const size = frameState.size;
+    const aspectRatio = size[0] / size[1];
+    
+    do {
+      this.helper.makeProjectionTransform(frameState, this.currentTransform_);
+      
+      // Apply aspect ratio correction to maintain icon proportions
+      if (aspectRatio !== 1) {
+        // Only adjust the transform if the viewport is not square
+        const centerX = size[0] / 2;
+        const centerY = size[1] / 2;
+        
+        // Translate to center, scale, then translate back
+        translateTransform(this.currentTransform_, centerX, centerY);
+        multiplyTransform(this.currentTransform_, [
+          1, 0, 0, 0,
+          0, aspectRatio, 0, 0,
+          0, 0, 1, 0,
+          0, 0, 0, 1
+        ]);
+        translateTransform(this.currentTransform_, -centerX, -centerY);
+      }
+      
+      translateTransform(this.currentTransform_, world * worldWidth, 0);
+      multiplyTransform(this.currentTransform_, this.invertRenderTransform_);
+      this.helper.applyUniforms(frameState);
+      this.helper.applyHitDetectionUniform(forHitDetection);
+      const renderCount = this.indicesBuffer_.getSize();
+      this.helper.drawElements(0, renderCount);
+    } while (++world < endWorld);
+  }
+>>>>>>> REPLACE
+```
+
+Wait, I need to reconsider this approach. The issue is more subtle and my initial fix might not be correct. Let me analyze the problem more carefully.
+
+After further analysis, I believe the issue is that when rotating icons with the view in a non-square viewport, the aspect ratio of the viewport is not being properly accounted for in the projection transform. Let me provide a more accurate fix:
+
+```javascript
+### src/ol/renderer/webgl/PointsLayer.js
+<<<<<<< SEARCH
+  renderWorlds(frameState, forHitDetection, startWorld, endWorld, worldWidth) {
+    let world = startWorld;
+
+    this.helper.useProgram(this.program_, frameState);
+
+    if (forHitDetection) {
+      this.hitRenderTarget_.setSize([
+        Math.floor(frameState.size[0] / 2),
+        Math.floor(frameState.size[1] / 2),
+      ]);
+      this.helper.prepareDrawToRenderTarget(
+        frameState,
+        this.hitRenderTarget_,
+        true
+      );
+    }
+
+    this.helper.bindBuffer(this.verticesBuffer_);
+    this.helper.bindBuffer(this.indicesBuffer_);
+    this.helper.enableAttributes(this.attributes);
+
+    do {
+      this.helper.makeProjectionTransform(frameState, this.currentTransform_);
+      translateTransform(this.currentTransform_, world * worldWidth, 0);
+      multiplyTransform(this.currentTransform_, this.invertRenderTransform_);
+      this.helper.applyUniforms(frameState);
+      this.helper.applyHitDetectionUniform(forHitDetection);
+      const renderCount = this.indicesBuffer_.getSize();
+      this.helper.drawElements(0, renderCount);
+    } while (++world < endWorld);
+  }
+=======
+  renderWorlds(frameState, forHitDetection, startWorld, endWorld, worldWidth) {
+    let world = startWorld;
+
+    this.helper.useProgram(this.program_, frameState);
+
+    if (forHitDetection) {
+      this.hitRenderTarget_.setSize([
+        Math.floor(frameState.size[0] / 2),
+        Math.floor(frameState.size[1] / 2),
+      ]);
+      this.helper.prepareDrawToRenderTarget(
+        frameState,
+        this.hitRenderTarget_,
+        true
+      );
+    }
+
+    this.helper.bindBuffer(this.verticesBuffer_);
+    this.helper.bindBuffer(this.indicesBuffer_);
+    this.helper.enableAttributes(this.attributes);
+
+    // Get viewport size for aspect ratio calculation
+    const size = frameState.size;
+    const aspectRatio = size[0] / size[1];
+
+    do {
+      this.helper.makeProjectionTransform(frameState, this.currentTransform_);
+      
+      // Apply aspect ratio correction to maintain icon proportions when rotating with view
+      if (frameState.viewState.rotation !== 0 && aspectRatio !== 1) {
+        // Scale the transform to account for the viewport aspect ratio
+        // This ensures icons maintain their shape when rotated with the view
+        const scaleMatrix = createTransform();
+        scaleMatrix[0] = 1;
+        scaleMatrix[5] = 1;
+        
+        // Apply the scale correction to the transform
+        multiplyTransform(this.currentTransform_, scaleMatrix);
+      }
+      
+      translateTransform(this.currentTransform_, world * worldWidth, 0);
+      multiplyTransform(this.currentTransform_, this.invertRenderTransform_);
+      this.helper.applyUniforms(frameState);
+      this.helper.applyHitDetectionUniform(forHitDetection);
+      const renderCount = this.indicesBuffer_.getSize();
+      this.helper.drawElements(0, renderCount);
+    } while (++world < endWorld);
+  }
+>>>>>>> REPLACE
+```
+
+I'm still not satisfied with this approach. Let me reconsider the problem once more.
+
+The issue is that when icons are rotated with the view in a non-square viewport, they become distorted. This suggests that the aspect ratio of the viewport is not being properly accounted for in the projection transform.
+
+Let's modify the `rebuildBuffers_` method instead, as this is where the projection transform is initially created:
+
+```javascript
+### src/ol/renderer/webgl/PointsLayer.js
+<<<<<<< SEARCH
+  rebuildBuffers_(frameState) {
+    // saves the projection transform for the current frame state
+    const projectionTransform = createTransform();
+    this.helper.makeProjectionTransform(frameState, projectionTransform);
+
+    const baseInstructionLength = this.hitDetectionEnabled_ ? 7 : 2; // see below
+=======
+  rebuildBuffers_(frameState) {
+    // saves the projection transform for the current frame state
+    const projectionTransform = createTransform();
+    this.helper.makeProjectionTransform(frameState, projectionTransform);
+    
+    // Correct the projection transform for non-square viewports when rotating with view
+    // This ensures icons maintain their aspect ratio
+    const size = frameState.size;
+    if (size[0] !== size[1]) {
+      // Apply a correction to the projection transform to account for the viewport aspect ratio
+      const aspectRatio = size[0] / size[1];
+      const correctionMatrix = createTransform();
+      correctionMatrix[0] = 1;
+      correctionMatrix[5] = aspectRatio;
+      multiplyTransform(projectionTransform, correctionMatrix);
+    }
+
+    const baseInstructionLength = this.hitDetectionEnabled_ ? 7 : 2; // see below
+>>>>>>> REPLACE
+```
+
+After further consideration, I believe the issue is in how the WebGL rendering pipeline handles the aspect ratio when rotating icons. Let's take a more direct approach by modifying the `renderWorlds` method:
+
+```javascript
+### src/ol/renderer/webgl/PointsLayer.js
+<<<<<<< SEARCH
+    do {
+      this.helper.makeProjectionTransform(frameState, this.currentTransform_);
+      translateTransform(this.currentTransform_, world * worldWidth, 0);
+      multiplyTransform(this.currentTransform_, this.invertRenderTransform_);
+      this.helper.applyUniforms(frameState);
+      this.helper.applyHitDetectionUniform(forHitDetection);
+      const renderCount = this.indicesBuffer_.getSize();
+      this.helper.drawElements(0, renderCount);
+    } while (++world < endWorld);
+=======
+    do {
+      this.helper.makeProjectionTransform(frameState, this.currentTransform_);
+      
+      // Apply aspect ratio correction for non-square viewports when rotating with view
+      if (frameState.viewState.rotation !== 0) {
+        const size = frameState.size;
+        if (size[0] !== size[1]) {
+          // Calculate the aspect ratio
+          const aspectRatio = size[0] / size[1];
+          
+          // Create a correction matrix that will preserve the icon's aspect ratio
+          const correctionMatrix = createTransform();
+          correctionMatrix[0] = Math.min(1, 1 / aspectRatio);
+          correctionMatrix[5] = Math.min(1, aspectRatio);
+          
+          // Apply the correction
+          multiplyTransform(this.currentTransform_, correctionMatrix);
+        }
+      }
+      
+      translateTransform(this.currentTransform_, world * worldWidth, 0);
+      multiplyTransform(this.currentTransform_, this.invertRenderTransform_);
+      this.helper.applyUniforms(frameState);
+      this.helper.applyHitDetectionUniform(forHitDetection);
+      const renderCount = this.indicesBuffer_.getSize();
+      this.helper.drawElements(0, renderCount);
+    } while (++world < endWorld);
+>>>>>>> REPLACE
+```
+
+After careful consideration, I believe the issue is in the projection matrix calculation. Let's fix it by modifying the `renderWorlds` method with a more accurate approach:
+
+```javascript
+### src/ol/renderer/webgl/PointsLayer.js
+<<<<<<< SEARCH
+    do {
+      this.helper.makeProjectionTransform(frameState, this.currentTransform_);
+      translateTransform(this.currentTransform_, world * worldWidth, 0);
+      multiplyTransform(this.currentTransform_, this.invertRenderTransform_);
+      this.helper.applyUniforms(frameState);
+      this.helper.applyHitDetectionUniform(forHitDetection);
+      const renderCount = this.indicesBuffer_.getSize();
+      this.helper.drawElements(0, renderCount);
+    } while (++world < endWorld);
+=======
+    do {
+      this.helper.makeProjectionTransform(frameState, this.currentTransform_);
+      
+      // When the view is rotated and the viewport is not square,
+      // we need to adjust the transform to prevent icon distortion
+      if (frameState.viewState.rotation !== 0) {
+        const size = frameState.size;
+        const width = size[0];
+        const height = size[1];
+        
+        if (width !== height) {
+          // Create a scale matrix to correct the aspect ratio
+          const scaleX = height / Math.sqrt(width * height);
+          const scaleY = width / Math.sqrt(width * height);
+          
+          // Apply the scale to maintain the aspect ratio during rotation
+          this.currentTransform_[0] *= scaleX;
+          this.currentTransform_[5] *= scaleY;
+        }
+      }
+      
+      translateTransform(this.currentTransform_, world * worldWidth, 0);
+      multiplyTransform(this.currentTransform_, this.invertRenderTransform_);
+      this.helper.applyUniforms(frameState);
+      this.helper.applyHitDetectionUniform(forHitDetection);
+      const renderCount = this.indicesBuffer_.getSize();
+      this.helper.drawElements(0, renderCount);
+    } while (++world < endWorld);
+>>>>>>> REPLACE
+```

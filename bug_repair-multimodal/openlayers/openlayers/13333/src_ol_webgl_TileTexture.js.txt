@@ -1,0 +1,142 @@
+Looking at the issue description and the images, it appears that WebGL tile layers are rendering error images outside their original extent. This suggests that tiles are being rendered in areas where they shouldn't be visible, likely due to improper texture wrapping or clamping behavior.
+
+The issue is in the `bindAndConfigure` function where texture parameters are set. The current implementation uses `gl.CLAMP_TO_EDGE` for both `TEXTURE_WRAP_S` and `TEXTURE_WRAP_T`, which can cause edge pixels to be stretched beyond the tile boundaries when sampling occurs outside the [0,1] texture coordinate range.
+
+For tile-based rendering systems, we typically want to prevent any sampling outside the tile boundaries to avoid rendering artifacts in areas where tiles shouldn't appear. The fix is to use `gl.CLAMP_TO_BORDER` (if available) or implement proper boundary checking, but since `CLAMP_TO_BORDER` isn't available in WebGL 1.0, we need to ensure proper texture coordinate clamping in the shader or use a different approach.
+
+However, looking more closely at the code, the issue is likely that we need to be more restrictive about texture sampling. The `CLAMP_TO_EDGE` behavior can cause tiles to appear stretched beyond their intended boundaries. A better approach for tile rendering would be to use proper texture coordinate bounds checking.
+
+But given the WebGL 1.0 constraints, the most practical fix is to ensure that texture coordinates are properly bounded in the rendering pipeline. Since this file only handles texture upload and configuration, the issue might be in how texture coordinates are calculated during rendering.
+
+Looking at the texture configuration, the issue is likely in the texture wrapping mode. For tile rendering, we want to prevent any sampling outside the tile boundaries. Let me check if there's a way to improve this:
+
+```javascript
+### src/ol/webgl/TileTexture.js
+<<<<<<< SEARCH
+/**
+ * @param {WebGLRenderingContext} gl The WebGL context.
+ * @param {WebGLTexture} texture The texture.
+ * @param {boolean} interpolate Interpolate when resampling.
+ */
+function bindAndConfigure(gl, texture, interpolate) {
+  const resampleFilter = interpolate ? gl.LINEAR : gl.NEAREST;
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, resampleFilter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, resampleFilter);
+}
+=======
+/**
+ * @param {WebGLRenderingContext} gl The WebGL context.
+ * @param {WebGLTexture} texture The texture.
+ * @param {boolean} interpolate Interpolate when resampling.
+ */
+function bindAndConfigure(gl, texture, interpolate) {
+  const resampleFilter = interpolate ? gl.LINEAR : gl.NEAREST;
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, resampleFilter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, resampleFilter);
+  
+  // Ensure proper texture boundary handling for tile rendering
+  // This helps prevent rendering artifacts outside tile extents
+  if (interpolate) {
+    // When interpolating, we need to be more careful about edge sampling
+    // to prevent artifacts from appearing outside the intended tile area
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  } else {
+    // Use nearest neighbor to avoid any interpolation artifacts
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  }
+}
+>>>>>>> REPLACE
+```
+
+Wait, I notice that I'm duplicating the filter setting logic. Let me reconsider the issue. The problem is likely not in the texture configuration itself, but rather in how the texture coordinates are being calculated or clamped during rendering. 
+
+However, looking at the issue more carefully, the problem might be that `CLAMP_TO_EDGE` is causing edge pixels to be repeated beyond the tile boundaries. For tile-based systems, we might want to ensure that sampling outside the valid texture coordinates doesn't produce visible artifacts.
+
+Let me provide a more targeted fix:
+
+```javascript
+### src/ol/webgl/TileTexture.js
+<<<<<<< SEARCH
+/**
+ * @param {WebGLRenderingContext} gl The WebGL context.
+ * @param {WebGLTexture} texture The texture.
+ * @param {boolean} interpolate Interpolate when resampling.
+ */
+function bindAndConfigure(gl, texture, interpolate) {
+  const resampleFilter = interpolate ? gl.LINEAR : gl.NEAREST;
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, resampleFilter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, resampleFilter);
+}
+=======
+/**
+ * @param {WebGLRenderingContext} gl The WebGL context.
+ * @param {WebGLTexture} texture The texture.
+ * @param {boolean} interpolate Interpolate when resampling.
+ */
+function bindAndConfigure(gl, texture, interpolate) {
+  const resampleFilter = interpolate ? gl.LINEAR : gl.NEAREST;
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  
+  // Use CLAMP_TO_EDGE to prevent wrapping, but this requires proper
+  // texture coordinate bounds checking in shaders to avoid artifacts
+  // outside the intended tile extent
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, resampleFilter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, resampleFilter);
+}
+>>>>>>> REPLACE
+```
+
+Actually, let me think about this differently. The issue might be that we need to handle the case where tiles are being rendered outside their valid extent. The texture configuration itself might be correct, but we might need to add additional safeguards. However, without seeing the shader code or the rendering logic, it's hard to pinpoint the exact issue.
+
+Given that this is specifically about WebGL tile textures and the issue shows error images appearing outside the original extent, the most likely cause is improper texture coordinate handling. The `CLAMP_TO_EDGE` setting is actually correct for preventing texture wrapping, but the issue might be in how the texture coordinates are calculated or validated.
+
+Let me provide a more conservative fix that adds better error handling:
+
+```javascript
+### src/ol/webgl/TileTexture.js
+<<<<<<< SEARCH
+/**
+ * @param {WebGLRenderingContext} gl The WebGL context.
+ * @param {WebGLTexture} texture The texture.
+ * @param {HTMLImageElement|HTMLCanvasElement|HTMLVideoElement} image The image.
+ * @param {boolean} interpolate Interpolate when resampling.
+ */
+function uploadImageTexture(gl, texture, image, interpolate) {
+  bindAndConfigure(gl, texture, interpolate);
+
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+}
+=======
+/**
+ * @param {WebGLRenderingContext} gl The WebGL context.
+ * @param {WebGLTexture} texture The texture.
+ * @param {HTMLImageElement|HTMLCanvasElement|HTMLVideoElement} image The image.
+ * @param {boolean} interpolate Interpolate when resampling.
+ */
+function uploadImageTexture(gl, texture, image, interpolate) {
+  bindAndConfigure(gl, texture, interpolate);
+
+  // Ensure the image is valid before uploading to prevent rendering artifacts
+  if (image && image.width > 0 && image.height > 0) {
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+  } else {
+    // Upload a transparent 1x1 texture as fallback to prevent rendering errors
+    const transparentPixel = new Uint8Array([0, 0, 0, 0]);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, transparentPixel);
+  }
+}
+>>>>>>> REPLACE
+```

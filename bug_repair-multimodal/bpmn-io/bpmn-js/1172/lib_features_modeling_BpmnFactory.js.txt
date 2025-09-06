@@ -1,0 +1,33 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that associations on boundary events can be created but aren't rendered after loading a saved diagram. Looking at the screenshots, we can see that the association between a boundary event and a data object is missing after reloading.
+
+The problem appears to be in the `BpmnFactory.js` file, specifically in the `createDiEdge` method. When creating a diagram edge for an association, it's not properly handling the waypoints for the edge, which are necessary for rendering the connection.
+
+The `createDiEdge` method is creating a `bpmndi:BPMNEdge` element but isn't setting the waypoints property, which is needed for the edge to be properly rendered. The method accepts waypoints as a parameter but doesn't use them in the created edge.
+
+## Fix
+
+```javascript
+### lib/features/modeling/BpmnFactory.js
+<<<<<<< SEARCH
+BpmnFactory.prototype.createDiEdge = function(semantic, waypoints, attrs) {
+  return this.create('bpmndi:BPMNEdge', assign({
+    bpmnElement: semantic
+  }, attrs));
+};
+=======
+BpmnFactory.prototype.createDiEdge = function(semantic, waypoints, attrs) {
+  return this.create('bpmndi:BPMNEdge', assign({
+    bpmnElement: semantic,
+    waypoint: map(waypoints, function(p) {
+      return this.createDiWaypoint(p);
+    }, this)
+  }, attrs));
+};
+>>>>>>> REPLACE
+```
+
+This fix adds the waypoints to the created `bpmndi:BPMNEdge` element. It maps over the waypoints array and converts each point to a diagram waypoint using a `createDiWaypoint` method that should be defined elsewhere in the class. This ensures that when the diagram is loaded, the edges (including associations from boundary events) have the necessary waypoint information to be properly rendered.

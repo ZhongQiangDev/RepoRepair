@@ -1,0 +1,90 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about unwanted spacing between lines in multi-line text labels in OpenLayers. According to the issue:
+
+1. When using `text: new ol.style.Text({ text: 3.5 +'\nbar' })`, there's a gap between the two lines of text
+2. This gap wasn't present in OpenLayers v2.13, but appears in v4.6.4 and later
+3. The user would prefer no space by default, with the option to add space when needed
+
+Looking at the code, the issue is in the `TextBuilder.js` file. The problem is that when rendering multi-line text, there's no option to control the line spacing. The default browser behavior when rendering multi-line text adds spacing between lines.
+
+## Solution
+
+The fix needs to be in the `drawChars_` method of the `CanvasTextBuilder` class. Currently, when drawing text, there's no way to control the line height or spacing between lines. We need to modify the instructions passed to the renderer to include line height information.
+
+```javascript
+### src/ol/render/canvas/TextBuilder.js
+<<<<<<< SEARCH
+    const textScale = textState.scale;
+    const strokeWidth = strokeState ? strokeState.lineWidth * textScale / 2 : 0;
+
+    this.instructions.push([CanvasInstruction.DRAW_CHARS,
+      begin, end, baseline, declutterGroup,
+      textState.overflow, fillKey, textState.maxAngle,
+      pixelRatio,
+      offsetY, strokeKey, strokeWidth * pixelRatio, text, textKey, 1
+    ]);
+    this.hitDetectionInstructions.push([CanvasInstruction.DRAW_CHARS,
+      begin, end, baseline, declutterGroup,
+      textState.overflow, fillKey, textState.maxAngle,
+      1,
+      offsetY, strokeKey, strokeWidth, text, textKey, 1 / pixelRatio
+    ]);
+=======
+    const textScale = textState.scale;
+    const strokeWidth = strokeState ? strokeState.lineWidth * textScale / 2 : 0;
+    // Use a line height of 1 to remove the gap between lines
+    const lineHeight = textState.lineHeight !== undefined ? textState.lineHeight : 1;
+
+    this.instructions.push([CanvasInstruction.DRAW_CHARS,
+      begin, end, baseline, declutterGroup,
+      textState.overflow, fillKey, textState.maxAngle,
+      pixelRatio,
+      offsetY, strokeKey, strokeWidth * pixelRatio, text, textKey, lineHeight
+    ]);
+    this.hitDetectionInstructions.push([CanvasInstruction.DRAW_CHARS,
+      begin, end, baseline, declutterGroup,
+      textState.overflow, fillKey, textState.maxAngle,
+      1,
+      offsetY, strokeKey, strokeWidth, text, textKey, 1 / pixelRatio
+    ]);
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/render/canvas/TextBuilder.js
+<<<<<<< SEARCH
+      textState.font = font;
+      textState.maxAngle = textStyle.getMaxAngle();
+      textState.placement = textStyle.getPlacement();
+      textState.textAlign = textStyle.getTextAlign();
+      textState.textBaseline = textStyle.getTextBaseline() || defaultTextBaseline;
+      textState.backgroundFill = textStyle.getBackgroundFill();
+      textState.backgroundStroke = textStyle.getBackgroundStroke();
+      textState.padding = textStyle.getPadding() || defaultPadding;
+      textState.scale = textScale === undefined ? 1 : textScale;
+=======
+      textState.font = font;
+      textState.maxAngle = textStyle.getMaxAngle();
+      textState.placement = textStyle.getPlacement();
+      textState.textAlign = textStyle.getTextAlign();
+      textState.textBaseline = textStyle.getTextBaseline() || defaultTextBaseline;
+      textState.backgroundFill = textStyle.getBackgroundFill();
+      textState.backgroundStroke = textStyle.getBackgroundStroke();
+      textState.padding = textStyle.getPadding() || defaultPadding;
+      textState.scale = textScale === undefined ? 1 : textScale;
+      textState.lineHeight = textStyle.getLineHeight();
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Adds support for a `lineHeight` property in the text style
+2. Sets a default line height of 1 (which removes the gap between lines)
+3. Passes this line height to the renderer instructions
+
+With this change, multi-line text will render without the extra spacing by default, and users can set a custom line height through the text style if they want spacing between lines.
+
+Note: This fix assumes that the `TextStyle` class has or will have a `getLineHeight` method. If that method doesn't exist yet, it would need to be added to the `TextStyle` class as well.

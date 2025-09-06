@@ -1,0 +1,73 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that each WebGL TileLayer uses a separate WebGL context, leading to a limitation where only 16 TileLayers can be used simultaneously due to the browser's hard limit on the number of WebGL contexts. This limitation becomes problematic when rendering multiple raster images, as each distinct dimension and position requires a separate WebGL context.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior is the current implementation where each WebGL TileLayer creates and uses its own WebGL context. This results in a rapid depletion of the available WebGL contexts, especially when multiple TileLayers are required to render different raster images. The proposed solution is to share a single WebGL context among all WebGL TileLayers within one OpenLayers map, which would significantly reduce the number of contexts needed and mitigate the browser's context limit.
+
+### 3. Examine Each File and Determine Relevant Functions or Classes
+
+#### src/ol/webgl.js
+
+This file contains functions related to WebGL context creation and management. The function `getContext` is directly relevant because it is responsible for creating a WebGL context for a given canvas. If WebGL TileLayers are to share a single context, this function would need to be modified to support context sharing.
+
+```
+src/ol/webgl.js
+function: getContext
+```
+
+#### src/ol/layer/WebGLTile.js
+
+This file contains the `WebGLTileLayer` class, which is responsible for managing WebGL TileLayers. The class currently creates a WebGL context for each layer, so it needs to be modified to share a single context among multiple layers.
+
+```
+src/ol/layer/WebGLTile.js
+class: WebGLTileLayer
+```
+
+#### src/ol/renderer/webgl/Layer.js
+
+This file contains the `WebGLLayerRenderer` class, which is a foundational class for WebGL rendering. While it does not directly create WebGL contexts, it manages the lifecycle of a WebGLHelper instance, which is responsible for rendering operations. This class may need to be adjusted to support context sharing.
+
+```
+src/ol/renderer/webgl/Layer.js
+class: WebGLLayerRenderer
+```
+
+#### src/ol/renderer/webgl/TileLayer.js
+
+This file contains the `WebGLTileLayerRenderer` class, which is responsible for rendering tile layers using WebGL. This class manages tile textures and rendering processes, and it may need to be modified to work with a shared WebGL context.
+
+```
+src/ol/renderer/webgl/TileLayer.js
+class: WebGLTileLayerRenderer
+```
+
+#### src/ol/webgl/Helper.js
+
+This file contains the `WebGLHelper` class, which is a utility class for managing WebGL resources. It handles shader compilation, buffer management, and other low-level WebGL operations. This class is crucial for managing WebGL contexts and may need to be adapted to support context sharing.
+
+```
+src/ol/webgl/Helper.js
+class: WebGLHelper
+```
+
+### Summary of Relevant Locations
+
+```
+src/ol/webgl.js
+function: getContext
+
+src/ol/layer/WebGLTile.js
+class: WebGLTileLayer
+
+src/ol/renderer/webgl/Layer.js
+class: WebGLLayerRenderer
+
+src/ol/renderer/webgl/TileLayer.js
+class: WebGLTileLayerRenderer
+
+src/ol/webgl/Helper.js
+class: WebGLHelper
+```

@@ -1,0 +1,41 @@
+From the issue description, the bug is that when lambdifying a tuple with one element, the generated code is missing the comma after the element, causing it to be interpreted as just parentheses around a value rather than a tuple.
+
+Looking at the code, this is happening in the `_EvaluatorPrinter` class which is responsible for generating the Python code. However, this class is not shown in the provided file. The issue is likely in the printer implementation.
+
+Since we don't have access to the printer code, we can work around this in the `lambdify` function by explicitly handling single-element tuples before passing them to the printer.
+
+Here's the fix:
+
+```python
+### sympy/utilities/lambdify.py
+<<<<<<< SEARCH
+    if cse == True:
+        from sympy.simplify.cse_main import cse as _cse
+        cses, _expr = _cse(expr, list=False)
+    elif callable(cse):
+        cses, _expr = cse(expr)
+    else:
+        cses, _expr = (), expr
+=======
+    # Handle single-element tuples explicitly
+    if isinstance(expr, (list, tuple)) and len(expr) == 1:
+        expr = (expr[0],)  # Force trailing comma
+
+    if cse == True:
+        from sympy.simplify.cse_main import cse as _cse
+        cses, _expr = _cse(expr, list=False)
+    elif callable(cse):
+        cses, _expr = cse(expr)
+    else:
+        cses, _expr = (), expr
+>>>>>>> REPLACE
+```
+
+This fix explicitly converts single-element sequences to tuples with a trailing comma before they get processed by the printer. This ensures that when the printer generates code for the tuple, it will maintain the proper tuple syntax with the comma.
+
+The fix works by:
+1. Checking if the expression is a list/tuple with exactly one element
+2. If so, creating a new tuple with a trailing comma using Python's tuple syntax
+3. Letting the rest of the processing continue as normal
+
+This should resolve the issue where `lambdify([], tuple([1]))` was generating `return (1)` instead of `return (1,)`.

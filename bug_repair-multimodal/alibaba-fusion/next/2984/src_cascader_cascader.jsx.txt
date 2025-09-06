@@ -1,0 +1,81 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that the `CascaderSelect` component is modifying the properties passed to it, which causes errors when using immutable state management libraries like immer. The screenshot shows an error related to modifying a read-only property.
+
+Looking at the code, I found the issue in the `flatDataSource` function. This function directly modifies the `item.value` property of each item in the data source:
+
+```javascript
+const flatDataSource = (data, prefix = '0', v2n = {}, p2n = {}) => {
+    data.forEach((item, index) => {
+        const { value, children } = item;
+        const pos = `${prefix}-${index}`;
+        const newValue = String(value);
+        item.value = newValue;  // <-- This is modifying the original data
+        v2n[newValue] = p2n[pos] = {
+            ...item,
+            pos,
+            _source: item,
+        };
+        // ...
+    });
+    // ...
+};
+```
+
+## Fix
+
+The fix is to avoid modifying the original data. Instead, we should create a new object with the modified value:
+
+```javascript
+### src/cascader/cascader.jsx
+<<<<<<< SEARCH
+const flatDataSource = (data, prefix = '0', v2n = {}, p2n = {}) => {
+    data.forEach((item, index) => {
+        const { value, children } = item;
+        const pos = `${prefix}-${index}`;
+        const newValue = String(value);
+        item.value = newValue;
+        v2n[newValue] = p2n[pos] = {
+            ...item,
+            pos,
+            _source: item,
+        };
+
+        if (children && children.length) {
+            flatDataSource(children, pos, v2n, p2n);
+        }
+    });
+
+    return { v2n, p2n };
+};
+=======
+const flatDataSource = (data, prefix = '0', v2n = {}, p2n = {}) => {
+    data.forEach((item, index) => {
+        const { value, children } = item;
+        const pos = `${prefix}-${index}`;
+        const newValue = String(value);
+        // Create a new reference instead of modifying the original
+        const newItem = {
+            ...item,
+            value: newValue,
+        };
+        
+        v2n[newValue] = p2n[pos] = {
+            ...newItem,
+            pos,
+            _source: item,
+        };
+
+        if (children && children.length) {
+            flatDataSource(children, pos, v2n, p2n);
+        }
+    });
+
+    return { v2n, p2n };
+};
+>>>>>>> REPLACE
+```
+
+This fix creates a new object with the modified value instead of directly modifying the original data. This way, the component respects the immutability principle, which is essential when working with libraries like immer.

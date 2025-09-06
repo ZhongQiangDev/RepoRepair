@@ -1,0 +1,42 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that empty block comments (`/**/`) in JavaScript are breaking the syntax highlighting for the rest of the code. Looking at the example, when there's an empty block comment like `/**/console.log("Hello, World!")/**/`, the highlighting stops working after the first empty comment.
+
+The problem is in the JavaScript language definition, specifically in how block comments are handled. The current implementation doesn't properly handle empty block comments.
+
+Let's look at the COMMENT definition in the JavaScript language file. The issue is likely in the C_BLOCK_COMMENT_MODE that's being used.
+
+After examining the code, I can see that the issue is related to how block comments are matched. The standard C-style block comment mode might not be handling empty comments correctly. We need to modify the comment handling to ensure empty block comments are properly recognized.
+
+Here's my fix:
+
+```javascript
+### src/languages/javascript.js
+<<<<<<< SEARCH
+  const COMMENT = {
+    className: "comment",
+    variants: [
+      JSDOC_COMMENT,
+      hljs.C_BLOCK_COMMENT_MODE,
+      hljs.C_LINE_COMMENT_MODE
+    ]
+  };
+=======
+  const COMMENT = {
+    className: "comment",
+    variants: [
+      JSDOC_COMMENT,
+      {
+        begin: '/\\*',
+        end: '\\*/',
+        contains: ['self']
+      },
+      hljs.C_LINE_COMMENT_MODE
+    ]
+  };
+>>>>>>> REPLACE
+```
+
+This fix replaces the standard `hljs.C_BLOCK_COMMENT_MODE` with a custom block comment definition that explicitly defines the begin and end patterns for block comments (`/\*` and `\*/`). The addition of `contains: ['self']` allows for nested comments.
+
+The key difference is that our custom implementation will properly handle empty block comments (`/**/`) because it's explicitly looking for the start and end patterns without any assumptions about content in between.

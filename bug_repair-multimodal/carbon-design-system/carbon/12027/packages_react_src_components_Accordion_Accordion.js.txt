@@ -1,0 +1,112 @@
+I'll analyze the issue and provide a solution.
+
+The issue is requesting to add a "flush alignment" prop to the Accordion component, similar to what was done for the StructuredList component. This prop would allow users to have accordion content flush with the left edge of the page, which is particularly useful in side panel situations.
+
+Based on the specs provided, we need to add a new boolean prop called `isFlush` to the Accordion component that, when true, will align the text flush to the left end of the line dividers.
+
+Here's my solution:
+
+```javascript
+### packages/react/src/components/Accordion/Accordion.js
+<<<<<<< SEARCH
+function Accordion({
+  align = 'end',
+  children,
+  className: customClassName,
+  disabled = false,
+  size = 'md',
+  ...rest
+}) {
+  const prefix = usePrefix();
+  const className = cx(`${prefix}--accordion`, customClassName, {
+    [`${prefix}--accordion--${align}`]: align,
+    [`${prefix}--accordion--${size}`]: size,
+  });
+=======
+function Accordion({
+  align = 'end',
+  children,
+  className: customClassName,
+  disabled = false,
+  isFlush = false,
+  size = 'md',
+  ...rest
+}) {
+  const prefix = usePrefix();
+  const className = cx(`${prefix}--accordion`, customClassName, {
+    [`${prefix}--accordion--${align}`]: align,
+    [`${prefix}--accordion--${size}`]: size,
+    [`${prefix}--accordion--flush`]: isFlush,
+  });
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Accordion/Accordion.js
+<<<<<<< SEARCH
+Accordion.propTypes = {
+  /**
+   * Specify the alignment of the accordion heading title and chevron.
+   */
+  align: PropTypes.oneOf(['start', 'end']),
+
+  /**
+   * Pass in the children that will be rendered within the Accordion
+   */
+  children: PropTypes.node,
+
+  /**
+   * Specify an optional className to be applied to the container node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify whether an individual AccordionItem should be disabled
+   */
+  disabled: PropTypes.bool,
+
+  /**
+   * Specify the size of the Accordion. Currently supports the following:
+   */
+  size: FeatureFlags.enabled('enable-v11-release')
+    ? PropTypes.oneOf(['sm', 'md', 'lg'])
+    : PropTypes.oneOf(['sm', 'md', 'lg', 'xl']),
+};
+=======
+Accordion.propTypes = {
+  /**
+   * Specify the alignment of the accordion heading title and chevron.
+   */
+  align: PropTypes.oneOf(['start', 'end']),
+
+  /**
+   * Pass in the children that will be rendered within the Accordion
+   */
+  children: PropTypes.node,
+
+  /**
+   * Specify an optional className to be applied to the container node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify whether an individual AccordionItem should be disabled
+   */
+  disabled: PropTypes.bool,
+
+  /**
+   * Specify whether the accordion should have flush styling applied
+   */
+  isFlush: PropTypes.bool,
+
+  /**
+   * Specify the size of the Accordion. Currently supports the following:
+   */
+  size: FeatureFlags.enabled('enable-v11-release')
+    ? PropTypes.oneOf(['sm', 'md', 'lg'])
+    : PropTypes.oneOf(['sm', 'md', 'lg', 'xl']),
+};
+>>>>>>> REPLACE
+```
+
+These changes add the `isFlush` prop with a default value of `false` to the Accordion component. When set to `true`, it will add the `--accordion--flush` class to the component, which can be styled in the CSS to remove the padding-left before the text, making the content flush with the left edge as requested in the issue.

@@ -1,0 +1,59 @@
+I'll analyze the issue and provide a fix for the missing tiles in WebGLTileLayer with a GeoTiff source.
+
+## Issue Analysis
+
+The issue describes missing tiles near the antimeridian when reprojecting GeoTiff tiles into a stereographic projection. This suggests a problem with how tiles are handled at the edges of the projection, particularly around the antimeridian (±180° longitude).
+
+Looking at the code, the issue is likely in the `loadTile_` method of the `GeoTIFFSource` class. When calculating pixel bounds for a tile, the code doesn't properly handle the case where tiles cross the antimeridian in certain projections.
+
+The problem is that when calculating the pixel bounds, the code is using simple multiplication of tile indices with tile sizes, which doesn't account for the wrapping that occurs at the antimeridian in some projections.
+
+## Fix
+
+```javascript
+### src/ol/source/GeoTIFF.js
+<<<<<<< SEARCH
+      const pixelBounds = [
+        Math.round(x * (sourceTileSize[0] * resolutionFactor)),
+        Math.round(y * (sourceTileSize[1] * resolutionFactor)),
+        Math.round((x + 1) * (sourceTileSize[0] * resolutionFactor)),
+        Math.round((y + 1) * (sourceTileSize[1] * resolutionFactor)),
+      ];
+=======
+      // Calculate pixel bounds, ensuring we handle the antimeridian correctly
+      const tileGrid = this.getTileGrid();
+      const tileCoord = [z, x, y];
+      const tileExtent = tileGrid.getTileCoordExtent(tileCoord);
+      
+      // Get the corresponding source extent
+      const sourceExtent = this.sourceImagery_[sourceIndex][z].getBoundingBox();
+      const sourceWidth = sourceExtent[2] - sourceExtent[0];
+      const sourceHeight = sourceExtent[3] - sourceExtent[1];
+      
+      // Calculate the pixel bounds based on the relative position in the extent
+      const xPixelFraction = (tileExtent[0] - sourceExtent[0]) / sourceWidth;
+      const yPixelFraction = (sourceExtent[3] - tileExtent[3]) / sourceHeight;
+      const widthPixelFraction = (tileExtent[2] - tileExtent[0]) / sourceWidth;
+      const heightPixelFraction = (tileExtent[3] - tileExtent[1]) / sourceHeight;
+      
+      const imageWidth = this.sourceImagery_[sourceIndex][z].getWidth();
+      const imageHeight = this.sourceImagery_[sourceIndex][z].getHeight();
+      
+      const pixelBounds = [
+        Math.round(xPixelFraction * imageWidth),
+        Math.round(yPixelFraction * imageHeight),
+        Math.round((xPixelFraction + widthPixelFraction) * imageWidth),
+        Math.round((yPixelFraction + heightPixelFraction) * imageHeight),
+      ];
+>>>>>>> REPLACE
+```
+
+This fix changes how we calculate the pixel bounds for each tile. Instead of using a simple multiplication of tile indices with tile sizes, we:
+
+1. Get the actual geographic extent of the tile using the tile grid
+2. Calculate the relative position of this tile within the source image's extent
+3. Convert this relative position to pixel coordinates based on the image dimensions
+
+This approach properly handles cases where tiles cross the antimeridian because it works with actual geographic coordinates rather than simple tile indices. The calculation takes into account the actual position of the tile in the projection space, which is crucial for projections like stereographic that can wrap around the antimeridian.
+
+The fix ensures that all tiles are properly rendered regardless of their position relative to the antimeridian, eliminating the black gaps seen in the issue.

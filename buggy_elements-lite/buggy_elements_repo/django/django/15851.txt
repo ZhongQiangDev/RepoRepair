@@ -1,0 +1,43 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+When running `./manage.py dbshell -- -c "select * from some_table;"`, PostgreSQL's psql client ignores the additional parameters (-c and the SQL query) and just opens an interactive shell. The warning messages indicate that psql is not properly accepting these command-line arguments.
+
+2. Cause Analysis:
+The issue occurs because psql expects all options to be placed before the database name in the command-line arguments. Currently, Django is constructing the command with the database name before the additional parameters, which causes psql to ignore those parameters.
+
+3. Examining Files:
+
+django/core/management/base.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/core/management/commands/dbshell.py:
+```
+django/core/management/commands/dbshell.py
+class: Command
+```
+This is relevant as it's the main command class handling the dbshell functionality.
+
+django/db/backends/base/introspection.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/db/backends/postgresql/base.py:
+```
+django/db/backends/postgresql/base.py
+class: DatabaseWrapper
+```
+This class might be indirectly relevant as it handles PostgreSQL-specific database operations and configurations.
+
+django/db/backends/postgresql/client.py:
+```
+django/db/backends/postgresql/client.py
+class: DatabaseClient
+function: _escape_pgpass
+```
+This is the most relevant file as it contains the DatabaseClient class that actually constructs and executes the psql command. The issue likely needs to be fixed in this class's implementation of command-line argument construction.
+
+The main fix would need to be implemented in the DatabaseClient class in the postgresql/client.py file, specifically in how it constructs the command-line arguments for psql, ensuring that additional parameters are placed before the database name.

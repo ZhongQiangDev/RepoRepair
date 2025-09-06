@@ -1,0 +1,99 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is in the `clone()` method of the `Icon` class. When an icon is created with a numeric scale value and then cloned, the scale in the cloned icon becomes an array instead of maintaining the same data type as the original.
+
+The problem occurs because:
+
+1. When an icon is created with a numeric scale, the `setScale()` method is called internally which updates both width and height.
+2. When cloning, the code passes the scale value to the new Icon constructor, but it also passes width and height values.
+3. In the constructor, if width or height are defined, it recalculates the scale as an array using `updateScaleFromWidthAndHeight()`.
+
+The current code in `clone()` tries to handle this by setting `scale = undefined` if width or height are defined, but it doesn't properly preserve the original scale type.
+
+## Fix
+
+The solution is to modify the `clone()` method to properly handle the scale value based on its original type:
+
+```javascript
+### src/ol/style/Icon.js
+<<<<<<< SEARCH
+  clone() {
+    let scale = this.getScale();
+    scale = Array.isArray(scale) ? scale.slice() : scale;
+    // if either width or height are defined, do not pass scale.
+    if (this.width_ !== undefined || this.height_ !== undefined) {
+      scale = undefined;
+    }
+    return new Icon({
+      anchor: this.anchor_.slice(),
+      anchorOrigin: this.anchorOrigin_,
+      anchorXUnits: this.anchorXUnits_,
+      anchorYUnits: this.anchorYUnits_,
+      color:
+        this.color_ && this.color_.slice
+          ? this.color_.slice()
+          : this.color_ || undefined,
+      crossOrigin: this.crossOrigin_,
+      imgSize: this.imgSize_,
+      offset: this.offset_.slice(),
+      offsetOrigin: this.offsetOrigin_,
+      opacity: this.getOpacity(),
+      rotateWithView: this.getRotateWithView(),
+      rotation: this.getRotation(),
+      scale: scale,
+      size: this.size_ !== null ? this.size_.slice() : undefined,
+      src: this.getSrc(),
+      displacement: this.getDisplacement().slice(),
+      declutterMode: this.getDeclutterMode(),
+      width: this.width_,
+      height: this.height_,
+    });
+  }
+=======
+  clone() {
+    const scale = this.getScale();
+    const clonedScale = Array.isArray(scale) ? scale.slice() : scale;
+    
+    // Create options object for the new Icon
+    const options = {
+      anchor: this.anchor_.slice(),
+      anchorOrigin: this.anchorOrigin_,
+      anchorXUnits: this.anchorXUnits_,
+      anchorYUnits: this.anchorYUnits_,
+      color:
+        this.color_ && this.color_.slice
+          ? this.color_.slice()
+          : this.color_ || undefined,
+      crossOrigin: this.crossOrigin_,
+      imgSize: this.imgSize_,
+      offset: this.offset_.slice(),
+      offsetOrigin: this.offsetOrigin_,
+      opacity: this.getOpacity(),
+      rotateWithView: this.getRotateWithView(),
+      rotation: this.getRotation(),
+      size: this.size_ !== null ? this.size_.slice() : undefined,
+      src: this.getSrc(),
+      displacement: this.getDisplacement().slice(),
+      declutterMode: this.getDeclutterMode(),
+    };
+
+    // If the original icon was created with width/height, use those
+    if (this.width_ !== undefined || this.height_ !== undefined) {
+      options.width = this.width_;
+      options.height = this.height_;
+    } else {
+      // Otherwise use the scale value with its original type
+      options.scale = clonedScale;
+    }
+
+    return new Icon(options);
+  }
+>>>>>>> REPLACE
+```
+
+This fix ensures that:
+1. If the original icon was created with width/height parameters, the clone will also use those parameters
+2. If the original icon was created with a scale parameter (either number or array), the clone will use the same scale with the same data type
+3. The two approaches won't conflict with each other

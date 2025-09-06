@@ -1,0 +1,52 @@
+Based on the issue description, the problem is that index entries with special characters like @, £, and ← are being split into two separate "Symbols" sections in the index - one before and one after the alphabetical entries. This happens because of how the sorting and grouping logic handles non-alphabetical characters.
+
+The bug is in the `keyfunc3` function where it determines the grouping key for index entries. The current logic puts all non-alphabetical characters under "Symbols", but doesn't ensure they're grouped together consistently.
+
+Here's the fix:
+
+```python
+### sphinx/environment/adapters/indexentries.py
+<<<<<<< SEARCH
+            if v[2] is None:
+                # now calculate the key
+                if k.startswith('\N{RIGHT-TO-LEFT MARK}'):
+                    k = k[1:]
+                letter = unicodedata.normalize('NFD', k[0])[0].upper()
+                if letter.isalpha() or letter == '_':
+                    return letter
+                else:
+                    # get all other symbols under one heading
+                    return _('Symbols')
+            else:
+                return v[2]
+=======
+            if v[2] is None:
+                # now calculate the key
+                if k.startswith('\N{RIGHT-TO-LEFT MARK}'):
+                    k = k[1:]
+                letter = unicodedata.normalize('NFD', k[0])[0].upper()
+                if letter.isalpha():
+                    return letter
+                else:
+                    # get all symbols (including _) under one heading
+                    # and ensure they sort before letters
+                    return '\0' + _('Symbols')
+            else:
+                # Ensure custom categories also maintain consistent ordering
+                return '\0' + v[2] if not v[2][0:1].isalpha() else v[2]
+>>>>>>> REPLACE
+```
+
+This fix makes the following changes:
+
+1. Removes the special handling of underscore (_) to group it with symbols instead of as a letter
+2. Adds a '\0' prefix to the 'Symbols' category key to ensure it always sorts before alphabetical entries
+3. Applies the same prefix logic to custom category keys that don't start with letters
+
+This ensures that:
+- All non-alphabetical characters (including @, £, ←, and _) are grouped into a single Symbols section
+- The Symbols section always appears before the alphabetical entries
+- There won't be multiple Symbols sections in different places in the index
+- Custom categories maintain consistent ordering
+
+The '\0' prefix works because it's the lowest possible character value, ensuring the Symbols section will always sort first.

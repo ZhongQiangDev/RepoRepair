@@ -1,0 +1,48 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description and the error message, the problem occurs when trying to drill out (navigate back up) after a root change. The error "rootElement required" suggests that the `canvas.setRootElement()` function is being called without a valid root element.
+
+Looking at the code in `DrilldownBreadcrumbs.js`, I can see that when a breadcrumb is clicked, it tries to set the root element using:
+
+```javascript
+canvas.setRootElement(canvas.findRoot(planeId(el)) || canvas.findRoot(el.id));
+```
+
+The issue is that both `canvas.findRoot(planeId(el))` and `canvas.findRoot(el.id)` might return `null` in certain scenarios, especially when dealing with pools and collapsed sub-processes. We need to ensure a valid root element is always provided.
+
+Here's the fix:
+
+```javascript
+### lib/features/drilldown/DrilldownBreadcrumbs.js
+<<<<<<< SEARCH
+      link.addEventListener('click', function() {
+        canvas.setRootElement(canvas.findRoot(planeId(el)) || canvas.findRoot(el.id));
+      });
+=======
+      link.addEventListener('click', function() {
+        var rootElement = canvas.findRoot(planeId(el)) || canvas.findRoot(el.id);
+        
+        if (!rootElement) {
+          // If we can't find the root element by plane ID or element ID,
+          // try to find it by the element's parent process
+          if (el.$parent && is(el.$parent, 'bpmn:Process')) {
+            rootElement = canvas.findRoot(el.$parent.id);
+          }
+        }
+        
+        if (rootElement) {
+          canvas.setRootElement(rootElement);
+        } else {
+          console.warn('Cannot find root element for', el.id);
+        }
+      });
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Stores the result of the root element lookup in a variable
+2. Adds additional logic to try finding the root element by the parent process if the initial lookup fails
+3. Only calls `setRootElement` if a valid root element is found
+4. Adds a warning if no root element can be found
+
+This should prevent the "rootElement required" error and make the drilldown functionality work correctly when navigating between pools and sub-processes.

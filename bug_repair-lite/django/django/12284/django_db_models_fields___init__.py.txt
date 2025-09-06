@@ -1,0 +1,34 @@
+Based on the issue description, the bug is in how `get_FOO_display()` handles choices in inherited models. The issue occurs when a child model extends the choices of its parent model - the display method doesn't properly handle the additional choices.
+
+Looking at the code, the issue is in the `Field` class's `contribute_to_class()` method. When a field with choices is added to a model, it creates a `get_FOO_display` method, but this method doesn't properly handle inheritance of choices.
+
+Here's the fix:
+
+```python
+### django/db/models/fields/__init__.py
+<<<<<<< SEARCH
+        if self.choices is not None:
+            if not hasattr(cls, 'get_%s_display' % self.name):
+                setattr(
+                    cls,
+                    'get_%s_display' % self.name,
+                    partialmethod(cls._get_FIELD_display, field=self),
+                )
+=======
+        if self.choices is not None:
+            # Always recreate the display method to handle inheritance properly
+            setattr(
+                cls,
+                'get_%s_display' % self.name,
+                partialmethod(cls._get_FIELD_display, field=self),
+            )
+>>>>>>> REPLACE
+```
+
+This fix removes the check for whether the display method already exists and always creates it. This ensures that when a child model overrides the choices, the display method will use the updated choices rather than inheriting the parent's method that uses the old choices.
+
+The key changes are:
+1. Removed the `if not hasattr()` check that prevented overriding existing display methods
+2. Always set the display method to ensure it uses the current field's choices
+
+This allows child models to properly override their parent's choices and have the display method work correctly with the new choices.

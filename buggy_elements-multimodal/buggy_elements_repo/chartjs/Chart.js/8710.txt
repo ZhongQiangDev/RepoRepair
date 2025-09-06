@@ -1,0 +1,44 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that the scatter chart is throwing a `RangeError` when rendering the graph. The error message indicates that the `minimumFractionDigits` value is out of range. This issue occurs because the `locale` is undefined when calling the `formatNumber` function.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of the error is that the `locale` is not being properly set or passed to the `formatNumber` function. In the provided code snippet, the `locale` is accessed from `this.chart.options.locale`, but it appears to be undefined at the time of the function call. This results in the `formatNumber` function being called with an undefined `locale`, leading to the `RangeError`.
+
+### 3. Examine Each File One by One
+
+#### --- src/core/core.defaults.js ---
+This file contains no relevant functions/classes.
+
+#### --- src/core/core.ticks.js ---
+```
+src/core/core.ticks.js
+function: numeric
+```
+The `numeric` function is directly involved in formatting tick values and uses the `locale` from `this.chart.options.locale`. This function is where the issue likely originates since it passes the `locale` to the `formatNumber` function.
+
+#### --- src/helpers/helpers.intl.js ---
+```
+src/helpers/helpers.intl.js
+function: formatNumber
+function: getNumberFormat
+```
+The `formatNumber` function is where the `RangeError` occurs because it tries to use an undefined `locale`. The `getNumberFormat` function is responsible for creating the `Intl.NumberFormat` instance, which requires a valid `locale`.
+
+#### --- src/scales/scale.linear.js ---
+This file contains no relevant functions/classes.
+
+#### --- src/scales/scale.linearbase.js ---
+This file contains no relevant functions/classes.
+
+### Summary of Relevant Locations
+
+```
+src/core/core.ticks.js
+function: numeric
+
+src/helpers/helpers.intl.js
+function: formatNumber
+function: getNumberFormat
+```

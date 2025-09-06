@@ -1,0 +1,25 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## 1. Identifying the Wrong Behavior
+
+The problem is that in Django 2.2+, users cannot override the `get_FOO_display()` method for a model field with choices. In the example, the user defined a custom `get_foo_bar_display()` method that should return "something", but instead it returns the actual choice value ('foo' or 'bar').
+
+## 2. Analyzing the Cause
+
+Django automatically generates `get_FOO_display()` methods for fields with choices. These methods return the human-readable label for the stored value. The issue appears to be that in Django 2.2+, these auto-generated methods are overriding the user-defined methods, rather than the other way around.
+
+This suggests a change in how Django handles these dynamic methods, likely in the model metaclass or in the field descriptor implementation that handles the dynamic creation of these methods.
+
+## 3. Most Related Files
+
+After analyzing the repository information, the most relevant files that would need to be edited are:
+
+```
+django/db/models/fields/mixins.py
+django/db/models/fields/__init__.py
+django/db/models/base.py
+django/db/models/options.py
+django/utils/functional.py
+```
+
+The issue is most likely in the field implementation that creates the dynamic `get_FOO_display()` methods. The `FieldCacheMixin` in `fields/mixins.py` seems particularly relevant as it deals with field caching mechanisms which could affect method resolution. The other files handle model creation, field initialization, and dynamic attribute access, which would all be involved in the generation and resolution of these display methods.

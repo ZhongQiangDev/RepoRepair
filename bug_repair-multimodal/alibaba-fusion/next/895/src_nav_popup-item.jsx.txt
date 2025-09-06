@@ -1,0 +1,58 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that in `iconOnly` mode, menu items without an icon should not appear as empty spaces. Looking at the screenshot, we can see that when no icon is provided, there's still a placeholder space being rendered.
+
+The problem is in the `popup-item.jsx` file. When in `iconOnly` mode, if no icon is provided, the code creates an empty placeholder span:
+
+```javascript
+if (iconOnly) {
+    if (hasArrow) {
+        iconEl = (
+            <Icon
+                className={`${prefix}nav-icon-only-arrow`}
+                type="arrow-right"
+            />
+        );
+    } else if (!iconEl) {
+        iconEl = <span className={`${prefix}nav-icon-placeholder`} />;
+    }
+}
+```
+
+This placeholder is causing the empty space to appear. In `iconOnly` mode, items without icons should not be displayed at all.
+
+## Fix
+
+```javascript
+### src/nav/popup-item.jsx
+<<<<<<< SEARCH
+        if (iconOnly) {
+            if (hasArrow) {
+                iconEl = (
+                    <Icon
+                        className={`${prefix}nav-icon-only-arrow`}
+                        type="arrow-right"
+                    />
+                );
+            } else if (!iconEl) {
+                iconEl = <span className={`${prefix}nav-icon-placeholder`} />;
+            }
+        }
+=======
+        if (iconOnly) {
+            if (hasArrow) {
+                iconEl = (
+                    <Icon
+                        className={`${prefix}nav-icon-only-arrow`}
+                        type="arrow-right"
+                    />
+                );
+            }
+            // Remove the placeholder for items without icons in iconOnly mode
+        }
+>>>>>>> REPLACE
+```
+
+This fix removes the placeholder span that was being added when no icon was provided in `iconOnly` mode. This way, menu items without icons won't show up as empty spaces in the navigation.

@@ -1,0 +1,61 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, there's a problem with vertex colors in WebGL mode. The user reports that when using `fill()` with different colors for each vertex in a shape, the colors are not being properly applied in p5.js version 0.9.0, whereas they worked correctly in version 0.8.0.
+
+Looking at the code, I need to examine how vertex colors are handled in the WebGL renderer. The issue is likely in how the renderer selects and configures shaders for rendering shapes with per-vertex colors.
+
+After analyzing the code, I notice that the issue is likely in the shader selection logic. The problem is that the renderer needs to properly select the vertex color shader when different fill colors are specified for different vertices.
+
+Here's my fix:
+
+```javascript
+### src/webgl/p5.RendererGL.js
+<<<<<<< SEARCH
+/*
+ * selects which fill shader should be used based on renderer state,
+ * for use with begin/endShape and immediate vertex mode.
+ */
+
+=======
+/*
+ * selects which fill shader should be used based on renderer state,
+ * for use with begin/endShape and immediate vertex mode.
+ */
+p5.RendererGL.prototype._getImmediateFillShader = function() {
+  if (this._useNormalMaterial) {
+    return this._getNormalShader();
+  }
+
+  // if we're using a texture
+  if (this._tex) {
+    if (this._useSpecularMaterial) {
+      return this._getLightShader();
+    }
+
+    return this._getTextureShader();
+  }
+
+  // if we're drawing a line or point we need a line shader
+  if (
+    this.drawMode === constants.LINES ||
+    this.drawMode === constants.TRIANGLES ||
+    this.drawMode === constants.POINTS
+  ) {
+    // looking at vertices
+    if (this.immediateMode.geometry.vertices.length > 0) {
+      // checking if the first vertex has a color
+      if (this.immediateMode.geometry.vertices[0].color) {
+        return this._getColorShader();
+      }
+    }
+  }
+
+  return this._getImmediateModeShader();
+};
+
+>>>>>>> REPLACE
+```
+
+This fix adds the missing `_getImmediateFillShader` method that properly checks if vertices have color information and selects the appropriate shader. The key part is checking if the vertices in the immediate mode geometry have color attributes, and if so, using the color shader that properly handles per-vertex colors.
+
+This should restore the functionality that was working in version 0.8.0 but broken in 0.9.0.

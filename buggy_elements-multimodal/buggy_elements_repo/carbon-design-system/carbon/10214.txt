@@ -1,0 +1,65 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that the `TableHeader` component is not correctly spreading the `...rest` props on the `<th>` element for sortable columns. Instead, the `...rest` props are being spread on the inner `<button>` element, which means that attributes like `id` are not being applied to the `<th>` as intended.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior is a misplaced `...rest` prop in the `TableHeader` component's JSX. For non-sortable columns, the `...rest` props are correctly spread on the `<th>` element. However, for sortable columns, the `...rest` props are spread on the inner `<button>` element instead of the `<th>` element. This results in attributes like `id` being applied to the `<button>` instead of the `<th>`, which is not the desired behavior.
+
+### 3. Examine Each File One by One
+
+#### --- packages/react/src/components/DataTable/DataTable.js ---
+This file contains no relevant functions/classes.
+
+#### --- packages/react/src/components/DataTable/Table.js ---
+This file contains no relevant functions/classes.
+
+#### --- packages/react/src/components/DataTable/TableHeader.js ---
+```
+packages/react/src/components/DataTable/TableHeader.js
+function: TableHeader
+```
+
+The `TableHeader` function is relevant because it is the component where the issue occurs. Specifically, the `...rest` props are being spread on the wrong element for sortable columns.
+
+### Summary of Relevant Locations
+
+```
+packages/react/src/components/DataTable/TableHeader.js
+function: TableHeader
+```
+
+### Suggested Fix
+
+To fix the issue, the `...rest` props should be spread on the `<th>` element for both non-sortable and sortable columns. The relevant code snippet should be modified as follows:
+
+```jsx
+return (
+  <th
+    aria-sort={ariaSort}
+    className={headerClassName}
+    colSpan={colSpan}
+    ref={ref}
+    scope={scope}
+    {...rest} // Move ...rest here for sortable columns
+  >
+    <div style={{ display: 'none' }} id={uniqueId}>
+      {sortDescription}
+    </div>
+    <button
+      type="button"
+      aria-describedby={uniqueId}
+      className={className}
+      onClick={onClick}
+    >
+      <span className={`${prefix}--table-sort__flow`}>
+        <div className={`${prefix}--table-header-label`}>{children}</div>
+        <Arrow className={`${prefix}--table-sort__icon`} />
+        <Arrows className={`${prefix}--table-sort__icon-unsorted`} />
+      </span>
+    </button>
+  </th>
+);
+```
+
+This change ensures that the `...rest` props are correctly applied to the `<th>` element for both non-sortable and sortable columns, addressing the A11y issue mentioned in the GitHub problem description.

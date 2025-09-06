@@ -1,0 +1,45 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that when a group is created inside a collapsed sub-process and the diagram is saved and re-imported, there's a warning about an unresolved reference to a CategoryValue. This suggests that the CategoryValue created for the group isn't being properly attached to the definitions.
+
+Looking at the code, I can see that the problem is in the `getDefinitions()` function. When working with elements inside a collapsed sub-process, the root element's business object's parent might not be the definitions directly. We need to traverse up the parent chain until we find the definitions element.
+
+Here's the fix:
+
+```javascript
+### lib/features/modeling/behavior/GroupBehavior.js
+<<<<<<< SEARCH
+  /**
+   * Gets process definitions
+   *
+   * @return {ModdleElement} definitions
+   */
+  function getDefinitions() {
+    var rootElement = canvas.getRootElement(),
+        businessObject = getBusinessObject(rootElement);
+
+    return businessObject.$parent;
+  }
+=======
+  /**
+   * Gets process definitions
+   *
+   * @return {ModdleElement} definitions
+   */
+  function getDefinitions() {
+    var rootElement = canvas.getRootElement(),
+        businessObject = getBusinessObject(rootElement);
+
+    // traverse up the parent chain until we find the definitions
+    var definitions = businessObject.$parent;
+    
+    while (definitions && definitions.$type !== 'bpmn:Definitions') {
+      definitions = definitions.$parent;
+    }
+
+    return definitions;
+  }
+>>>>>>> REPLACE
+```
+
+This fix modifies the `getDefinitions()` function to traverse up the parent chain until it finds an element with the type 'bpmn:Definitions', ensuring that we always get the correct definitions object regardless of how deeply nested the group is in the process hierarchy.

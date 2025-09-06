@@ -1,0 +1,34 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The syndication framework doesn't directly support adding item comments through the feed.add_item() method. Currently, users have to use item_extra_kwargs to add comments, which is a more roundabout way.
+
+2. Cause Analysis:
+The issue stems from incomplete implementation in the feed generation system. While the feedparser already has support for comments, the view layer doesn't expose this functionality directly in the add_item() method. This creates an inconsistency between what the parser can handle and what the API exposes to users.
+
+3. File Analysis:
+
+django/contrib/syndication/apps.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/contrib/syndication/views.py:
+```
+django/contrib/syndication/views.py
+class: Feed
+```
+
+django/utils/feedgenerator.py:
+```
+django/utils/feedgenerator.py
+class: SyndicationFeed
+class: RssFeed
+class: Rss201rev2Feed
+```
+
+The Feed class in views.py is relevant because it's responsible for handling the feed generation interface that needs to be modified to support comments.
+
+The SyndicationFeed class is the base class that needs to be modified to support the comments parameter in add_item(). The RssFeed and Rss201rev2Feed classes are relevant because they handle the actual implementation of RSS feed generation where comments need to be supported.
+
+These classes form the chain of responsibility for implementing the comments feature, from the high-level interface in Feed down to the actual RSS generation in Rss201rev2Feed.

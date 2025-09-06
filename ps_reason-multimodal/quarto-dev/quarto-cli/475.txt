@@ -1,0 +1,27 @@
+Let me analyze the wrong behaviors and their causes from the GitHub issue description.
+
+### Answer 1
+**Wrong Behavior**: Special characters (like `%<-%`) in callout captions cause LaTeX rendering errors
+**Cause**: The caption text is inserted directly into the LaTeX code without proper escaping or processing, causing LaTeX to interpret these special characters as commands or syntax
+
+### Answer 2
+**Wrong Behavior**: Markdown formatting (like **bold** and `code`) in callout captions is not processed in PDF output
+**Cause**: The current implementation uses `pandoc.utils.stringify()` which converts the header content to plain text, stripping away all markdown formatting
+
+### Answer 3
+**Wrong Behavior**: Commas in callout captions trigger LaTeX package errors
+**Cause**: The comma is being interpreted as a separator for tcolorbox options because the caption text is not properly wrapped in braces, making LaTeX treat everything after the comma as new options for the tcolorbox environment
+
+### Answer 4
+**Wrong Behavior**: Inconsistency between HTML and PDF output for callout captions
+**Cause**: While HTML output correctly processes markdown in captions, the PDF/LaTeX output uses a different processing method (`stringify()`) that doesn't preserve formatting
+
+### Conclusion
+**Summary**: The main issues stem from two core problems in the LaTeX output generation:
+1. Inadequate text processing: Using `pandoc.utils.stringify()` instead of proper markdown processing via `pandoc.write()`
+2. Improper LaTeX escaping: Lack of proper wrapping/escaping of the caption text in the LaTeX output, causing issues with special characters and commas
+
+The proposed fixes involve:
+- Wrapping the caption in braces in the LaTeX output
+- Switching from `pandoc.utils.stringify()` to `pandoc.write()` for proper markdown processing
+These changes would bring the PDF output behavior in line with the HTML output and resolve the various rendering issues.

@@ -1,0 +1,42 @@
+I'll analyze the GitHub problem description and identify the files most related to the issue.
+
+## 1. Identifying the Wrong Behavior
+
+The issue involves incorrect fill behavior in WebGL mode. Specifically:
+- A shape (letter "C") is drawn using `beginShape()` and `endShape(CLOSE)`
+- In 2D mode, it renders correctly
+- In WebGL mode, there's a strange fill from the lower extremity of the C letter to the origin (top left)
+- The image shows an unwanted triangular fill connecting parts of the shape that shouldn't be connected
+
+## 2. Analyzing the Cause
+
+This appears to be a problem with how shapes are filled in WebGL mode. In WebGL, complex shapes need to be triangulated (broken down into triangles) for rendering. The issue likely stems from incorrect triangulation of the shape in WebGL mode, where the algorithm is creating unwanted triangles that connect parts of the shape that shouldn't be connected.
+
+The key components involved would be:
+- The shape vertex handling in WebGL mode
+- The triangulation algorithm used for filling shapes
+- The implementation of `beginShape()`, `endShape()`, and `vertex()` in WebGL
+
+## 3. Files Most Related to the Cause
+
+```
+src/webgl/p5.RendererGL.Immediate.js
+src/webgl/p5.RendererGL.js
+src/core/shape/vertex.js
+src/webgl/p5.RendererGL.Retained.js
+src/webgl/p5.Geometry.js
+```
+
+These files are ordered by importance because:
+
+1. `p5.RendererGL.Immediate.js` contains the WebGL implementation of immediate mode rendering, including `beginShape()`, `vertex()`, and `endShape()` methods, as well as the `_tesselateShape` function which is likely responsible for triangulating the shape.
+
+2. `p5.RendererGL.js` is the main WebGL renderer that handles the core rendering functionality and would be involved in how shapes are processed.
+
+3. `src/core/shape/vertex.js` contains the core implementation of vertex-related functions that would be called before delegating to the renderer.
+
+4. `p5.RendererGL.Retained.js` handles buffer creation and drawing for WebGL, which could affect how shapes are rendered.
+
+5. `p5.Geometry.js` defines the geometry class used by WebGL rendering and includes methods for computing faces and triangulation.
+
+The issue is most likely in the triangulation algorithm in `_tesselateShape` or related functions in the WebGL immediate mode renderer.

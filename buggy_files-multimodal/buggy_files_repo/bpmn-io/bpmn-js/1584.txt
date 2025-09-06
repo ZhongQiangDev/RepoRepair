@@ -1,0 +1,33 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When adding the first participant/pool to a model, the process ID remains unchanged (Process_1)
+- After undoing this action, the process ID still remains unchanged (Process_1)
+- However, when redoing the action, the process ID changes unexpectedly
+- Additionally, when removing the last participant via delete (not undo), the process ID also changes unexpectedly
+- When copying a pool, duplicate process IDs are created, causing validation issues
+
+2. Cause Analysis:
+The core issue appears to be inconsistent handling of process IDs during:
+- Participant creation/deletion operations
+- Undo/redo operations for participants
+- Copy/paste operations for pools
+The root cause seems to be in the ID management system and how it handles process IDs during these operations, particularly in the modeling and command handling components.
+
+3. Most Related Files:
+```
+lib/features/modeling/BpmnFactory.js
+lib/features/copy-paste/BpmnCopyPaste.js
+lib/features/modeling/cmd/UpdateCanvasRootHandler.js
+lib/features/modeling/behavior/CreateParticipantBehavior.js
+lib/features/modeling/behavior/RemoveParticipantBehavior.js
+```
+
+These files are most relevant because:
+- BpmnFactory.js handles the creation of BPMN elements and their IDs
+- BpmnCopyPaste.js manages the copy/paste operations and should handle ID duplication
+- UpdateCanvasRootHandler.js manages updates to the root element (process) which affects its ID
+- CreateParticipantBehavior.js handles participant creation and associated process changes
+- RemoveParticipantBehavior.js manages participant removal and related process updates
+
+The issue likely requires coordination between these components to maintain consistent ID handling during participant operations.

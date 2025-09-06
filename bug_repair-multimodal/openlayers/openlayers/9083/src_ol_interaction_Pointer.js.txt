@@ -1,0 +1,33 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that after drawing a polygon in OpenLayers 5.3.0, the map sometimes can't be dragged anymore. This only happens after ending a drawing (drawend event), and the behavior is inconsistent. The user mentioned that rolling back to OpenLayers 4.6.5 fixed the issue.
+
+Looking at the provided code from `src/ol/interaction/Pointer.js`, I can see a potential issue in the `handleEvent` method. When handling a pointer up event during a drag sequence, the code sets `handlingDownUpSequence` based on both the return value of `handleUpEvent` and whether there are still target pointers:
+
+```javascript
+const handledUp = this.handleUpEvent(mapBrowserEvent);
+this.handlingDownUpSequence = handledUp && this.targetPointers.length > 0;
+```
+
+The problem is that after drawing a polygon and completing it (on pointer up), the `handlingDownUpSequence` flag might remain true if `handleUpEvent` returns true and there are still tracked pointers. This would prevent new drag operations from starting because the code thinks it's still in a drag sequence.
+
+## Fix
+
+The issue is in how the `handlingDownUpSequence` flag is updated. We need to ensure that when a pointer up event occurs, the drag sequence is properly terminated if `handleUpEvent` returns false, regardless of the number of target pointers.
+
+```javascript
+### src/ol/interaction/Pointer.js
+<<<<<<< SEARCH
+        const handledUp = this.handleUpEvent(mapBrowserEvent);
+        this.handlingDownUpSequence = handledUp && this.targetPointers.length > 0;
+=======
+        const handledUp = this.handleUpEvent(mapBrowserEvent);
+        this.handlingDownUpSequence = handledUp;
+>>>>>>> REPLACE
+```
+
+This change ensures that when `handleUpEvent` returns false (indicating the drag sequence should end), the `handlingDownUpSequence` flag is properly set to false, allowing new drag operations to start. The original code was incorrectly keeping the drag sequence active if there were still target pointers, even when `handleUpEvent` indicated the sequence should end.
+
+This fix aligns with the behavior in OpenLayers 4.6.5, where the issue doesn't occur, and should resolve the problem of not being able to drag the map after completing a polygon drawing.

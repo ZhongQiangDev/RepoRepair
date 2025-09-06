@@ -1,0 +1,39 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that the `HeaderMenu` component is created using `React.forwardRef()` but doesn't have a `displayName` set. This causes it to appear as "Anonymous" in React DevTools, making debugging more difficult.
+
+According to the issue description and screenshots, both `HeaderMenu` and `SideNavMenu` components have this problem. The code snippet only shows the `HeaderMenu` component, so I'll focus on fixing that one.
+
+## Solution
+
+I need to add a `displayName` property to the forwarded ref component. This should be done after the component is defined using `React.forwardRef()`.
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/UIShell/HeaderMenu.js
+<<<<<<< SEARCH
+export default React.forwardRef((props, ref) => {
+  return <HeaderMenu {...props} focusRef={ref} />;
+});
+=======
+const HeaderMenuForwardRef = React.forwardRef((props, ref) => {
+  return <HeaderMenu {...props} focusRef={ref} />;
+});
+
+HeaderMenuForwardRef.displayName = 'HeaderMenu';
+
+export default HeaderMenuForwardRef;
+>>>>>>> REPLACE
+```
+
+This change:
+1. Assigns the forwarded ref component to a variable (`HeaderMenuForwardRef`)
+2. Sets the `displayName` property to 'HeaderMenu'
+3. Exports the named component
+
+With this change, the component will appear as "HeaderMenu" in React DevTools instead of "Anonymous", making debugging easier.
+
+Note: The same pattern should be applied to the `SideNavMenu` component, but since that code wasn't provided in the snippets, I can't create a specific fix for it.

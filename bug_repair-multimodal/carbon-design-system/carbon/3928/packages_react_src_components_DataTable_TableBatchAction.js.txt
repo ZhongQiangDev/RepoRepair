@@ -1,0 +1,61 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is with the `TableBatchAction` component in the DataTable. There are two problems:
+
+1. The `iconDescription` prop is marked as required, but it should only be required when there are no children (no visible label).
+2. The default value for `iconDescription` is 'Add', but it should be an empty string ('') to avoid screen readers announcing both the icon description and the visible label.
+
+## Solution
+
+I'll modify the `TableBatchAction.js` file to:
+1. Make `iconDescription` optional instead of required
+2. Change the default value from 'Add' to an empty string
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/DataTable/TableBatchAction.js
+<<<<<<< SEARCH
+TableBatchAction.propTypes = {
+  /**
+   * Provide a text description for the icon in the button
+   */
+  iconDescription: PropTypes.string.isRequired,
+
+  /**
+   * Optional function to render your own icon in the underlying button
+   */
+  renderIcon: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
+};
+
+TableBatchAction.defaultProps = {
+  iconDescription: 'Add',
+  renderIcon: iconAddSolid,
+};
+=======
+TableBatchAction.propTypes = {
+  /**
+   * Provide a text description for the icon in the button
+   */
+  iconDescription: PropTypes.string,
+
+  /**
+   * Optional function to render your own icon in the underlying button
+   */
+  renderIcon: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
+};
+
+TableBatchAction.defaultProps = {
+  iconDescription: '',
+  renderIcon: iconAddSolid,
+};
+>>>>>>> REPLACE
+```
+
+This change:
+1. Removes the `.isRequired` from the `iconDescription` prop type, making it optional
+2. Changes the default value from 'Add' to an empty string
+
+This will fix the accessibility issue where screen readers were announcing both the icon description and the visible label, and it removes the requirement for developers to explicitly pass an empty string to override the default.

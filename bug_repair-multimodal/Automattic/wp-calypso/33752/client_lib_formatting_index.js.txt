@@ -1,0 +1,122 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is that the "Priority support" card has a widow - a single word ("account.") appearing on its own line, which looks visually unpleasant. The developer tried to apply the `preventWidows()` function to `this.getSupportText()` but it didn't work because the text contains a `<strong />` component.
+
+Looking at the code provided, I can see the `preventWidows()` function in `client/lib/formatting/index.js`. This function works on plain strings, but not on React elements or HTML strings with tags.
+
+## Solution
+
+We need to modify the `preventWidows()` function to handle React elements or HTML strings with tags. The current implementation splits the text by spaces, but it doesn't account for HTML tags. We need to strip the HTML tags before processing, then reapply them afterward, or modify the function to work with HTML content.
+
+Since the issue mentions that the problem is with the `<strong />` component, we need to make the `preventWidows()` function work with HTML content.
+
+Here's my solution:
+
+```javascript
+### client/lib/formatting/index.js
+<<<<<<< SEARCH
+/**
+ * Prevent widows by replacing spaces between the last `wordsToKeep` words in the text with non-breaking spaces
+ * @param  {string} text        the text to work on
+ * @param  {number} wordsToKeep the number of words to keep together
+ * @return {string}             the widow-prevented string
+ */
+export function preventWidows( text, wordsToKeep = 2 ) {
+	if ( typeof text !== 'string' ) {
+		return text;
+	}
+
+	text = text && trim( text );
+	if ( ! text ) {
+		return text;
+	}
+
+	const words = text.match( /\S+/g );
+	if ( ! words || 1 === words.length ) {
+		return text;
+	}
+
+	if ( words.length <= wordsToKeep ) {
+		return words.join( '\xA0' );
+	}
+
+	const endWords = words.splice( -wordsToKeep, wordsToKeep );
+
+	return words.join( ' ' ) + ' ' + endWords.join( '\xA0' );
+}
+=======
+/**
+ * Prevent widows by replacing spaces between the last `wordsToKeep` words in the text with non-breaking spaces
+ * @param  {string} text        the text to work on
+ * @param  {number} wordsToKeep the number of words to keep together
+ * @return {string}             the widow-prevented string
+ */
+export function preventWidows( text, wordsToKeep = 2 ) {
+	if ( typeof text !== 'string' ) {
+		return text;
+	}
+
+	text = text && trim( text );
+	if ( ! text ) {
+		return text;
+	}
+
+	// Check if the text contains HTML
+	if ( /<[a-z/][\s\S]*>/i.test( text ) ) {
+		// Get the text content without tags
+		const plainText = stripTags( text );
+		const words = plainText.match( /\S+/g );
+		
+		if ( ! words || 1 === words.length ) {
+			return text;
+		}
+
+		// If we have fewer words than we want to keep together, just join them all
+		if ( words.length <= wordsToKeep ) {
+			// Replace the last space in the original text with a non-breaking space
+			return text.replace( / ([^\s]*)$/, '\xA0$1' );
+		}
+
+		// Replace the spaces before the last `wordsToKeep` words with non-breaking spaces
+		let result = text;
+		const lastWordsPattern = words.slice( -wordsToKeep ).map( word => {
+			// Escape special regex characters
+			return word.replace( /[.*+?^${}()|[\]\\]/g, '\\$&' );
+		} );
+		
+		// Replace the space before each of the last words with a non-breaking space
+		for ( let i = 0; i < lastWordsPattern.length - 1; i++ ) {
+			const pattern = new RegExp( `(${lastWordsPattern[i]}) (${lastWordsPattern[i+1]})`, 'g' );
+			result = result.replace( pattern, `$1\xA0$2` );
+		}
+		
+		return result;
+	}
+
+	// Original logic for plain text
+	const words = text.match( /\S+/g );
+	if ( ! words || 1 === words.length ) {
+		return text;
+	}
+
+	if ( words.length <= wordsToKeep ) {
+		return words.join( '\xA0' );
+	}
+
+	const endWords = words.splice( -wordsToKeep, wordsToKeep );
+
+	return words.join( ' ' ) + ' ' + endWords.join( '\xA0' );
+}
+>>>>>>> REPLACE
+```
+
+This updated implementation:
+
+1. Checks if the text contains HTML tags
+2. If it does, it uses a different approach that preserves the HTML structure
+3. For HTML content, it identifies the last few words and replaces spaces between them with non-breaking spaces
+4. For plain text, it keeps the original logic
+
+This solution should handle the case where the text contains HTML tags like `<strong>`, ensuring that the last few words stay together on the same line, preventing widows.

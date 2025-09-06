@@ -1,0 +1,33 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The issue is that when an axis is shared with another axis (using sharex=), the registered "xlim_changed" callbacks are not being called when the change is induced by the shared axis. This means that any code relying on these callbacks to respond to axis limit changes won't work properly when the changes come from a shared axis.
+
+2. Cause Analysis:
+The cause is in the `set_xlim` method where changes to sibling axes are propagated with `emit=False`. This prevents the callbacks from being triggered on the sibling axes. The code explicitly disables callback emission for shared axes by setting `emit=False` when calling `set_xlim` on sibling axes. While this might prevent recursion issues, it also prevents legitimate callbacks from being executed.
+
+3. Relevant Files/Functions Analysis:
+
+lib/matplotlib/axis.py:
+```
+lib/matplotlib/axis.py
+class: Axis
+```
+This class is relevant as it handles axis properties and callbacks.
+
+lib/matplotlib/axes/_base.py:
+```
+lib/matplotlib/axes/_base.py
+class: _AxesBase
+```
+This is the main class containing the problematic `set_xlim` implementation that causes the issue.
+
+lib/matplotlib/pyplot.py:
+This file contains no relevant functions/classes.
+
+The core issue lies in the `_AxesBase` class in axes/_base.py, where the `set_xlim` method propagates changes to shared axes with `emit=False`. The `Axis` class from axis.py is also relevant as it manages the axis callbacks that are not being triggered properly.
+
+The suggested fix would be to modify the behavior in `_AxesBase.set_xlim` to either:
+1. Move the callback processing outside the `if emit:` block
+2. Pass `emit=True` when calling `set_xlim` on sibling axes
+3. Add a separate callback trigger mechanism for shared axes

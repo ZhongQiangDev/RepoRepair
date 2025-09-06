@@ -1,0 +1,63 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when using both `AccordionItem` from `carbon-components-react` and `Footer` from `@carbon/react` on the same page, there are duplicate IDs being generated. This happens because both components are using the same `useId` hook implementation but from different package instances, causing ID collisions.
+
+The root cause is that the `getId` function in `useId.js` is using a counter that's scoped to each package instance. When components from both packages are used together, they each start their own counter from 1, leading to duplicate IDs.
+
+## Solution
+
+The fix is to modify the `useId` hook to accept an optional `instanceId` parameter that can be passed to components to ensure uniqueness across different package instances. This will allow users to provide a custom prefix to avoid ID collisions.
+
+Here's the fix:
+
+```javascript
+### packages/react/src/internal/useId.js
+<<<<<<< SEARCH
+/**
+ * Generate a unique ID with an optional prefix prepended to it
+ * @param {string} [prefix]
+ * @returns {string}
+ */
+export function useId(prefix = 'id') {
+  const [id, setId] = useState(() => {
+    if (serverHandoffCompleted) {
+      return `${prefix}-${getId()}`;
+    }
+    return null;
+  });
+
+  useIsomorphicLayoutEffect(() => {
+    if (id === null) {
+      setId(`${prefix}-${getId()}`);
+    }
+  }, [getId]);
+=======
+/**
+ * Generate a unique ID with an optional prefix prepended to it
+ * @param {string} [prefix]
+ * @param {string} [instanceId] - Optional instance identifier to ensure uniqueness across different package instances
+ * @returns {string}
+ */
+export function useId(prefix = 'id', instanceId = '') {
+  const prefixWithInstance = instanceId ? `${prefix}-${instanceId}` : prefix;
+  
+  const [id, setId] = useState(() => {
+    if (serverHandoffCompleted) {
+      return `${prefixWithInstance}-${getId()}`;
+    }
+    return null;
+  });
+
+  useIsomorphicLayoutEffect(() => {
+    if (id === null) {
+      setId(`${prefixWithInstance}-${getId()}`);
+    }
+  }, [prefixWithInstance, getId]);
+>>>>>>> REPLACE
+```
+
+This change allows components to pass an optional `instanceId` parameter to the `useId` hook, which will be incorporated into the generated ID. This way, components from different package instances can generate unique IDs by providing different instance identifiers.
+
+To fully implement this solution, the components using this hook (like `AccordionItem`) would need to be updated to accept an optional `idInstancePrefix` prop that gets passed to the `useId` hook. This would allow users to provide different instance prefixes for components from different packages, ensuring unique IDs across the application.

@@ -1,0 +1,34 @@
+Based on the issue description, the bug occurs when passing empty lists/arrays to WCS transformations like `wcs.wcs_pix2world([], [], 0)`. The error suggests there's an issue handling empty arrays in the `_array_converter` method.
+
+Looking at the code, I found that the `_array_converter` method needs to handle empty arrays properly. Here's the fix:
+
+```python
+### astropy/wcs/wcs.py
+<<<<<<< SEARCH
+            try:
+                axes = np.broadcast_arrays(*axes)
+            except ValueError:
+                raise ValueError(
+                    "Coordinate arrays are not broadcastable to each other")
+
+            xy = np.hstack([x.reshape((x.size, 1)) for x in axes])
+=======
+            # Handle empty arrays
+            if all(len(x) == 0 for x in axes):
+                return [np.array([]) for _ in range(self.naxis)]
+                
+            try:
+                axes = np.broadcast_arrays(*axes)
+            except ValueError:
+                raise ValueError(
+                    "Coordinate arrays are not broadcastable to each other")
+
+            xy = np.hstack([x.reshape((x.size, 1)) for x in axes]) 
+>>>>>>> REPLACE
+```
+
+This fix adds a check for empty arrays before attempting to broadcast and reshape them. If all input arrays are empty, it returns a list of empty numpy arrays matching the number of axes in the WCS.
+
+The fix allows empty arrays to be handled gracefully rather than raising an error. This matches the expected behavior described in the issue where `wcs.wcs_pix2world([], [], 0)` should return empty lists/arrays rather than failing.
+
+The proper indentation is maintained in the fix to match the surrounding code context.

@@ -1,0 +1,98 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when navigating between multiple diagrams using the multi-diagram plugin, the deep linking overlay for subprocesses is lost. Looking at the animation, we can see that when switching between diagrams, the deep linking functionality stops working.
+
+The root cause appears to be in the `DrilldownCentering.js` file. When switching between diagrams, the position map that stores viewbox information is not properly handling the case where we navigate between different diagrams rather than just drilling down into subprocesses.
+
+The key problem is in how the `currentRoot` is tracked and how the position map is updated. When navigating between diagrams using the multi-diagram plugin, the `root.set` event is triggered, but the current implementation doesn't properly handle this interaction with the multi-diagram plugin.
+
+## Fix
+
+```javascript
+### lib/features/drilldown/DrilldownCentering.js
+<<<<<<< SEARCH
+  eventBus.on('root.set', function(event) {
+    var newRoot = event.element;
+    var currentViewbox = canvas.viewbox();
+    var storedViewbox = positionMap.get(newRoot);
+
+    positionMap.set(currentRoot, {
+      x: currentViewbox.x,
+      y: currentViewbox.y,
+      zoom: currentViewbox.scale
+    });
+
+    currentRoot = newRoot;
+
+    // current root was replaced with a collaboration, we don't update the viewbox
+    if (is(newRoot, 'bpmn:Collaboration') && !storedViewbox) {
+      return;
+    }
+
+    storedViewbox = storedViewbox || { x: 0, y: 0, zoom: 1 };
+
+    var dx = (currentViewbox.x - storedViewbox.x) * currentViewbox.scale,
+        dy = (currentViewbox.y - storedViewbox.y) * currentViewbox.scale;
+
+    if (dx !== 0 || dy !== 0) {
+      canvas.scroll({
+        dx: dx,
+        dy: dy
+      });
+    }
+
+    if (storedViewbox.zoom !== currentViewbox.scale) {
+      canvas.zoom(storedViewbox.zoom, { x: 0, y: 0 });
+    }
+=======
+  eventBus.on('root.set', function(event) {
+    var newRoot = event.element;
+    var currentViewbox = canvas.viewbox();
+    var storedViewbox = positionMap.get(newRoot);
+    
+    // Only save the current position if we have a valid currentRoot
+    if (currentRoot) {
+      positionMap.set(currentRoot, {
+        x: currentViewbox.x,
+        y: currentViewbox.y,
+        zoom: currentViewbox.scale
+      });
+    }
+
+    currentRoot = newRoot;
+
+    // current root was replaced with a collaboration, we don't update the viewbox
+    if (is(newRoot, 'bpmn:Collaboration') && !storedViewbox) {
+      return;
+    }
+
+    storedViewbox = storedViewbox || { x: 0, y: 0, zoom: 1 };
+
+    var dx = (currentViewbox.x - storedViewbox.x) * currentViewbox.scale,
+        dy = (currentViewbox.y - storedViewbox.y) * currentViewbox.scale;
+
+    if (dx !== 0 || dy !== 0) {
+      canvas.scroll({
+        dx: dx,
+        dy: dy
+      });
+    }
+
+    if (storedViewbox.zoom !== currentViewbox.scale) {
+      canvas.zoom(storedViewbox.zoom, { x: 0, y: 0 });
+    }
+    
+    // Notify other components about the root change
+    eventBus.fire('drilldown.root.changed', { element: newRoot });
+>>>>>>> REPLACE
+```
+
+The fix makes two important changes:
+
+1. It adds a check to ensure `currentRoot` is not null before trying to save its position in the map. This prevents errors when switching between diagrams.
+
+2. It adds an event emission `drilldown.root.changed` that will notify other components (including the multi-diagram plugin) about root changes, allowing them to properly handle deep linking overlays.
+
+This should allow the deep linking functionality to work properly even when navigating between multiple diagrams using the multi-diagram plugin.

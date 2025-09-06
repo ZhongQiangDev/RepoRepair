@@ -1,0 +1,47 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The autoreloader with StatReloader is not detecting and reloading when changes are made to manage.py file in Django 2.2.1, whereas it worked correctly in Django 2.1.8 and prior versions.
+
+2. Cause Analysis:
+The issue appears to be related to how the StatReloader class monitors files for changes. The manage.py file is not being included in the set of files being watched by the reloader. This suggests there might be an issue in either:
+- How files are collected for monitoring
+- How the reloader determines which files to watch
+- The file path resolution or filtering mechanism
+
+3. Examining Files for Relevant Functions/Classes:
+
+django/core/wsgi.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/core/management/base.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/core/management/commands/runserver.py:
+```
+django/core/management/commands/runserver.py
+class: Command
+```
+
+django/core/servers/basehttp.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/utils/autoreload.py:
+```
+django/utils/autoreload.py
+class: StatReloader
+function: iter_all_python_module_files
+function: iter_modules_and_files
+class: BaseReloader
+function: get_reloader
+```
+
+The most relevant components are in django/utils/autoreload.py, as this is where the file watching and reloading logic is implemented. The StatReloader class is directly responsible for monitoring file changes, while iter_all_python_module_files and iter_modules_and_files are responsible for collecting the files to be monitored. The BaseReloader class provides the base functionality that StatReloader extends, and get_reloader determines which reloader implementation to use.
+
+The Command class in runserver.py is also relevant as it's responsible for initiating the reloader functionality.

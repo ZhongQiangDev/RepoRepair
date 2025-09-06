@@ -1,0 +1,94 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, there are two main problems:
+1. Non-administrators are seeing upgrade nudges they shouldn't see
+2. When a non-administrator tries to access WordAds features, they're able to get to pages they shouldn't have access to
+
+Looking at the code in `client/lib/ads/utils.js`, I can see that the `canAccessWordads` function is checking if the user can manage options on the site, but it's not properly handling the case where a user might be able to see WordAds-related pages without having the proper permissions.
+
+Here's the fix:
+
+```javascript
+### client/lib/ads/utils.js
+<<<<<<< SEARCH
+export function canAccessWordads( site ) {
+	if ( site ) {
+		if ( isWordadsInstantActivationEligible( site ) ) {
+			return true;
+		}
+
+		const jetpackPremium =
+			site.jetpack &&
+			( isPremium( site.plan ) || isBusiness( site.plan ) || isEcommerce( site.plan ) );
+		return (
+			site.options &&
+			( site.options.wordads || jetpackPremium ) &&
+			userCan( 'manage_options', site )
+		);
+	}
+
+	return false;
+}
+=======
+export function canAccessWordads( site ) {
+	if ( site ) {
+		// First check if user has proper permissions
+		if ( ! userCan( 'manage_options', site ) ) {
+			return false;
+		}
+		
+		if ( isWordadsInstantActivationEligible( site ) ) {
+			return true;
+		}
+
+		const jetpackPremium =
+			site.jetpack &&
+			( isPremium( site.plan ) || isBusiness( site.plan ) || isEcommerce( site.plan ) );
+		return (
+			site.options &&
+			( site.options.wordads || jetpackPremium )
+		);
+	}
+
+	return false;
+}
+>>>>>>> REPLACE
+```
+
+```javascript
+### client/lib/ads/utils.js
+<<<<<<< SEARCH
+export function isWordadsInstantActivationEligible( site ) {
+	if (
+		! site.jetpack &&
+		( isBusiness( site.plan ) || isPremium( site.plan ) ) &&
+		userCan( 'activate_wordads', site )
+	) {
+		return true;
+	}
+
+	return false;
+}
+=======
+export function isWordadsInstantActivationEligible( site ) {
+	if (
+		! site.jetpack &&
+		( isBusiness( site.plan ) || isPremium( site.plan ) ) &&
+		userCan( 'activate_wordads', site ) &&
+		userCan( 'manage_options', site )
+	) {
+		return true;
+	}
+
+	return false;
+}
+>>>>>>> REPLACE
+```
+
+The changes I've made:
+
+1. In `canAccessWordads`, I moved the permission check (`userCan('manage_options', site)`) to the beginning of the function to ensure it's always checked first. This prevents non-administrators from accessing WordAds features regardless of the site's plan or options.
+
+2. In `isWordadsInstantActivationEligible`, I added an additional check for `userCan('manage_options', site)` to ensure that only administrators can be eligible for instant activation.
+
+These changes will ensure that non-administrators cannot access WordAds features or see upgrade nudges related to WordAds, addressing the issues described in the ticket.

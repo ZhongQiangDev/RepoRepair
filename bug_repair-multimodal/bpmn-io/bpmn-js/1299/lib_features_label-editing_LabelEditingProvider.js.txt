@@ -1,0 +1,31 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue has two related problems:
+
+1. When completing direct editing with an empty label, elements are resized to minimum bounds
+2. After clicking on events or gateways, the shapes become smaller or disappear
+
+Looking at the code and the issue description, the problem appears to be in the `LabelEditingProvider.js` file. The issue was introduced in commit e4e789bd3eecc47597d97d6c8f1e71b941dee066, which changed how empty labels are handled.
+
+The bug is in the `update` method of the `LabelEditingProvider` class. When a label is empty, it's being set to `null`, which causes the elements to resize incorrectly or disappear. The issue specifically affects elements with external labels like events and gateways.
+
+## Fix
+
+```javascript
+### lib/features/label-editing/LabelEditingProvider.js
+<<<<<<< SEARCH
+  if (isEmptyText(newLabel)) {
+    newLabel = null;
+  }
+
+  this._modeling.updateLabel(element, newLabel, newBounds);
+=======
+  this._modeling.updateLabel(element, newLabel, newBounds);
+>>>>>>> REPLACE
+```
+
+The fix removes the code that sets empty labels to `null`. This way, empty labels will be preserved as empty strings rather than being converted to `null`, which prevents the incorrect resizing behavior.
+
+The issue was introduced in the commit mentioned in the issue description, and this change reverts that specific part of the commit that's causing the problem.

@@ -1,0 +1,33 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when changing a task from parallel multi-instance to sequential multi-instance (or vice versa), the multi-instance properties like loop cardinality are lost. This happens because the code doesn't properly preserve the loop characteristics when replacing elements.
+
+Looking at the code, I can see that in the `replaceElement` function, there's a filter for properties to copy, and it has a condition for `loopCharacteristics` that only retains them if the target element is not an event sub-process. However, when switching between parallel and sequential multi-instance, we need to ensure the loop characteristics are preserved regardless.
+
+## Fix
+
+The issue is in the `filter` function where it decides which properties to copy. We need to modify the condition for `loopCharacteristics` to ensure it's preserved when switching between multi-instance types.
+
+```javascript
+### lib/features/replace/BpmnReplace.js
+<<<<<<< SEARCH
+      // retain loop characteristics if the target element
+      // is not an event sub process
+      if (propertyName === 'loopCharacteristics') {
+        return !isEventSubProcess(newBusinessObject);
+      }
+=======
+      // retain loop characteristics if the target element
+      // is not an event sub process
+      if (propertyName === 'loopCharacteristics') {
+        // Always preserve loop characteristics when replacing elements
+        // This ensures multi-instance properties are not lost when
+        // switching between parallel and sequential
+        return true;
+      }
+>>>>>>> REPLACE
+```
+
+This change ensures that loop characteristics (which include multi-instance properties like loop cardinality) are always preserved when replacing elements, regardless of whether the target is an event sub-process or not. This will fix the issue where multi-instance properties are lost when switching between parallel and sequential multi-instance.

@@ -1,0 +1,30 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## Identifying the Wrong Behavior
+The problem involves JavaScript/TypeScript syntax highlighting in PrismJS where template literals (backtick strings) are not being properly highlighted after certain code patterns appear in a specific order:
+1. A regex containing a single quote, followed by a single quote in template quotes
+2. A comment with a template literal in it
+3. After these two patterns, normal template literals break for the rest of the file
+
+The issue manifests as the first template tag token being ignored, causing template tag parsing to be inverted for the rest of the file.
+
+## Analyzing the Cause
+This appears to be a bug in how PrismJS tracks and processes template literals in JavaScript/TypeScript. The specific sequence of:
+1. A regex with a single quote: `replace(/'/, `'`)`
+2. A comment with template literal: `// `load bearing comment``
+3. Normal template literals: `` `break starts here` ``
+
+suggests that the parser is losing track of the template literal state after encountering these specific patterns. The issue is likely in the core JavaScript language definition or in how template literals are processed.
+
+## Files Most Related to the Cause
+Based on the repository information, these are the most relevant files that would need to be edited:
+
+```
+components/prism-core.js
+components/prism-javascript.js
+components/prism-js-templates.js
+components/prism-js-extras.js
+components/prism-markup-templating.js
+```
+
+The issue is most likely in the JavaScript language definition, with the core tokenization logic in `prism-core.js` potentially contributing to the problem. The `prism-js-templates.js` file specifically handles template literals, and `prism-js-extras.js` extends JavaScript highlighting with additional features. The `prism-markup-templating.js` file might be involved if there's an interaction with how template literals are processed within other contexts.

@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When using `ExpressionWrapper(~Q(pk__in=[]))`, the query breaks and generates invalid SQL: `SELECT AS "foo" FROM "table"`
+- The normal case `ExpressionWrapper(Q(pk__in=[]))` works fine and generates valid SQL: `SELECT 0 AS "foo" FROM "table"`
+
+2. Cause Analysis:
+- The issue appears to be in how negation (`~`) of Q objects is handled within ExpressionWrapper
+- When an empty list is used with `pk__in`, it should generate appropriate SQL for both normal and negated cases
+- The SQL generation is failing to properly handle the negated case, resulting in missing values in the SELECT clause
+
+3. Most Relevant Files:
+Based on the repository information and the nature of the issue (SQL generation for expressions), here are the most relevant files:
+
+```
+django/db/models/expressions.py
+django/db/models/sql/compiler.py
+django/db/models/sql/query.py
+django/db/models/sql/where.py
+django/db/models/aggregates.py
+```
+
+These files are ordered by relevance because:
+1. expressions.py contains the ExpressionWrapper class and core expression handling
+2. compiler.py handles SQL generation and compilation
+3. query.py manages Q objects and query construction
+4. where.py handles WHERE clause generation including negation
+5. aggregates.py provides support for aggregate expressions which may interact with ExpressionWrapper

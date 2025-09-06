@@ -1,0 +1,109 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about shapes not filling properly in WebGL mode. Specifically, when drawing a shape like the letter "C" in WebGL mode, there's an unexpected fill from the lower extremity of the C letter to the origin (top left of the letter).
+
+Looking at the example code:
+```javascript
+let points;
+function setup(){
+	createCanvas(innerWidth, innerHeight, WEBGL);
+	 points = [
+		{x: 0, y:0},
+		{x: 4, y:0},
+		{x: 4, y:1},
+		{x: 1, y:1},
+		{x: 1, y:2},
+		{x: 4, y:2},
+		{x: 4, y:3},
+		{x: 0, y:3},
+	];
+}
+
+function draw(){
+	background("gray");
+
+	beginShape()
+	for(let p of points){
+		vertex(p.x*30,p.y*30, 0);
+	} 
+	endShape(CLOSE)
+}
+```
+
+The issue is in the `endShape` function in `src/core/shape/vertex.js`. When in WebGL mode, the function is adding an extra vertex to close the shape, but this is causing incorrect rendering. The problem is that in WebGL mode, the function should not be modifying the vertices array when closing the shape.
+
+## Fix
+
+```javascript
+### src/core/shape/vertex.js
+<<<<<<< SEARCH
+  var closeShape = mode === constants.CLOSE;
+
+    // if the shape is closed, the first element is also the last element
+    if (closeShape && !isContour) {
+      vertices.push(vertices[0]);
+    }
+
+    this._renderer.endShape(
+      mode,
+      vertices,
+      isCurve,
+      isBezier,
+      isQuadratic,
+      isContour,
+      shapeKind
+    );
+
+    // Reset some settings
+    isCurve = false;
+    isBezier = false;
+    isQuadratic = false;
+    isContour = false;
+    isFirstContour = true;
+
+    // If the shape is closed, the first element was added as last element.
+    // We must remove it again to prevent the list of vertices from growing
+    // over successive calls to endShape(CLOSE)
+    if (closeShape) {
+      vertices.pop();
+    }
+=======
+  var closeShape = mode === constants.CLOSE;
+
+    // Create a copy of vertices for rendering
+    var verticesArray = vertices.slice();
+    
+    // if the shape is closed, the first element is also the last element
+    // but only for non-WebGL mode
+    if (closeShape && !isContour && !this._renderer.isP3D) {
+      verticesArray.push(vertices[0]);
+    }
+
+    this._renderer.endShape(
+      mode,
+      verticesArray,
+      isCurve,
+      isBezier,
+      isQuadratic,
+      isContour,
+      shapeKind
+    );
+
+    // Reset some settings
+    isCurve = false;
+    isBezier = false;
+    isQuadratic = false;
+    isContour = false;
+    isFirstContour = true;
+>>>>>>> REPLACE
+```
+
+This fix makes the following changes:
+
+1. Creates a copy of the vertices array for rendering, so we don't modify the original array
+2. Only adds the closing vertex in non-WebGL mode (when `!this._renderer.isP3D`)
+3. Removes the code that pops the last vertex since we're now working with a copy
+
+The WebGL renderer already handles closing the shape properly when the CLOSE parameter is passed, so we don't need to modify the vertices array in that case. This should fix the issue with the incorrect fill in WebGL mode.

@@ -1,0 +1,32 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when an Intermediate Event is copied and pasted as a Boundary Event, it loses its properties like Async Continuations and Job Configurations. This happens because in the `AttachEventBehavior.js` file, when replacing an Intermediate Event with a Boundary Event, the code doesn't preserve the original properties of the event.
+
+The problem is in the `bpmnReplace.replaceElement()` call, which creates a new Boundary Event but doesn't copy over the properties from the original Intermediate Event. We need to modify this to ensure properties are preserved during the replacement.
+
+## Fix
+
+```javascript
+### lib/features/modeling/behavior/AttachEventBehavior.js
+<<<<<<< SEARCH
+      if (eventDefinition) {
+        boundaryEvent.eventDefinitionType = eventDefinition.$type;
+      }
+
+      newShape = bpmnReplace.replaceElement(shape, boundaryEvent, { layoutConnection: false });
+=======
+      if (eventDefinition) {
+        boundaryEvent.eventDefinitionType = eventDefinition.$type;
+      }
+
+      // Preserve the original business object properties when replacing
+      newShape = bpmnReplace.replaceElement(shape, boundaryEvent, { 
+        layoutConnection: false,
+        copyProperties: true 
+      });
+>>>>>>> REPLACE
+```
+
+This fix adds a `copyProperties: true` option to the `replaceElement` call, which instructs the replacement function to preserve the original properties when creating the new Boundary Event. This ensures that properties like Async Continuations and Job Configurations are maintained when an Intermediate Event is converted to a Boundary Event during copy-paste operations.

@@ -1,0 +1,46 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is about Prettier 2.8.0 adding spaces in Angular Pipes, which is not consistent with Angular's official documentation. According to the issue:
+
+1. Prettier is now formatting pipe expressions with spaces between the pipe name and arguments:
+   - From: `| currency:'CAD':'symbol-narrow':'4.2-2'`
+   - To: `| currency : 'CAD' : 'symbol-narrow' : '4.2-2'`
+
+2. The expected behavior is to keep the original format without spaces between the pipe name and its arguments.
+
+Looking at the code, the issue is likely in the `printBinaryishExpression` function in `src/language-js/print/binaryish.js`. The problem appears to be in the handling of Angular pipe expressions, specifically where it formats the arguments with spaces.
+
+## Solution
+
+The issue is in the part of the code that handles NGPipeExpression. The problem is in the formatting of pipe arguments where it adds spaces around the colon. Let's modify the code:
+
+```javascript
+### src/language-js/print/binaryish.js
+<<<<<<< SEARCH
+      ? group(
+          indent([
+            line,
+            ": ",
+            join(
+              [line, ": "],
+              path.map(() => align(2, group(print())), "arguments")
+            ),
+          ])
+        )
+=======
+      ? group(
+          indent([
+            line,
+            ":",
+            join(
+              [line, ":"],
+              path.map(() => align(2, group(print())), "arguments")
+            ),
+          ])
+        )
+>>>>>>> REPLACE
+```
+
+This change removes the spaces after the colons in Angular pipe expressions, which will format the code according to the Angular documentation style and match the expected behavior described in the issue.

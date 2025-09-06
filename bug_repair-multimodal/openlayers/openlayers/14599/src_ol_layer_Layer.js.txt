@@ -1,0 +1,80 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that attributions from a layer are being displayed even when that layer is part of an invisible group layer. According to the issue description:
+
+1. When a group layer's visibility is set to false
+2. But a sub-layer within that group has visibility set to true
+3. The attributions from the sub-layer are still being displayed in the info popup
+
+This happens because the current implementation in `getAttributions` only checks if the layer itself is visible via `this.isVisible(view)`, but doesn't consider whether the layer is part of an invisible group layer.
+
+## Solution
+
+We need to modify the `isVisible` method in `Layer.js` to check not just the layer's own visibility but also the visibility of any parent group layers. However, since we don't have access to the group layer structure in this file, we need to modify the `getAttributions` method to respect the actual rendered state of the layer.
+
+Here's the fix:
+
+```javascript
+### src/ol/layer/Layer.js
+<<<<<<< SEARCH
+  /**
+   * Get the attributions of the source of this layer for the given view.
+   * @param {View|import("../View.js").ViewStateAndExtent} view View or  {@link import("../Map.js").FrameState}.
+   * @return {Array<string>} Attributions for this layer at the given view.
+   * @api
+   */
+  getAttributions(view) {
+    if (!this.isVisible(view)) {
+      return [];
+    }
+    let getAttributions;
+    const source = this.getSource();
+    if (source) {
+      getAttributions = source.getAttributions();
+    }
+    if (!getAttributions) {
+      return [];
+    }
+    const frameState =
+      view instanceof View ? view.getViewStateAndExtent() : view;
+    let attributions = getAttributions(frameState);
+    if (!Array.isArray(attributions)) {
+      attributions = [attributions];
+    }
+    return attributions;
+  }
+=======
+  /**
+   * Get the attributions of the source of this layer for the given view.
+   * @param {View|import("../View.js").ViewStateAndExtent} view View or  {@link import("../Map.js").FrameState}.
+   * @return {Array<string>} Attributions for this layer at the given view.
+   * @api
+   */
+  getAttributions(view) {
+    if (!this.isVisible(view) || !this.rendered) {
+      return [];
+    }
+    let getAttributions;
+    const source = this.getSource();
+    if (source) {
+      getAttributions = source.getAttributions();
+    }
+    if (!getAttributions) {
+      return [];
+    }
+    const frameState =
+      view instanceof View ? view.getViewStateAndExtent() : view;
+    let attributions = getAttributions(frameState);
+    if (!Array.isArray(attributions)) {
+      attributions = [attributions];
+    }
+    return attributions;
+  }
+>>>>>>> REPLACE
+```
+
+This fix adds a check for `this.rendered` in the `getAttributions` method. The `rendered` property is set to `true` when the layer is actually rendered in the map view and set to `false` when it's not rendered. This ensures that attributions are only shown for layers that are actually visible on the map, even if they're part of an invisible group layer.
+
+When a group layer is invisible, its sub-layers won't be rendered even if they have their visibility set to true, so the `rendered` flag will be false for those layers, and their attributions won't be displayed.

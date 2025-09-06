@@ -1,0 +1,32 @@
+Based on the issue description, the bug is that the StatReloader is not tracking changes in manage.py file. Looking at the code, the issue appears to be in the `iter_all_python_module_files()` function which only looks at modules in sys.modules. Since manage.py is the entry point script and not imported as a module, it won't be included in sys.modules.
+
+To fix this, we need to modify the BaseReloader class to automatically watch the manage.py file that's being executed. We can do this by adding the current script path to extra_files in the BaseReloader initialization.
+
+Here's the fix:
+
+```python
+### django/utils/autoreload.py
+<<<<<<< SEARCH
+    def __init__(self):
+        self.extra_files = set()
+        self.directory_globs = defaultdict(set)
+        self._stop_condition = threading.Event()
+=======
+    def __init__(self):
+        self.extra_files = set()
+        self.directory_globs = defaultdict(set)
+        self._stop_condition = threading.Event()
+        
+        # Add the main script (usually manage.py) to watched files
+        main_script = Path(sys.argv[0])
+        if main_script.exists():
+            self.extra_files.add(main_script.resolve().absolute())
+>>>>>>> REPLACE
+```
+
+This change will:
+1. Get the path of the currently executing script (sys.argv[0], which is typically manage.py)
+2. If the file exists, add its resolved absolute path to the extra_files set
+3. This ensures the manage.py file is watched for changes along with other Python modules
+
+The fix ensures that any changes to manage.py will be detected by the StatReloader, restoring the behavior that was present in Django 2.1.8 and earlier versions.

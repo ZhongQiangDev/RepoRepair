@@ -1,0 +1,42 @@
+Based on the issue description, the bug occurs when unpickling a figure on M1 Mac, where the DPI gets doubled each time. Looking at the code, this happens in the `__setstate__` method of the Figure class, where the DPI is not properly handled during unpickling.
+
+The issue is that when unpickling, the figure's DPI is being set twice - once during the state restoration and again when creating a new canvas. We need to modify the `__setstate__` method to prevent this double DPI setting.
+
+Here's the fix:
+
+```python
+### lib/matplotlib/figure.py
+<<<<<<< SEARCH
+        self.__dict__ = state
+
+        # re-initialise some of the unstored state information
+        FigureCanvasBase(self)  # Set self.canvas.
+
+        if restore_to_pylab:
+=======
+        # Store original dpi before state restoration
+        orig_dpi = state.get('_dpi', mpl.rcParams['figure.dpi'])
+        
+        self.__dict__ = state
+        
+        # Force DPI back to original value to prevent doubling
+        self._dpi = orig_dpi
+        
+        # re-initialise some of the unstored state information
+        FigureCanvasBase(self)  # Set self.canvas.
+        
+        # Ensure DPI scale transform matches the original DPI
+        self.dpi_scale_trans.clear().scale(orig_dpi)
+
+        if restore_to_pylab:
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Stores the original DPI value before state restoration
+2. Restores the state as before
+3. Forces the DPI back to the original value
+4. Reinitializes the canvas
+5. Updates the DPI scale transform to match the original DPI
+
+This prevents the DPI from being doubled during unpickling while maintaining all other figure properties correctly. The fix specifically targets the M1 Mac issue where the DPI was being incorrectly handled during the unpickling process.

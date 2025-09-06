@@ -1,0 +1,70 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue shows a diagram jumping when wrapping a process in a pool. Looking at the GIF, the viewport position changes unexpectedly after the operation.
+
+The problem is in the `UpdateCanvasRootHandler.js` file. When updating the canvas root element, the handler doesn't preserve the viewport position. This causes the diagram to "jump" to a different position after the operation.
+
+The issue occurs because when we set a new root element, the canvas resets its viewport without considering the previous view position. We need to preserve the viewport position during this operation.
+
+## Solution
+
+We need to modify the `UpdateCanvasRootHandler.js` file to save and restore the viewport position during the root element change. Here's the fix:
+
+```javascript
+### lib/features/modeling/cmd/UpdateCanvasRootHandler.js
+<<<<<<< SEARCH
+export default function UpdateCanvasRootHandler(canvas, modeling) {
+  this._canvas = canvas;
+  this._modeling = modeling;
+}
+
+UpdateCanvasRootHandler.$inject = [
+  'canvas',
+  'modeling'
+];
+=======
+export default function UpdateCanvasRootHandler(canvas, modeling) {
+  this._canvas = canvas;
+  this._modeling = modeling;
+}
+
+UpdateCanvasRootHandler.$inject = [
+  'canvas',
+  'modeling'
+];
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/modeling/cmd/UpdateCanvasRootHandler.js
+<<<<<<< SEARCH
+  // (1) replace process old <> new root
+  canvas.setRootElement(newRoot);
+  canvas.removeRootElement(oldRoot);
+=======
+  // (1) replace process old <> new root
+  var viewbox = canvas.viewbox();
+  canvas.setRootElement(newRoot);
+  canvas.removeRootElement(oldRoot);
+  canvas.viewbox(viewbox);
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/modeling/cmd/UpdateCanvasRootHandler.js
+<<<<<<< SEARCH
+  // (1) replace process old <> new root
+  canvas.setRootElement(oldRoot);
+  canvas.removeRootElement(newRoot);
+=======
+  // (1) replace process old <> new root
+  var viewbox = canvas.viewbox();
+  canvas.setRootElement(oldRoot);
+  canvas.removeRootElement(newRoot);
+  canvas.viewbox(viewbox);
+>>>>>>> REPLACE
+```
+
+This fix captures the current viewbox (viewport position and zoom level) before changing the root element and restores it afterward, both in the execute and revert methods. This will prevent the diagram from jumping when wrapping a process in a pool.

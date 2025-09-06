@@ -1,0 +1,66 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that images placed inside custom divs in RevealJS presentations are not being properly contained within those divs. Instead, they're being moved outside the div and appearing after it. This only happens in custom divs, not in column layouts.
+
+Looking at the code, the problem appears to be in the `applyStretch` function. This function is designed to apply a "stretch" class to images in slides, but it has a bug in how it handles images inside nested divs. When it finds an image that should be stretched, it removes the image from its parent and reinserts it directly as a child of the slide section, effectively taking it out of any containing div.
+
+The issue is that this behavior is happening even when it shouldn't - specifically when images are inside custom divs but not meant to be stretched across the whole slide.
+
+## Fix
+
+We need to modify the `applyStretch` function to be more selective about which images it moves out of their containers. The key is to only apply this behavior to images that are explicitly marked with the "stretch" class, not to all images when `autoStretch` is true.
+
+```typescript
+### src/format/reveal/format-reveal.ts
+<<<<<<< SEARCH
+      // add stretch class if not already when auto-stretch is set
+      const hasStretchClass = function (imageEl: Element): boolean {
+        return imageEl.classList.contains("stretch") ||
+          imageEl.classList.contains("r-stretch");
+      };
+      if (
+        autoStretch === true &&
+        !hasStretchClass(imageEl) &&
+        // if height is already set, we do nothing
+        !imageEl.getAttribute("style")?.match("height:") &&
+        !imageEl.hasAttribute("height")
+      ) {
+        imageEl.classList.add("r-stretch");
+      }
+      // If <img class="stetch"> is not a direct child of <section>, move it
+      if (
+        hasStretchClass(imageEl) &&
+        imageEl.parentNode?.nodeName !== "SECTION"
+      ) {
+=======
+      // add stretch class if not already when auto-stretch is set
+      const hasStretchClass = function (imageEl: Element): boolean {
+        return imageEl.classList.contains("stretch") ||
+          imageEl.classList.contains("r-stretch");
+      };
+      if (
+        autoStretch === true &&
+        !hasStretchClass(imageEl) &&
+        // if height is already set, we do nothing
+        !imageEl.getAttribute("style")?.match("height:") &&
+        !imageEl.hasAttribute("height")
+      ) {
+        imageEl.classList.add("r-stretch");
+      }
+      // If <img class="stetch"> is not a direct child of <section>, move it
+      // But only if it's not inside a custom div (which would have a class)
+      if (
+        hasStretchClass(imageEl) &&
+        imageEl.parentNode?.nodeName !== "SECTION" &&
+        // Don't move images out of custom divs that have classes
+        !(imageEl.parentElement && 
+          imageEl.parentElement.nodeName === "DIV" && 
+          imageEl.parentElement.className && 
+          !imageEl.parentElement.classList.contains("quarto-figure"))
+      ) {
+>>>>>>> REPLACE
+```
+
+This fix adds an additional condition to check if the image is inside a custom div (which would have a class name). If it is, we don't move it out of its container. This preserves the structure of custom divs while still allowing the stretch functionality to work for images that should be stretched.

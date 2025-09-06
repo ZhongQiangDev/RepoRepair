@@ -1,0 +1,60 @@
+Based on the issue description, the bug is in the `cleanse_setting` method of `SafeExceptionReporterFilter` class. The current implementation only handles dictionaries recursively but doesn't handle other iterables like lists, which means sensitive data in nested lists remains uncleansed.
+
+Here's the fix:
+
+```python
+### django/views/debug.py
+<<<<<<< SEARCH
+    def cleanse_setting(self, key, value):
+        """
+        Cleanse an individual setting key/value of sensitive content. If the
+        value is a dictionary, recursively cleanse the keys in that dictionary.
+        """
+        try:
+            if self.hidden_settings.search(key):
+                cleansed = self.cleansed_substitute
+            elif isinstance(value, dict):
+                cleansed = {k: self.cleanse_setting(k, v) for k, v in value.items()}
+            else:
+                cleansed = value
+        except TypeError:
+            # If the key isn't regex-able, just return as-is.
+            cleansed = value
+
+        if callable(cleansed):
+            cleansed = CallableSettingWrapper(cleansed)
+
+        return cleansed
+=======
+    def cleanse_setting(self, key, value):
+        """
+        Cleanse an individual setting key/value of sensitive content. If the
+        value is a dictionary or iterable, recursively cleanse the keys and values.
+        """
+        try:
+            if self.hidden_settings.search(key):
+                cleansed = self.cleansed_substitute
+            elif isinstance(value, dict):
+                cleansed = {k: self.cleanse_setting(k, v) for k, v in value.items()}
+            elif isinstance(value, (list, tuple)):
+                cleansed = [self.cleanse_setting(key, v) for v in value]
+            else:
+                cleansed = value
+        except TypeError:
+            # If the key isn't regex-able, just return as-is.
+            cleansed = value
+
+        if callable(cleansed):
+            cleansed = CallableSettingWrapper(cleansed)
+
+        return cleansed
+>>>>>>> REPLACE
+```
+
+The changes:
+1. Added handling for list and tuple types using `isinstance(value, (list, tuple))`
+2. For lists/tuples, recursively cleanse each value while maintaining the same key context
+3. Updated the docstring to reflect that we now handle iterables as well
+4. Maintained proper indentation and structure of the original code
+
+This fix will now properly cleanse sensitive data in nested lists and tuples, addressing the issue shown in the example where sensitive data in nested structures was being exposed.

@@ -1,0 +1,137 @@
+I'll analyze the issue and provide a fix for the WebGLTile layer reprojection problem.
+
+## Issue Analysis
+
+The issue is that a UTM (EPSG:32636) Cloud Optimized GeoTIFF (COG) is not displaying when added to a map with a different projection (EPSG:3857 or EPSG:4326). The user has correctly registered the UTM projection using proj4js, but the tiles aren't showing up.
+
+Looking at the code, the problem is in the `WebGLTileLayerRenderer` class. When rendering tiles, it's not properly handling the case where the source projection differs from the view projection. The renderer needs to reproject the tiles from the source projection to the view projection.
+
+The key issue is in the `renderFrame` method where it gets the tile grid for the view projection, but doesn't account for the source's native projection. The renderer should use the source's native projection when determining tile coordinates and transformations.
+
+## Fix
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+    const tileLayer = this.getLayer();
+    const tileSource = tileLayer.getRenderSource();
+    const tileGrid = tileSource.getTileGridForProjection(viewState.projection);
+    const gutter = tileSource.getGutterForProjection(viewState.projection);
+    const extent = getRenderExtent(frameState, frameState.extent);
+    const z = tileGrid.getZForResolution(
+      viewState.resolution,
+      tileSource.zDirection
+    );
+=======
+    const tileLayer = this.getLayer();
+    const tileSource = tileLayer.getRenderSource();
+    const sourceProjection = tileSource.getProjection();
+    const viewProjection = viewState.projection;
+    const tileGrid = tileSource.getTileGridForProjection(sourceProjection || viewProjection);
+    const gutter = tileSource.getGutterForProjection(sourceProjection || viewProjection);
+    const extent = getRenderExtent(frameState, frameState.extent);
+    const z = tileGrid.getZForResolution(
+      viewState.resolution,
+      tileSource.zDirection
+    );
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+    const tileSource = tileLayer.getRenderSource();
+    for (i = sources.length - 1; i >= 0; --i) {
+      source = sources[i];
+      if (source.getState() === 'ready') {
+        tileGrid = source.getTileGridForProjection(viewState.projection);
+        if (source.getWrapX()) {
+          break;
+        }
+        const gridExtent = tileGrid.getExtent();
+        if (!gridExtent || containsCoordinate(gridExtent, coordinate)) {
+          break;
+        }
+      }
+    }
+=======
+    const tileSource = tileLayer.getRenderSource();
+    for (i = sources.length - 1; i >= 0; --i) {
+      source = sources[i];
+      if (source.getState() === 'ready') {
+        const sourceProjection = source.getProjection();
+        tileGrid = source.getTileGridForProjection(sourceProjection || viewState.projection);
+        if (source.getWrapX()) {
+          break;
+        }
+        const gridExtent = tileGrid.getExtent();
+        if (!gridExtent || containsCoordinate(gridExtent, coordinate)) {
+          break;
+        }
+      }
+    }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+    const tileSource = tileLayer.getRenderSource();
+    const tileGrid = tileSource.getTileGridForProjection(viewState.projection);
+    const gutter = tileSource.getGutterForProjection(viewState.projection);
+
+    const tileSourceKey = getUid(tileSource);
+=======
+    const tileSource = tileLayer.getRenderSource();
+    const sourceProjection = tileSource.getProjection();
+    const viewProjection = viewState.projection;
+    const tileGrid = tileSource.getTileGridForProjection(sourceProjection || viewProjection);
+    const gutter = tileSource.getGutterForProjection(sourceProjection || viewProjection);
+
+    const tileSourceKey = getUid(tileSource);
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+    const tileSource = layer.getRenderSource();
+    if (!source) {
+      return false;
+    }
+
+    if (isEmpty(getRenderExtent(frameState, frameState.extent))) {
+      return false;
+    }
+    return source.getState() === 'ready';
+=======
+    const tileSource = layer.getRenderSource();
+    if (!tileSource) {
+      return false;
+    }
+
+    if (isEmpty(getRenderExtent(frameState, frameState.extent))) {
+      return false;
+    }
+    
+    // Make sure the source projection is registered
+    const sourceProjection = tileSource.getProjection();
+    if (sourceProjection && sourceProjection !== frameState.viewState.projection) {
+      try {
+        ol.proj.get(sourceProjection.getCode());
+      } catch (e) {
+        return false;
+      }
+    }
+    
+    return tileSource.getState() === 'ready';
+>>>>>>> REPLACE
+```
+
+These changes ensure that the WebGLTileLayerRenderer properly handles the case where the source projection differs from the view projection. The key changes are:
+
+1. Using the source's native projection when getting the tile grid and gutter
+2. Checking if the source projection is registered before attempting to render
+3. Fixing a variable name inconsistency in the prepareFrameInternal method (source vs tileSource)
+
+With these changes, the renderer will correctly handle reprojection of tiles from UTM (EPSG:32636) to the map's projection (EPSG:3857 or EPSG:4326).

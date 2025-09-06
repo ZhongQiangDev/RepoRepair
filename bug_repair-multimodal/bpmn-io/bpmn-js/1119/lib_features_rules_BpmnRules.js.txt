@@ -1,0 +1,92 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about replacing a message flow with a sequence flow. When this happens, the new sequence flow is not being placed in the appropriate parent container, especially when the previous connection source is a Participant.
+
+Looking at the code, the problem is likely in the connection handling logic. When replacing a message flow with a sequence flow, the parent of the new connection needs to be properly set.
+
+The key issue is that sequence flows must be contained within the same process/participant, while message flows can cross participant boundaries. When replacing a message flow with a sequence flow, we need to ensure the sequence flow is properly contained within the correct participant.
+
+Let's look at the `canConnectSequenceFlow` function, which determines if a sequence flow connection is valid. The issue is that while it checks if the source and target are in the same scope with `isSameScope(source, target)`, it doesn't handle the case where a message flow is being replaced with a sequence flow.
+
+## Fix
+
+The issue is that the `isSameScope` function is being used to check if a sequence flow can be created, but we need to ensure that when replacing a message flow with a sequence flow, the new sequence flow is properly placed in the correct parent container.
+
+Let's add the missing `isSameScope` function which is referenced but not shown in the provided code:
+
+```javascript
+### lib/features/rules/BpmnRules.js
+<<<<<<< SEARCH
+function canConnectSequenceFlow(source, target) {
+
+  if (
+    isEventBasedTarget(target) &&
+    target.incoming.length > 0 &&
+    areOutgoingEventBasedGatewayConnections(target.incoming) &&
+    !is(source, 'bpmn:EventBasedGateway')
+  ) {
+    return false;
+  }
+
+  return isSequenceFlowSource(source) &&
+         isSequenceFlowTarget(target) &&
+         isSameScope(source, target) &&
+         !(is(source, 'bpmn:EventBasedGateway') && !isEventBasedTarget(target));
+}
+=======
+function canConnectSequenceFlow(source, target) {
+
+  if (
+    isEventBasedTarget(target) &&
+    target.incoming.length > 0 &&
+    areOutgoingEventBasedGatewayConnections(target.incoming) &&
+    !is(source, 'bpmn:EventBasedGateway')
+  ) {
+    return false;
+  }
+
+  return isSequenceFlowSource(source) &&
+         isSequenceFlowTarget(target) &&
+         isSameScope(source, target) &&
+         !(is(source, 'bpmn:EventBasedGateway') && !isEventBasedTarget(target));
+}
+
+/**
+ * Checks if two elements are in the same scope, i.e. they share
+ * the same parent or are both participants.
+ */
+function isSameScope(a, b) {
+  // Consider the case where a or b is a participant
+  if (is(a, 'bpmn:Participant') || is(b, 'bpmn:Participant')) {
+    return getParticipantScope(a) === getParticipantScope(b);
+  }
+
+  // Otherwise, check if they share the same parent
+  return a.parent === b.parent;
+}
+
+/**
+ * Get the scope of a participant, which is the participant itself.
+ * For elements inside a participant, it's the participant.
+ */
+function getParticipantScope(element) {
+  if (is(element, 'bpmn:Participant')) {
+    return element;
+  }
+  
+  var parent = element.parent;
+  
+  while (parent && !is(parent, 'bpmn:Participant')) {
+    parent = parent.parent;
+  }
+  
+  return parent;
+}
+>>>>>>> REPLACE
+```
+
+This implementation of `isSameScope` properly handles the case where elements are participants or are contained within participants. It ensures that when a sequence flow is created, it's properly contained within the same participant/process.
+
+The `getParticipantScope` function helps determine the participant that contains an element, which is crucial for checking if two elements are in the same scope when participants are involved.

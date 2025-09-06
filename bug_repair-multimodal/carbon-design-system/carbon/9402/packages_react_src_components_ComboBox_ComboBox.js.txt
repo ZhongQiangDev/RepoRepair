@@ -1,0 +1,214 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when a user opens a ComboBox and then clicks on another ComboBox, the first one doesn't close. This behavior is inconsistent with DropDown components, which do close when another component is opened.
+
+Looking at the code, I notice that the ComboBox component is using Downshift for its dropdown functionality, but it doesn't have any mechanism to close other open ComboBoxes when a new one is opened.
+
+The issue started after upgrading from version 10.23.2 to 10.37.0, which suggests that some behavior changed in the library.
+
+## Solution
+
+We need to implement a mechanism to close other open ComboBoxes when a new one is opened. This can be done by:
+
+1. Adding a global event listener that will close all ComboBoxes when a new one is opened
+2. Making sure each ComboBox registers itself when it's opened and responds to the close event
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+import cx from 'classnames';
+import Downshift from 'downshift';
+import PropTypes from 'prop-types';
+import React, { useEffect, useState, useRef } from 'react';
+import { settings } from 'carbon-components';
+import {
+  Checkmark16,
+  WarningAltFilled16,
+  WarningFilled16,
+} from '@carbon/icons-react';
+import ListBox, { PropTypes as ListBoxPropTypes } from '../ListBox';
+import { ListBoxTrigger, ListBoxSelection } from '../ListBox/next';
+import { match, keys } from '../../internal/keyboard';
+import setupGetInstanceId from '../../tools/setupGetInstanceId';
+import { mapDownshiftProps } from '../../tools/createPropAdapter';
+import mergeRefs from '../../tools/mergeRefs';
+
+const { prefix } = settings;
+=======
+import cx from 'classnames';
+import Downshift from 'downshift';
+import PropTypes from 'prop-types';
+import React, { useEffect, useState, useRef } from 'react';
+import { settings } from 'carbon-components';
+import {
+  Checkmark16,
+  WarningAltFilled16,
+  WarningFilled16,
+} from '@carbon/icons-react';
+import ListBox, { PropTypes as ListBoxPropTypes } from '../ListBox';
+import { ListBoxTrigger, ListBoxSelection } from '../ListBox/next';
+import { match, keys } from '../../internal/keyboard';
+import setupGetInstanceId from '../../tools/setupGetInstanceId';
+import { mapDownshiftProps } from '../../tools/createPropAdapter';
+import mergeRefs from '../../tools/mergeRefs';
+
+const { prefix } = settings;
+
+// Create a custom event for ComboBox open/close coordination
+const COMBO_BOX_OPEN_EVENT = 'carbon.combobox.open';
+>>>>>>> REPLACE
+```
+
+Now let's add the event handling logic to the ComboBox component:
+
+```javascript
+### packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+  const handleToggleClick = (isOpen) => (event) => {
+    if (onToggleClick) {
+      onToggleClick(event);
+    }
+
+    if (event.target === textInput.current && isOpen) {
+      event.preventDownshiftDefault = true;
+      event.persist();
+    }
+  };
+=======
+  const handleToggleClick = (isOpen) => (event) => {
+    if (onToggleClick) {
+      onToggleClick(event);
+    }
+
+    if (event.target === textInput.current && isOpen) {
+      event.preventDownshiftDefault = true;
+      event.persist();
+    }
+    
+    // Dispatch a custom event when opening a ComboBox to close other open ComboBoxes
+    if (!isOpen) {
+      document.dispatchEvent(
+        new CustomEvent(COMBO_BOX_OPEN_EVENT, {
+          detail: { comboBoxId: id },
+        })
+      );
+    }
+  };
+>>>>>>> REPLACE
+```
+
+Finally, let's add the event listener to close the ComboBox when another one is opened:
+
+```javascript
+### packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+  const [prevSelectedItem, setPrevSelectedItem] = useState(null);
+  const [doneInitialSelectedItem, setDoneInitialSelectedItem] = useState(null);
+  const savedOnInputChange = useRef(onInputChange);
+
+  if (!doneInitialSelectedItem || prevSelectedItem !== selectedItem) {
+    setDoneInitialSelectedItem(true);
+    setPrevSelectedItem(selectedItem);
+    setInputValue(
+      getInputValue({
+        initialSelectedItem,
+        inputValue,
+        itemToString,
+        selectedItem,
+      })
+    );
+  }
+=======
+  const [prevSelectedItem, setPrevSelectedItem] = useState(null);
+  const [doneInitialSelectedItem, setDoneInitialSelectedItem] = useState(null);
+  const savedOnInputChange = useRef(onInputChange);
+  const downshiftRef = useRef(null);
+
+  if (!doneInitialSelectedItem || prevSelectedItem !== selectedItem) {
+    setDoneInitialSelectedItem(true);
+    setPrevSelectedItem(selectedItem);
+    setInputValue(
+      getInputValue({
+        initialSelectedItem,
+        inputValue,
+        itemToString,
+        selectedItem,
+      })
+    );
+  }
+  
+  // Add event listener to close this ComboBox when another one is opened
+  useEffect(() => {
+    const handleComboBoxOpen = (event) => {
+      if (event.detail.comboBoxId !== id && downshiftRef.current) {
+        downshiftRef.current.closeMenu();
+      }
+    };
+    
+    document.addEventListener(COMBO_BOX_OPEN_EVENT, handleComboBoxOpen);
+    
+    return () => {
+      document.removeEventListener(COMBO_BOX_OPEN_EVENT, handleComboBoxOpen);
+    };
+  }, [id]);
+>>>>>>> REPLACE
+```
+
+Now we need to store the Downshift reference:
+
+```javascript
+### packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+  return (
+    <Downshift
+      {...mapDownshiftProps(downshiftProps)}
+      onChange={handleOnChange}
+      onInputValueChange={handleOnInputValueChange}
+      onStateChange={handleOnStateChange}
+      inputValue={inputValue || ''}
+      itemToString={itemToString}
+      initialSelectedItem={initialSelectedItem}
+      inputId={id}
+      selectedItem={selectedItem}>
+=======
+  return (
+    <Downshift
+      {...mapDownshiftProps(downshiftProps)}
+      onChange={handleOnChange}
+      onInputValueChange={handleOnInputValueChange}
+      onStateChange={handleOnStateChange}
+      inputValue={inputValue || ''}
+      itemToString={itemToString}
+      initialSelectedItem={initialSelectedItem}
+      inputId={id}
+      selectedItem={selectedItem}
+      ref={downshiftRef}>
+>>>>>>> REPLACE
+```
+
+Finally, let's also update the click handler for the input to dispatch the event:
+
+```javascript
+### packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+          onClick() {
+            toggleMenu();
+          },
+=======
+          onClick() {
+            toggleMenu();
+            // Dispatch event when opening via input click
+            document.dispatchEvent(
+              new CustomEvent(COMBO_BOX_OPEN_EVENT, {
+                detail: { comboBoxId: id },
+              })
+            );
+          },
+>>>>>>> REPLACE
+```
+
+These changes will ensure that when a ComboBox is opened, it will dispatch a custom event that other ComboBoxes will listen for, causing them to close. This will fix the issue where multiple ComboBoxes can be open at the same time.

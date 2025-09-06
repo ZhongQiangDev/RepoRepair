@@ -1,0 +1,22 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that in Chart.js v2.9.3, the y-axis labels on bar charts are overlapping, whereas they were properly spaced in v2.7.3. Looking at the screenshots and the provided fiddles, it's clear that the y-axis scale labels are not being properly calculated and positioned.
+
+After examining the code, I found the issue in the `src/core/core.layouts.js` file. The problem is in the `placeBoxes` function where there's a typo in the calculation of the bottom position for non-horizontal boxes. It's using `userPadding.right` instead of `userPadding.bottom` when calculating the bottom position for full-size boxes.
+
+## Fix
+
+```javascript
+### src/core/core.layouts.js
+<<<<<<< SEARCH
+      box.top = box.fullSize ? userPadding.top : chartArea.top;
+      box.bottom = box.fullSize ? params.outerHeight - userPadding.right : chartArea.top + chartArea.h;
+=======
+      box.top = box.fullSize ? userPadding.top : chartArea.top;
+      box.bottom = box.fullSize ? params.outerHeight - userPadding.bottom : chartArea.top + chartArea.h;
+>>>>>>> REPLACE
+```
+
+This fix corrects the calculation of the bottom position for full-size vertical boxes. The original code was incorrectly using `userPadding.right` instead of `userPadding.bottom`, which caused the y-axis labels to be positioned incorrectly and overlap. By using the correct padding value, the labels will have proper spacing as they did in version 2.7.3.

@@ -1,0 +1,38 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs in the `get_latest_lastmod` method of the `Sitemap` class. When a sitemap has no items but has a callable `lastmod` method, it tries to compute `max([self.lastmod(item) for item in self.items()])`. Since `self.items()` returns an empty list, this results in calling `max()` on an empty sequence, which raises a `ValueError`.
+
+The issue description suggests catching `ValueError` in addition to the existing `TypeError` catch to handle this case.
+
+## Fix
+
+```python
+### django/contrib/sitemaps/__init__.py
+<<<<<<< SEARCH
+    def get_latest_lastmod(self):
+        if not hasattr(self, "lastmod"):
+            return None
+        if callable(self.lastmod):
+            try:
+                return max([self.lastmod(item) for item in self.items()])
+            except TypeError:
+                return None
+        else:
+            return self.lastmod
+=======
+    def get_latest_lastmod(self):
+        if not hasattr(self, "lastmod"):
+            return None
+        if callable(self.lastmod):
+            try:
+                return max([self.lastmod(item) for item in self.items()])
+            except (TypeError, ValueError):
+                return None
+        else:
+            return self.lastmod
+>>>>>>> REPLACE
+```
+
+This fix adds `ValueError` to the exception handling in the `get_latest_lastmod` method. Now, when `self.items()` returns an empty list, the `ValueError` raised by `max()` will be caught and the method will return `None` instead of crashing.

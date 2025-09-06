@@ -1,0 +1,29 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When moving both source and target elements of an association out of a subprocess, the association remains linked to the subprocess
+- When the subprocess is deleted, the association is also deleted even though its source and target elements still exist
+- This indicates the association's parent reference is not being properly updated when its connected elements are moved
+
+2. Cause Analysis:
+- The issue appears to be in the parent-child relationship management when elements are moved
+- The association's parent reference remains pointing to the subprocess instead of being updated to match its source/target elements' new parent
+- This incorrect parent reference causes the association to be deleted along with the subprocess despite its connected elements being moved elsewhere
+
+3. Most Related Files:
+```
+lib/features/modeling/BpmnUpdater.js
+lib/features/modeling/behavior/UpdateFlowNodeRefsBehavior.js
+lib/features/modeling/cmd/UpdateSemanticParentHandler.js
+lib/features/modeling/behavior/RemoveElementBehavior.js
+lib/features/modeling/Modeling.js
+```
+
+Reasoning for file selection:
+- BpmnUpdater.js is most important as it handles updating parent references and connections when elements are moved
+- UpdateFlowNodeRefsBehavior.js manages updates to element references when nodes are moved between containers
+- UpdateSemanticParentHandler.js specifically handles updating semantic parent relationships
+- RemoveElementBehavior.js controls what happens when elements are removed, including handling of connected elements
+- Modeling.js provides core modeling operations and coordinates updates between different components
+
+The fix would likely need to be implemented primarily in BpmnUpdater.js to ensure the association's parent is properly updated when its connected elements are moved to a new container.

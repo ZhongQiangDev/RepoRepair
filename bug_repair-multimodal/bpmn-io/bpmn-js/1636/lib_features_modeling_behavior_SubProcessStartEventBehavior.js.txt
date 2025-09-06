@@ -1,0 +1,54 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when morphing a call activity to an expanded subprocess, the system doesn't add a start event automatically, unlike when morphing from a task to an expanded subprocess.
+
+Looking at the code in `SubProcessStartEventBehavior.js`, I can see that the problem is in the condition check:
+
+```javascript
+if (
+  !is(newShape, 'bpmn:SubProcess') ||
+  !is(oldShape, 'bpmn:Task') ||
+  !isExpanded(newShape)
+) {
+  return;
+}
+```
+
+This condition only allows adding a start event when morphing from a `bpmn:Task` to an expanded `bpmn:SubProcess`. It doesn't handle the case when morphing from a call activity (which is `bpmn:CallActivity`) to an expanded subprocess.
+
+## Fix
+
+We need to modify the condition to also allow morphing from a call activity:
+
+```javascript
+### lib/features/modeling/behavior/SubProcessStartEventBehavior.js
+<<<<<<< SEARCH
+  this.postExecuted('shape.replace', function(event) {
+    var oldShape = event.context.oldShape,
+        newShape = event.context.newShape;
+
+    if (
+      !is(newShape, 'bpmn:SubProcess') ||
+      !is(oldShape, 'bpmn:Task') ||
+      !isExpanded(newShape)
+    ) {
+      return;
+    }
+=======
+  this.postExecuted('shape.replace', function(event) {
+    var oldShape = event.context.oldShape,
+        newShape = event.context.newShape;
+
+    if (
+      !is(newShape, 'bpmn:SubProcess') ||
+      (!is(oldShape, 'bpmn:Task') && !is(oldShape, 'bpmn:CallActivity')) ||
+      !isExpanded(newShape)
+    ) {
+      return;
+    }
+>>>>>>> REPLACE
+```
+
+This change modifies the condition to check if the old shape is either a `bpmn:Task` OR a `bpmn:CallActivity`. This way, when morphing from a call activity to an expanded subprocess, a start event will be automatically added, just like when morphing from a task.

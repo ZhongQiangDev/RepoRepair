@@ -1,0 +1,55 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the problem is that `loadStrings()` is filtering out empty lines from the loaded text file. This is causing line numbers in error messages (particularly for GLSL shaders) to not match up with the actual source files.
+
+Looking at the code, I can see that in the `loadStrings()` function, there's a regular expression `/[^\r\n]+/g` being used to match non-empty lines. This regex specifically matches one or more characters that are not carriage returns or line feeds, which means it will skip empty lines.
+
+Here's the fix:
+
+```javascript
+### src/io/files.js
+<<<<<<< SEARCH
+  p5.prototype.httpDo.call(
+    this,
+    arguments[0],
+    'GET',
+    'text',
+    function(data) {
+      var arr = data.match(/[^\r\n]+/g);
+      for (var k in arr) {
+        ret[k] = arr[k];
+      }
+
+      if (typeof callback !== 'undefined') {
+        callback(ret);
+      }
+
+      self._decrementPreload();
+    },
+    errorCallback
+  );
+=======
+  p5.prototype.httpDo.call(
+    this,
+    arguments[0],
+    'GET',
+    'text',
+    function(data) {
+      // Split the string by line breaks and preserve empty lines
+      var arr = data.split(/\r\n|\n|\r/);
+      for (var k in arr) {
+        ret[k] = arr[k];
+      }
+
+      if (typeof callback !== 'undefined') {
+        callback(ret);
+      }
+
+      self._decrementPreload();
+    },
+    errorCallback
+  );
+>>>>>>> REPLACE
+```
+
+This change replaces the `match()` method with `split()`, which will preserve empty lines in the text. The regular expression `/\r\n|\n|\r/` will split the text at any type of line break (Windows, Unix, or Mac style), ensuring that all lines, including empty ones, are included in the returned array.

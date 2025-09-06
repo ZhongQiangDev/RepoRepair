@@ -1,0 +1,30 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that the `rel="noopener"` audit is flagging `mailto:` links with `target="_blank"` as problematic, but adding `rel="noopener"` to these links breaks their functionality on Chrome for Android and iOS Safari. 
+
+The current code filters out JavaScript links but doesn't have any special handling for `mailto:` links. According to the issue, adding `rel="noopener"` to `mailto:` links causes them to break on mobile browsers.
+
+## Fix
+
+We need to modify the code to ignore `mailto:` links in the audit. This should be added to the filtering logic where other non-applicable links (like JavaScript links) are already being filtered out.
+
+```javascript
+### lighthouse-core/audits/dobetterweb/external-anchors-use-rel-noopener.js
+<<<<<<< SEARCH
+      .filter(anchor => {
+        // Ignore href's that are not real links
+        return !anchor.href || !anchor.href.toLowerCase().startsWith('javascript:');
+      })
+=======
+      .filter(anchor => {
+        // Ignore href's that are not real links or are mailto links
+        return !anchor.href || 
+          (!anchor.href.toLowerCase().startsWith('javascript:') && 
+           !anchor.href.toLowerCase().startsWith('mailto:'));
+      })
+>>>>>>> REPLACE
+```
+
+This change will filter out any links that start with `mailto:` from the audit results, preventing the audit from suggesting adding `rel="noopener"` to these links, which would break their functionality on mobile browsers.

@@ -1,0 +1,57 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that Perl's regex match operator `m` can use arbitrary delimiters, not just slashes. The current implementation only recognizes `m/pattern/` but not other forms like `m(pattern)`, `m{pattern}`, etc.
+
+Looking at the code, the problem is in the regexp definition that handles the `m` operator. Currently, it only matches patterns that start with `(m|qr)?/` which means it only recognizes slash as a delimiter after the `m` operator.
+
+Here's the fix:
+
+```javascript
+### src/languages/perl.js
+<<<<<<< SEARCH
+        {
+          className: 'regexp',
+          begin: /(m|qr)?\//,
+          end: regex.concat(
+            /\//,
+            REGEX_MODIFIERS
+          ),
+          contains: [ hljs.BACKSLASH_ESCAPE ],
+          relevance: 0 // allows empty "//" which is a common comment delimiter in other languages
+        }
+=======
+        {
+          className: 'regexp',
+          // m{...}, m(...), etc.
+          begin: regex.concat(
+            /(m|qr)(?![a-zA-Z0-9])/,
+            /(.)/
+          ),
+          end: regex.concat(
+            /\2/,
+            REGEX_MODIFIERS
+          ),
+          contains: [ hljs.BACKSLASH_ESCAPE ],
+          relevance: 0
+        },
+        {
+          className: 'regexp',
+          begin: /(m|qr)?\//,
+          end: regex.concat(
+            /\//,
+            REGEX_MODIFIERS
+          ),
+          contains: [ hljs.BACKSLASH_ESCAPE ],
+          relevance: 0 // allows empty "//" which is a common comment delimiter in other languages
+        }
+>>>>>>> REPLACE
+```
+
+This fix adds a new regexp rule that handles the `m` operator with arbitrary delimiters. The pattern works as follows:
+
+1. It matches `m` or `qr` that is not followed by a letter or number (to avoid matching keywords like "map")
+2. It captures the next character as the delimiter
+3. It uses the captured delimiter as the end pattern
+4. It applies the regex modifiers after the closing delimiter
+
+The original rule for slash-delimited patterns is kept for backward compatibility and because it's a common case.

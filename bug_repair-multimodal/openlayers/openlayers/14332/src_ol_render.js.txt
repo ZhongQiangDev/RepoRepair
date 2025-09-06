@@ -1,0 +1,33 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about incorrect rendering in vector context of rotated tile layers. Specifically, when the view rotation is close to 90 or 270 degrees, there are problems with stroke width, text scale, and geometry precision.
+
+Looking at the code, the problem appears to be in the `getVectorContext` function in `src/ol/render.js`. This function creates a `CanvasImmediateRenderer` for drawing vector features on a canvas. 
+
+The issue is likely related to how the transformation matrix is calculated. When we look at the code, we see that the function applies the inverse pixel transform and the coordinate-to-pixel transform, but it doesn't properly account for the rotation of the view when calculating the transform for the tile layer's vector context.
+
+## Fix
+
+The fix is to adjust the transformation matrix calculation in the `getVectorContext` function to properly handle rotations, especially near 90 and 270 degrees:
+
+```javascript
+### src/ol/render.js
+<<<<<<< SEARCH
+  const transform = multiplyTransform(
+    event.inversePixelTransform.slice(),
+    frameState.coordinateToPixelTransform
+  );
+=======
+  const transform = createTransform();
+  // First apply the inverse pixel transform to convert from pixel to CSS space
+  applyTransform(transform, event.inversePixelTransform.slice());
+  // Then apply the coordinate to pixel transform
+  applyTransform(transform, frameState.coordinateToPixelTransform);
+>>>>>>> REPLACE
+```
+
+This change replaces the direct multiplication of transforms with a more controlled application of transforms. By creating a new transform and then applying the inverse pixel transform and coordinate-to-pixel transform sequentially using `applyTransform`, we ensure that the rotations are handled correctly, especially at angles close to 90 and 270 degrees.
+
+The issue occurs because matrix multiplication can introduce numerical precision issues, especially with rotations. By using `applyTransform` instead of `multiplyTransform`, we can better preserve the accuracy of the transformation, which is critical for rendering features correctly at all rotation angles.

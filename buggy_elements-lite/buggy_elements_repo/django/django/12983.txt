@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The `slugify()` function in Django is not stripping dashes and underscores from the beginning and end of the output string. When given input like "___This is a test ---", it returns "___this-is-a-test-" instead of the expected "this-is-a-test".
+
+2. Cause Analysis:
+The issue lies in the implementation of the `slugify()` function. While it handles spaces and special characters, it's not specifically handling leading and trailing dashes/underscores. The function should strip these characters from both ends of the resulting slug to maintain consistency and cleaner URLs.
+
+3. Relevant Files/Functions Analysis:
+
+django/template/defaultfilters.py:
+```
+django/template/defaultfilters.py
+function: slugify
+```
+This is relevant as it's a template filter that uses the text utility's slugify function.
+
+django/utils/encoding.py:
+This file contains no relevant functions/classes.
+
+django/utils/text.py:
+```
+django/utils/text.py
+function: slugify
+```
+This is the core implementation where the fix needs to be applied. The function currently handles Unicode normalization, special character removal, and space-to-hyphen conversion, but doesn't properly handle leading/trailing dashes and underscores.
+
+The issue needs to be fixed in the `slugify` function in django/utils/text.py, which is the main implementation. The template filter in defaultfilters.py just wraps this core function. The fix would involve adding logic to strip leading and trailing dashes and underscores from the final result before returning it.

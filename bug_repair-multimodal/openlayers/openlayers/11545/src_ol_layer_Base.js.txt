@@ -1,0 +1,38 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that when customizing the `className` of a heatmap layer, it doesn't work and the default className is not displayed on the page. Looking at the screenshot, we can see that the heatmap is visible, but the custom class name is not being applied.
+
+After examining the code in `src/ol/layer/Base.js`, I found the issue. In the constructor, when setting the `className_` property, it's using `properties.className` instead of `options.className`. This is problematic because:
+
+1. The code first creates a `properties` object by copying all options
+2. Then it sets `this.className_` using `properties.className` but falls back to `options.className` if undefined
+3. This is incorrect because both should reference the same value
+
+The correct approach would be to use `options.className` consistently or `properties.className` consistently.
+
+## Fix
+
+```javascript
+### src/ol/layer/Base.js
+<<<<<<< SEARCH
+    /**
+     * @type {string}
+     * @private
+     */
+    this.className_ =
+      properties.className !== undefined ? options.className : 'ol-layer';
+    delete properties.className;
+=======
+    /**
+     * @type {string}
+     * @private
+     */
+    this.className_ =
+      options.className !== undefined ? options.className : 'ol-layer';
+    delete properties.className;
+>>>>>>> REPLACE
+```
+
+This fix ensures that we're consistently using `options.className` to set the `className_` property. The issue was that it was checking if `properties.className` was undefined, but then using `options.className` for the value, which could lead to inconsistent behavior.

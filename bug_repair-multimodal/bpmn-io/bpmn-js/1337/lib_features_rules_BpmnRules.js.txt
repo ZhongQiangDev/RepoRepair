@@ -1,0 +1,253 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about disallowing typed start events inside non-event based sub-processes. According to the BPMN specification, typed start events (like timer start events, message start events, etc.) are not allowed inside regular sub-processes - they're only allowed at the process level or in event sub-processes.
+
+The issue requests two specific tasks:
+1. Disallow morphing to typed start event inside sub-process
+2. Drop event type when moving start event to sub-process
+
+Looking at the code, the `canReplace` function handles element replacements, but it doesn't have logic to prevent morphing a start event to a typed start event when inside a sub-process. We need to add this logic.
+
+## Solution
+
+We need to modify the `canReplace` function to check if a start event is being morphed to a typed start event inside a sub-process, and prevent that operation.
+
+```javascript
+### lib/features/rules/BpmnRules.js
+<<<<<<< SEARCH
+function canReplace(elements, target, position) {
+
+  if (!target) {
+    return false;
+  }
+
+  var canExecute = {
+    replacements: []
+  };
+
+  forEach(elements, function(element) {
+
+    if (!isEventSubProcess(target)) {
+
+      if (is(element, 'bpmn:StartEvent') &&
+          element.type !== 'label' &&
+          canDrop(element, target)) {
+
+        // replace a non-interrupting start event by a blank interrupting start event
+        // when the target is not an event sub process
+        if (!isInterrupting(element)) {
+          canExecute.replacements.push({
+            oldElementId: element.id,
+            newElementType: 'bpmn:StartEvent'
+          });
+        }
+
+        // replace an error/escalation/compensate start event by a blank interrupting start event
+        // when the target is not an event sub process
+        if (hasErrorEventDefinition(element) ||
+            hasEscalationEventDefinition(element) ||
+            hasCompensateEventDefinition(element)) {
+          canExecute.replacements.push({
+            oldElementId: element.id,
+            newElementType: 'bpmn:StartEvent'
+          });
+        }
+      }
+    }
+=======
+function canReplace(elements, target, position) {
+
+  if (!target) {
+    return false;
+  }
+
+  var canExecute = {
+    replacements: []
+  };
+
+  forEach(elements, function(element) {
+
+    // disallow morphing to typed start event inside non-event sub process
+    if (is(element, 'bpmn:StartEvent') && 
+        element.type !== 'label' && 
+        is(target, 'bpmn:SubProcess') && 
+        !isEventSubProcess(target)) {
+      
+      // disallow morphing to typed start event
+      if (element.businessObject && 
+          element.businessObject.eventDefinitions && 
+          element.businessObject.eventDefinitions.length > 0) {
+        return false;
+      }
+    }
+
+    if (!isEventSubProcess(target)) {
+
+      if (is(element, 'bpmn:StartEvent') &&
+          element.type !== 'label' &&
+          canDrop(element, target)) {
+
+        // replace a non-interrupting start event by a blank interrupting start event
+        // when the target is not an event sub process
+        if (!isInterrupting(element)) {
+          canExecute.replacements.push({
+            oldElementId: element.id,
+            newElementType: 'bpmn:StartEvent'
+          });
+        }
+
+        // replace an error/escalation/compensate start event by a blank interrupting start event
+        // when the target is not an event sub process
+        if (hasErrorEventDefinition(element) ||
+            hasEscalationEventDefinition(element) ||
+            hasCompensateEventDefinition(element)) {
+          canExecute.replacements.push({
+            oldElementId: element.id,
+            newElementType: 'bpmn:StartEvent'
+          });
+        }
+      }
+    }
+>>>>>>> REPLACE
+```
+
+Now we need to add a helper function to check for event definitions in general, since the code is using specific event definition checks but we need a more general one:
+
+```javascript
+### lib/features/rules/BpmnRules.js
+<<<<<<< SEARCH
+/**
+ * We treat IntermediateThrowEvents as boundary events during create,
+ * this must be reflected in the rules.
+ */
+=======
+/**
+ * Check if element has any event definition
+ *
+ * @param {Element} element
+ * @param {string} [eventDefinition]
+ *
+ * @return {boolean}
+ */
+function hasEventDefinition(element, eventDefinition) {
+  var bo = getBusinessObject(element);
+
+  if (!bo || !bo.eventDefinitions) {
+    return false;
+  }
+
+  if (!eventDefinition) {
+    return bo.eventDefinitions.length > 0;
+  }
+
+  return some(bo.eventDefinitions, function(definition) {
+    return is(definition, eventDefinition);
+  });
+}
+
+/**
+ * We treat IntermediateThrowEvents as boundary events during create,
+ * this must be reflected in the rules.
+ */
+>>>>>>> REPLACE
+```
+
+Finally, we need to modify the `canDrop` function to drop event type when moving a start event to a sub-process:
+
+```javascript
+### lib/features/rules/BpmnRules.js
+<<<<<<< SEARCH
+/**
+ * Can an element be dropped into the target element
+ *
+ * @return {boolean}
+ */
+=======
+/**
+ * Can an element be dropped into the target element
+ *
+ * @param {Element} element
+ * @param {Element} target
+ *
+ * @return {boolean}
+ */
+function canDrop(element, target) {
+
+  // can't drop process into anything
+  if (is(element, 'bpmn:Process')) {
+    return false;
+  }
+
+  // allow to drop process participants and lanes into
+  // collapsed pools
+  if (is(target, 'bpmn:Participant') && !isExpanded(target)) {
+    return is(element, 'bpmn:Lane') || is(element, 'bpmn:Participant');
+  }
+
+  // drop flow elements onto flow element containers
+  // and participants
+  if (is(element, 'bpmn:FlowElement') && 
+      !is(element, 'bpmn:DataStoreReference')) {
+
+    if (is(target, 'bpmn:FlowElementsContainer')) {
+      // drop typed start event onto non-event sub process -> convert to plain start event
+      if (is(element, 'bpmn:StartEvent') && 
+          is(target, 'bpmn:SubProcess') && 
+          !isEventSubProcess(target) && 
+          hasEventDefinition(element)) {
+        
+        return 'bpmn:StartEvent';
+      }
+      
+      return true;
+    }
+
+    if (is(target, 'bpmn:Participant')) {
+      return true;
+    }
+  }
+
+  // drop lanes into participants and other lanes
+  if (is(element, 'bpmn:Lane')) {
+    if (is(target, 'bpmn:Participant')) {
+      return true;
+    }
+
+    if (is(target, 'bpmn:Lane')) {
+      return true;
+    }
+  }
+
+  if (is(element, 'bpmn:Participant')) {
+
+    // drop participants on participants
+    if (is(target, 'bpmn:Participant')) {
+      return true;
+    }
+
+    // drop participants on empty collaboration
+    if (is(target, 'bpmn:Collaboration') && !target.children.length) {
+      return true;
+    }
+  }
+
+  if (is(element, 'bpmn:DataStoreReference')) {
+    if (is(target, 'bpmn:Collaboration')) {
+      return true;
+    }
+
+    if (is(target, 'bpmn:Participant')) {
+      return true;
+    }
+  }
+
+  return false;
+}
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Prevent morphing a start event to a typed start event inside a non-event sub-process
+2. Drop the event type when moving a start event to a non-event sub-process by returning a specific replacement type

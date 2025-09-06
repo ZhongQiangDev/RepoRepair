@@ -1,0 +1,75 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, there's a problem with template literals in JavaScript/TypeScript highlighting. The issue occurs when:
+1. There's a line with a regex containing a single quote, followed by a template literal with a single quote
+2. Then a comment with a template literal
+3. Then a normal template literal, which breaks highlighting for the rest of the file
+
+The issue is likely in the JavaScript tokenizer logic that handles template literals. Let's look at the code in the Prism core file.
+
+While the provided file doesn't contain the specific JavaScript tokenizer code that's causing the issue, I can infer that the problem is related to how template literals are being parsed. The issue is likely in the JavaScript language definition file, which isn't provided in the snippets.
+
+Since we don't have the exact file with the bug, I'll make an educated guess about where the issue might be. The problem is likely in the JavaScript language definition where template literals are processed.
+
+The issue seems to be that the template literal tokenizer is not properly handling the case where a template literal appears after a specific sequence of tokens (regex with single quote followed by template with single quote, then a comment with template).
+
+Here's a likely fix:
+
+```javascript
+### components/prism-javascript.js
+<<<<<<< SEARCH
+Prism.languages.javascript = {
+	'template-string': {
+		pattern: /`(?:\\[\s\S]|\${(?:[^{}]|{(?:[^{}]|{[^}]*})*})+}|(?!\${)[^\\`])*`/,
+		greedy: true,
+		inside: {
+			'template-punctuation': {
+				pattern: /^`|`$/,
+				alias: 'string'
+			},
+			'interpolation': {
+				pattern: /((?:^|[^\\])(?:\\{2})*)\${(?:[^{}]|{(?:[^{}]|{[^}]*})*})+}/,
+				lookbehind: true,
+				inside: {
+					'interpolation-punctuation': {
+						pattern: /^\${|}$/,
+						alias: 'punctuation'
+					},
+					rest: Prism.languages.javascript
+				}
+			},
+			'string': /[\s\S]+/
+		}
+	},
+=======
+Prism.languages.javascript = {
+	'template-string': {
+		pattern: /`(?:\\[\s\S]|\${(?:[^{}]|{(?:[^{}]|{[^}]*})*})+}|(?!\${)[^\\`])*`/,
+		greedy: true,
+		inside: {
+			'template-punctuation': {
+				pattern: /^`|`$/,
+				alias: 'string'
+			},
+			'interpolation': {
+				pattern: /((?:^|[^\\])(?:\\{2})*)\${(?:[^{}]|{(?:[^{}]|{[^}]*})*})+}/,
+				lookbehind: true,
+				inside: {
+					'interpolation-punctuation': {
+						pattern: /^\${|}$/,
+						alias: 'punctuation'
+					},
+					rest: Prism.languages.javascript
+				}
+			},
+			'string': /[\s\S]+/
+		}
+	},
+>>>>>>> REPLACE
+```
+
+Since I don't have the exact file with the bug, this is a placeholder for where the fix would go. The actual fix would likely involve modifying how template literals are tokenized in the JavaScript language definition.
+
+The issue is probably related to state management in the tokenizer, where the state gets corrupted after encountering the specific sequence of tokens mentioned in the issue. Without seeing the actual tokenizer code, I can only suggest that the fix would involve ensuring that the template literal tokenizer properly resets its state after processing each template literal, especially when they appear in comments or after regex patterns.
+
+If you could provide the JavaScript language definition file (likely `components/prism-javascript.js`), I could give a more specific fix.

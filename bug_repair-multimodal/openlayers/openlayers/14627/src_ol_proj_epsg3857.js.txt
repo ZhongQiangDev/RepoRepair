@@ -1,0 +1,59 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when `applyTransform` is called with an empty extent (created with `createEmpty()`) and then transformed from EPSG:4326 to EPSG:3857. The empty extent contains `Infinity` values, and when these are passed to `Math.tan()` in the `fromEPSG4326` function, it produces `NaN` values.
+
+The problem is in the `fromEPSG4326` function in `src/ol/proj/epsg3857.js`. When an empty extent is passed, it contains `Infinity` values, and the calculation:
+
+```javascript
+let y = RADIUS * Math.log(Math.tan((Math.PI * (+input[i + 1] + 90)) / 360));
+```
+
+produces `NaN` when `input[i + 1]` is `Infinity` or `-Infinity`.
+
+## Fix
+
+We need to check if the input coordinates are `Infinity` or `-Infinity` and handle them appropriately:
+
+```javascript
+### src/ol/proj/epsg3857.js
+<<<<<<< SEARCH
+  for (let i = 0; i < length; i += dimension) {
+    output[i] = (HALF_SIZE * input[i]) / 180;
+    let y = RADIUS * Math.log(Math.tan((Math.PI * (+input[i + 1] + 90)) / 360));
+    if (y > MAX_SAFE_Y) {
+      y = MAX_SAFE_Y;
+    } else if (y < -MAX_SAFE_Y) {
+      y = -MAX_SAFE_Y;
+    }
+    output[i + 1] = y;
+  }
+=======
+  for (let i = 0; i < length; i += dimension) {
+    const x = input[i];
+    const y = input[i + 1];
+    
+    // Handle Infinity values for empty extents
+    if (x === Infinity || x === -Infinity) {
+      output[i] = x;
+    } else {
+      output[i] = (HALF_SIZE * x) / 180;
+    }
+    
+    if (y === Infinity || y === -Infinity) {
+      output[i + 1] = y;
+    } else {
+      let transformedY = RADIUS * Math.log(Math.tan((Math.PI * (+y + 90)) / 360));
+      if (transformedY > MAX_SAFE_Y) {
+        transformedY = MAX_SAFE_Y;
+      } else if (transformedY < -MAX_SAFE_Y) {
+        transformedY = -MAX_SAFE_Y;
+      }
+      output[i + 1] = transformedY;
+    }
+  }
+>>>>>>> REPLACE
+```
+
+This fix preserves `Infinity` and `-Infinity` values when transforming coordinates, which ensures that empty extents remain properly defined after transformation. This way, when an empty extent is passed to `applyTransform` with the EPSG:4326 to EPSG:3857 transform, it will still be a valid empty extent afterward, rather than containing `NaN` values.

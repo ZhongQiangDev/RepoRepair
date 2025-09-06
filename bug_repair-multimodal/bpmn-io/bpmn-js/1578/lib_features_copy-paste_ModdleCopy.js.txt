@@ -1,0 +1,51 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about duplicate Pool IDs when copying and pasting a Pool with a Task inside. The error occurs during export/import because the copied Pool has the same ID as the original Pool, as shown in the XML snippet:
+
+```xml
+<bpmn:process id="Process_17iojvx" isExecutable="false">
+    <bpmn:task id="Activity_0mkgwx2" />
+  </bpmn:process>
+  <bpmn:process id="Process_17iojvx" isExecutable="false">
+    <bpmn:task id="Activity_1xz8h8p" />
+</bpmn:process>
+```
+
+Both processes have the same ID: `Process_17iojvx`.
+
+Looking at the code, the issue is in the `_copyId` method of the `ModdleCopy` class. When copying an element, the method checks if the ID is already assigned, but if it is, it simply returns undefined instead of generating a new unique ID. This causes the copied element to have no ID, which later defaults to the same ID as the original element.
+
+## Fix
+
+```javascript
+### lib/features/copy-paste/ModdleCopy.js
+<<<<<<< SEARCH
+ModdleCopy.prototype._copyId = function(id, element) {
+
+  // disallow if already taken
+  if (this._moddle.ids.assigned(id)) {
+    return;
+  } else {
+
+    this._moddle.ids.claim(id, element);
+    return id;
+  }
+};
+=======
+ModdleCopy.prototype._copyId = function(id, element) {
+
+  // disallow if already taken
+  if (this._moddle.ids.assigned(id)) {
+    // generate a new unique id instead of returning undefined
+    id = this._bpmnFactory._model.ids.nextPrefixed(id + '_', element);
+  }
+
+  this._moddle.ids.claim(id, element);
+  return id;
+};
+>>>>>>> REPLACE
+```
+
+This fix modifies the `_copyId` method to generate a new unique ID when the original ID is already taken, instead of returning undefined. The new ID is created by appending an underscore and a unique number to the original ID. This ensures that copied elements always have unique IDs, preventing the issue with duplicate Pool IDs.

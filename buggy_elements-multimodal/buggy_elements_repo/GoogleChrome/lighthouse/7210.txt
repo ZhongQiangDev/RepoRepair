@@ -1,0 +1,63 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior is that Google PageSpeed is reporting an incorrect size and potential savings for the CSS resource. Specifically, it reports a size of 80KB and a potential savings of 70KB, while the actual fetched resource size is only around 20KB gzipped. This discrepancy suggests that the tool is not accurately calculating the size of the CSS resource or the potential savings from deferring unused CSS.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from how the tool estimates the size of the CSS resource and calculates the potential savings. The tool might be overestimating the size of the CSS resource due to incorrect assumptions about the compression ratio or the actual content being fetched. Additionally, the tool might not be accurately identifying which CSS rules are actually used, leading to an overestimation of the potential savings.
+
+### 3. Examine Each File One by One
+
+#### lighthouse-core/audits/byte-efficiency/byte-efficiency-audit.js
+
+```
+lighthouse-core/audits/byte-efficiency/byte-efficiency-audit.js
+class: UnusedBytes
+```
+
+The `UnusedBytes` class is relevant because it is responsible for estimating the transfer size of resources and computing the overall waste in terms of time and bytes. The `estimateTransferSize` method in this class might be overestimating the size of the CSS resource.
+
+#### lighthouse-core/audits/byte-efficiency/unused-css-rules.js
+
+```
+lighthouse-core/audits/byte-efficiency/unused-css-rules.js
+class: UnusedCSSRules
+```
+
+The `UnusedCSSRules` class is relevant because it is designed to analyze the efficiency of CSS usage in a webpage by identifying unused CSS rules. The `computeUsage` method in this class might be incorrectly calculating the usage statistics for the CSS resource, leading to an overestimation of the potential savings.
+
+#### lighthouse-core/lib/minification-estimator.js
+
+```
+This file contains no relevant functions/classes.
+```
+
+The functions in this file are related to computing token lengths for CSS and JavaScript content, but they do not directly impact the estimation of resource sizes or potential savings.
+
+#### lighthouse-core/lib/network-request.js
+
+```
+This file contains no relevant functions/classes.
+```
+
+The functions in this file are related to handling network requests and their lifecycle, but they do not directly impact the estimation of resource sizes or potential savings.
+
+#### lighthouse-core/lib/dependency-graph/simulator/network-analyzer.js
+
+```
+This file contains no relevant functions/classes.
+```
+
+The methods in this file are related to analyzing network request data and extracting performance metrics, but they do not directly impact the estimation of resource sizes or potential savings.
+
+### Summary
+
+The relevant files and classes/functions that need inspection or editing to fix the problem are:
+
+```
+lighthouse-core/audits/byte-efficiency/byte-efficiency-audit.js
+class: UnusedBytes
+
+lighthouse-core/audits/byte-efficiency/unused-css-rules.js
+class: UnusedCSSRules
+```

@@ -1,0 +1,79 @@
+I'll analyze the issue and provide a fix.
+
+Based on the error message and the issue description, the problem occurs when trying to insert a gateway onto a flow, specifically near a label. The error is:
+
+```
+TypeError: Cannot read properties of undefined (reading 'segmentIndex')
+    at LabelLayoutUtil.js:116
+```
+
+This suggests that there's an issue with the label layout utility when handling flow labels. The error occurs because it's trying to access a property `segmentIndex` of an undefined value.
+
+Looking at the provided code in `LabelUtil.js`, I notice that the `getFlowLabelPosition` function calculates the position for sequence flow labels based on waypoints. The issue likely occurs when the waypoints array doesn't have enough elements or when the calculation of the mid-point is incorrect.
+
+Here's my fix:
+
+```javascript
+### lib/util/LabelUtil.js
+<<<<<<< SEARCH
+export function getFlowLabelPosition(waypoints) {
+
+  // get the waypoints mid
+  var mid = waypoints.length / 2 - 1;
+
+  var first = waypoints[Math.floor(mid)];
+  var second = waypoints[Math.ceil(mid + 0.01)];
+
+  // get position
+  var position = getWaypointsMid(waypoints);
+
+  // calculate angle
+  var angle = Math.atan((second.y - first.y) / (second.x - first.x));
+
+  var x = position.x,
+      y = position.y;
+
+  if (Math.abs(angle) < Math.PI / 2) {
+    y -= FLOW_LABEL_INDENT;
+  } else {
+    x += FLOW_LABEL_INDENT;
+  }
+
+  return { x: x, y: y };
+}
+=======
+export function getFlowLabelPosition(waypoints) {
+  // ensure we have at least two waypoints
+  if (!waypoints || waypoints.length < 2) {
+    return { x: 0, y: 0 };
+  }
+
+  // get the waypoints mid
+  var mid = waypoints.length / 2 - 1;
+
+  var first = waypoints[Math.floor(mid)];
+  var second = waypoints[Math.ceil(mid + 0.01)];
+
+  // get position
+  var position = getWaypointsMid(waypoints);
+
+  // calculate angle
+  var angle = Math.atan((second.y - first.y) / (second.x - first.x));
+
+  var x = position.x,
+      y = position.y;
+
+  if (Math.abs(angle) < Math.PI / 2) {
+    y -= FLOW_LABEL_INDENT;
+  } else {
+    x += FLOW_LABEL_INDENT;
+  }
+
+  return { x: x, y: y };
+}
+>>>>>>> REPLACE
+```
+
+The fix adds validation to ensure that we have at least two waypoints before attempting to calculate the label position. This prevents the error when trying to access properties of undefined waypoints.
+
+Note: The actual issue might be in another file that's not provided (like `LabelLayoutUtil.js` mentioned in the error stack trace), but this fix in `LabelUtil.js` should help prevent the error by ensuring the waypoints are valid before calculations are performed.

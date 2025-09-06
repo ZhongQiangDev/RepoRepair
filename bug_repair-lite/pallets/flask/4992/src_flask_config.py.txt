@@ -1,0 +1,89 @@
+Based on the issue description, the bug is in the `from_file()` method of the `Config` class. The issue is that the method always opens files in text mode, but some file loaders (like `tomllib.load`) require binary mode.
+
+The fix is to add a `mode` parameter to `from_file()` that allows specifying the file mode, defaulting to text mode for backward compatibility.
+
+Here's the *SEARCH/REPLACE* edit to fix this:
+
+```python
+### src/flask/config.py
+<<<<<<< SEARCH
+    def from_file(
+        self,
+        filename: str,
+        load: t.Callable[[t.IO[t.Any]], t.Mapping],
+        silent: bool = False,
+    ) -> bool:
+        """Update the values in the config from a file that is loaded
+        using the ``load`` parameter. The loaded data is passed to the
+        :meth:`from_mapping` method.
+
+        .. code-block:: python
+
+            import json
+            app.config.from_file("config.json", load=json.load)
+
+            import toml
+            app.config.from_file("config.toml", load=toml.load)
+
+        :param filename: The path to the data file. This can be an
+            absolute path or relative to the config root path.
+        :param load: A callable that takes a file handle and returns a
+            mapping of loaded data from the file.
+        :type load: ``Callable[[Reader], Mapping]`` where ``Reader``
+            implements a ``read`` method.
+        :param silent: Ignore the file if it doesn't exist.
+        :return: ``True`` if the file was loaded successfully.
+
+        .. versionadded:: 2.0
+        """
+        filename = os.path.join(self.root_path, filename)
+
+        try:
+            with open(filename) as f:
+=======
+    def from_file(
+        self,
+        filename: str,
+        load: t.Callable[[t.IO[t.Any]], t.Mapping],
+        silent: bool = False,
+        mode: str = "",
+    ) -> bool:
+        """Update the values in the config from a file that is loaded
+        using the ``load`` parameter. The loaded data is passed to the
+        :meth:`from_mapping` method.
+
+        .. code-block:: python
+
+            import json
+            app.config.from_file("config.json", load=json.load)
+
+            import tomllib
+            app.config.from_file("config.toml", load=tomllib.load, mode="b")
+
+        :param filename: The path to the data file. This can be an
+            absolute path or relative to the config root path.
+        :param load: A callable that takes a file handle and returns a
+            mapping of loaded data from the file.
+        :type load: ``Callable[[Reader], Mapping]`` where ``Reader``
+            implements a ``read`` method.
+        :param silent: Ignore the file if it doesn't exist.
+        :param mode: The mode to open the file in. The default is text
+            mode. Use "b" for binary mode.
+        :return: ``True`` if the file was loaded successfully.
+
+        .. versionadded:: 2.0
+        """
+        filename = os.path.join(self.root_path, filename)
+
+        try:
+            with open(filename, mode=f"r{mode}") as f:
+>>>>>>> REPLACE
+```
+
+This change:
+1. Adds a new `mode` parameter with default value `""`
+2. Updates the docstring to document the new parameter and show an example with `tomllib`
+3. Modifies the `open()` call to use the specified mode, prefixed with "r" for read mode
+4. Maintains backward compatibility since the default empty mode string results in text mode
+
+This allows users to specify binary mode when needed (e.g., for TOML files) while keeping the existing text mode behavior as the default.

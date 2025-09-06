@@ -1,0 +1,52 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that WebGLTileLayers with a palette style stop working after being removed and re-added to the map. The error messages indicate a WebGL context issue: `WebGL warning: bindTexture: 'tex' is from a different (or lost) WebGL context` or `WebGL: INVALID_OPERATION: bindTexture: object does not belong to this context`.
+
+Looking at the code, I can see that when a texture is created and stored in a uniform, it's not being properly recreated when the layer is removed and re-added. The issue is in the `applyUniforms` method of the `WebGLHelper` class.
+
+The problem occurs when a WebGLTexture is passed as a uniform value. The code checks if `value instanceof WebGLTexture && !uniform.texture`, but once `uniform.texture` is set, it won't be recreated when the layer is re-added, even if the WebGL context has changed.
+
+## Fix
+
+```javascript
+### src/ol/webgl/Helper.js
+<<<<<<< SEARCH
+      // apply value based on type
+      if (
+        value instanceof HTMLCanvasElement ||
+        value instanceof HTMLImageElement ||
+        value instanceof ImageData ||
+        value instanceof WebGLTexture
+      ) {
+        // create a texture & put data
+        if (value instanceof WebGLTexture && !uniform.texture) {
+          uniform.prevValue = undefined;
+          uniform.texture = value;
+        } else if (!uniform.texture) {
+          uniform.prevValue = undefined;
+          uniform.texture = gl.createTexture();
+        }
+=======
+      // apply value based on type
+      if (
+        value instanceof HTMLCanvasElement ||
+        value instanceof HTMLImageElement ||
+        value instanceof ImageData ||
+        value instanceof WebGLTexture
+      ) {
+        // create a texture & put data
+        if (value instanceof WebGLTexture) {
+          uniform.prevValue = undefined;
+          uniform.texture = value;
+        } else if (!uniform.texture) {
+          uniform.prevValue = undefined;
+          uniform.texture = gl.createTexture();
+        }
+>>>>>>> REPLACE
+```
+
+This fix ensures that when a WebGLTexture is passed as a uniform value, it always updates the uniform.texture reference, regardless of whether a texture was previously set. This way, when a layer is removed and re-added with a new WebGL context, the texture reference will be properly updated to the new context's texture.
+
+The issue was that the condition `value instanceof WebGLTexture && !uniform.texture` would only update the texture reference if there wasn't already one set. By removing the `&& !uniform.texture` part, we ensure the texture reference is always updated when a WebGLTexture is provided.

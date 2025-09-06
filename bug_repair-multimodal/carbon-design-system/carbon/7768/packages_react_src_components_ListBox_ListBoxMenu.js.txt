@@ -1,0 +1,45 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that VoiceOver on Mac is reading dropdown items twice when navigating through them. This is likely because the dropdown menu has both a `role="listbox"` on the container and each item is probably also being announced due to its own role or structure.
+
+Looking at the code, I can see that `ListBoxMenu` has a `role="listbox"` attribute. This is correct for accessibility, but it might be causing duplicate announcements if the child items also have roles or are structured in a way that causes VoiceOver to read them independently.
+
+## Solution
+
+The fix is to ensure that the menu items are properly associated with the listbox but not causing duplicate announcements. Since the issue is with VoiceOver reading items twice, we need to modify how the menu is structured for screen readers.
+
+```javascript
+### packages/react/src/components/ListBox/ListBoxMenu.js
+<<<<<<< SEARCH
+    <div
+      ref={ref}
+      id={id}
+      className={`${prefix}--list-box__menu`}
+      role="listbox"
+      {...rest}>
+      {children}
+    </div>
+=======
+    <div
+      ref={ref}
+      id={id}
+      className={`${prefix}--list-box__menu`}
+      role="listbox"
+      aria-live="polite"
+      aria-atomic="true"
+      {...rest}>
+      {children}
+    </div>
+>>>>>>> REPLACE
+```
+
+This change adds `aria-live="polite"` and `aria-atomic="true"` attributes to the listbox container. These ARIA attributes help control how screen readers announce content:
+
+1. `aria-live="polite"` tells screen readers to announce changes when the user is idle
+2. `aria-atomic="true"` ensures that the entire element is read as a whole, rather than just the changed parts
+
+This should help prevent VoiceOver from reading each item twice by better controlling how the announcements are made.
+
+Note: If this solution doesn't fully resolve the issue, we might need to examine the `ListBoxMenuItem` component as well, as the duplicate reading could also be caused by how the individual menu items are structured.

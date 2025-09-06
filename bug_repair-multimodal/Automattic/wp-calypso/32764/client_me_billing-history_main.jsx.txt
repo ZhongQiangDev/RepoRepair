@@ -1,0 +1,100 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Localization
+
+The issue is about moving the "Upcoming Charges" section to a separate tab instead of having it appear below the billing history. Currently, the "Upcoming Charges" section is rendered directly in the main billing history component, making it feel "tacked on" as mentioned in the issue.
+
+Looking at the code, we need to:
+1. Remove the "Upcoming Charges" section from the main billing history view
+2. Create a new tab or section for "Upcoming Charges"
+3. Update the navigation to include this new tab
+
+## Solution
+
+I'll modify the `BillingHistory` component to remove the upcoming charges section from the main view. Then, we'll need to create a new tab structure to allow navigation between "Billing History" and "Upcoming Charges".
+
+```javascript
+### client/me/billing-history/main.jsx
+<<<<<<< SEARCH
+const BillingHistory = ( { pastTransactions, translate } ) => (
+	<Main className="billing-history">
+		<DocumentHead title={ translate( 'Billing History' ) } />
+		<PageViewTracker path="/me/purchases/billing" title="Me > Billing History" />
+		<MeSidebarNavigation />
+		<QueryBillingTransactions />
+		<PurchasesHeader section={ 'billing' } />
+		<Card className="billing-history__receipts">
+			<BillingHistoryTable />
+		</Card>
+		{ pastTransactions && (
+			<div>
+				<SectionHeader label={ translate( 'Upcoming Charges' ) } />
+				<Card className="billing-history__upcoming-charges">
+					<UpcomingChargesTable />
+				</Card>
+			</div>
+		) }
+		{ config.isEnabled( 'upgrades/credit-cards' ) && <CreditCards /> }
+	</Main>
+);
+=======
+const BillingHistory = ( { pastTransactions, translate } ) => {
+	const [activeTab, setActiveTab] = React.useState('billing');
+	
+	const renderTabNavigation = () => (
+		<div className="billing-history__tabs">
+			<nav className="billing-history__tab-navigation">
+				<button 
+					className={`billing-history__tab-button ${activeTab === 'billing' ? 'is-active' : ''}`}
+					onClick={() => setActiveTab('billing')}
+				>
+					{translate('Billing History')}
+				</button>
+				<button 
+					className={`billing-history__tab-button ${activeTab === 'upcoming' ? 'is-active' : ''}`}
+					onClick={() => setActiveTab('upcoming')}
+				>
+					{translate('Upcoming Charges')}
+				</button>
+			</nav>
+		</div>
+	);
+
+	return (
+		<Main className="billing-history">
+			<DocumentHead title={ translate( 'Billing History' ) } />
+			<PageViewTracker path="/me/purchases/billing" title="Me > Billing History" />
+			<MeSidebarNavigation />
+			<QueryBillingTransactions />
+			<PurchasesHeader section={ 'billing' } />
+			
+			{renderTabNavigation()}
+			
+			{activeTab === 'billing' && (
+				<Card className="billing-history__receipts">
+					<BillingHistoryTable />
+				</Card>
+			)}
+			
+			{activeTab === 'upcoming' && pastTransactions && (
+				<Card className="billing-history__upcoming-charges">
+					<UpcomingChargesTable />
+				</Card>
+			)}
+			
+			{ config.isEnabled( 'upgrades/credit-cards' ) && <CreditCards /> }
+		</Main>
+	);
+};
+>>>>>>> REPLACE
+```
+
+This solution:
+
+1. Converts the component from a functional component using an arrow function with an implicit return to one with an explicit return
+2. Adds state management using React hooks to track the active tab
+3. Creates a tab navigation component with "Billing History" and "Upcoming Charges" tabs
+4. Conditionally renders either the billing history table or the upcoming charges table based on the active tab
+5. Maintains the credit cards section at the bottom regardless of which tab is active
+
+The CSS for the tabs would need to be added to the style.scss file, but that wasn't included in the provided code segments.

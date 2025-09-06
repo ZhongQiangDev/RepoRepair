@@ -1,0 +1,86 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when using OpenLayers (OL) version 6.3.2-dev.1589843798021 with proj4js version 2.6.1, the WMTS layer (EPSG:2180) is rotated incorrectly when the view projection is set to Mercator (EPSG:3857). Similarly, the OSM layer (Mercator) is rotated incorrectly when the view projection is set to EPSG:2180. This issue does not occur with proj4js version 2.6.0.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of the issue is likely related to changes in proj4js version 2.6.1 that affect the interpretation of axis order. This change may have altered how projections are transformed, leading to incorrect rotations of layers when switching between different projections. Specifically, the problem seems to stem from how proj4js 2.6.1 handles the axis orientation of projections, which could be causing the layers to be misaligned or rotated improperly.
+
+### 3. Examine Each File One by One from the 'Relevant Files Information'
+
+#### --- src/ol/proj.js ---
+```
+src/ol/proj.js
+function: addCoordinateTransforms
+function: addEquivalentTransforms
+function: transform
+function: transformExtent
+function: equivalent
+```
+
+These functions are directly involved in setting up and performing coordinate transformations between different projections. The `addCoordinateTransforms` and `addEquivalentTransforms` functions register transformation functions between projections, which could be affected by the changes in proj4js 2.6.1. The `transform` and `transformExtent` functions apply these transformations, and the `equivalent` function checks if two projections are equivalent, which could be impacted by the axis order interpretation.
+
+#### --- src/ol/proj/epsg4326.js ---
+```
+src/ol/proj/epsg4326.js
+class: EPSG4326Projection
+```
+
+This class defines the WGS84 geographic coordinate system (EPSG:4326). While it may not be directly causing the issue, it is relevant because it is one of the projections involved in the transformations.
+
+#### --- src/ol/proj/proj4.js ---
+```
+src/ol/proj/proj4.js
+function: register
+function: fromEPSGCode
+function: epsgLookup
+```
+
+The `register` function synchronizes projection definitions between proj4 and OpenLayers, which is crucial for ensuring that the correct transformations are applied. The `fromEPSGCode` and `epsgLookup` functions retrieve projection definitions, which could be affected by the changes in proj4js 2.6.1.
+
+#### --- src/ol/proj/Projection.js ---
+```
+src/ol/proj/Projection.js
+class: Projection
+```
+
+This class encapsulates information about a map projection. While it may not be directly causing the issue, it is relevant because it is used to define and manage the properties of projections involved in the transformations.
+
+#### --- src/ol/proj/transforms.js ---
+```
+src/ol/proj/transforms.js
+function: add
+function: get
+function: remove
+```
+
+These functions manage the registration and retrieval of transformation functions between projections. They could be impacted by the changes in proj4js 2.6.1, leading to incorrect transformations.
+
+### Summary of Relevant Functions/Classes
+
+The following functions and classes are relevant to the issue:
+
+```
+src/ol/proj.js
+function: addCoordinateTransforms
+function: addEquivalentTransforms
+function: transform
+function: transformExtent
+function: equivalent
+
+src/ol/proj/epsg4326.js
+class: EPSG4326Projection
+
+src/ol/proj/proj4.js
+function: register
+function: fromEPSGCode
+function: epsgLookup
+
+src/ol/proj/Projection.js
+class: Projection
+
+src/ol/proj/transforms.js
+function: add
+function: get
+function: remove
+```

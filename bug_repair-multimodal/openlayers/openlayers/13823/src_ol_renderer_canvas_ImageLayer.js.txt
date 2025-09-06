@@ -1,0 +1,31 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that for image sources with a pixel ratio of 1, the renderer creates a canvas with the size for the display pixel ratio instead of the image ratio of the source. This means on HiDPI devices (where the display pixel ratio is typically 2), the canvas is twice as big as needed, using 4 times the memory.
+
+Looking at the code, in the `renderFrame` method, the canvas size is determined by:
+
+```javascript
+let width = Math.round(size[0] * pixelRatio);
+let height = Math.round(size[1] * pixelRatio);
+```
+
+Here, `pixelRatio` is the display pixel ratio from the frame state, not the image's pixel ratio. This means the canvas is always sized according to the display pixel ratio, regardless of the image's own pixel ratio.
+
+## Fix
+
+We need to modify the code to use the image's pixel ratio when determining the canvas size. The image's pixel ratio is available as `imagePixelRatio`.
+
+```javascript
+### src/ol/renderer/canvas/ImageLayer.js
+<<<<<<< SEARCH
+    let width = Math.round(size[0] * pixelRatio);
+    let height = Math.round(size[1] * pixelRatio);
+=======
+    let width = Math.round(size[0] * imagePixelRatio);
+    let height = Math.round(size[1] * imagePixelRatio);
+>>>>>>> REPLACE
+```
+
+This change will ensure that the canvas size is determined by the image's pixel ratio rather than the display pixel ratio, which will prevent creating unnecessarily large canvases for images with a pixel ratio of 1 on HiDPI devices.

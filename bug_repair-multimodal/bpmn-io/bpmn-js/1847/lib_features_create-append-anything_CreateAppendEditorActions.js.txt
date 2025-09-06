@@ -1,0 +1,58 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that the append shortcut 'a' doesn't work on elements that don't have an append menu. According to the description, the 'a' key should:
+1. Trigger append where append is possible
+2. Fall back to create where append is not possible
+
+Looking at the code, I can see that the `CreateAppendEditorActions.js` file registers actions for both append and create, but there's no fallback mechanism when the append action fails.
+
+Here's my fix:
+
+```javascript
+### lib/features/create-append-anything/CreateAppendEditorActions.js
+<<<<<<< SEARCH
+  // append
+  if (selection && contextPad) {
+    assign(actions, {
+      'appendElement': function(event) {
+        contextPad.triggerEntry('append', 'click', event);
+      } }
+    );
+  }
+
+  // create
+  if (palette) {
+    assign(actions, {
+      'createElement': function(event) {
+        palette.triggerEntry('create', 'click', event);
+      } }
+    );
+  }
+=======
+  // append
+  if (selection && contextPad) {
+    assign(actions, {
+      'appendElement': function(event) {
+        // Try to trigger append, if it fails (returns false) then fall back to create
+        const appendTriggered = contextPad.triggerEntry('append', 'click', event);
+        
+        // If append didn't work and palette exists, fall back to create
+        if (appendTriggered === false && palette) {
+          palette.triggerEntry('create', 'click', event);
+        }
+      } }
+    );
+  }
+
+  // create
+  if (palette) {
+    assign(actions, {
+      'createElement': function(event) {
+        palette.triggerEntry('create', 'click', event);
+      } }
+    );
+  }
+>>>>>>> REPLACE
+```
+
+This fix modifies the `appendElement` action to check if the append operation was successful. If `contextPad.triggerEntry('append', 'click', event)` returns `false` (meaning no append action was available), it falls back to the create action by calling `palette.triggerEntry('create', 'click', event)`. This ensures that the 'a' shortcut always does something useful, either appending or creating as appropriate.

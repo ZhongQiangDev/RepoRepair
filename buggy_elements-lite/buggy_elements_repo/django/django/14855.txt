@@ -1,0 +1,43 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+When viewing or editing a model with a ForeignKey field in a custom Admin Site, and that field is marked as readonly, the generated URL for the link uses "/admin/..." instead of "/custom-admin/...". This means the URL is not respecting the custom admin site's URL prefix.
+
+2. Cause Analysis:
+The issue stems from the `get_admin_url` method not considering the current admin site's name when generating URLs for readonly foreign key fields. The code is using a simple `reverse()` call without specifying the `current_app` parameter, which is needed to generate URLs with the correct admin site prefix.
+
+3. Examining Relevant Files:
+
+django/contrib/admin/helpers.py:
+```
+django/contrib/admin/helpers.py
+class: AdminReadonlyField
+```
+This class is directly responsible for rendering readonly fields in the admin interface, including ForeignKey fields.
+
+django/contrib/admin/options.py:
+```
+django/contrib/admin/options.py
+class: ModelAdmin
+class: BaseModelAdmin
+```
+These classes handle the core admin functionality and field rendering, including readonly fields.
+
+django/contrib/admin/sites.py:
+```
+django/contrib/admin/sites.py
+class: AdminSite
+```
+This class manages admin site configuration including URL patterns and namespacing.
+
+django/urls/base.py:
+```
+django/urls/base.py
+function: reverse
+```
+This is the core function responsible for URL generation and needs to handle the `current_app` parameter correctly.
+
+django/contrib/admin/models.py:
+This file contains no relevant functions/classes.
+
+The issue primarily involves the interaction between AdminReadonlyField's URL generation and the AdminSite's URL configuration, with the reverse() function being the key component that needs to handle the current_app parameter correctly.

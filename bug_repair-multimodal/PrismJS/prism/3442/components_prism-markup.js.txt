@@ -1,0 +1,51 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that quotes inside HTML attribute values are being highlighted as punctuation. In the example, the single quotes inside the `data` attribute value are highlighted, which makes the JSON data inside the attribute harder to read.
+
+Looking at the code, the problem is in the `attr-value` pattern inside the `tag` definition. The current pattern includes quotes (`/"|'/`) in the `punctuation` array, which causes all quotes within attribute values to be highlighted as punctuation.
+
+## Solution
+
+We need to modify the `attr-value` pattern to only highlight the opening and closing quotes of the attribute value as punctuation, not any quotes that might be inside the attribute value itself.
+
+Here's the fix:
+
+```javascript
+### components/prism-markup.js
+<<<<<<< SEARCH
+			'attr-value': {
+				pattern: /=\s*(?:"[^"]*"|'[^']*'|[^\s'">=]+)/,
+				inside: {
+					'punctuation': [
+						{
+							pattern: /^=/,
+							alias: 'attr-equals'
+						},
+						/"|'/
+					]
+				}
+			},
+=======
+			'attr-value': {
+				pattern: /=\s*(?:"[^"]*"|'[^']*'|[^\s'">=]+)/,
+				inside: {
+					'punctuation': [
+						{
+							pattern: /^=/,
+							alias: 'attr-equals'
+						},
+						{
+							pattern: /^(\s*)["']|["']$/,
+							lookbehind: true
+						}
+					]
+				}
+			},
+>>>>>>> REPLACE
+```
+
+This change replaces the simple `/"|'/` pattern with a more specific pattern that only matches quotes at the beginning (after optional whitespace) or at the end of the attribute value. The `lookbehind: true` ensures we don't include the whitespace in the match for the opening quote.
+
+This way, only the quotes that actually delimit the attribute value will be highlighted as punctuation, while any quotes inside the attribute value (like those in JSON data) will be treated as regular content.

@@ -1,0 +1,27 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The test runner crashes when trying to set up test databases with the new Django 3.1 setting "TEST": {"MIGRATE": False}. Specifically, it fails with a "relation django_admin_log does not exist" error, indicating it's trying to access tables that haven't been created.
+
+2. Cause Analysis:
+The error occurs during database serialization in the test setup phase. Even though migrations are disabled with MIGRATE: False, Django is still trying to serialize the database state but the required tables don't exist because migrations weren't run. This suggests a conflict between the new no-migration setting and Django's test database serialization logic.
+
+3. Most Related Files:
+The key files involved in test database setup, serialization, and migration handling would be:
+
+```
+django/test/utils.py
+django/db/backends/base/creation.py
+django/db/migrations/executor.py
+django/test/runner.py
+django/db/migrations/loader.py
+```
+
+These files are ordered by importance because:
+1. test/utils.py handles core test database setup and serialization
+2. backends/base/creation.py manages test database creation and serialization
+3. migrations/executor.py controls migration execution and state
+4. test/runner.py orchestrates the overall test process
+5. migrations/loader.py loads and manages migration files
+
+The issue likely needs to be fixed in the interaction between these components to properly handle the MIGRATE: False setting during test database setup.

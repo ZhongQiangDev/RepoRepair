@@ -1,0 +1,105 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about black tiles appearing when using `ol.layer.WebGLTile` with `ol.source.DataTile` and a custom tile grid. The error message indicates there's a mismatch between the expected and available data size for textures:
+
+```
+WebGL warning: texImage: Desired upload requires more data than is available: (767 rows plus 770 pixels needed, 767 rows plus 258 pixels available)
+```
+
+Looking at the provided code for `DataTile.js`, I notice that the issue is likely related to how the tile data is being handled. The `DataTile` class loads data but doesn't provide any information about the dimensions of the data.
+
+The WebGL warning suggests that when the WebGLTileLayer tries to use the data from DataTile, it's assuming dimensions based on the tile grid configuration, but the actual data dimensions don't match.
+
+## Solution
+
+The `DataTile` class needs to be enhanced to provide information about the dimensions of the data it contains. This will allow the WebGLTileLayer to correctly handle the data when rendering.
+
+Here's the fix:
+
+```javascript
+### src/ol/DataTile.js
+<<<<<<< SEARCH
+/**
+ * @typedef {Object} Options
+ * @property {import("./tilecoord.js").TileCoord} tileCoord Tile coordinate.
+ * @property {function() : Promise<Data>} loader Data loader.
+ * @property {number} [transition=250] A duration for tile opacity
+ * transitions in milliseconds. A duration of 0 disables the opacity transition.
+ * @api
+ */
+=======
+/**
+ * @typedef {Object} Options
+ * @property {import("./tilecoord.js").TileCoord} tileCoord Tile coordinate.
+ * @property {function() : Promise<Data>} loader Data loader.
+ * @property {number} [transition=250] A duration for tile opacity
+ * transitions in milliseconds. A duration of 0 disables the opacity transition.
+ * @property {import('./size.js').Size} [size] The size in pixels of the tile.
+ * @api
+ */
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/DataTile.js
+<<<<<<< SEARCH
+  constructor(options) {
+    const state = TileState.IDLE;
+
+    super(options.tileCoord, state, {transition: options.transition});
+
+    this.loader_ = options.loader;
+    this.data_ = null;
+    this.error_ = null;
+  }
+=======
+  constructor(options) {
+    const state = TileState.IDLE;
+
+    super(options.tileCoord, state, {transition: options.transition});
+
+    this.loader_ = options.loader;
+    this.data_ = null;
+    this.error_ = null;
+    this.size_ = options.size;
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/DataTile.js
+<<<<<<< SEARCH
+  /**
+   * Get any loading error.
+   * @return {Error} Loading error.
+   * @api
+   */
+  getError() {
+    return this.error_;
+  }
+=======
+  /**
+   * Get any loading error.
+   * @return {Error} Loading error.
+   * @api
+   */
+  getError() {
+    return this.error_;
+  }
+
+  /**
+   * Get the tile size.
+   * @return {import('./size.js').Size|undefined} Tile size.
+   * @api
+   */
+  getSize() {
+    return this.size_;
+  }
+>>>>>>> REPLACE
+```
+
+This fix adds a new optional `size` property to the `DataTile` options, stores it in the instance, and provides a getter method to access it. This allows the WebGLTileLayer to correctly determine the dimensions of the data when rendering, preventing the mismatch that was causing the black tiles.
+
+The WebGLTileLayer can now check if a tile has a specific size before assuming dimensions based on the tile grid, which should resolve the issue with black tiles and the WebGL warning.

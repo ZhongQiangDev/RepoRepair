@@ -1,0 +1,33 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is with the PolarArea chart when it has only a single element. In this case:
+1. The chart renders as a complete circle
+2. Only the leading edge (1-2 pixels wide) responds to mouseover events
+3. The tooltip doesn't appear when hovering over the colored area
+
+Looking at the code, the problem is in the `inRange` method of the `ArcElement` class. When there's only one element in a PolarArea chart, it creates a full circle (circumference = TAU). The issue is in this line:
+
+```javascript
+const betweenAngles = circumference >= TAU || _angleBetween(angle, startAngle, endAngle);
+```
+
+When `circumference >= TAU`, it immediately returns `true` for the `betweenAngles` check without actually checking if the angle is between the start and end angles. This is problematic because for a full circle, we still need to check if the point is within the angle range.
+
+## Fix
+
+```javascript
+### src/elements/element.arc.js
+<<<<<<< SEARCH
+    const betweenAngles = circumference >= TAU || _angleBetween(angle, startAngle, endAngle);
+=======
+    // When the element forms a complete circle, we need special handling
+    // to ensure the entire area is interactive
+    const betweenAngles = circumference >= TAU ? true : _angleBetween(angle, startAngle, endAngle);
+>>>>>>> REPLACE
+```
+
+This fix ensures that when the element forms a complete circle (circumference >= TAU), the `betweenAngles` check always returns true, making the entire area interactive. This will allow users to hover over any part of the circle and see the tooltip, not just the leading edge.
+
+The fix is simple but effective - it explicitly handles the full circle case by returning true for the angle check, ensuring the entire area is clickable and can show tooltips.

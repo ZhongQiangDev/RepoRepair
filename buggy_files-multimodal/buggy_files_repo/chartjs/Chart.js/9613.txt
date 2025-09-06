@@ -1,0 +1,27 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- After upgrading from Chart.js v2.9.4 to v3.5.1, tooltips don't show when using pointerdown/pointerup events on a touchscreen
+- Only point hover is working but tooltip isn't displaying
+
+2. Cause Analysis:
+- The issue stems from event type normalization in the platform layer
+- Original event types (pointerdown/pointerup) are being normalized but the plugin event filters are still using the original types
+- This mismatch between normalized and original event types causes the tooltip plugin to not recognize the events properly
+- The workaround suggests adding 'mousedown'/'mouseup' to options.plugins.tooltip.events, indicating these are the normalized versions of pointer events
+
+3. Most Related Files:
+```
+src/platform/platform.dom.js
+src/plugins/plugin.tooltip.js
+src/core/core.interaction.js
+src/core/core.plugins.js
+src/platform/platform.base.js
+```
+
+These files are ordered by importance because:
+1. platform.dom.js - Contains the event normalization logic that's causing the issue
+2. plugin.tooltip.js - Handles tooltip behavior and event filtering
+3. core.interaction.js - Manages chart interactions and event handling
+4. core.plugins.js - Controls plugin system and event propagation
+5. platform.base.js - Provides base platform functionality including event handling infrastructure

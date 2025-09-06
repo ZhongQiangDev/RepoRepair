@@ -1,0 +1,167 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is requesting a new component called `DataTableGroup` that would provide a control to select the `groupBy` value for a `DataTable`. This component would be similar to other data-related components and would allow users to change the grouping of data in a table through a UI control (shown as a Select component in the screenshots).
+
+Currently, the `DataTable` component supports grouping via the `groupBy` prop, but there's no dedicated component to control this grouping through the UI.
+
+## Solution
+
+We need to create a new component called `DataTableGroup` that will:
+1. Allow users to select a grouping property from available columns
+2. Work with the DataContext to update the grouping
+3. Follow the design pattern of other Data components
+
+Let's create this component:
+
+```javascript
+### src/js/components/DataTable/DataTable.js
+<<<<<<< SEARCH
+import { useLayoutEffect } from '../../utils/use-isomorphic-layout-effect';
+import { DataContext } from '../../contexts/DataContext';
+import { Box } from '../Box';
+import { Text } from '../Text';
+import { Header } from './Header';
+import { Footer } from './Footer';
+import { Body } from './Body';
+import { GroupedBody } from './GroupedBody';
+import { Pagination } from '../Pagination';
+=======
+import { useLayoutEffect } from '../../utils/use-isomorphic-layout-effect';
+import { DataContext } from '../../contexts/DataContext';
+import { Box } from '../Box';
+import { Text } from '../Text';
+import { Header } from './Header';
+import { Footer } from './Footer';
+import { Body } from './Body';
+import { GroupedBody } from './GroupedBody';
+import { Pagination } from '../Pagination';
+import { DataTableGroup } from './DataTableGroup';
+>>>>>>> REPLACE
+```
+
+Now, let's create the new `DataTableGroup` component file:
+
+```javascript
+### src/js/components/DataTable/DataTableGroup.js
+<<<<<<< SEARCH
+=======
+import React, { useContext } from 'react';
+import PropTypes from 'prop-types';
+import { Select } from '../Select';
+import { DataContext } from '../../contexts/DataContext';
+
+export const DataTableGroup = ({
+  columns,
+  drop,
+  groupBy,
+  onGroupBy,
+  options: optionsProp,
+  ...rest
+}) => {
+  const { view, onView } = useContext(DataContext);
+
+  // If options aren't explicitly provided, derive them from columns
+  const options = optionsProp || 
+    columns
+      .filter(({ property }) => property)
+      .map(({ header, property }) => ({
+        label: header || property,
+        value: property,
+      }));
+
+  // Add a "None" option at the beginning
+  const allOptions = [{ label: 'None', value: undefined }, ...options];
+
+  const value = groupBy?.property || groupBy || (view?.groupBy?.property || view?.groupBy);
+
+  const onChange = ({ value: nextValue }) => {
+    if (onGroupBy) {
+      onGroupBy(nextValue ? { property: nextValue } : undefined);
+    }
+    if (onView) {
+      onView({
+        ...view,
+        groupBy: nextValue ? { property: nextValue } : undefined,
+      });
+    }
+  };
+
+  return (
+    <Select
+      placeholder="Group by"
+      options={allOptions}
+      value={value ? { label: value, value } : undefined}
+      onChange={onChange}
+      clear={false}
+      drop={drop}
+      {...rest}
+    />
+  );
+};
+
+DataTableGroup.propTypes = {
+  columns: PropTypes.arrayOf(
+    PropTypes.shape({
+      property: PropTypes.string,
+      header: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
+    }),
+  ).isRequired,
+  drop: PropTypes.oneOf(['top', 'bottom', 'left', 'right']),
+  groupBy: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.shape({
+      property: PropTypes.string.isRequired,
+      expand: PropTypes.arrayOf(PropTypes.string),
+      onExpand: PropTypes.func,
+    }),
+  ]),
+  onGroupBy: PropTypes.func,
+  options: PropTypes.arrayOf(
+    PropTypes.shape({
+      label: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
+      value: PropTypes.string,
+    }),
+  ),
+};
+>>>>>>> REPLACE
+```
+
+Now, let's export the new component in the index file:
+
+```javascript
+### src/js/components/DataTable/index.js
+<<<<<<< SEARCH
+export { DataTable } from './DataTable';
+=======
+export { DataTable } from './DataTable';
+export { DataTableGroup } from './DataTableGroup';
+>>>>>>> REPLACE
+```
+
+Let's also add the `useGroupState` hook that's used in the DataTable component but wasn't defined in the provided code:
+
+```javascript
+### src/js/components/DataTable/DataTable.js
+<<<<<<< SEARCH
+  // an object indicating which group values are expanded
+  const [groupState, setGroupState] = useGroupState(groups, groupBy);
+=======
+  // an object indicating which group values are expanded
+  const useGroupState = (groups, groupBy) => {
+    const [groupState, setGroupState] = useState(() => 
+      buildGroupState(groups, groupBy)
+    );
+    
+    useEffect(() => {
+      setGroupState(buildGroupState(groups, groupBy));
+    }, [groups, groupBy]);
+    
+    return [groupState, setGroupState];
+  };
+  
+  // an object indicating which group values are expanded
+  const [groupState, setGroupState] = useGroupState(groups, groupBy);
+>>>>>>> REPLACE
+```

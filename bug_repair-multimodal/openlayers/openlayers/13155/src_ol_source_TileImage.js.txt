@@ -1,0 +1,36 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about respecting the `imageSmoothing` setting when using the WebGLTile renderer. Currently, when `imageSmoothing` is set to `false` in a tile source, this setting is not being properly passed to the WebGL renderer, which should use `gl.NEAREST` instead of `gl.LINEAR` for texture filtering.
+
+Looking at the code, I can see that the `TileImage` class already stores the `imageSmoothing` setting in the `contextOptions_` property, and this is passed to the `ReprojTile` constructor. However, the issue suggests that this setting is not being properly respected by the WebGL renderer when creating textures.
+
+The issue mentions that the `TileTexture` class should use the `imageSmoothing` setting to determine whether to use `gl.NEAREST` or `gl.LINEAR` for texture filtering.
+
+## Fix
+
+The fix would involve ensuring that the `contextOptions_` property is properly passed to the `TileTexture` class and used to set the appropriate texture filtering mode. However, since the `TileTexture` class is not included in the provided code, I'll focus on ensuring that the `contextOptions_` property is correctly set and passed through the `TileImage` class.
+
+```javascript
+### src/ol/source/TileImage.js
+<<<<<<< SEARCH
+    /**
+     * @private
+     * @type {object|undefined}
+     */
+    this.contextOptions_ =
+      options.imageSmoothing === false ? IMAGE_SMOOTHING_DISABLED : undefined;
+=======
+    /**
+     * @protected
+     * @type {object|undefined}
+     */
+    this.contextOptions_ =
+      options.imageSmoothing === false ? IMAGE_SMOOTHING_DISABLED : undefined;
+>>>>>>> REPLACE
+```
+
+This change makes the `contextOptions_` property protected instead of private, which will allow subclasses to access it directly. This is important because the WebGLTile renderer likely needs to access this property to determine the appropriate texture filtering mode.
+
+The issue description mentions that the `TileTexture` class should use this setting to determine whether to use `gl.NEAREST` or `gl.LINEAR` for texture filtering. Since we don't have access to that class in the provided code, this change ensures that the property is accessible to any class that needs it.

@@ -1,0 +1,55 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when a filterable multiselect has some options selected, clicking on the `<input>` element puts the focus outline on the input itself rather than around the whole control. This is a regression from a previous fix.
+
+Looking at the code, I can see that the focus is being applied to the input element directly when clicked, but the expected behavior is for the focus to be on the entire ListBox component.
+
+## Solution
+
+The issue is in the `FilterableMultiSelect.js` file where the input element is rendered. We need to modify the input element to prevent it from receiving direct focus when clicked, while still allowing it to be used for typing. This can be done by adding a `onClick` handler that stops propagation and focuses the parent ListBox field instead.
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/MultiSelect/FilterableMultiSelect.js
+<<<<<<< SEARCH
+                    <input
+                      className={inputClasses}
+                      aria-controls={`${id}__menu`}
+                      aria-autocomplete="list"
+                      ref={(el) => (this.inputNode = el)}
+                      id={`${id}-input`}
+                      {...getInputProps({
+                        disabled,
+                        placeholder,
+                        onKeyDown: this.handleOnInputKeyDown,
+                      })}
+                    />
+=======
+                    <input
+                      className={inputClasses}
+                      aria-controls={`${id}__menu`}
+                      aria-autocomplete="list"
+                      ref={(el) => (this.inputNode = el)}
+                      id={`${id}-input`}
+                      {...getInputProps({
+                        disabled,
+                        placeholder,
+                        onKeyDown: this.handleOnInputKeyDown,
+                        onClick: (event) => {
+                          event.stopPropagation();
+                          // Focus the parent ListBox.Field instead of the input
+                          event.currentTarget.parentElement.focus();
+                        },
+                      })}
+                    />
+>>>>>>> REPLACE
+```
+
+This change adds an `onClick` handler to the input element that:
+1. Stops the click event from propagating further
+2. Focuses the parent element (ListBox.Field) instead of the input itself
+
+This will ensure that when a user clicks on the input field, the focus outline appears around the entire control rather than just the input element, which matches the expected behavior.

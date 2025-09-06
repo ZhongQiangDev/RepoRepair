@@ -1,0 +1,99 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, there are two problems:
+1. The IBM Accessibility Checker reports an error when an Expandable Tile has `aria-expanded="false"` attribute
+2. The user needs a way to get the "interactive" version of the Expandable Tile without adding fake interactive elements
+
+Looking at the code, the issue is in the `isFocusable` function in `useNoInteractiveChildren.js`. The function doesn't account for elements with ARIA attributes that make them interactive, such as elements with `role="button"` or other interactive roles.
+
+Here's the fix:
+
+```javascript
+### packages/react/src/internal/useNoInteractiveChildren.js
+<<<<<<< SEARCH
+function isFocusable(element) {
+  if (element.tabIndex < 0) {
+    return false;
+  }
+
+  if (element.disabled) {
+    return false;
+  }
+
+  switch (element.nodeName) {
+    case 'A':
+      return !!element.href && element.rel !== 'ignore';
+    case 'INPUT':
+      return element.type !== 'hidden';
+    case 'BUTTON':
+    case 'SELECT':
+    case 'TEXTAREA':
+      return true;
+    default:
+      return false;
+  }
+}
+=======
+function isFocusable(element) {
+  if (element.tabIndex < 0) {
+    return false;
+  }
+
+  if (element.disabled) {
+    return false;
+  }
+
+  // Check for interactive ARIA roles
+  const role = element.getAttribute('role');
+  if (role) {
+    const interactiveRoles = [
+      'button',
+      'checkbox',
+      'combobox',
+      'link',
+      'menuitem',
+      'menuitemcheckbox',
+      'menuitemradio',
+      'option',
+      'radio',
+      'searchbox',
+      'slider',
+      'spinbutton',
+      'switch',
+      'tab',
+      'textbox',
+    ];
+    if (interactiveRoles.includes(role)) {
+      return true;
+    }
+  }
+
+  // Check for aria-expanded attribute which indicates interactive content
+  if (element.hasAttribute('aria-expanded')) {
+    return true;
+  }
+
+  switch (element.nodeName) {
+    case 'A':
+      return !!element.href && element.rel !== 'ignore';
+    case 'INPUT':
+      return element.type !== 'hidden';
+    case 'BUTTON':
+    case 'SELECT':
+    case 'TEXTAREA':
+      return true;
+    default:
+      return false;
+  }
+}
+>>>>>>> REPLACE
+```
+
+This fix enhances the `isFocusable` function to:
+
+1. Check for interactive ARIA roles that make an element focusable/interactive
+2. Check for the presence of `aria-expanded` attribute which indicates interactive content
+
+With this change, the Expandable Tile will correctly identify elements with interactive roles and won't throw errors when using `aria-expanded` attribute. This should resolve both issues mentioned in the bug report:
+- The accessibility error with `aria-expanded="false"`
+- The need to add fake interactive elements to get the interactive version of the Expandable Tile

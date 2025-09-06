@@ -1,0 +1,31 @@
+Based on the issue description, the bug is that the Pipeline class doesn't implement `__len__`, which is needed to support the indexing operation `pipe[:len(pipe)]`. The fix is to add a `__len__` method to the Pipeline class that returns the number of steps.
+
+Here's the fix:
+
+```python
+### sklearn/pipeline.py
+<<<<<<< SEARCH
+    @property
+    def _pairwise(self):
+        # check if first estimator expects pairwise input
+        return getattr(self.steps[0][1], '_pairwise', False)
+
+
+=======
+    @property
+    def _pairwise(self):
+        # check if first estimator expects pairwise input
+        return getattr(self.steps[0][1], '_pairwise', False)
+
+    def __len__(self):
+        """Returns the length of the Pipeline"""
+        return len(self.steps)
+
+>>>>>>> REPLACE
+```
+
+This fix adds the `__len__` method to the Pipeline class, which simply returns the length of the steps list. This enables operations like `pipe[:len(pipe)]` to work correctly.
+
+The placement is after the `_pairwise` property and before the FeatureUnion class definition, maintaining the same level of indentation as other Pipeline class methods.
+
+This change allows users to get the length of a pipeline and use it in slicing operations, which is the functionality requested in the issue.

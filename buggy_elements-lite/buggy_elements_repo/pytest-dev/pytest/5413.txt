@@ -1,0 +1,26 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior Identification:
+The issue is about inconsistent string representation of exceptions between normal try-except blocks and pytest.raises context manager. When using str() on:
+- Normal exception catch: Shows full multiline error message
+- pytest.raises context variable: Only shows first line with additional pytest information
+
+2. Cause Analysis:
+The root cause appears to be how pytest wraps and handles exceptions in its ExceptionInfo class. When using str() on the context variable 'e', it's actually calling str() on the ExceptionInfo object rather than the actual exception instance. To get the actual exception message, you need to access the .value attribute first.
+
+3. Relevant Files Analysis:
+
+testing/python/raises.py:
+```
+class TestRaises
+```
+This class is relevant as it contains all the pytest.raises test cases and demonstrates how exceptions should be handled. Particularly important since it would contain the implementation of how pytest handles exception information and string representation.
+
+```
+class E
+```
+This is also relevant as it's a custom exception class used in testing pytest.raises behavior, which is directly related to the issue at hand.
+
+The other classes (A, ClassLooksIterableException, CrappyClass, Meta, T) don't appear to be directly related to the string representation behavior of exceptions in pytest.raises. They are used for testing other aspects of exception handling.
+
+The issue seems to be more related to pytest's core ExceptionInfo class implementation, which might not be visible in the provided files. The actual fix would likely need to be in pytest's exception handling core classes rather than in these test files.

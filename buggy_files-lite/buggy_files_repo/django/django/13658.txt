@@ -1,0 +1,26 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When ManagementUtility parses command line arguments, it uses sys.argv[0] for the program name instead of the already computed self.prog_name
+- This causes issues in embedded environments where sys.argv[0] might be None
+
+2. Cause Analysis:
+- In ManagementUtility.__init__, the code correctly computes prog_name from argv
+- However, when creating the CommandParser instance, it doesn't pass the prog_name to the parser
+- This makes the parser default to using sys.argv[0] instead of the computed prog_name
+- The fix requires passing prog=self.prog_name when instantiating CommandParser
+
+3. Most Related Files:
+The files most directly related to this issue would be:
+
+```
+django/core/management/base.py
+django/core/management/commands/runserver.py
+django/core/management/commands/shell.py
+```
+
+I selected these files because:
+- base.py is the most important as it contains the ManagementUtility and CommandParser classes where the fix needs to be applied
+- runserver.py and shell.py are common management commands that would be affected by this issue and serve as examples of command implementation
+
+The issue is primarily in the core management functionality, so these files focusing on command parsing and execution are most relevant.

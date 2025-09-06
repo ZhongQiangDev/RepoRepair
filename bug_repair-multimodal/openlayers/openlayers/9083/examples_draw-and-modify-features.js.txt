@@ -1,0 +1,52 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue describes a problem where after drawing a polygon in OpenLayers 5.3.0, the map sometimes can't be dragged anymore. This only happens after ending a drawing (drawend event), and the issue doesn't occur in OpenLayers 4.6.5.
+
+Looking at the code, I notice that the example creates a Draw interaction but doesn't handle any cleanup after the drawing is completed. In OpenLayers 5.3.0, there appears to be a bug where the Draw interaction might still capture some pointer events even after the drawing is completed, preventing the map from being dragged.
+
+## Solution
+
+We need to properly handle the `drawend` event to ensure the map can be dragged after drawing is completed. The fix is to listen for the `drawend` event and ensure the interaction is properly reset.
+
+```javascript
+### examples/draw-and-modify-features.js
+<<<<<<< SEARCH
+function addInteractions() {
+  draw = new Draw({
+    source: source,
+    type: typeSelect.value
+  });
+  map.addInteraction(draw);
+  snap = new Snap({source: source});
+  map.addInteraction(snap);
+
+}
+=======
+function addInteractions() {
+  draw = new Draw({
+    source: source,
+    type: typeSelect.value
+  });
+  
+  // Add listener for drawend to ensure map can be dragged after drawing
+  draw.on('drawend', function() {
+    // Small delay to ensure all internal states are reset
+    setTimeout(function() {
+      // Re-add the interaction to reset its state
+      map.removeInteraction(draw);
+      map.addInteraction(draw);
+    }, 0);
+  });
+  
+  map.addInteraction(draw);
+  snap = new Snap({source: source});
+  map.addInteraction(snap);
+}
+>>>>>>> REPLACE
+```
+
+This fix adds an event listener to the `drawend` event. When a drawing is completed, it removes and re-adds the Draw interaction after a minimal timeout. This ensures that any internal state in the Draw interaction that might be preventing map dragging is properly reset.
+
+The timeout of 0ms is used to ensure the reset happens after the current event loop cycle completes, which allows any pending events to be processed first.

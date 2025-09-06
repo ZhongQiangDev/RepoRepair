@@ -1,0 +1,117 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The problem is that each WebGL TileLayer in OpenLayers creates its own WebGL context, and browsers typically limit the number of WebGL contexts to around 16. This becomes a limitation when an application needs to display multiple WebGL TileLayers, as it can quickly hit this limit.
+
+The proposed solution is to make WebGL TileLayers within the same OpenLayers map share a single WebGL context, rather than each creating their own.
+
+## Bug Localization
+
+Looking at the provided code in `src/ol/webgl.js`, I can see that it contains utility functions for working with WebGL, including a `getContext` function that creates a new WebGL context for a canvas. This function is likely called for each WebGL TileLayer, resulting in multiple contexts.
+
+The issue is that there's no mechanism to share WebGL contexts between different TileLayers. We need to modify the code to implement context sharing.
+
+## Solution
+
+We need to modify the `getContext` function to:
+1. Store and reuse WebGL contexts
+2. Allow contexts to be shared between different TileLayers on the same map
+
+Here's my proposed fix:
+
+```javascript
+### src/ol/webgl.js
+<<<<<<< SEARCH
+/**
+ * @const
+ * @type {Array<string>}
+ */
+const CONTEXT_IDS = ['experimental-webgl', 'webgl', 'webkit-3d', 'moz-webgl'];
+
+/**
+ * @param {HTMLCanvasElement} canvas Canvas.
+ * @param {Object} [opt_attributes] Attributes.
+ * @return {WebGLRenderingContext} WebGL rendering context.
+ */
+export function getContext(canvas, opt_attributes) {
+  const ii = CONTEXT_IDS.length;
+  for (let i = 0; i < ii; ++i) {
+    try {
+      const context = canvas.getContext(CONTEXT_IDS[i], opt_attributes);
+      if (context) {
+        return /** @type {!WebGLRenderingContext} */ (context);
+      }
+    } catch (e) {
+      // pass
+    }
+  }
+  return null;
+}
+=======
+/**
+ * @const
+ * @type {Array<string>}
+ */
+const CONTEXT_IDS = ['experimental-webgl', 'webgl', 'webkit-3d', 'moz-webgl'];
+
+/**
+ * Store shared WebGL contexts by map
+ * @type {Object<string, WebGLRenderingContext>}
+ * @private
+ */
+const sharedContexts = {};
+
+/**
+ * @param {HTMLCanvasElement} canvas Canvas.
+ * @param {Object} [opt_attributes] Attributes.
+ * @param {string} [opt_mapId] Optional map ID for context sharing.
+ * @return {WebGLRenderingContext} WebGL rendering context.
+ */
+export function getContext(canvas, opt_attributes, opt_mapId) {
+  // If a map ID is provided, try to use a shared context
+  if (opt_mapId && sharedContexts[opt_mapId]) {
+    return sharedContexts[opt_mapId];
+  }
+  
+  const ii = CONTEXT_IDS.length;
+  for (let i = 0; i < ii; ++i) {
+    try {
+      const context = canvas.getContext(CONTEXT_IDS[i], opt_attributes);
+      if (context) {
+        // Store the context for sharing if a map ID is provided
+        if (opt_mapId) {
+          sharedContexts[opt_mapId] = /** @type {!WebGLRenderingContext} */ (context);
+        }
+        return /** @type {!WebGLRenderingContext} */ (context);
+      }
+    } catch (e) {
+      // pass
+    }
+  }
+  return null;
+}
+
+/**
+ * Releases a shared WebGL context.
+ * @param {string} mapId The map ID associated with the context.
+ */
+export function releaseContext(mapId) {
+  if (sharedContexts[mapId]) {
+    delete sharedContexts[mapId];
+  }
+}
+>>>>>>> REPLACE
+```
+
+This implementation:
+
+1. Creates a `sharedContexts` object to store WebGL contexts by map ID
+2. Modifies the `getContext` function to accept an optional map ID parameter
+3. If a map ID is provided and a context already exists for that map, it returns the existing context
+4. Otherwise, it creates a new context and stores it for future use if a map ID was provided
+5. Adds a `releaseContext` function to clean up contexts when they're no longer needed
+
+This change allows WebGL TileLayers within the same map to share a single WebGL context, which addresses the issue of hitting the browser's WebGL context limit.
+
+Note: This is just the first part of the solution. To fully implement this, you would also need to modify the WebGL TileLayer implementation to pass the map ID when requesting a context, and ensure proper cleanup when layers are removed.

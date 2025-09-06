@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- The bfcache audit fails due to an unload handler in the main frame
+- However, the 'no-unload-listeners' audit passes and shows no unload listeners
+- The unload listeners are not detectable through DevTools Elements panel or `getEventListeners(window)` in console
+
+2. Cause Analysis:
+- The issue occurs because an extension (LastPass) injects an unload listener into the main frame via a content script
+- The content script runs in an isolated execution context
+- The current audit only checks for unload listeners in the main execution context, missing those in isolated contexts
+- This makes the unload listeners "invisible" to normal detection methods unless specifically checking the isolated context
+
+3. Most Related Files:
+```
+core/audits/no-unload-listeners.js
+core/gather/gatherers/global-listeners.js
+core/audits/bf-cache.js
+core/gather/driver/execution-context.js
+core/gather/gatherers/devtools-log.js
+```
+
+These files are ordered by importance because:
+1. `no-unload-listeners.js` - The primary audit that needs to be modified to check for unload listeners in all execution contexts
+2. `global-listeners.js` - Handles gathering of global event listeners, which needs to be enhanced to capture listeners from isolated contexts
+3. `bf-cache.js` - The audit that correctly detects the unload handler issue but needs coordination with other components
+4. `execution-context.js` - Manages execution contexts and would need modifications to properly handle isolated contexts
+5. `devtools-log.js` - Provides logging capabilities that may need enhancement to track events across different execution contexts

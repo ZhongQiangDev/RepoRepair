@@ -1,0 +1,111 @@
+Based on the issue description, the bug is in the `set_ticks` method of the `Axis` class in `lib/matplotlib/axis.py`. The issue states that when kwargs are passed but no labels are provided, the kwargs are silently ignored without validation. According to the docs, these kwargs should only take effect when labels are provided.
+
+We need to modify the `set_ticks` method to validate the kwargs even when labels are not provided, and potentially raise an error in that case. Here's the fix:
+
+```python
+### lib/matplotlib/axis.py
+<<<<<<< SEARCH
+    def set_ticks(self, ticks, labels=None, *, minor=False, **kwargs):
+        """
+        Set this Axis' tick locations and optionally labels.
+
+        If necessary, the view limits of the Axis are expanded so that all
+        given ticks are visible.
+
+        Parameters
+        ----------
+        ticks : list of floats
+            List of tick locations.  The axis `.Locator` is replaced by a
+            `~.ticker.FixedLocator`.
+
+            Some tick formatters will not label arbitrary tick positions;
+            e.g. log formatters only label decade ticks by default. In
+            such a case you can set a formatter explicitly on the axis
+            using `.Axis.set_major_formatter` or provide formatted
+            *labels* yourself.
+        labels : list of str, optional
+            List of tick labels. If not set, the labels are generated with
+            the axis tick `.Formatter`.
+        minor : bool, default: False
+            If ``False``, set the major ticks; if ``True``, the minor ticks.
+        **kwargs
+            `.Text` properties for the labels. These take effect only if you
+            pass *labels*. In other cases, please use `~.Axes.tick_params`.
+
+        Notes
+        -----
+        The mandatory expansion of the view limits is an intentional design
+        choice to prevent the surprise of a non-visible tick. If you need
+        other limits, you should set the limits explicitly after setting the
+        ticks.
+        """
+        result = self._set_tick_locations(ticks, minor=minor)
+        if labels is not None:
+            self.set_ticklabels(labels, minor=minor, **kwargs)
+        return result
+=======
+    def set_ticks(self, ticks, labels=None, *, minor=False, **kwargs):
+        """
+        Set this Axis' tick locations and optionally labels.
+
+        If necessary, the view limits of the Axis are expanded so that all
+        given ticks are visible.
+
+        Parameters
+        ----------
+        ticks : list of floats
+            List of tick locations.  The axis `.Locator` is replaced by a
+            `~.ticker.FixedLocator`.
+
+            Some tick formatters will not label arbitrary tick positions;
+            e.g. log formatters only label decade ticks by default. In
+            such a case you can set a formatter explicitly on the axis
+            using `.Axis.set_major_formatter` or provide formatted
+            *labels* yourself.
+        labels : list of str, optional
+            List of tick labels. If not set, the labels are generated with
+            the axis tick `.Formatter`.
+        minor : bool, default: False
+            If ``False``, set the major ticks; if ``True``, the minor ticks.
+        **kwargs
+            `.Text` properties for the labels. These take effect only if you
+            pass *labels*. In other cases, please use `~.Axes.tick_params`.
+
+        Notes
+        -----
+        The mandatory expansion of the view limits is an intentional design
+        choice to prevent the surprise of a non-visible tick. If you need
+        other limits, you should set the limits explicitly after setting the
+        ticks.
+        """
+        if kwargs and labels is None:
+            import matplotlib.text as mtext
+            # Validate that kwargs are valid Text properties
+            invalid_kwargs = [k for k in kwargs if not hasattr(mtext.Text, k)]
+            if invalid_kwargs:
+                raise ValueError(
+                    f"Keywords {invalid_kwargs} are not Text properties. "
+                    "These kwargs are only applied when labels are provided. "
+                    "Use tick_params() to modify tick and label properties."
+                )
+            
+        result = self._set_tick_locations(ticks, minor=minor)
+        if labels is not None:
+            self.set_ticklabels(labels, minor=minor, **kwargs)
+        return result
+>>>>>>> REPLACE
+```
+
+This change:
+
+1. Validates that any provided kwargs are valid Text properties by checking against matplotlib.text.Text attributes
+2. Raises a ValueError with a helpful message if invalid kwargs are provided
+3. Only applies the kwargs when labels are provided (existing behavior)
+4. Suggests using tick_params() as the proper way to modify tick properties when not setting labels
+
+This addresses the issue by:
+1. No longer silently ignoring invalid kwargs
+2. Providing clear error messages about the proper usage
+3. Maintaining backwards compatibility for the valid use case (when labels are provided)
+
+The validation happens before any ticks are modified, ensuring clean error handling.

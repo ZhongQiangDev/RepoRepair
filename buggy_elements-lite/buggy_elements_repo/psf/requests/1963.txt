@@ -1,0 +1,35 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The issue occurs during a redirection chain where:
+- Initial request is a POST
+- First redirect (303) correctly changes method to GET
+- Second redirect (307) incorrectly changes back to POST instead of preserving GET
+
+2. Cause Analysis:
+The root cause is in `Session.resolve_redirects` where it copies the original request for each redirect, rather than using the most recent request's method. This means it's not properly maintaining the request method state through the redirect chain, causing it to revert to the original POST method even when it should be using GET.
+
+3. File Analysis:
+
+requests/api.py:
+```
+This file contains no relevant functions/classes.
+```
+
+requests/models.py:
+```
+requests/models.py
+class: Request
+```
+The Request class is relevant as it handles the core request functionality and maintains request method information.
+
+requests/sessions.py:
+```
+requests/sessions.py
+class: Session
+```
+The Session class is highly relevant as it contains the `resolve_redirects` method that's directly causing the issue.
+
+The issue appears to be primarily in the Session class's redirect handling logic, with the Request class being involved as it maintains the request state that's being incorrectly copied. The core fix would need to be in the Session class's redirect resolution logic to properly maintain the request method state through the redirect chain.
+
+While there are many other functions and classes in these files, they don't appear to be directly related to the redirect handling issue described in the problem.

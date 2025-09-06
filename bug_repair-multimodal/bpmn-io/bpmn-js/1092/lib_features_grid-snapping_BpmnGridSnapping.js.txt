@@ -1,0 +1,76 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The problem is that with the introduction of grid snapping, it's no longer easy to connect tasks center-to-center. The issue shows that in the old behavior, connecting two tasks center-to-center worked fine, but with the new behavior, it's difficult to achieve this connection.
+
+Looking at the `BpmnGridSnapping.js` file, I can see that it's setting up grid snapping for certain BPMN elements (Participant, SubProcess, TextAnnotation) to snap from their top-left corner. However, the issue is that this doesn't include regular tasks, which should also have a snapping behavior defined to allow for center-to-center connections.
+
+## Fix
+
+The solution is to extend the list of elements that have a specific snapping behavior to include Task elements. However, instead of making tasks snap from their top-left corner, we should make them snap from their center to facilitate center-to-center connections.
+
+```javascript
+### lib/features/grid-snapping/BpmnGridSnapping.js
+<<<<<<< SEARCH
+import { isAny } from '../modeling/util/ModelingUtil';
+
+export default function BpmnGridSnapping(eventBus) {
+  eventBus.on([
+    'create.init',
+    'shape.move.init'
+  ], function(event) {
+    var context = event.context,
+        shape = event.shape;
+
+    if (isAny(shape, [
+      'bpmn:Participant',
+      'bpmn:SubProcess',
+      'bpmn:TextAnnotation'
+    ])) {
+      if (!context.gridSnappingContext) {
+        context.gridSnappingContext = {};
+      }
+
+      context.gridSnappingContext.snapLocation = 'top-left';
+    }
+  });
+}
+=======
+import { isAny } from '../modeling/util/ModelingUtil';
+
+export default function BpmnGridSnapping(eventBus) {
+  eventBus.on([
+    'create.init',
+    'shape.move.init'
+  ], function(event) {
+    var context = event.context,
+        shape = event.shape;
+
+    if (!context.gridSnappingContext) {
+      context.gridSnappingContext = {};
+    }
+
+    if (isAny(shape, [
+      'bpmn:Participant',
+      'bpmn:SubProcess',
+      'bpmn:TextAnnotation'
+    ])) {
+      context.gridSnappingContext.snapLocation = 'top-left';
+    } else if (isAny(shape, [
+      'bpmn:Task',
+      'bpmn:Activity'
+    ])) {
+      context.gridSnappingContext.snapLocation = 'center';
+    }
+  });
+}
+>>>>>>> REPLACE
+```
+
+This change:
+1. Moves the initialization of `gridSnappingContext` outside the first condition so it's always created
+2. Adds a new condition to check if the shape is a Task or Activity
+3. Sets the `snapLocation` to 'center' for Tasks and Activities, which will facilitate center-to-center connections
+
+This should restore the ability to easily connect tasks center-to-center while maintaining the top-left snapping for larger elements like Participants and SubProcesses.

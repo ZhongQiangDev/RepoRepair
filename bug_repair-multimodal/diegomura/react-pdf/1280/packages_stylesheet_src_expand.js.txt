@@ -1,0 +1,145 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that the `flexBasis` property is not working correctly in version 2.0.8, whereas it worked in version 1.6.14. Looking at the screenshots:
+- Before: The text elements are properly sized according to their flexBasis values (50%, 25%, 25%)
+- After: The text elements don't respect the flexBasis values
+
+Looking at the code in `packages/stylesheet/src/expand.js`, I found the problem in the `processFlexBasis` function:
+
+```javascript
+const processFlexBasis = (key, value) => {
+  if (isNumber(value)) return value;
+  const matches = value.split(' ');
+  return matches[2];
+};
+```
+
+This function is incorrectly processing the flexBasis value. When a value like "50%" is passed, it splits it by spaces and tries to return the third element (index 2), which doesn't exist. This is why flexBasis isn't working.
+
+Additionally, I don't see a function called `isFlexBasis` that would trigger this processor in the code snippet, though it's referenced in the `transformStyle` function.
+
+## Fix
+
+```javascript
+### packages/stylesheet/src/expand.js
+<<<<<<< SEARCH
+const processFlexBasis = (key, value) => {
+  if (isNumber(value)) return value;
+  const matches = value.split(' ');
+  return matches[2];
+};
+=======
+const processFlexBasis = (key, value) => {
+  if (isNumber(value)) return value;
+  return value;
+};
+>>>>>>> REPLACE
+```
+
+Additionally, we need to add the missing `isFlexBasis` function:
+
+```javascript
+### packages/stylesheet/src/expand.js
+<<<<<<< SEARCH
+const matchNumber = R.when(R.is(String), R.test(/^-?\d*\.?\d*$/));
+=======
+const isFlexBasis = R.propEq('key', 'flexBasis');
+
+const matchNumber = R.when(R.is(String), R.test(/^-?\d*\.?\d*$/));
+>>>>>>> REPLACE
+```
+
+Wait, I need to check the pattern of other similar functions in the file. Let me revise the `isFlexBasis` function:
+
+```javascript
+### packages/stylesheet/src/expand.js
+<<<<<<< SEARCH
+const OBJECT_POSITION_STYLE_REGEX = /^objectPosition/;
+=======
+const OBJECT_POSITION_STYLE_REGEX = /^objectPosition/;
+
+const isFlexBasis = R.propEq('key', 'flexBasis');
+>>>>>>> REPLACE
+```
+
+Actually, looking at the pattern of the code more carefully, I see that the other style checks use regex patterns. Let me correct my approach:
+
+```javascript
+### packages/stylesheet/src/expand.js
+<<<<<<< SEARCH
+const OBJECT_POSITION_STYLE_REGEX = /^objectPosition/;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const processFlexBasis = (key, value) => {
+  if (isNumber(value)) return value;
+  const matches = value.split(' ');
+  return matches[2];
+};
+=======
+const OBJECT_POSITION_STYLE_REGEX = /^objectPosition/;
+
+const FLEX_BASIS_REGEX = /^flexBasis/;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const isFlexBasis = R.test(FLEX_BASIS_REGEX);
+
+const processFlexBasis = (key, value) => {
+  if (isNumber(value)) return value;
+  return value;
+};
+>>>>>>> REPLACE
+```

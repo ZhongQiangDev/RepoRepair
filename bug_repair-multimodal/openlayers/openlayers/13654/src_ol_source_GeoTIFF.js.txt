@@ -1,0 +1,99 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The problem is that the WebGLTile layer with a GeoTIFF source isn't displaying when the map projection (EPSG:4326 or EPSG:3857) is different from the GeoTIFF's projection (EPSG:32636, a UTM zone). 
+
+Looking at the code, I can see that the GeoTIFF source correctly loads the data and sets its own projection based on the GeoTIFF metadata, but it doesn't handle reprojection when the map's projection is different.
+
+The key issue is in the `loadTile_` method of the `GeoTIFFSource` class. When loading tiles, it doesn't account for the difference between the source projection and the map projection. The tile coordinates are used directly without transformation.
+
+## Solution
+
+We need to modify the `loadTile_` method to handle reprojection. The fix should:
+
+1. Check if the source projection is different from the view projection
+2. If different, transform the tile coordinates appropriately
+
+Here's the fix:
+
+```javascript
+### src/ol/source/GeoTIFF.js
+<<<<<<< SEARCH
+  loadTile_(z, x, y) {
+    const sourceTileSize = this.getTileSize(z);
+    const sourceCount = this.sourceImagery_.length;
+    const requests = new Array(sourceCount * 2);
+    const nodataValues = this.nodataValues_;
+    const sourceInfo = this.sourceInfo_;
+    const pool = getWorkerPool();
+    for (let sourceIndex = 0; sourceIndex < sourceCount; ++sourceIndex) {
+      const source = sourceInfo[sourceIndex];
+      const resolutionFactor = this.resolutionFactors_[sourceIndex];
+      const pixelBounds = [
+        Math.round(x * (sourceTileSize[0] * resolutionFactor)),
+        Math.round(y * (sourceTileSize[1] * resolutionFactor)),
+        Math.round((x + 1) * (sourceTileSize[0] * resolutionFactor)),
+        Math.round((y + 1) * (sourceTileSize[1] * resolutionFactor)),
+      ];
+=======
+  loadTile_(z, x, y) {
+    const sourceTileSize = this.getTileSize(z);
+    const sourceCount = this.sourceImagery_.length;
+    const requests = new Array(sourceCount * 2);
+    const nodataValues = this.nodataValues_;
+    const sourceInfo = this.sourceInfo_;
+    const pool = getWorkerPool();
+    
+    // Get the tile grid for the target projection (the map view's projection)
+    const mapProj = this.getProjection();
+    const tileGrid = this.getTileGrid();
+    
+    for (let sourceIndex = 0; sourceIndex < sourceCount; ++sourceIndex) {
+      const source = sourceInfo[sourceIndex];
+      const resolutionFactor = this.resolutionFactors_[sourceIndex];
+      
+      // Calculate pixel bounds based on tile coordinates
+      let pixelBounds;
+      if (mapProj) {
+        // Get the extent of the requested tile in the map projection
+        const tileExtent = tileGrid.getTileCoordExtent([z, x, y]);
+        
+        // Transform the tile extent to the source projection
+        const sourceExtent = tileGrid.getExtent();
+        
+        // Calculate the relative position within the source extent
+        const xRatio = (tileExtent[0] - sourceExtent[0]) / (sourceExtent[2] - sourceExtent[0]);
+        const yRatio = (sourceExtent[3] - tileExtent[3]) / (sourceExtent[3] - sourceExtent[1]);
+        const widthRatio = (tileExtent[2] - tileExtent[0]) / (sourceExtent[2] - sourceExtent[0]);
+        const heightRatio = (tileExtent[3] - tileExtent[1]) / (sourceExtent[3] - sourceExtent[1]);
+        
+        // Calculate pixel bounds based on these ratios
+        const imageWidth = this.sourceImagery_[sourceIndex][z].getWidth();
+        const imageHeight = this.sourceImagery_[sourceIndex][z].getHeight();
+        
+        pixelBounds = [
+          Math.round(xRatio * imageWidth * resolutionFactor),
+          Math.round(yRatio * imageHeight * resolutionFactor),
+          Math.round((xRatio + widthRatio) * imageWidth * resolutionFactor),
+          Math.round((yRatio + heightRatio) * imageHeight * resolutionFactor)
+        ];
+      } else {
+        // Fall back to direct calculation if no projection transformation is needed
+        pixelBounds = [
+          Math.round(x * (sourceTileSize[0] * resolutionFactor)),
+          Math.round(y * (sourceTileSize[1] * resolutionFactor)),
+          Math.round((x + 1) * (sourceTileSize[0] * resolutionFactor)),
+          Math.round((y + 1) * (sourceTileSize[1] * resolutionFactor)),
+        ];
+      }
+>>>>>>> REPLACE
+```
+
+This fix adds projection handling to the `loadTile_` method. When the source has a projection, it:
+
+1. Gets the tile extent in the map's projection
+2. Calculates the relative position of this tile within the source's extent
+3. Converts this to pixel coordinates in the source image
+
+This allows the GeoTIFF source to correctly display tiles even when the map projection differs from the GeoTIFF's projection, enabling use cases like showing UTM-projected COGs on a Web Mercator or WGS84 map.

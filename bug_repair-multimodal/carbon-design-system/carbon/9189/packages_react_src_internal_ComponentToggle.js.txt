@@ -1,0 +1,59 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The problem is that when using `createComponentToggle` to toggle between classic and next versions of a component, the `displayName` of the original component is being lost. This is causing issues with the Breadcrumb component's overflow behavior, specifically with the "shark fin" styling and positioning.
+
+Looking at the code, I can see that the `ComponentToggle` function sets its own `displayName` to `FeatureToggle(${name})`, but it doesn't preserve the original component's `displayName`. This is important because other parts of the Carbon system (like the overflow handling in Breadcrumbs) rely on the component's `displayName` to apply specific styling.
+
+## Fix
+
+We need to modify the `createComponentToggle` function to properly preserve the `displayName` of the wrapped components. Here's the fix:
+
+```javascript
+### packages/react/src/internal/ComponentToggle.js
+<<<<<<< SEARCH
+  function ComponentToggle(props, ref) {
+    const enabled = useFeatureFlag(flag);
+    if (enabled) {
+      if (next) {
+        return React.createElement(next, { ...props, ref: ref });
+      } else {
+        return null;
+      }
+    }
+
+    return React.createElement(classic, { ...props, ref: ref });
+  }
+
+  ComponentToggle.displayName = `FeatureToggle(${name})`;
+
+  return React.forwardRef(ComponentToggle);
+=======
+  function ComponentToggle(props, ref) {
+    const enabled = useFeatureFlag(flag);
+    if (enabled) {
+      if (next) {
+        return React.createElement(next, { ...props, ref: ref });
+      } else {
+        return null;
+      }
+    }
+
+    return React.createElement(classic, { ...props, ref: ref });
+  }
+
+  ComponentToggle.displayName = `FeatureToggle(${name})`;
+
+  const WrappedComponent = React.forwardRef(ComponentToggle);
+  
+  // Preserve the original component's displayName for proper styling
+  if (classic && classic.displayName) {
+    WrappedComponent.displayName = classic.displayName;
+  }
+
+  return WrappedComponent;
+>>>>>>> REPLACE
+```
+
+This fix creates a wrapped component with `React.forwardRef`, then checks if the classic component has a `displayName`. If it does, it assigns that `displayName` to the wrapped component, which will ensure that styling and positioning that depends on the component's name (like the shark fin in Breadcrumb overflow) will work correctly.

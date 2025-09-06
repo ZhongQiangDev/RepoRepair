@@ -1,0 +1,55 @@
+Based on the issue description, the bug appears to be in the `iter_content` method of the Response class where socket errors are not being properly caught and wrapped in requests exceptions. The error occurs when reading chunks from the raw response stream.
+
+Here's the fix that wraps socket errors in a ConnectionError exception:
+
+```python
+### requests/models.py
+<<<<<<< SEARCH
+            try:
+                # Special case for urllib3.
+                try:
+                    for chunk in self.raw.stream(chunk_size, decode_content=True):
+                        yield chunk
+                except IncompleteRead as e:
+                    raise ChunkedEncodingError(e)
+                except DecodeError as e:
+                    raise ContentDecodingError(e)
+            except AttributeError:
+=======
+            try:
+                # Special case for urllib3.
+                try:
+                    for chunk in self.raw.stream(chunk_size, decode_content=True):
+                        yield chunk
+                except IncompleteRead as e:
+                    raise ChunkedEncodingError(e)
+                except DecodeError as e:
+                    raise ContentDecodingError(e)
+                except socket.error as e:
+                    raise ConnectionError(e)
+            except AttributeError:
+>>>>>>> REPLACE
+```
+
+This change:
+1. Adds a new except clause to catch socket.error exceptions
+2. Wraps them in a ConnectionError exception which is more appropriate for the requests library
+3. Maintains the existing error handling for IncompleteRead and DecodeError
+
+We also need to add the socket import and ConnectionError to the imports at the top of the file:
+
+```python
+### requests/models.py
+<<<<<<< SEARCH
+from .exceptions import (
+    HTTPError, RequestException, MissingSchema, InvalidURL,
+    ChunkedEncodingError, ContentDecodingError)
+=======
+import socket
+from .exceptions import (
+    HTTPError, RequestException, MissingSchema, InvalidURL,
+    ChunkedEncodingError, ContentDecodingError, ConnectionError)
+>>>>>>> REPLACE
+```
+
+These changes will ensure that socket errors are properly caught and wrapped in requests exceptions, providing a more consistent error handling experience for users of the library.

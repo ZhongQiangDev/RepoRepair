@@ -1,0 +1,107 @@
+Based on the issue description, the bug occurs when using `pyplot.clf()` and `pyplot.draw()` in the `on_changed` callback of a RangeSlider widget, which blocks input to all widgets. This suggests there may be an issue with how figure clearing and redrawing is handled in the widget callbacks.
+
+Looking at the code, the issue appears to be in the `FigureBase` class in `lib/matplotlib/figure.py`. The problem likely stems from how the figure's artists and event handlers are managed during clear/draw operations.
+
+Here's the proposed fix:
+
+```python
+### lib/matplotlib/figure.py
+<<<<<<< SEARCH
+    def clear(self, keep_observers=False):
+        """
+        Clear the figure.
+
+        Parameters
+        ----------
+        keep_observers : bool, default: False
+            Set *keep_observers* to True if, for example,
+            a gui widget is tracking the Axes in the figure.
+        """
+        self.suppressComposite = None
+
+        # first clear the axes in any subfigures
+        for subfig in self.subfigs:
+            subfig.clear(keep_observers=keep_observers)
+        self.subfigs = []
+
+        for ax in tuple(self.axes):  # Iterate over the copy.
+            ax.clear()
+            self.delaxes(ax)  # Remove ax from self._axstack.
+
+        self.artists = []
+        self.lines = []
+        self.patches = []
+        self.texts = []
+        self.images = []
+        self.legends = []
+        if not keep_observers:
+            self._axobservers = cbook.CallbackRegistry()
+        self._suptitle = None
+        self._supxlabel = None
+        self._supylabel = None
+
+        self.stale = True
+=======
+    def clear(self, keep_observers=False):
+        """
+        Clear the figure.
+
+        Parameters
+        ----------
+        keep_observers : bool, default: False
+            Set *keep_observers* to True if, for example,
+            a gui widget is tracking the Axes in the figure.
+        """
+        self.suppressComposite = None
+
+        # first clear the axes in any subfigures
+        for subfig in self.subfigs:
+            subfig.clear(keep_observers=keep_observers)
+        self.subfigs = []
+
+        # Store widget references before clearing
+        widgets = []
+        for ax in self.axes:
+            if hasattr(ax, 'get_children'):
+                for child in ax.get_children():
+                    if isinstance(child, mpl.widgets.Widget):
+                        widgets.append(child)
+
+        for ax in tuple(self.axes):  # Iterate over the copy.
+            ax.clear()
+            self.delaxes(ax)  # Remove ax from self._axstack.
+
+        self.artists = []
+        self.lines = []
+        self.patches = []
+        self.texts = []
+        self.images = []
+        self.legends = []
+        if not keep_observers:
+            self._axobservers = cbook.CallbackRegistry()
+            # Restore widget callbacks
+            for widget in widgets:
+                if hasattr(widget, '_observers'):
+                    self._axobservers.connect('_axes_change_event', widget._observers)
+        self._suptitle = None
+        self._supxlabel = None
+        self._supylabel = None
+
+        self.stale = True
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Preserves widget references before clearing the figure
+2. Restores widget callbacks after clearing if keep_observers is False
+3. Maintains widget event handling functionality during clear/redraw operations
+
+The key changes:
+- Store widget references before clearing axes
+- Restore widget callbacks after clearing if keep_observers is False
+- Specifically handle widget observers to maintain interactivity
+
+This should resolve the issue where widget inputs are blocked after using clf() and draw() in the RangeSlider callback, while maintaining proper widget functionality.
+
+The fix ensures that widget event handling remains intact through figure clearing operations, which was the root cause of the input blocking issue described in the bug report.

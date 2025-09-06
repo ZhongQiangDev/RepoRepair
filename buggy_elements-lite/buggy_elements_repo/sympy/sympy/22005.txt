@@ -1,0 +1,33 @@
+Let me help analyze this step by step:
+
+1. Wrong Behavior:
+The problem is in the handling of infinite solution cases in `solve_poly_system`. When given a polynomial system like `(x - 1,)` or `(y - 1,)` with two variables `x` and `y`, the function incorrectly handles the case where there should be infinite solutions. For `(y - 1,)`, it returns `[(1,)]` which is incorrect since x can be any value.
+
+2. Cause Analysis:
+The issue occurs in `_solve_reduced_system` where it checks for univariate polynomials. The current logic only checks `len(univariate) == 1` without considering the number of generators (variables). This means it treats a univariate polynomial in one variable as a complete solution even when there are other free variables that could take any value.
+
+3. Relevant Files/Functions Analysis:
+
+```
+sympy/solvers/polysys.py
+function: solve_poly_system
+function: _solve_reduced_system
+```
+
+```
+sympy/polys/polytools.py
+function: parallel_poly_from_expr
+```
+
+The issue primarily lies in `polysys.py` where the core polynomial system solving logic is implemented. The `solve_poly_system` function is the main entry point, and `_solve_reduced_system` contains the bug in its univariate polynomial handling logic.
+
+The `parallel_poly_from_expr` function from `polytools.py` is relevant as it's used to convert the input expressions into polynomial form for processing.
+
+```
+sympy/solvers/solvers.py
+This file contains no relevant functions/classes.
+```
+
+While this file contains general solving utilities, none of its functions are directly relevant to the polynomial system solving issue at hand.
+
+The fix involves modifying the condition in `_solve_reduced_system` to check both for a single univariate polynomial AND that the number of generators matches, ensuring infinite solution cases are properly handled.

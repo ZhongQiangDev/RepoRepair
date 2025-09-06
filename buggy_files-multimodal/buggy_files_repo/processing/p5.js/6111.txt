@@ -1,0 +1,41 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issues.
+
+## Identifying the Wrong Behavior
+
+The problem description highlights several issues with WebGL camera functions:
+
+1. The `ortho()` and `frustum()` functions don't properly set the near and far clipping planes - they're using default values instead of the provided parameters.
+
+2. The `frustum()` function defaults to something similar to `ortho()` but should behave more like `perspective()`, causing objects to disappear when called without arguments.
+
+3. There's an issue with the vertical direction being reversed in the matrix component calculation for `frustum()`.
+
+4. When the 3rd and 4th arguments of `ortho()` and `frustum()` are reversed, the vertical rotation direction is reversed due to the determinant of the projection matrix being negative.
+
+## Analyzing the Cause
+
+The core issue appears to be in the implementation of the camera projection functions in the WebGL renderer. Specifically:
+
+1. The `ortho()` and `frustum()` functions are not properly updating the camera's `cameraNear` and `cameraFar` properties.
+
+2. The default parameters for `frustum()` are not appropriate for its intended behavior.
+
+3. There's a sign issue in the matrix calculation for the y-component in `frustum()`.
+
+4. The determinant of the projection matrix can become negative when arguments are reversed, causing unexpected rotation behavior.
+
+## Files Most Related to the Cause
+
+```
+src/webgl/p5.Camera.js
+src/webgl/p5.Matrix.js
+src/webgl/p5.RendererGL.js
+```
+
+These files are the most relevant because:
+
+1. `src/webgl/p5.Camera.js` contains the implementation of the camera functions including `ortho()`, `frustum()`, and `perspective()`, which are directly mentioned in the bug report. This is the primary file that needs to be modified to fix the issues with near/far clipping planes and the default parameters.
+
+2. `src/webgl/p5.Matrix.js` handles the matrix calculations that are likely involved in the sign issues and determinant problems mentioned in the bug report.
+
+3. `src/webgl/p5.RendererGL.js` is the main WebGL renderer that works with the camera and may need adjustments to properly handle the camera properties.

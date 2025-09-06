@@ -1,0 +1,48 @@
+Based on the issue description, the bug is in the `HttpResponse` class's content handling, specifically when dealing with memoryview objects. The current implementation doesn't properly handle memoryview objects, causing them to be converted to their string representation rather than their actual content.
+
+The fix needs to be in the `make_bytes` method of the `HttpResponseBase` class, where we should add special handling for memoryview objects. Here's the fix:
+
+```python
+### django/http/response.py
+<<<<<<< SEARCH
+    def make_bytes(self, value):
+        """Turn a value into a bytestring encoded in the output charset."""
+        # Per PEP 3333, this response body must be bytes. To avoid returning
+        # an instance of a subclass, this function returns `bytes(value)`.
+        # This doesn't make a copy when `value` already contains bytes.
+
+        # Handle string types -- we can't rely on force_bytes here because:
+        # - Python attempts str conversion first
+        # - when self._charset != 'utf-8' it re-encodes the content
+        if isinstance(value, bytes):
+            return bytes(value)
+        if isinstance(value, str):
+            return bytes(value.encode(self.charset))
+        # Handle non-string types.
+        return str(value).encode(self.charset)
+=======
+    def make_bytes(self, value):
+        """Turn a value into a bytestring encoded in the output charset."""
+        # Per PEP 3333, this response body must be bytes. To avoid returning
+        # an instance of a subclass, this function returns `bytes(value)`.
+        # This doesn't make a copy when `value` already contains bytes.
+
+        # Handle string types -- we can't rely on force_bytes here because:
+        # - Python attempts str conversion first
+        # - when self._charset != 'utf-8' it re-encodes the content
+        if isinstance(value, (bytes, memoryview)):
+            return bytes(value)
+        if isinstance(value, str):
+            return bytes(value.encode(self.charset))
+        # Handle non-string types.
+        return str(value).encode(self.charset)
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Adds `memoryview` to the check for bytes-like objects
+2. Uses `bytes(value)` to properly convert the memoryview to bytes, which will preserve the actual content rather than converting it to a string representation
+
+The fix ensures that when a memoryview object is passed to HttpResponse, it will be properly converted to bytes, maintaining the actual content rather than converting it to a string representation of the memoryview object.
+
+This addresses the issue shown in the example where `HttpResponse(memoryview(b"My Content"))` was incorrectly outputting `b'<memory at 0x7fcc47ab2648>'` instead of the expected `b'My Content'`.

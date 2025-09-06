@@ -1,0 +1,44 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about rotated vector layer text styles not displaying at the correct location when the context is clipped and translated. Specifically:
+
+1. When text styles with rotation are clipped and translated, they appear at the original location instead of the translated location.
+2. This only happens for text styles with non-zero rotation values.
+3. Non-rotated text styles work correctly.
+
+Looking at the code in `src/ol/style/Text.js`, I need to identify what might be causing rotated text to behave differently from non-rotated text during translation operations.
+
+The issue is likely related to how the rotation is applied during rendering. When the context is translated, the rotation center might not be properly adjusted, causing the rotated text to appear at the original location.
+
+## Fix
+
+The issue is in the `Text.js` file. The problem is that when a text style has rotation, the rotation is applied relative to the original coordinates rather than the translated coordinates. We need to ensure that the rotation is properly handled when the context is clipped and translated.
+
+```javascript
+### src/ol/style/Text.js
+<<<<<<< SEARCH
+  /**
+   * Get the text rotation.
+   * @return {number|undefined} Rotation.
+   * @api
+   */
+  getRotation() {
+    return this.rotation_;
+  }
+=======
+  /**
+   * Get the text rotation.
+   * @return {number|undefined} Rotation.
+   * @api
+   */
+  getRotation() {
+    return this.rotation_ !== undefined ? this.rotation_ : 0;
+  }
+>>>>>>> REPLACE
+```
+
+This fix ensures that when `getRotation()` is called, it always returns a defined value (either the set rotation or 0). This is important because when the rendering context is translated, the rotation needs to be properly applied relative to the new coordinates.
+
+By ensuring the rotation is always a number (not undefined), the rendering code can properly handle the rotation transformation in the translated context. This should fix the issue where rotated text appears at the original location instead of the translated location.

@@ -1,0 +1,49 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when `rtl: true` is set in the legend configuration, the text in the legend goes off-screen and is not rendered correctly. This is a regression from the previous version of Chart.js, where the legend text was rendered correctly with RTL support.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from changes in the layout and rendering logic for RTL text in Chart.js v3. Specifically, the `_textX` calculation may not be RTL-aware, leading to incorrect positioning of the text. Additionally, the `renderText` function may not be alignment-aware for multi-line text, causing text to be rendered incorrectly in RTL mode.
+
+### 3. Examine Each File One by One
+
+#### --- src/core/core.layouts.js ---
+```
+src/core/core.layouts.js
+function: update
+function: placeBoxes
+function: buildLayoutBoxes
+```
+These functions are responsible for the layout and positioning of chart elements, including the legend. The `update` function manages the overall layout process, `placeBoxes` positions the boxes within the chart area, and `buildLayoutBoxes` organizes the boxes into layout groups. These functions may need to be updated to handle RTL layout correctly.
+
+#### --- src/helpers/helpers.canvas.js ---
+```
+src/helpers/helpers.canvas.js
+function: renderText
+```
+The `renderText` function is responsible for rendering text on the canvas. It needs to be alignment-aware for multi-line text and should handle RTL text correctly. The current implementation may not be handling RTL text properly, leading to the text going off-screen.
+
+#### --- src/helpers/helpers.rtl.js ---
+```
+src/helpers/helpers.rtl.js
+function: getRtlAdapter
+function: overrideTextDirection
+function: restoreTextDirection
+```
+The `getRtlAdapter` function provides an adapter for RTL layout transformations, which is crucial for handling RTL text. The `overrideTextDirection` and `restoreTextDirection` functions manage the text direction of the canvas context. These functions may need to be updated to ensure proper RTL support.
+
+#### --- src/plugins/plugin.legend.js ---
+```
+src/plugins/plugin.legend.js
+class: Legend
+function: generateLabels
+function: draw
+```
+The `Legend` class manages the legend's rendering and behavior. The `generateLabels` function generates the labels for the legend, and the `draw` function renders the legend on the canvas. These functions may need to be updated to handle RTL text correctly.
+
+#### --- types/helpers/helpers.rtl.d.ts ---
+```
+This file contains no relevant functions/classes.
+```
+This file defines the interface for RTL adapters but does not contain any implementation details. The actual implementation is in `src/helpers/helpers.rtl.js`.

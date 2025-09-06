@@ -1,0 +1,56 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Localization
+
+The issue is in the `client/blocks/app-banner/index.jsx` file. The problem is that the app banner is showing on the `/stats/activity` page when it shouldn't be. This happens because the current implementation only checks if the section is "stats" without distinguishing between different stats sub-pages.
+
+Looking at the code, the issue is in the `getCurrentSection` function (which is imported from `./utils`). The current implementation doesn't have enough information to distinguish between different stats pages like `/stats` and `/stats/activity`.
+
+The fix needs to check the current route to determine if we're on a specific stats sub-page like `/activity` and exclude the banner in that case.
+
+## Fix
+
+```javascript
+### client/blocks/app-banner/index.jsx
+<<<<<<< SEARCH
+const mapStateToProps = state => {
+	const sectionName = getSectionName( state );
+	const isNotesOpen = isNotificationsOpen( state );
+
+	return {
+		dismissedUntil: getPreference( state, APP_BANNER_DISMISS_TIMES_PREFERENCE ),
+		currentSection: getCurrentSection( sectionName, isNotesOpen ),
+		currentRoute: getCurrentRoute( state ),
+		fetchingPreferences: isFetchingPreferences( state ),
+		siteId: getSelectedSiteId( state ),
+	};
+};
+=======
+const mapStateToProps = state => {
+	const sectionName = getSectionName( state );
+	const isNotesOpen = isNotificationsOpen( state );
+	const currentRoute = getCurrentRoute( state );
+
+	// Don't show the banner on stats sub-pages like activity
+	const isStatsSubPage = sectionName === 'stats' && 
+		currentRoute && 
+		/^\/stats\/[^/]+\/\w+/.test( currentRoute );
+
+	return {
+		dismissedUntil: getPreference( state, APP_BANNER_DISMISS_TIMES_PREFERENCE ),
+		currentSection: isStatsSubPage ? null : getCurrentSection( sectionName, isNotesOpen ),
+		currentRoute,
+		fetchingPreferences: isFetchingPreferences( state ),
+		siteId: getSelectedSiteId( state ),
+	};
+};
+>>>>>>> REPLACE
+```
+
+This fix adds logic to detect if we're on a stats sub-page by checking if:
+1. The section name is 'stats'
+2. The current route matches a pattern like `/stats/[site]/activity` (or any other sub-page)
+
+If we're on a stats sub-page, we set `currentSection` to `null`, which will prevent the banner from showing since the render method checks if `currentSection` is included in `ALLOWED_SECTIONS`.
+
+The regex `/^\/stats\/[^/]+\/\w+/` matches routes like `/stats/siteslug/activity` but not just `/stats/siteslug`.

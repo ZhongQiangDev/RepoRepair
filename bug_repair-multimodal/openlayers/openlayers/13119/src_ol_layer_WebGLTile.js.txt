@@ -1,0 +1,164 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about adding a flag to WebGLTile Layers to change the WebGL blend function. Specifically, they need to set `gl.blendFunc(gl.ONE, gl.ONE)` for a subset of Tile Layers.
+
+Currently, the WebGLTileLayer class doesn't have an option to configure the blend function. The default blend function is set in the WebGL Helper class (as mentioned in the issue: https://github.com/openlayers/openlayers/blob/main/src/ol/webgl/Helper.js#L485-L488).
+
+## Solution
+
+We need to:
+1. Add a `blendFunction` property to the `Style` typedef
+2. Pass this property to the renderer when creating it
+3. Update the `setStyle` method to handle this property
+
+Here's the fix:
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+/**
+ * @typedef {Object} Style
+ * Translates tile data to rendered pixels.
+ *
+ * @property {Object<string, (string|number)>} [variables] Style variables.  Each variable must hold a number or string.  These
+ * variables can be used in the `color`, `brightness`, `contrast`, `exposure`, `saturation` and `gamma`
+ * {@link import("../style/expressions.js").ExpressionValue expressions}, using the `['var', 'varName']` operator.
+ * To update style variables, use the {@link import("./WebGLTile.js").default#updateStyleVariables} method.
+ * @property {import("../style/expressions.js").ExpressionValue} [color] An expression applied to color values.
+ * @property {import("../style/expressions.js").ExpressionValue} [brightness=0] Value used to decrease or increase
+ * the layer brightness.  Values range from -1 to 1.
+ * @property {import("../style/expressions.js").ExpressionValue} [contrast=0] Value used to decrease or increase
+ * the layer contrast.  Values range from -1 to 1.
+ * @property {import("../style/expressions.js").ExpressionValue} [exposure=0] Value used to decrease or increase
+ * the layer exposure.  Values range from -1 to 1.
+ * @property {import("../style/expressions.js").ExpressionValue} [saturation=0] Value used to decrease or increase
+ * the layer saturation.  Values range from -1 to 1.
+ * @property {import("../style/expressions.js").ExpressionValue} [gamma=1] Apply a gamma correction to the layer.
+ * Values range from 0 to infinity.
+ */
+=======
+/**
+ * @typedef {Object} Style
+ * Translates tile data to rendered pixels.
+ *
+ * @property {Object<string, (string|number)>} [variables] Style variables.  Each variable must hold a number or string.  These
+ * variables can be used in the `color`, `brightness`, `contrast`, `exposure`, `saturation` and `gamma`
+ * {@link import("../style/expressions.js").ExpressionValue expressions}, using the `['var', 'varName']` operator.
+ * To update style variables, use the {@link import("./WebGLTile.js").default#updateStyleVariables} method.
+ * @property {import("../style/expressions.js").ExpressionValue} [color] An expression applied to color values.
+ * @property {import("../style/expressions.js").ExpressionValue} [brightness=0] Value used to decrease or increase
+ * the layer brightness.  Values range from -1 to 1.
+ * @property {import("../style/expressions.js").ExpressionValue} [contrast=0] Value used to decrease or increase
+ * the layer contrast.  Values range from -1 to 1.
+ * @property {import("../style/expressions.js").ExpressionValue} [exposure=0] Value used to decrease or increase
+ * the layer exposure.  Values range from -1 to 1.
+ * @property {import("../style/expressions.js").ExpressionValue} [saturation=0] Value used to decrease or increase
+ * the layer saturation.  Values range from -1 to 1.
+ * @property {import("../style/expressions.js").ExpressionValue} [gamma=1] Apply a gamma correction to the layer.
+ * Values range from 0 to infinity.
+ * @property {string} [blendFunction='default'] WebGL blend function to use. 'default' uses gl.ONE, gl.ONE_MINUS_SRC_ALPHA.
+ * 'additive' uses gl.ONE, gl.ONE.
+ */
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+/**
+ * @typedef {Object} ParsedStyle
+ * @property {string} vertexShader The vertex shader.
+ * @property {string} fragmentShader The fragment shader.
+ * @property {Object<string,import("../webgl/Helper.js").UniformValue>} uniforms Uniform definitions.
+ */
+=======
+/**
+ * @typedef {Object} ParsedStyle
+ * @property {string} vertexShader The vertex shader.
+ * @property {string} fragmentShader The fragment shader.
+ * @property {Object<string,import("../webgl/Helper.js").UniformValue>} uniforms Uniform definitions.
+ * @property {string} [blendFunction] WebGL blend function to use.
+ */
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+/**
+ * @param {Style} style The layer style.
+ * @param {number} [bandCount] The number of bands.
+ * @return {ParsedStyle} Shaders and uniforms generated from the style.
+ */
+function parseStyle(style, bandCount) {
+=======
+/**
+ * @param {Style} style The layer style.
+ * @param {number} [bandCount] The number of bands.
+ * @return {ParsedStyle} Shaders and uniforms generated from the style.
+ */
+function parseStyle(style, bandCount) {
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+  return {
+    vertexShader: vertexShader,
+    fragmentShader: fragmentShader,
+    uniforms: uniforms,
+  };
+=======
+  return {
+    vertexShader: vertexShader,
+    fragmentShader: fragmentShader,
+    uniforms: uniforms,
+    blendFunction: style.blendFunction,
+  };
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+    return new WebGLTileLayerRenderer(this, {
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      cacheSize: this.cacheSize_,
+    });
+=======
+    return new WebGLTileLayerRenderer(this, {
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      cacheSize: this.cacheSize_,
+      blendFunction: parsedStyle.blendFunction,
+    });
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+    renderer.reset({
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+    });
+=======
+    renderer.reset({
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      blendFunction: parsedStyle.blendFunction,
+    });
+>>>>>>> REPLACE
+```
+
+These changes add a `blendFunction` property to the `Style` typedef and pass it through to the renderer. The renderer will need to be updated in another file (WebGLTileLayerRenderer.js) to use this property to set the appropriate blend function, but that's not included in the provided code.
+
+The implementation allows for a string value like 'default' or 'additive', which can be mapped to the appropriate WebGL blend function constants in the renderer.

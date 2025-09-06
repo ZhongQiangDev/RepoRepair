@@ -1,0 +1,34 @@
+Based on the issue description, the bug occurs when using `select_related()` and `only()` methods on proxy models. The error happens because the code is trying to access the primary key field's attname from the proxy model's meta instead of the concrete model's meta.
+
+The fix needs to be in the `names_to_path` method where it handles field resolution. We need to use the concrete model's meta when looking up fields.
+
+Here's the fix:
+
+```python
+### django/db/models/sql/query.py
+<<<<<<< SEARCH
+            if opts is not None and model is not opts.model:
+                path_to_parent = opts.get_path_to_parent(model)
+                if path_to_parent:
+                    path.extend(path_to_parent)
+                    cur_names_with_path[1].extend(path_to_parent)
+                    opts = path_to_parent[-1].to_opts
+=======
+            if opts is not None and model is not opts.concrete_model:
+                path_to_parent = opts.get_path_to_parent(model)
+                if path_to_parent:
+                    path.extend(path_to_parent)
+                    cur_names_with_path[1].extend(path_to_parent)
+                    opts = path_to_parent[-1].to_opts
+>>>>>>> REPLACE
+```
+
+This change makes the code compare against the concrete model instead of the model directly. This ensures that when dealing with proxy models, we properly handle the field resolution by using the concrete model's metadata.
+
+The fix works because:
+
+1. For proxy models, the concrete_model points to the actual model that has the database table
+2. This ensures we get the correct field information from the real model rather than the proxy
+3. It prevents the "id is not in list" error by properly finding the primary key field in the concrete model
+
+The original code was comparing against opts.model which could be a proxy model, leading to incorrect field resolution. By using concrete_model instead, we ensure we're always working with the actual model that has the database table and fields.

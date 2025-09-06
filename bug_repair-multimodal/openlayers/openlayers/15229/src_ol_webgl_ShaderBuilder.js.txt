@@ -1,0 +1,40 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about icon distortion in the `WebGLPoints` layer when `icon-rotate-with-view: true` is used with a non-square viewport. Looking at the code, I need to focus on the shader generation in `ShaderBuilder.js`.
+
+The problem appears to be in the vertex shader for symbols. When rotating icons with the view, the code is not accounting for the aspect ratio of the viewport, which causes distortion when the viewport is not square.
+
+In the `getSymbolVertexShader` method, the `pxToScreen` function converts pixel coordinates to screen coordinates but doesn't account for the aspect ratio when rotating. This causes the icons to be stretched or squished when the viewport is not square.
+
+Here's my fix:
+
+```javascript
+### src/ol/webgl/ShaderBuilder.js
+<<<<<<< SEARCH
+vec2 pxToScreen(vec2 coordPx) {
+  vec2 scaled = coordPx / u_viewportSizePx / 0.5;
+  ${
+    this.symbolRotateWithView_
+      ? 'scaled = vec2(scaled.x * cos(-u_rotation) - scaled.y * sin(-u_rotation), scaled.x * sin(-u_rotation) + scaled.y * cos(-u_rotation));'
+      : ''
+  }
+  return scaled;
+}
+=======
+vec2 pxToScreen(vec2 coordPx) {
+  vec2 scaled = coordPx / u_viewportSizePx / 0.5;
+  ${
+    this.symbolRotateWithView_
+      ? 'float aspectRatio = u_viewportSizePx.x / u_viewportSizePx.y; scaled.y *= aspectRatio; scaled = vec2(scaled.x * cos(-u_rotation) - scaled.y * sin(-u_rotation), scaled.x * sin(-u_rotation) + scaled.y * cos(-u_rotation)); scaled.y /= aspectRatio;'
+      : ''
+  }
+  return scaled;
+}
+>>>>>>> REPLACE
+```
+
+This fix adjusts the y-coordinate by the aspect ratio before rotation and then reverses the adjustment after rotation. This ensures that the icons maintain their proper proportions regardless of the viewport's aspect ratio.
+
+The key insight is that we need to apply the rotation in a normalized coordinate space where the aspect ratio is 1:1, and then convert back to the actual viewport coordinates.

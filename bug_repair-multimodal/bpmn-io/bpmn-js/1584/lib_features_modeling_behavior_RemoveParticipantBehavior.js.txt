@@ -1,0 +1,51 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue has two related problems:
+1. When redoing the addition of the first participant, the process ID changes unexpectedly
+2. When deleting the last participant (not via undo), the process ID also changes
+
+Looking at the code in `RemoveParticipantBehavior.js`, I can see that when the last participant is removed, the `modeling.makeProcess()` function is called. This function likely creates a new process with a new ID, which explains why the process ID changes when deleting the last participant.
+
+The issue with redo is likely because the undo/redo system doesn't properly preserve the original process ID when redoing the addition of a participant.
+
+## Fix
+
+The solution is to modify the `RemoveParticipantBehavior.js` file to preserve the process ID when removing the last participant. We need to pass the original process ID to the `makeProcess()` function.
+
+```javascript
+### lib/features/modeling/behavior/RemoveParticipantBehavior.js
+<<<<<<< SEARCH
+  this.postExecute('shape.delete', function(context) {
+
+    var collaborationRoot = context.collaborationRoot;
+
+    if (collaborationRoot && !collaborationRoot.businessObject.participants.length) {
+
+      // replace empty collaboration with process diagram
+      modeling.makeProcess();
+    }
+  }, true);
+=======
+  this.postExecute('shape.delete', function(context) {
+
+    var collaborationRoot = context.collaborationRoot;
+
+    if (collaborationRoot && !collaborationRoot.businessObject.participants.length) {
+      // get the original process ID before replacing
+      var processId = collaborationRoot.businessObject.id;
+
+      // replace empty collaboration with process diagram, preserving the ID
+      modeling.makeProcess({ processId: processId });
+    }
+  }, true);
+>>>>>>> REPLACE
+```
+
+This change ensures that when the last participant is removed, the original process ID is preserved and passed to the `makeProcess()` function. This should fix both issues:
+
+1. When redoing the addition of the first participant, the process ID will remain the same
+2. When deleting the last participant, the process ID will also remain the same
+
+The fix assumes that the `makeProcess()` function can accept an options object with a `processId` property. If the actual implementation is different, the fix might need to be adjusted accordingly.

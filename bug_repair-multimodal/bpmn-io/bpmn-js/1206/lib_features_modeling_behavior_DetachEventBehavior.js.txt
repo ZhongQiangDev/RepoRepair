@@ -1,0 +1,74 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when multiple boundary events are selected and moved to the canvas (detached from their host), they are not being converted to intermediate events. This happens because the current implementation in `DetachEventBehavior.js` only handles the case when a single shape is being moved (`shapes.length !== 1` causes an early return).
+
+The bug is in the condition that checks if there's only one shape being moved. We need to modify the code to handle multiple shapes as well.
+
+## Fix
+
+```javascript
+### lib/features/modeling/behavior/DetachEventBehavior.js
+<<<<<<< SEARCH
+  this.preExecute('elements.move', function(context) {
+    var shapes = context.shapes,
+        host = context.newHost,
+        shape,
+        eventDefinition,
+        intermediateEvent,
+        newShape;
+
+    if (shapes.length !== 1) {
+      return;
+    }
+
+    shape = shapes[0];
+
+    if (!isLabel(shape) && !host && is(shape, 'bpmn:BoundaryEvent')) {
+=======
+  this.preExecute('elements.move', function(context) {
+    var shapes = context.shapes,
+        host = context.newHost,
+        replacedShapes = [];
+
+    // Process all shapes that are boundary events being detached
+    shapes.forEach(function(shape) {
+      var eventDefinition,
+          intermediateEvent,
+          newShape;
+
+      if (!isLabel(shape) && !host && is(shape, 'bpmn:BoundaryEvent')) {
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/modeling/behavior/DetachEventBehavior.js
+<<<<<<< SEARCH
+      newShape = bpmnReplace.replaceElement(shape, intermediateEvent, { layoutConnection: false });
+
+      context.shapes = [ newShape ];
+    }
+=======
+        newShape = bpmnReplace.replaceElement(shape, intermediateEvent, { layoutConnection: false });
+        
+        replacedShapes.push(newShape);
+      } else {
+        replacedShapes.push(shape);
+      }
+    });
+
+    if (replacedShapes.length) {
+      context.shapes = replacedShapes;
+    }
+>>>>>>> REPLACE
+```
+
+This fix modifies the `DetachEventBehavior` to:
+
+1. Process all shapes in the context, not just when there's a single shape
+2. For each boundary event being detached (moved without a new host), replace it with an appropriate intermediate event
+3. Build a new array of shapes that includes both the replaced shapes and any non-boundary event shapes
+4. Update the context with the new array of shapes
+
+This ensures that when multiple boundary events are selected and moved to the canvas, they are all properly converted to intermediate events.

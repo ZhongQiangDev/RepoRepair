@@ -1,0 +1,63 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when a user deletes an element while direct editing is active. From the error message and the GIF, we can see that:
+
+1. When an element is being edited (direct editing is active)
+2. And the element is deleted via the context pad
+3. The application throws an error: "illegal invocation in <execute> or <revert> phase (action: element.updateLabel)"
+
+The problem is in the `UpdateLabelHandler.js` file. When an element is deleted during direct editing, the label update command is still executed, but the element no longer exists, causing the error.
+
+Looking at the code, the issue is likely in the `execute` function of the `UpdateLabelHandler`. It doesn't check if the element still exists before trying to update its label.
+
+## Fix
+
+We need to add a check in the `execute` method to verify that the element still exists in the diagram before attempting to update its label.
+
+```javascript
+### lib/features/label-editing/cmd/UpdateLabelHandler.js
+<<<<<<< SEARCH
+  function execute(ctx) {
+    ctx.oldLabel = getLabel(ctx.element);
+    return setText(ctx.element, ctx.newLabel);
+  }
+=======
+  function execute(ctx) {
+    var element = ctx.element;
+    
+    // Check if the element still exists in the diagram
+    if (!element || element.parent === null) {
+      return [];
+    }
+    
+    ctx.oldLabel = getLabel(element);
+    return setText(element, ctx.newLabel);
+  }
+>>>>>>> REPLACE
+```
+
+Similarly, we should add the same check to the `revert` function to ensure it doesn't try to operate on a deleted element:
+
+```javascript
+### lib/features/label-editing/cmd/UpdateLabelHandler.js
+<<<<<<< SEARCH
+  function revert(ctx) {
+    return setText(ctx.element, ctx.oldLabel);
+  }
+=======
+  function revert(ctx) {
+    var element = ctx.element;
+    
+    // Check if the element still exists in the diagram
+    if (!element || element.parent === null) {
+      return [];
+    }
+    
+    return setText(element, ctx.oldLabel);
+  }
+>>>>>>> REPLACE
+```
+
+These changes will prevent the error by checking if the element still exists before attempting to update its label. If the element has been removed, the functions will return an empty array instead of trying to operate on a non-existent element.

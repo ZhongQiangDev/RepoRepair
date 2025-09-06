@@ -1,0 +1,57 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that the image layer renderer is using more memory than necessary. Specifically, for image sources with a pixel ratio of 1, the renderer creates a canvas with the size for the display pixel ratio instead of the image ratio of the source. This results in a canvas that is twice as big as needed for HiDPI devices, consuming 4 times the memory.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue is likely related to how the canvas size is determined during the rendering process. The renderer is not correctly accounting for the pixel ratio of the image source, leading to an unnecessarily large canvas being created. This could be due to a mismatch between the pixel ratio used for the canvas and the pixel ratio of the image source.
+
+### 3. Examine Each File One by One
+
+#### src/ol/Image.js
+
+This file contains no relevant functions/classes.
+
+#### src/ol/render.js
+
+```
+src/ol/render.js
+function: function_1
+```
+
+The `function_1` function in `src/ol/render.js` is responsible for initializing a canvas context for drawing geometries. It determines the `pixelRatio` from the options or defaults to the device's pixel ratio (`ol.has.DEVICE_PIXEL_RATIO`). This function could be relevant because it sets the canvas dimensions based on the `pixelRatio`, which might be contributing to the issue.
+
+#### src/ol/render/canvas.js
+
+This file contains no relevant functions/classes.
+
+#### src/ol/renderer/canvas/ImageLayer.js
+
+```
+src/ol/renderer/canvas/ImageLayer.js
+class: CanvasImageLayerRenderer
+```
+
+The `CanvasImageLayerRenderer` class is responsible for rendering image layers onto a canvas. The `prepareFrame` and `renderFrame` methods in this class handle the preparation and rendering of the image, including transformations and scaling. This class is likely relevant because it directly manages the rendering process and could be where the canvas size is incorrectly determined.
+
+#### src/ol/source/ImageCanvas.js
+
+```
+src/ol/source/ImageCanvas.js
+class: ImageCanvasSource
+```
+
+The `ImageCanvasSource` class manages image sources represented by a canvas element. The `getImageInternal` method calculates the canvas size based on the extent, resolution, pixel ratio, and projection. This method could be relevant because it determines the size of the canvas, which might be contributing to the memory issue.
+
+### Summary of Relevant Locations
+
+```
+src/ol/render.js
+function: function_1
+
+src/ol/renderer/canvas/ImageLayer.js
+class: CanvasImageLayerRenderer
+
+src/ol/source/ImageCanvas.js
+class: ImageCanvasSource
+```

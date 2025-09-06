@@ -1,0 +1,35 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about an Ad Hoc Collapsed Subprocess getting weird dimensions when:
+1. A subprocess with a child element is created and expanded
+2. The subprocess is collapsed
+3. The subprocess is converted to an Ad Hoc subprocess
+
+From the GIF in the issue, it appears that the subprocess is getting resized incorrectly when it's converted to an Ad Hoc subprocess. This suggests there might be a problem with how the dimensions are handled during this transformation.
+
+Looking at the provided code, we're seeing the `ResizeLaneHandler.js` file, which handles resizing of lanes. While this file doesn't directly handle Ad Hoc subprocesses, the issue might be related to how space is calculated and adjusted when elements are resized.
+
+The bug is likely in the `resizeSpace` method, specifically in how it calculates space adjustments. The issue shows that when converting to an Ad Hoc subprocess, the dimensions change unexpectedly, which could be due to incorrect space calculations.
+
+## Fix
+
+The problem appears to be in the `resizeSpace` method where the `spacePos` for horizontal resizing is calculated with a hardcoded value of `100` for the left direction, which seems inconsistent with the vertical resizing logic that uses `10` for both directions.
+
+```javascript
+### lib/features/modeling/cmd/ResizeLaneHandler.js
+<<<<<<< SEARCH
+    change = trblDiff.right || trblDiff.left;
+    spacePos = shape.x + (trblDiff.right ? shape.width : 0) + (trblDiff.right ? -10 : 100);
+    direction = trblDiff.right ? 'e' : 'w';
+=======
+    change = trblDiff.right || trblDiff.left;
+    spacePos = shape.x + (trblDiff.right ? shape.width : 0) + (trblDiff.right ? -10 : 10);
+    direction = trblDiff.right ? 'e' : 'w';
+>>>>>>> REPLACE
+```
+
+This fix makes the horizontal resizing logic consistent with the vertical resizing logic by using the same offset value (`10`) for both directions. The inconsistency in these values could be causing the weird dimensions when converting a subprocess to an Ad Hoc subprocess, as the space calculations would be different for horizontal vs. vertical adjustments.
+
+The value `100` seems unusually large compared to the `-10` used for the right direction, and this inconsistency could be causing the unexpected resizing behavior seen in the issue.

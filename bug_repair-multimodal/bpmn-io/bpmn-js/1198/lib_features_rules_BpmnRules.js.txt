@@ -1,0 +1,109 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a Timer Intermediate Catch Event (or other catch events) is added to a non-default sequence flow, the `default` attribute on the exclusive gateway is being removed, even though the default flow is still visually rendered.
+
+Looking at the provided code, I don't see the specific function that handles this behavior. The issue is likely in the code that updates the model when a catch event is added to a sequence flow. 
+
+Since we don't have the complete codebase, I'll need to make an educated guess about where the bug might be. Based on the issue description, the problem is likely in the code that handles the connection between elements, particularly when modifying a sequence flow by adding an intermediate event.
+
+The most relevant part of the provided code is the `canConnect` function, which determines if elements can be connected. However, the actual bug is probably in the implementation that handles adding an intermediate event to an existing sequence flow.
+
+Since we don't have the exact file where the bug is located, I'll provide a general solution that addresses the issue based on common patterns in BPMN modeling libraries.
+
+## Proposed Fix
+
+The issue is likely in a function that handles adding intermediate events to sequence flows. When this happens, the code is probably creating a new sequence flow and not preserving the `default` attribute from the original flow.
+
+Here's a proposed fix:
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+// When updating sequence flows after adding an intermediate catch event
+// The code is likely not preserving the default attribute
+
+// Look for a function that handles updating connections or sequence flows
+// It might be in a file like BpmnUpdater.js, ConnectionUpdater.js, or similar
+
+// The problematic code might look something like this:
+if (businessObject.sourceRef && businessObject.sourceRef.default === businessObject) {
+  businessObject.sourceRef.default = null;
+}
+=======
+// When updating sequence flows after adding an intermediate catch event
+// We need to preserve the default attribute
+
+// Only remove the default reference if this sequence flow is actually being removed
+// not when it's just being split by an intermediate event
+if (businessObject.sourceRef && 
+    businessObject.sourceRef.default === businessObject && 
+    context.removingConnection) {
+  businessObject.sourceRef.default = null;
+}
+>>>>>>> REPLACE
+```
+
+Since I don't have the exact file and code that's causing the issue, this is a general pattern for the fix. The key idea is to only remove the `default` attribute when a sequence flow is actually being removed, not when it's being modified by adding an intermediate event.
+
+Alternatively, if the issue is in the code that creates new sequence flows after splitting an existing one, the fix might look like:
+
+```javascript
+### lib/features/modeling/cmd/AddFlowNodeHandler.js
+<<<<<<< SEARCH
+// Create new connections
+var newSourceConnection = modeling.createConnection(
+  source,
+  element,
+  {
+    type: connection.type,
+    waypoints: newSourceWaypoints
+  },
+  parent
+);
+
+var newTargetConnection = modeling.createConnection(
+  element,
+  target,
+  {
+    type: connection.type,
+    waypoints: newTargetWaypoints
+  },
+  parent
+);
+=======
+// Get the original connection's business object
+var connectionBO = getBusinessObject(connection);
+var sourceBO = connectionBO.sourceRef;
+var isDefaultFlow = sourceBO && sourceBO.default === connectionBO;
+
+// Create new connections
+var newSourceConnection = modeling.createConnection(
+  source,
+  element,
+  {
+    type: connection.type,
+    waypoints: newSourceWaypoints
+  },
+  parent
+);
+
+var newTargetConnection = modeling.createConnection(
+  element,
+  target,
+  {
+    type: connection.type,
+    waypoints: newTargetWaypoints
+  },
+  parent
+);
+
+// Preserve the default flow attribute if the original connection was a default flow
+if (isDefaultFlow) {
+  sourceBO.default = getBusinessObject(newSourceConnection);
+}
+>>>>>>> REPLACE
+```
+
+This fix ensures that when a sequence flow is split by adding an intermediate event, the `default` attribute on the source gateway is preserved and properly updated to reference the new sequence flow.

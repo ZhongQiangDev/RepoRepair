@@ -1,0 +1,30 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that VectorLayers with both `declutter: true` and `opacity < 1` are not clearing properly between renders, causing a "ghosting" effect where previous renders remain visible when panning the map.
+
+Looking at the code, I notice that the `NON_DECLUTTER` array is defined but its filter function is empty. This array should contain all builder types that are not in the `DECLUTTER` array. The `DECLUTTER` array contains 'Image' and 'Text' types.
+
+The issue is likely related to how decluttered layers with opacity are being handled during rendering. When a layer has opacity < 1, the canvas needs to be properly cleared between renders to prevent the accumulation of semi-transparent elements.
+
+## Fix
+
+```javascript
+### src/ol/render/canvas/ExecutorGroup.js
+<<<<<<< SEARCH
+export const NON_DECLUTTER = ALL.filter(
+
+);
+=======
+export const NON_DECLUTTER = ALL.filter(
+  (builderType) => !DECLUTTER.includes(builderType)
+);
+>>>>>>> REPLACE
+```
+
+This fix properly defines the `NON_DECLUTTER` array to include all builder types that are not in the `DECLUTTER` array. This ensures that the rendering system correctly identifies which elements need special handling for decluttering.
+
+The empty filter function was causing the `NON_DECLUTTER` array to be empty, which likely affected how the rendering system determined which elements to clear between renders when opacity was less than 1.
+
+By properly filtering the builder types, the rendering system can now correctly handle the clearing of semi-transparent decluttered layers between renders, preventing the ghosting effect observed when panning the map.

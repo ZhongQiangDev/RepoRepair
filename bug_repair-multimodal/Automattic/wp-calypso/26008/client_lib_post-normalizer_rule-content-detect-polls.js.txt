@@ -1,0 +1,77 @@
+I'll analyze the issue and provide a fix for the Crowdsignal survey detection problem.
+
+## Bug Analysis
+
+The issue is that embedded Crowdsignal (formerly Polldaddy) surveys are not being displayed in the Reader. The current code only detects Polldaddy polls but not surveys, which have a different embedding structure.
+
+Looking at the code in `rule-content-detect-polls.js`, I can see that it's only looking for links that match the pattern `http://polldaddy.com/poll/` which would only catch polls, not surveys.
+
+Based on the issue description, we need to add detection for Crowdsignal surveys as well. Surveys likely have a different URL pattern, probably something like `http://polldaddy.com/survey/` or `http://crowdsignal.com/survey/`.
+
+## Fix
+
+```javascript
+### client/lib/post-normalizer/rule-content-detect-polls.js
+<<<<<<< SEARCH
+		const pollLink = noscriptDom.querySelector( 'a[href^="http://polldaddy.com/poll/"]' );
+		if ( pollLink ) {
+			const pollId = pollLink.href.match( /https?:\/\/polldaddy.com\/poll\/([0-9]+)/ )[ 1 ];
+			if ( pollId ) {
+				const p = document.createElement( 'p' );
+				p.innerHTML =
+					'<a target="_blank" rel="external noopener noreferrer" href="https://polldaddy.com/poll/' +
+					pollId +
+					'">' +
+					i18n.translate( 'Take our poll' ) +
+					'</a>';
+				noscript.parentNode.replaceChild( p, noscript );
+			}
+		}
+=======
+		// Check for poll links (polldaddy.com/poll/ or crowdsignal.com/poll/)
+		const pollLink = noscriptDom.querySelector( 'a[href^="http://polldaddy.com/poll/"], a[href^="https://polldaddy.com/poll/"], a[href^="http://crowdsignal.com/poll/"], a[href^="https://crowdsignal.com/poll/"]' );
+		if ( pollLink ) {
+			const pollIdMatch = pollLink.href.match( /https?:\/\/(polldaddy|crowdsignal)\.com\/poll\/([0-9]+)/ );
+			if ( pollIdMatch && pollIdMatch[2] ) {
+				const domain = pollIdMatch[1] === 'polldaddy' ? 'polldaddy' : 'crowdsignal';
+				const pollId = pollIdMatch[2];
+				const p = document.createElement( 'p' );
+				p.innerHTML =
+					'<a target="_blank" rel="external noopener noreferrer" href="https://' + domain + '.com/poll/' +
+					pollId +
+					'">' +
+					i18n.translate( 'Take our poll' ) +
+					'</a>';
+				noscript.parentNode.replaceChild( p, noscript );
+			}
+		}
+		
+		// Check for survey links (polldaddy.com/s/ or crowdsignal.com/s/)
+		const surveyLink = noscriptDom.querySelector( 'a[href^="http://polldaddy.com/s/"], a[href^="https://polldaddy.com/s/"], a[href^="http://crowdsignal.com/s/"], a[href^="https://crowdsignal.com/s/"]' );
+		if ( surveyLink ) {
+			const surveyIdMatch = surveyLink.href.match( /https?:\/\/(polldaddy|crowdsignal)\.com\/s\/([a-zA-Z0-9-]+)/ );
+			if ( surveyIdMatch && surveyIdMatch[2] ) {
+				const domain = surveyIdMatch[1] === 'polldaddy' ? 'polldaddy' : 'crowdsignal';
+				const surveyId = surveyIdMatch[2];
+				const p = document.createElement( 'p' );
+				p.innerHTML =
+					'<a target="_blank" rel="external noopener noreferrer" href="https://' + domain + '.com/s/' +
+					surveyId +
+					'">' +
+					i18n.translate( 'Take our survey' ) +
+					'</a>';
+				noscript.parentNode.replaceChild( p, noscript );
+			}
+		}
+>>>>>>> REPLACE
+```
+
+This fix adds support for both Crowdsignal surveys and polls by:
+
+1. Expanding the poll detection to include both polldaddy.com and crowdsignal.com domains
+2. Adding a new section to detect survey links, which typically use the pattern `/s/` instead of `/poll/`
+3. Handling both HTTP and HTTPS links
+4. Using the appropriate domain (polldaddy or crowdsignal) in the replacement link
+5. Using "Take our survey" text for surveys instead of "Take our poll"
+
+The fix maintains backward compatibility with existing poll embeds while adding support for the new survey format.

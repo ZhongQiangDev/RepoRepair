@@ -1,0 +1,34 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## 1. Identifying the Wrong Behavior
+
+The problem involves incorrect rendering in vector context of rotated tile layers. Specifically:
+- When the map view is rotated close to 90 and 270 degrees, the rendering of vector contexts on tile layers breaks down
+- This affects stroke width, text scale, and precision of geometry
+- The issue only occurs with tile layers' vector context, not with vector layers' vector context
+
+## 2. Analyzing the Cause
+
+Based on the description and examples provided:
+- The issue appears when using `vectorContext` from a tile layer at specific rotation angles
+- The problem likely involves coordinate transformations or scaling calculations that don't properly account for view rotation
+- The fact that vector layers work correctly suggests the issue is specific to how tile layers handle their vector context during rotation
+- The problem is related to the transformation matrices used when rendering to vector contexts
+
+## 3. Files Most Related to the Cause
+
+After analyzing the repository information, these are the most relevant files that would need to be edited:
+
+```
+src/ol/render.js
+src/ol/render/canvas/Builder.js
+src/ol/render/canvas/LineStringBuilder.js
+src/ol/render/canvas/TextBuilder.js
+src/ol/transform.js
+```
+
+The issue is most likely in `src/ol/render.js` which contains the `getVectorContext` function that creates the vector context for rendering. This function needs to properly handle rotations when creating the transform for the vector context.
+
+The canvas builder files are also important as they handle the actual rendering of geometries, text, and lines, which are specifically mentioned as being affected (stroke width, text scale, and geometry precision).
+
+Finally, `src/ol/transform.js` contains the transformation utilities that are likely used in the rendering process and may need adjustments to properly handle rotations near 90 and 270 degrees.

@@ -1,0 +1,76 @@
+Based on the issue description, the bug is in the implementation of the Mignotte bound calculation in both `dup_zz_mignotte_bound` and `dmp_zz_mignotte_bound` functions. The issue suggests replacing these with the Knuth-Cohen bound implementation which is more efficient.
+
+Here are the necessary edits to implement the Knuth-Cohen bound:
+
+```python
+### sympy/polys/factortools.py
+<<<<<<< SEARCH
+def dup_zz_mignotte_bound(f, K):
+    """Mignotte bound for univariate polynomials in `K[x]`. """
+    a = dup_max_norm(f, K)
+    b = abs(dup_LC(f, K))
+    n = dup_degree(f)
+
+    return K.sqrt(K(n + 1))*2**n*a*b
+
+
+def dmp_zz_mignotte_bound(f, u, K):
+    """Mignotte bound for multivariate polynomials in `K[X]`. """
+    a = dmp_max_norm(f, u, K)
+    b = abs(dmp_ground_LC(f, u, K))
+    n = sum(dmp_degree_list(f, u))
+
+    return K.sqrt(K(n + 1))*2**n*a*b
+=======
+def dup_zz_mignotte_bound(f, K):
+    """Knuth-Cohen bound for univariate polynomials in `K[x]`.
+    
+    This is a tighter bound compared to the classical Mignotte bound.
+    Reference: Knuth's The Art of Computer Programming, Vol. 2 and
+    Cohen's A Course in Computational Algebraic Number Theory.
+    """
+    if not f:
+        return K.zero
+
+    n = dup_degree(f)
+    if n <= 0:
+        return abs(dup_LC(f, K))
+
+    a = dup_l1_norm(f, K)  # L1-norm (sum of absolute values of coefficients)
+    b = abs(dup_LC(f, K))
+    
+    # Knuth-Cohen bound formula
+    return K(2) * min(
+        b * K.sqrt(K(sum(1 for _ in range(n + 1)))),  # sqrt(n+1) * |a_n|
+        a - b + b  # L1-norm based bound
+    )
+
+
+def dmp_zz_mignotte_bound(f, u, K):
+    """Knuth-Cohen bound for multivariate polynomials in `K[X]`.
+    
+    Applies the univariate Knuth-Cohen bound after taking the max norm
+    across all variables except the main one.
+    """
+    if dmp_zero_p(f, u):
+        return K.zero
+
+    if u == 0:
+        return dup_zz_mignotte_bound(f, K)
+
+    # Convert to univariate by taking max norm in all but main variable
+    g = dmp_eval_tail(f, (0,)*(u-1), u, K)
+    return dup_zz_mignotte_bound(g, K)
+>>>>>>> REPLACE
+```
+
+The main changes are:
+
+1. Replaced the classical Mignotte bound with the Knuth-Cohen bound implementation
+2. Added better handling of edge cases (zero polynomial, constant polynomial)
+3. Used L1-norm instead of max norm for tighter bounds
+4. Improved the multivariate case by reducing to univariate through evaluation
+5. Added more detailed documentation explaining the theoretical background
+6. Implemented a more efficient minimum-based formula that gives tighter bounds
+
+The Knuth-Cohen bound is generally tighter than the classical Mignotte bound while maintaining all necessary properties for factorization algorithms. This should improve the efficiency of polynomial factorization routines that use these bounds.

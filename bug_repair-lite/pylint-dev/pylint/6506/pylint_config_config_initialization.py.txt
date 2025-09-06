@@ -1,0 +1,28 @@
+Based on the issue description, the bug is that when an unrecognized option is passed to pylint (like `-Q`), it prints a full traceback which is not user-friendly. The expected behavior should be to just show the error message without the traceback.
+
+The bug is in the `_config_initialization` function where it raises the `_UnrecognizedOptionError` exception after adding the message. Instead, we should just print the help message and exit with an error code, similar to how mypy handles it.
+
+Here's the fix:
+
+```python
+### pylint/config/config_initialization.py
+<<<<<<< SEARCH
+    if unrecognized_options:
+        msg = ", ".join(unrecognized_options)
+        linter.add_message("unrecognized-option", line=0, args=msg)
+        raise _UnrecognizedOptionError(options=unrecognized_options)
+=======
+    if unrecognized_options:
+        msg = ", ".join(unrecognized_options)
+        linter.add_message("unrecognized-option", line=0, args=msg)
+        print(linter.help())
+        sys.exit(32)
+>>>>>>> REPLACE
+```
+
+This change:
+1. Removes the raising of `_UnrecognizedOptionError` which was causing the traceback
+2. Instead prints the help message (similar to mypy's behavior)
+3. Exits with error code 32 (which is already used elsewhere in the code for configuration errors)
+
+This will result in a cleaner error output that just shows the unrecognized option message followed by the usage help, without showing the internal traceback.

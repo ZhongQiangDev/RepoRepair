@@ -1,0 +1,60 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that setting the opacity option in `ol/layer/Heatmap` has no effect. The opacity setting worked in version 6.9.0 but doesn't work in the latest version. The issue also mentions that opacity works for WebGL Points layers in the latest version.
+
+Looking at the code, I can see that the `Heatmap` class extends `BaseVector` and creates a `WebGLPointsLayerRenderer` for rendering. The opacity property is set in the base class (`BaseVector` which extends from `Layer`), but it seems that the opacity value is not being passed to or used by the WebGL renderer.
+
+The issue is that the opacity setting from the layer is not being applied in the WebGL rendering pipeline for the heatmap layer.
+
+## Fix
+
+The fix is to pass the layer's opacity to the WebGL renderer. We need to modify the fragment shader in the post-processing step to apply the layer's opacity.
+
+```javascript
+### src/ol/layer/Heatmap.js
+<<<<<<< SEARCH
+            precision mediump float;
+
+            uniform sampler2D u_image;
+            uniform sampler2D u_gradientTexture;
+
+            varying vec2 v_texCoord;
+
+            void main() {
+              vec4 color = texture2D(u_image, v_texCoord);
+              gl_FragColor.a = color.a;
+              gl_FragColor.rgb = texture2D(u_gradientTexture, vec2(0.5, color.a)).rgb;
+              gl_FragColor.rgb *= gl_FragColor.a;
+            }`,
+          uniforms: {
+            u_gradientTexture: function () {
+              return this.gradient_;
+            }.bind(this),
+=======
+            precision mediump float;
+
+            uniform sampler2D u_image;
+            uniform sampler2D u_gradientTexture;
+            uniform float u_opacity;
+
+            varying vec2 v_texCoord;
+
+            void main() {
+              vec4 color = texture2D(u_image, v_texCoord);
+              gl_FragColor.a = color.a * u_opacity;
+              gl_FragColor.rgb = texture2D(u_gradientTexture, vec2(0.5, color.a)).rgb;
+              gl_FragColor.rgb *= gl_FragColor.a;
+            }`,
+          uniforms: {
+            u_gradientTexture: function () {
+              return this.gradient_;
+            }.bind(this),
+            u_opacity: function () {
+              return this.getOpacity();
+            }.bind(this),
+>>>>>>> REPLACE
+```
+
+This change adds a new uniform `u_opacity` to the fragment shader and applies it to the alpha channel of the output color. The uniform gets its value from the layer's `getOpacity()` method, which is inherited from the base layer class.

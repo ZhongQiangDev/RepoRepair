@@ -1,0 +1,95 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about disallowing typed start events inside non-event based sub-processes. According to the BPMN specification, typed start events (like timer start events, message start events, etc.) are not allowed inside regular sub-processes - they're only allowed at the process level or in event sub-processes.
+
+The issue requests two specific tasks:
+1. Disallow morphing to typed start event inside sub-process
+2. Drop event type when moving start event to sub-process
+
+Looking at the code, the `BpmnReplace.js` file handles element replacement, but it doesn't have logic to prevent typed start events in sub-processes or to drop event types when moving start events to sub-processes.
+
+## Solution
+
+We need to modify the `replaceElement` function in `BpmnReplace.js` to:
+1. Check if we're trying to replace a start event with a typed start event inside a sub-process
+2. Handle dropping event types when moving a start event to a sub-process
+
+Here's the fix:
+
+```javascript
+### lib/features/replace/BpmnReplace.js
+<<<<<<< SEARCH
+    // initialize custom BPMN extensions
+    if (target.eventDefinitionType) {
+
+      // only initialize with new eventDefinition
+      // if we did not set an event definition yet,
+      // i.e. because we copied it
+      if (!hasEventDefinition(newBusinessObject, target.eventDefinitionType)) {
+        newElement.eventDefinitionType = target.eventDefinitionType;
+        newElement.eventDefinitionAttrs = target.eventDefinitionAttrs;
+      }
+    }
+=======
+    // initialize custom BPMN extensions
+    if (target.eventDefinitionType) {
+
+      // only initialize with new eventDefinition
+      // if we did not set an event definition yet,
+      // i.e. because we copied it
+      if (!hasEventDefinition(newBusinessObject, target.eventDefinitionType)) {
+        // disallow typed start events inside non-event based sub processes
+        if (is(newBusinessObject, 'bpmn:StartEvent') && 
+            newBusinessObject.$parent && 
+            is(newBusinessObject.$parent, 'bpmn:SubProcess') && 
+            !newBusinessObject.$parent.triggeredByEvent) {
+          // skip adding event definition for start events inside non-event sub processes
+        } else {
+          newElement.eventDefinitionType = target.eventDefinitionType;
+          newElement.eventDefinitionAttrs = target.eventDefinitionAttrs;
+        }
+      }
+    }
+>>>>>>> REPLACE
+```
+
+Now we need to add a function to handle dropping event types when moving a start event to a sub-process. This should be added to the modeling module, but since we're only looking at the `BpmnReplace.js` file, I'll add a check to handle this case when a start event is being moved to a sub-process:
+
+```javascript
+### lib/features/replace/BpmnReplace.js
+<<<<<<< SEARCH
+    if (
+      target.host &&
+      !is(oldBusinessObject, 'bpmn:BoundaryEvent') &&
+      is(newBusinessObject, 'bpmn:BoundaryEvent')
+    ) {
+      newElement.host = target.host;
+    }
+=======
+    if (
+      target.host &&
+      !is(oldBusinessObject, 'bpmn:BoundaryEvent') &&
+      is(newBusinessObject, 'bpmn:BoundaryEvent')
+    ) {
+      newElement.host = target.host;
+    }
+
+    // drop event definition when moving a typed start event to a non-event sub process
+    if (is(newBusinessObject, 'bpmn:StartEvent') && 
+        newBusinessObject.$parent && 
+        is(newBusinessObject.$parent, 'bpmn:SubProcess') && 
+        !newBusinessObject.$parent.triggeredByEvent &&
+        newBusinessObject.eventDefinitions && 
+        newBusinessObject.eventDefinitions.length) {
+      newBusinessObject.eventDefinitions = [];
+    }
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Prevent adding event definitions to start events inside non-event sub-processes when morphing
+2. Remove event definitions from start events when they're moved to non-event sub-processes
+
+Note: The complete solution would likely involve changes to other files as well, particularly in the modeling and rules modules, to fully implement the constraints. However, based on the file provided, these changes address the core functionality needed.

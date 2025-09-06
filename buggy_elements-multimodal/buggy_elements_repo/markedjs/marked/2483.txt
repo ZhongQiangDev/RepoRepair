@@ -1,0 +1,64 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that a fenced code block following a list item is not recognized as a code block if it contains blank lines. Instead of being rendered as a code block, it is treated as regular text.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how the `marked` library processes fenced code blocks within list items. Specifically, the parser may not correctly handle blank lines within the fenced code block, causing it to misinterpret the block as regular text instead of a code block.
+
+### 3. Examine Each File One by One
+
+#### --- lib/marked.esm.js ---
+```
+lib/marked.esm.js
+function: fences
+function: list
+function: listitem
+function: blockTokens
+```
+
+- **`fences`**: This function is responsible for identifying and processing fenced code blocks. If it fails to correctly handle blank lines within a fenced code block, it could lead to the described issue.
+- **`list`**: This function processes markdown lists. It may need to correctly handle nested elements like fenced code blocks.
+- **`listitem`**: This function processes individual list items. It should ensure that nested elements like fenced code blocks are correctly identified.
+- **`blockTokens`**: This function processes block-level elements and may need to correctly handle nested elements within lists.
+
+#### --- lib/marked.umd.js ---
+```
+This file contains no relevant functions/classes.
+```
+
+#### --- src/Lexer.js ---
+```
+src/Lexer.js
+function: blockTokens
+function: inline
+function: inlineTokens
+function: lex
+```
+
+- **`blockTokens`**: This function processes block-level elements and may need to correctly handle nested elements within lists.
+- **`inline`**: This function processes inline elements within block-level elements and may need to correctly handle nested elements like fenced code blocks.
+- **`inlineTokens`**: This function processes inline tokens and may need to correctly handle nested elements like fenced code blocks.
+- **`lex`**: This function is the main entry point for lexing and may need to correctly handle nested elements within lists.
+
+#### --- src/Parser.js ---
+```
+src/Parser.js
+function: parse
+function: parseInline
+```
+
+- **`parse`**: This function processes tokens and may need to correctly handle nested elements within lists.
+- **`parseInline`**: This function processes inline tokens and may need to correctly handle nested elements like fenced code blocks.
+
+#### --- src/Tokenizer.js ---
+```
+src/Tokenizer.js
+function: indentCodeCompensation
+function: outputLink
+class: Tokenizer
+```
+
+- **`indentCodeCompensation`**: This function handles indentation adjustments for code blocks and may need to correctly handle blank lines within fenced code blocks.
+- **`outputLink`**: This function processes links and may not be directly relevant to the issue, but it is included as a general tokenizer function.
+- **`Tokenizer`**: This class is responsible for converting raw Markdown text into a structured token tree. It handles both block-level and inline-level elements. The issue might be related to how it identifies and extracts code blocks within lists.

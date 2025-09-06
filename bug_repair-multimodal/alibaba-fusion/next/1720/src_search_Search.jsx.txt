@@ -1,0 +1,61 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is with the Search component's behavior when autocomplete suggestions are shown:
+
+1. When a user types "r", autocomplete suggestions appear
+2. When the user presses Enter, the search is performed with the input value "r" instead of selecting the first suggestion "Recent"
+
+The problem is in the `onKeyDown` method. Currently, when Enter is pressed, it directly calls `onSearch()` which uses the current input value, ignoring any highlighted autocomplete suggestion.
+
+The fix should ensure that when Enter is pressed and there are autocomplete suggestions, the component should select the highlighted suggestion before performing the search.
+
+## Fix
+
+```javascript
+### src/search/Search.jsx
+<<<<<<< SEARCH
+    onKeyDown = e => {
+        if (this.props.disabled) {
+            return;
+        }
+        if (e.keyCode !== KEYCODE.ENTER) {
+            return;
+        }
+        this.onSearch();
+    };
+=======
+    onKeyDown = e => {
+        if (this.props.disabled) {
+            return;
+        }
+        if (e.keyCode !== KEYCODE.ENTER) {
+            return;
+        }
+        // Don't handle Enter key here as it will be handled by AutoComplete's onPressEnter
+        // This prevents duplicate handling which was causing the issue
+        // The onPressEnter in AutoComplete will select the highlighted item first
+    };
+>>>>>>> REPLACE
+```
+
+Additionally, we need to modify the AutoComplete component to properly handle the Enter key:
+
+```javascript
+### src/search/Search.jsx
+<<<<<<< SEARCH
+                    onPressEnter={this.onSearch}
+=======
+                    onPressEnter={() => {
+                        // This will be called after AutoComplete has selected the highlighted item
+                        this.onSearch();
+                    }}
+>>>>>>> REPLACE
+```
+
+These changes ensure that when Enter is pressed:
+1. The `onKeyDown` handler doesn't immediately trigger a search with the current input value
+2. The AutoComplete component's `onPressEnter` handler is called, which will first select the highlighted suggestion and then trigger the search with the selected value
+
+This fixes the issue where pressing Enter would search for the input text instead of the highlighted suggestion.

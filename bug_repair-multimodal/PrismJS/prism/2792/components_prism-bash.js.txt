@@ -1,0 +1,87 @@
+I'll analyze the issue and provide a fix for the ANSI-C quoting highlighting in Bash.
+
+## Issue Analysis
+
+The issue is about incorrect syntax highlighting for ANSI-C quoting in Bash. ANSI-C quoting is a feature in Bash where a string is prefixed with `$'` and allows for escape sequences like `\n` to be interpreted. In the example, the code `echo $'module.exports = {...}'` is not being highlighted correctly.
+
+Looking at the code, I notice that the current string patterns in the Prism language definition for Bash don't account for ANSI-C quoting. The string patterns need to be updated to include this syntax.
+
+## Solution
+
+We need to add a new pattern for ANSI-C quoting in the `string` array of the Bash language definition. This pattern should match strings that start with `$'` and end with `'`, and should properly handle escape sequences inside.
+
+Here's the fix:
+
+```javascript
+### components/prism-bash.js
+<<<<<<< SEARCH
+		'string': [
+			// Support for Here-documents https://en.wikipedia.org/wiki/Here_document
+			{
+				pattern: /((?:^|[^<])<<-?\s*)(\w+?)\s[\s\S]*?(?:\r?\n|\r)\2/,
+				lookbehind: true,
+				greedy: true,
+				inside: insideString
+			},
+			// Here-document with quotes around the tag
+			// → No expansion (so no "inside").
+			{
+				pattern: /((?:^|[^<])<<-?\s*)(["'])(\w+)\2\s[\s\S]*?(?:\r?\n|\r)\3/,
+				lookbehind: true,
+				greedy: true,
+				inside: {
+					'bash': commandAfterHeredoc
+				}
+			},
+			// "Normal" string
+			{
+				pattern: /(^|[^\\](?:\\\\)*)(["'])(?:\\[\s\S]|\$\([^)]+\)|\$(?!\()|`[^`]+`|(?!\2)[^\\`$])*\2/,
+				lookbehind: true,
+				greedy: true,
+				inside: insideString
+			}
+=======
+		'string': [
+			// Support for Here-documents https://en.wikipedia.org/wiki/Here_document
+			{
+				pattern: /((?:^|[^<])<<-?\s*)(\w+?)\s[\s\S]*?(?:\r?\n|\r)\2/,
+				lookbehind: true,
+				greedy: true,
+				inside: insideString
+			},
+			// Here-document with quotes around the tag
+			// → No expansion (so no "inside").
+			{
+				pattern: /((?:^|[^<])<<-?\s*)(["'])(\w+)\2\s[\s\S]*?(?:\r?\n|\r)\3/,
+				lookbehind: true,
+				greedy: true,
+				inside: {
+					'bash': commandAfterHeredoc
+				}
+			},
+			// ANSI-C quoting
+			{
+				pattern: /\$'(?:\\[\s\S]|[^\\'])*'/,
+				greedy: true,
+				inside: insideString
+			},
+			// "Normal" string
+			{
+				pattern: /(^|[^\\](?:\\\\)*)(["'])(?:\\[\s\S]|\$\([^)]+\)|\$(?!\()|`[^`]+`|(?!\2)[^\\`$])*\2/,
+				lookbehind: true,
+				greedy: true,
+				inside: insideString
+			}
+>>>>>>> REPLACE
+```
+
+This change adds a new pattern specifically for ANSI-C quoting in Bash. The pattern `\$'(?:\\[\s\S]|[^\\'])*'/` matches:
+- `\$'` - The literal characters `$'` that start ANSI-C quoting
+- `(?:\\[\s\S]|[^\\'])*` - Any number of characters that are either:
+  - `\\[\s\S]` - An escaped character (including newlines with `\n`)
+  - `[^\\']` - Any character that's not a backslash or single quote
+- `'` - The closing single quote
+
+The `greedy: true` ensures that the pattern captures as much as possible, and `inside: insideString` applies the same highlighting rules for variables and escape sequences as other string types.
+
+This should correctly highlight ANSI-C quoted strings in Bash, including the escape sequences like `\n` that were causing issues in the example.

@@ -1,0 +1,36 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that single-package package names (like "baz" in the example) are not being highlighted in Java code. Looking at the code, I can see that the problem is in the namespace pattern definition.
+
+Currently, the namespace pattern requires at least one dot in the package name (`[a-z]\w*(?:\.[a-z]\w*)+`). This means it only matches multi-level package names like "foo.bar" but not single-level package names like "baz".
+
+Here's the fix:
+
+```javascript
+### components/prism-java.js
+<<<<<<< SEARCH
+		'namespace': {
+			pattern: /(\b(?:exports|import(?:\s+static)?|module|open|opens|package|provides|requires|to|transitive|uses|with)\s+)[a-z]\w*(?:\.[a-z]\w*)+/,
+			lookbehind: true,
+			inside: {
+				'punctuation': /\./,
+			}
+		},
+=======
+		'namespace': {
+			pattern: /(\b(?:exports|import(?:\s+static)?|module|open|opens|package|provides|requires|to|transitive|uses|with)\s+)[a-z]\w*(?:\.[a-z]\w*)*/,
+			lookbehind: true,
+			inside: {
+				'punctuation': /\./,
+			}
+		},
+>>>>>>> REPLACE
+```
+
+The change I made is to modify the regex pattern from `[a-z]\w*(?:\.[a-z]\w*)+` to `[a-z]\w*(?:\.[a-z]\w*)*`. 
+
+This change allows for:
+- Single-level package names (like "baz") by making the dot and subsequent identifier optional
+- Multi-level package names (like "foo.bar") as before
+
+The `+` quantifier meant "one or more occurrences" of the dot and subsequent identifier, while the `*` quantifier means "zero or more occurrences", which allows for single-package names.

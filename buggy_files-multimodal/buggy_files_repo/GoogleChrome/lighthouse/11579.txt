@@ -1,0 +1,31 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- NO_FCP (No First Contentful Paint) occurs when the tab is in the background
+- Cannot measure performance metrics
+- Issue persists regardless of remote server or localhost
+- CLI works fine, suggesting it's specific to the extension
+
+2. Cause Analysis:
+- The issue appears to be related to Chrome's behavior of throttling background tabs
+- When running Lighthouse via the extension in a background tab, it cannot properly measure FCP
+- This is likely due to Chrome's resource management policies for background tabs
+- The CLI works because it runs in a dedicated Chrome instance without background tab throttling
+
+3. Most Related Files:
+```
+lighthouse-core/audits/metrics/first-contentful-paint.js
+lighthouse-core/computed/metrics/first-contentful-paint.js
+lighthouse-core/lib/tracehouse/trace-processor.js
+lighthouse-core/gather/gatherers/trace-elements.js
+lighthouse-core/computed/metrics/lantern-first-contentful-paint.js
+```
+
+These files are most relevant because:
+1. first-contentful-paint.js (audit) is directly responsible for measuring and reporting FCP metrics
+2. first-contentful-paint.js (computed) handles the actual computation of FCP values
+3. trace-processor.js processes trace events which are essential for FCP measurement
+4. trace-elements.js gathers trace data needed for FCP calculation
+5. lantern-first-contentful-paint.js provides simulated FCP estimates when direct measurement fails
+
+These components work together to measure FCP, and their interaction with Chrome's background tab behavior is likely causing the reported issue.

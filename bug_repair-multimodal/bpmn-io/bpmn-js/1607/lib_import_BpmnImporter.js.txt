@@ -1,0 +1,40 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about groups inside collapsed sub-processes causing warnings during BPMN export/import. The error message shows "unresolved reference <CategoryValue_01k5toe>", which suggests that when a group is created inside a collapsed sub-process, its category value reference isn't being properly handled during import.
+
+Looking at the provided code, I notice that the `BpmnImporter.js` file is incomplete - it's missing several important methods that would handle the import of different BPMN elements, including groups. The issue is likely in how the importer handles category values associated with groups.
+
+The key problem is that the `_getElement` method in `BpmnImporter.js` only looks up elements by their semantic ID, but doesn't handle references to elements that might not be directly registered, such as category values used by groups.
+
+## Fix
+
+I need to modify the `_getElement` method to handle category value references properly:
+
+```javascript
+### lib/import/BpmnImporter.js
+<<<<<<< SEARCH
+BpmnImporter.prototype._getElement = function(semantic) {
+  return this._elementRegistry.get(semantic.id);
+};
+=======
+BpmnImporter.prototype._getElement = function(semantic) {
+  if (!semantic) {
+    return null;
+  }
+  
+  if (semantic.$instanceOf('bpmn:CategoryValue')) {
+    // For category values, we need to create a reference
+    // even if the element is not yet drawn
+    return { id: semantic.id };
+  }
+  
+  return this._elementRegistry.get(semantic.id);
+};
+>>>>>>> REPLACE
+```
+
+This fix modifies the `_getElement` method to handle the special case of category values. When a category value is referenced (which is what groups use), it returns a simple object with the ID even if the element isn't yet registered in the element registry. This prevents the "unresolved reference" warning when importing diagrams with groups inside collapsed sub-processes.
+
+The fix works by checking if the semantic element is an instance of "bpmn:CategoryValue" and, if so, returning a simple reference object instead of trying to look it up in the registry.

@@ -1,0 +1,43 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when an intermediate event is dropped on a sequence flow with a condition expression, and the event is changed to a "Timer Intermediate Catch Event," the condition expression is removed from the sequence flow. This is unexpected behavior as the condition expression should remain intact.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely lies in the way the BPMN model is updated when the intermediate event type is changed. Specifically, the process of replacing the intermediate event with a "Timer Intermediate Catch Event" might not properly preserve the properties of the sequence flow, including the condition expression.
+
+### 3. Examine Each File One by One
+
+#### --- lib/features/modeling/BpmnUpdater.js ---
+```
+lib/features/modeling/BpmnUpdater.js
+function: function_27
+```
+The `function_27` function updates connection details in a BPMN diagram. It checks the type of the business object and updates the source and target references accordingly. This function might be involved in the process of updating the sequence flow when the intermediate event type is changed.
+
+#### --- lib/features/modeling/behavior/ReplaceElementBehaviour.js ---
+```
+lib/features/modeling/behavior/ReplaceElementBehaviour.js
+function: replaceElements
+```
+The `replaceElements` function is responsible for replacing elements in a BPMN diagram. It iterates over the `newElements` array and replaces the old elements with the new ones. This function might be responsible for the removal of the condition expression when the intermediate event type is changed.
+
+#### --- lib/features/modeling/cmd/UpdatePropertiesHandler.js ---
+```
+lib/features/modeling/cmd/UpdatePropertiesHandler.js
+function: function_2
+```
+The `function_2` function updates a BPMN element with a set of new properties. It handles updates related to the `DEFAULT_FLOW` property and updates the `businessObject` with the new properties. This function might be involved in the process of updating the sequence flow properties when the intermediate event type is changed.
+
+#### --- lib/features/replace/BpmnReplace.js ---
+```
+lib/features/replace/BpmnReplace.js
+function: replaceElement
+```
+The `replaceElement` function replaces a BPMN element with a new one while preserving relevant properties. This function might be responsible for the removal of the condition expression when the intermediate event type is changed.
+
+#### --- lib/features/rules/BpmnRules.js ---
+```
+This file contains no relevant functions/classes.
+```
+The functions in this file are related to rules for BPMN modeling, but they do not directly handle the updating or replacing of elements, which is where the issue likely lies.

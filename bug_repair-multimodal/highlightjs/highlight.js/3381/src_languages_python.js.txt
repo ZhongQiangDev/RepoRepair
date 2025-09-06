@@ -1,0 +1,32 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that in Python code, when an identifier contains `def` as a substring (like `_undef`), the `def` part is being incorrectly highlighted as a keyword. This happens specifically when the identifier is followed by a newline and another identifier.
+
+Looking at the code, the problem is likely in how the Python language definition handles keyword matching. The issue started in version 11.0.0, which suggests a change in the regex pattern matching or keyword handling.
+
+The root cause appears to be in the `KEYWORDS` definition. The `$pattern` property is set to `/[A-Za-z]\w+|__\w+__/`, which doesn't properly restrict keyword matching to whole words. This allows partial matches within identifiers.
+
+Here's the fix:
+
+```javascript
+### src/languages/python.js
+<<<<<<< SEARCH
+  const KEYWORDS = {
+    $pattern: /[A-Za-z]\w+|__\w+__/,
+    keyword: RESERVED_WORDS,
+    built_in: BUILT_INS,
+    literal: LITERALS,
+    type: TYPES
+  };
+=======
+  const KEYWORDS = {
+    $pattern: /\b[A-Za-z]\w+\b|\b__\w+__\b/,
+    keyword: RESERVED_WORDS,
+    built_in: BUILT_INS,
+    literal: LITERALS,
+    type: TYPES
+  };
+>>>>>>> REPLACE
+```
+
+This change adds word boundary assertions (`\b`) to the pattern, ensuring that keywords are only matched as complete words, not as parts of larger identifiers. This will prevent `def` from being highlighted when it appears as part of another identifier like `_undef`.

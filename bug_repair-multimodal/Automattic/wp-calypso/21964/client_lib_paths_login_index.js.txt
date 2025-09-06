@@ -1,0 +1,66 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when a user:
+1. Starts at a WPCC login page with a client_id parameter
+2. Switches to signup form
+3. Switches back to login form
+4. Reloads the page
+
+At this point, the client_id is lost, causing the styling to be lost. The login page appears as the standard WordPress.com login page instead of the branded/styled version.
+
+Looking at the code, the `login()` function in `client/lib/paths/login/index.js` handles generating the login URL, but it doesn't preserve the client_id parameter when redirecting. This is why the styling is lost after the flow described in the issue.
+
+## Fix
+
+We need to modify the `login()` function to include the client_id parameter when it's provided:
+
+```javascript
+### client/lib/paths/login/index.js
+<<<<<<< SEARCH
+export function login( {
+	isNative,
+	locale,
+	redirectTo,
+	twoFactorAuthType,
+	socialConnect,
+	emailAddress,
+	socialService,
+} = {} ) {
+=======
+export function login( {
+	isNative,
+	locale,
+	redirectTo,
+	twoFactorAuthType,
+	socialConnect,
+	emailAddress,
+	socialService,
+	clientId,
+} = {} ) {
+>>>>>>> REPLACE
+```
+
+```javascript
+### client/lib/paths/login/index.js
+<<<<<<< SEARCH
+	if ( emailAddress ) {
+		url = addQueryArgs( { email_address: emailAddress }, url );
+	}
+
+	return url;
+=======
+	if ( emailAddress ) {
+		url = addQueryArgs( { email_address: emailAddress }, url );
+	}
+
+	if ( clientId ) {
+		url = addQueryArgs( { client_id: clientId }, url );
+	}
+
+	return url;
+>>>>>>> REPLACE
+```
+
+This change adds a new parameter `clientId` to the function signature and ensures that if a client_id is provided, it will be included in the generated URL. This will preserve the client_id when switching between login and signup forms, ensuring the proper styling is maintained even after page reloads.

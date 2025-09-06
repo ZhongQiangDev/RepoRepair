@@ -1,0 +1,68 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about whether to automatically add a `title` attribute to Menu Items. Currently, the code always adds a `title` attribute by calling `this.getTitle(children)` in the render method. This causes several problems:
+
+1. When the title is identical to the displayed text, it violates WCAG principles about duplicate text
+2. Some users don't want the title tooltip to appear
+
+According to the issue, the preferred solution seems to be "Option 3":
+- For Menu.Item with pure string children: automatically set title (to help with truncated text)
+- For custom Menu.Item (non-pure string children): don't set title
+
+## Solution
+
+I'll modify the `getTitle` method to check if the children are pure strings, and only return a title in that case. If the children contain components, it will return null to avoid setting the title attribute.
+
+```javascript
+### src/menu/view/item.jsx
+<<<<<<< SEARCH
+    getTitle(children) {
+        let labelString = '';
+
+        const loop = children => {
+            Children.forEach(children, child => {
+                if (isValidElement(child) && child.props.children) {
+                    loop(child.props.children);
+                } else if (typeof child === 'string') {
+                    labelString += child;
+                }
+            });
+        };
+
+        loop(children);
+
+        return labelString;
+    }
+=======
+    getTitle(children) {
+        let labelString = '';
+        let hasComponent = false;
+
+        const loop = children => {
+            Children.forEach(children, child => {
+                if (isValidElement(child)) {
+                    hasComponent = true;
+                    if (child.props.children) {
+                        loop(child.props.children);
+                    }
+                } else if (typeof child === 'string') {
+                    labelString += child;
+                }
+            });
+        };
+
+        loop(children);
+
+        // Only return title for pure string children
+        return hasComponent ? null : labelString;
+    }
+>>>>>>> REPLACE
+```
+
+This change implements the third option from the issue description. It will:
+1. Only set the title attribute when the Menu.Item contains pure string content
+2. Not set the title when there are custom components inside the Menu.Item
+
+This addresses the concerns about duplicate text for screen readers while still providing the hover tooltip functionality for truncated text in simple menu items.

@@ -1,0 +1,62 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that Lighthouse fails to measure the First Contentful Paint (FCP) metric when the tab is in the background. This results in an error message "NO_FCP" and prevents the evaluation of performance and PWA checklist items.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely arises because the background tab does not receive the necessary resources or focus required to accurately measure the FCP. When a tab is in the background, the browser may throttle or pause certain processes, including the recording of trace events, which are crucial for calculating the FCP metric. This could lead to incomplete or missing trace data, resulting in the "NO_FCP" error.
+
+### 3. Examine Each File One by One and Determine Relevant Functions/Classes
+
+#### lighthouse-core/audits/metrics/first-contentful-paint.js
+```
+lighthouse-core/audits/metrics/first-contentful-paint.js
+class: FirstContentfulPaint
+```
+The `FirstContentfulPaint` class is directly involved in computing the FCP metric. The issue may be related to how the audit handles trace data when the tab is in the background. The `audit` method may need to be adjusted to handle cases where trace data is incomplete or missing.
+
+#### lighthouse-core/computed/metrics/first-contentful-paint.js
+```
+lighthouse-core/computed/metrics/first-contentful-paint.js
+class: FirstContentfulPaint
+```
+The `FirstContentfulPaint` class in this file is responsible for computing the FCP metric using either simulated or observed data. The `computeObservedMetric` method, which relies on `traceOfTab` data, may need to be modified to handle scenarios where the tab is in the background and trace data is incomplete.
+
+#### lighthouse-core/computed/metrics/lantern-first-contentful-paint.js
+```
+lighthouse-core/computed/metrics/lantern-first-contentful-paint.js
+class: LanternFirstContentfulPaint
+```
+The `LanternFirstContentfulPaint` class is involved in simulating the FCP metric. While this class is more focused on simulation, it may still need to be considered if the issue is related to how the simulation handles background tabs.
+
+#### lighthouse-core/gather/gatherers/trace-elements.js
+```
+This file contains no relevant functions/classes.
+```
+The `TraceElements` class and `getNodeDetailsData` function are related to gathering trace elements and do not directly compute the FCP metric. They are less likely to be directly involved in the "NO_FCP" issue.
+
+#### lighthouse-core/lib/tracehouse/trace-processor.js
+```
+lighthouse-core/lib/tracehouse/trace-processor.js
+class: TraceProcessor
+```
+The `TraceProcessor` class is responsible for processing and analyzing trace events. The issue may be related to how the class handles trace events when the tab is in the background. Methods like `computeTraceOfTab` and `filteredTraceSort` may need to be adjusted to ensure that trace events are correctly processed even when the tab is not in focus.
+
+### Summary of Relevant Locations
+
+1. ```
+lighthouse-core/audits/metrics/first-contentful-paint.js
+class: FirstContentfulPaint
+```
+2. ```
+lighthouse-core/computed/metrics/first-contentful-paint.js
+class: FirstContentfulPaint
+```
+3. ```
+lighthouse-core/computed/metrics/lantern-first-contentful-paint.js
+class: LanternFirstContentfulPaint
+```
+4. ```
+lighthouse-core/lib/tracehouse/trace-processor.js
+class: TraceProcessor
+```

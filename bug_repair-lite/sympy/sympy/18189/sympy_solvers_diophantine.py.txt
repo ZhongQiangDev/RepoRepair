@@ -1,0 +1,31 @@
+Based on the issue description, the bug appears to be in the `diophantine()` function where the order of symbols affects the completeness of results when `permute=True`. The issue shows that using `syms=(m,n)` gives all 8 solutions while `syms=(n,m)` only gives 1 solution.
+
+Looking at the code, the bug is in the `diophantine()` function where it handles the `syms` parameter. The current code incorrectly maps the solutions back to the original variables when `syms` is provided. Here's the fix:
+
+```python
+### sympy/solvers/diophantine.py
+<<<<<<< SEARCH
+            syms = [i for i in syms if i in var]
+            if syms != var:
+                dict_sym_index = dict(zip(syms, range(len(syms))))
+                return {tuple([t[dict_sym_index[i]] for i in var])
+                            for t in diophantine(eq, param)}
+=======
+            syms = [i for i in syms if i in var]
+            if syms != var:
+                dict_sym_index = dict(zip(var, range(len(var))))
+                result = diophantine(eq, param, permute=permute)
+                return {tuple([t[dict_sym_index[i]] for i in syms])
+                            for t in result}
+>>>>>>> REPLACE
+```
+
+The fix makes the following changes:
+
+1. Creates the dictionary mapping using `var` instead of `syms` to properly track original variable positions
+2. Passes through the `permute` parameter to maintain permutation behavior
+3. Maps the solutions to the requested `syms` order instead of the original `var` order
+
+This ensures that regardless of the order of symbols provided in `syms`, the function will return the complete set of solutions when `permute=True` is specified.
+
+The original code was incorrectly trying to map the solutions from the `syms` ordering back to the `var` ordering, which caused some solutions to be lost. The fix ensures we map from the original variable positions to the requested symbol ordering while preserving all solutions.

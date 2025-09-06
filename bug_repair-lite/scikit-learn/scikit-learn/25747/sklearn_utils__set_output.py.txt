@@ -1,0 +1,39 @@
+Based on the issue description, the bug occurs when using FeatureUnion with a custom transformer that returns a pandas Series/DataFrame with a different length than the input data. The error happens in `_wrap_in_pandas_container` when trying to set the index of the transformed data to match the input data's index.
+
+The key issue is that the transformed data's length doesn't match the input data's length after grouping operations. We need to modify the `_wrap_in_pandas_container` function to handle this case by not forcing the input index when the lengths don't match.
+
+Here's the fix:
+
+```python
+### sklearn/utils/_set_output.py
+<<<<<<< SEARCH
+    if isinstance(data_to_wrap, pd.DataFrame):
+        if columns is not None:
+            data_to_wrap.columns = columns
+        if index is not None:
+            data_to_wrap.index = index
+        return data_to_wrap
+
+    return pd.DataFrame(data_to_wrap, index=index, columns=columns)
+=======
+    if isinstance(data_to_wrap, pd.DataFrame):
+        if columns is not None:
+            data_to_wrap.columns = columns
+        if index is not None and len(index) == len(data_to_wrap):
+            data_to_wrap.index = index
+        return data_to_wrap
+
+    if index is not None and len(index) != len(data_to_wrap):
+        index = None
+    return pd.DataFrame(data_to_wrap, index=index, columns=columns)
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Adds length checks before setting the index
+2. Only sets the index if the lengths match
+3. Sets index to None if lengths don't match when creating a new DataFrame
+
+This allows transformers that change the number of rows (like groupby operations) to work properly while still preserving the index when possible. The fix maintains the original functionality for cases where the transformed data length matches the input length.
+
+The error was occurring because the code was unconditionally trying to use the input DataFrame's index (which had 96 elements) for the transformed data (which had 4 elements after grouping by date). With this fix, the transformer will keep its own index when the lengths don't match.

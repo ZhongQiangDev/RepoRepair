@@ -1,0 +1,40 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about the default behavior of WebGL alpha blending in p5.js. Currently, when using WebGL mode, transparent elements blend with the page background (blue in the example) rather than with the canvas background (black). This is inconsistent with the behavior in 2D mode and causes confusion.
+
+The problem is that the WebGL renderer's default attributes have `alpha: true`, which makes the canvas transparent and allows the page background to show through. Setting `alpha: false` would make the canvas opaque and fix the blending issue, making WebGL mode behave more like 2D mode.
+
+## Solution
+
+We need to change the default value of the `alpha` attribute in the `_setAttributeDefaults` method from `true` to `false`. This will make the WebGL canvas opaque by default, ensuring that transparent elements blend with the canvas background rather than the page background.
+
+Here's the fix:
+
+```javascript
+### src/webgl/p5.RendererGL.js
+<<<<<<< SEARCH
+  const defaults = {
+    alpha: true,
+    depth: true,
+    stencil: true,
+    antialias: applyAA,
+    premultipliedAlpha: false,
+    preserveDrawingBuffer: true,
+    perPixelLighting: true
+  };
+=======
+  const defaults = {
+    alpha: false,
+    depth: true,
+    stencil: true,
+    antialias: applyAA,
+    premultipliedAlpha: false,
+    preserveDrawingBuffer: true,
+    perPixelLighting: true
+  };
+>>>>>>> REPLACE
+```
+
+This change will make the WebGL renderer's default behavior more consistent with the 2D renderer and prevent the unexpected blending with the page background. Users who specifically want a transparent canvas can still use `setAttributes('alpha', true)` to enable transparency.

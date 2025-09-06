@@ -1,0 +1,180 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is with the CascaderSelect component when using search functionality:
+1. When a user searches for items and selects all the search results
+2. The search results remain visible, but there's no way to clear the search or return to the full list
+3. Users must click outside the dropdown and reopen it to see the full list again
+
+The problem is that when all search results are selected, the search input value isn't automatically cleared. We need to add functionality to clear the search value when all search results have been selected.
+
+## Solution
+
+We need to modify the `handleChange` method to check if all search results have been selected, and if so, clear the search value. This happens in the `cascader-select.tsx` file.
+
+```typescript
+### components/cascader-select/cascader-select.tsx
+<<<<<<< SEARCH
+    handleChange(value: string[], data: CascaderSelectDataItem[], extra: Extra) {
+        const { multiple, onChange } = this.props;
+        const { searchValue, value: stateValue } = this.state;
+
+        const st = {} as CascaderSelectState;
+
+        if (multiple && stateValue && Array.isArray(stateValue)) {
+            const noExistedValues = stateValue.filter(v => !this._v2n[v]);
+
+            if (noExistedValues.length > 0) {
+                value = value.filter(v => {
+                    return !(noExistedValues.indexOf(v) >= 0);
+                });
+            }
+
+            value = [...noExistedValues, ...value];
+            // onChange 中的 data 参数也应该保留不存在的 value 的数据
+            // 在 dataSource 异步加载的情况下，会出现 value 重复的现象，需要去重
+            data = [
+                ...noExistedValues.map(v => this._valueDataCache[v]).filter(v => v),
+                ...data,
+            ].filter((current, index, arr) => {
+                return index === arr.indexOf(current);
+            });
+            // 更新缓存
+            this.refreshValueDataCache(value);
+        }
+
+        if (!('value' in this.props)) {
+            st.value = value;
+        }
+        if (!multiple && searchValue) {
+            st.searchValue = '';
+        }
+        if (Object.keys(st).length) {
+            this.setState(st);
+        }
+
+        if (onChange) {
+            onChange(value, data, extra);
+        }
+
+        if (searchValue && this.select) {
+            this.select.handleSearchClear();
+        }
+=======
+    handleChange(value: string[], data: CascaderSelectDataItem[], extra: Extra) {
+        const { multiple, onChange } = this.props;
+        const { searchValue, value: stateValue } = this.state;
+
+        const st = {} as CascaderSelectState;
+
+        if (multiple && stateValue && Array.isArray(stateValue)) {
+            const noExistedValues = stateValue.filter(v => !this._v2n[v]);
+
+            if (noExistedValues.length > 0) {
+                value = value.filter(v => {
+                    return !(noExistedValues.indexOf(v) >= 0);
+                });
+            }
+
+            value = [...noExistedValues, ...value];
+            // onChange 中的 data 参数也应该保留不存在的 value 的数据
+            // 在 dataSource 异步加载的情况下，会出现 value 重复的现象，需要去重
+            data = [
+                ...noExistedValues.map(v => this._valueDataCache[v]).filter(v => v),
+                ...data,
+            ].filter((current, index, arr) => {
+                return index === arr.indexOf(current);
+            });
+            // 更新缓存
+            this.refreshValueDataCache(value);
+        }
+
+        if (!('value' in this.props)) {
+            st.value = value;
+        }
+        
+        // Clear search value when:
+        // 1. In single select mode with search value
+        // 2. In multiple mode when all search results have been selected
+        if (searchValue) {
+            if (!multiple || (multiple && this.areAllSearchResultsSelected(value))) {
+                st.searchValue = '';
+            }
+        }
+        
+        if (Object.keys(st).length) {
+            this.setState(st);
+        }
+
+        if (onChange) {
+            onChange(value, data, extra);
+        }
+
+        if (searchValue && this.select) {
+            this.select.handleSearchClear();
+        }
+>>>>>>> REPLACE
+```
+
+Now we need to add the `areAllSearchResultsSelected` method to check if all search results have been selected:
+
+```typescript
+### components/cascader-select/cascader-select.tsx
+<<<<<<< SEARCH
+    getPath(pos: string) {
+        const items = [];
+
+        const nums = pos.split('-');
+        // @ts-expect-error nums 应该是一个数组，这里可能是想表达 nums 的长度为 2？
+        if (nums === 2) {
+            items.push(this._p2n[pos]);
+        } else {
+            for (let i = 1; i < nums.length; i++) {
+                const p = nums.slice(0, i + 1).join('-');
+                items.push(this._p2n[p]);
+            }
+        }
+
+        return items;
+    }
+=======
+    areAllSearchResultsSelected(value: string[]) {
+        const { searchValue } = this.state;
+        if (!searchValue) return false;
+        
+        // Get all filtered items based on search
+        const filteredPaths = this.filterItems();
+        if (filteredPaths.length === 0) return false;
+        
+        // Get the values from the filtered paths
+        const filteredValues = new Set(
+            filteredPaths.map(path => {
+                // Get the last item in each path which is the selectable value
+                const lastItem = path[path.length - 1];
+                return lastItem.value;
+            })
+        );
+        
+        // Check if all filtered values are in the selected values
+        return Array.from(filteredValues).every(v => value.includes(v));
+    }
+
+    getPath(pos: string) {
+        const items = [];
+
+        const nums = pos.split('-');
+        // @ts-expect-error nums 应该是一个数组，这里可能是想表达 nums 的长度为 2？
+        if (nums === 2) {
+            items.push(this._p2n[pos]);
+        } else {
+            for (let i = 1; i < nums.length; i++) {
+                const p = nums.slice(0, i + 1).join('-');
+                items.push(this._p2n[p]);
+            }
+        }
+
+        return items;
+    }
+>>>>>>> REPLACE
+```

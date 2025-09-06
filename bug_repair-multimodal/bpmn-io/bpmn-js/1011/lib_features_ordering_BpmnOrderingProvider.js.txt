@@ -1,0 +1,80 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that group elements are not rendered on top of other elements. Looking at the screenshot, we can see that when a new element is created on a group's border, the group's border is not hidden behind the new element. The expected behavior is that groups should always be rendered on top of all other elements.
+
+In the `BpmnOrderingProvider.js` file, the ordering of elements is determined by their "level" property. Elements with higher level values are rendered on top of elements with lower level values. The issue is that there's no specific ordering rule for group elements in the `orders` array.
+
+## Solution
+
+We need to add an entry for group elements (`bpmn:Group`) in the `orders` array with a high level value to ensure they're rendered on top of most other elements. Since labels have level 10 and should remain on top, we can assign groups a level of 9, similar to MessageFlow and DataAssociation.
+
+```javascript
+### lib/features/ordering/BpmnOrderingProvider.js
+<<<<<<< SEARCH
+  var orders = [
+    { type: 'bpmn:SubProcess', order: { level: 6 } },
+    {
+      type: 'bpmn:SequenceFlow',
+      order: {
+        level: 3,
+        containers: [
+          'bpmn:Participant',
+          'bpmn:FlowElementsContainer'
+        ]
+      }
+    },
+    // handle DataAssociation(s) like message flows and render them always on top
+    {
+      type: 'bpmn:DataAssociation',
+      order: {
+        level: 9,
+        containers: [
+          'bpmn:Collaboration',
+          'bpmn:Process'
+        ]
+      }
+    },
+    {
+      type: 'bpmn:MessageFlow', order: {
+        level: 9,
+        containers: [ 'bpmn:Collaboration' ]
+      }
+    },
+=======
+  var orders = [
+    { type: 'bpmn:SubProcess', order: { level: 6 } },
+    {
+      type: 'bpmn:SequenceFlow',
+      order: {
+        level: 3,
+        containers: [
+          'bpmn:Participant',
+          'bpmn:FlowElementsContainer'
+        ]
+      }
+    },
+    // handle DataAssociation(s) like message flows and render them always on top
+    {
+      type: 'bpmn:DataAssociation',
+      order: {
+        level: 9,
+        containers: [
+          'bpmn:Collaboration',
+          'bpmn:Process'
+        ]
+      }
+    },
+    {
+      type: 'bpmn:MessageFlow', order: {
+        level: 9,
+        containers: [ 'bpmn:Collaboration' ]
+      }
+    },
+    // ensure groups are rendered on top
+    { type: 'bpmn:Group', order: { level: 9 } },
+>>>>>>> REPLACE
+```
+
+This change adds a specific ordering rule for `bpmn:Group` elements with a level of 9, which will ensure they're rendered on top of most other elements (except for labels which have level 10). This should fix the issue where group borders are not hidden behind new elements.

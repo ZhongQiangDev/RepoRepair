@@ -1,0 +1,57 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that when a new task is created from an existing one, the resulting diagram contains an illegal `waypoints` property on a `sequenceFlow`. Specifically, the `waypoints` property is serialized as `[object Object],[object Object],...`, which is not the expected format. This issue occurs when the connection has a middle segment.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from how waypoints are being serialized or handled during the creation of the `sequenceFlow`. The serialization process is not correctly converting the waypoints into the expected format, resulting in the `[object Object]` string representation. This could be due to a problem in the function responsible for creating or serializing the waypoints.
+
+### 3. Examine Each File One by One
+
+#### --- lib/features/modeling/BpmnFactory.js ---
+
+This file contains functions related to creating BPMN elements and handling their properties. The following functions are relevant to the cause:
+
+```
+lib/features/modeling/BpmnFactory.js
+function: function_8
+```
+
+- `function_8`: This function is responsible for converting waypoints into DI waypoints. If this function is not correctly handling the waypoints, it could lead to the serialization issue described.
+
+#### --- lib/features/modeling/behavior/util/LineAttachmentUtil.js ---
+
+This file contains utility functions related to line attachments and geometry calculations. While these functions are important for determining the position and attachment of lines, they do not directly handle the serialization of waypoints. Therefore:
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### --- lib/features/modeling/cmd/UpdateFlowNodeRefsHandler.js ---
+
+This file contains functions related to updating flow node references. These functions do not directly handle the serialization of waypoints, so:
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### --- lib/import/BpmnImporter.js ---
+
+This file contains functions related to importing BPMN elements and handling their properties. The following function is relevant:
+
+```
+lib/import/BpmnImporter.js
+function: getWaypoints
+```
+
+- `getWaypoints`: This function is responsible for retrieving waypoints from the business object. If this function is not correctly handling the waypoints, it could contribute to the serialization issue.
+
+### Summary of Relevant Locations
+
+```
+lib/features/modeling/BpmnFactory.js
+function: function_8
+
+lib/import/BpmnImporter.js
+function: getWaypoints
+```

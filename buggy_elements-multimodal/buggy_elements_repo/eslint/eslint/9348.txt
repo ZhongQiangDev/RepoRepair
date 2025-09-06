@@ -1,0 +1,54 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that ESLint is throwing an error: "Cannot read property 'superCalled' of undefined". This error occurs when ESLint is analyzing the provided JavaScript code, specifically the `BugProof` class which extends `Extender`.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The error "Cannot read property 'superCalled' of undefined" suggests that there is an issue with how `super()` is being tracked or checked within the ESLint rule. The `constructor-super` rule is responsible for ensuring that `super()` is called in derived class constructors. The error indicates that the rule is trying to access a property `superCalled` on an undefined object, which likely means that the rule's internal state is not being set up correctly or is being accessed prematurely.
+
+### 3. Examine Each File One by One
+
+#### --- lib/rules/class-methods-use-this.js ---
+This file contains no relevant functions/classes.
+
+#### --- lib/rules/constructor-super.js ---
+```
+lib/rules/constructor-super.js
+function: create
+function: isConstructorFunction
+function: isPossibleConstructor
+function: isReachable
+```
+
+The `create` function in `constructor-super.js` is directly related to the issue because it handles the validation of `super()` calls in constructors. The error "Cannot read property 'superCalled' of undefined" likely originates from this function. The `isConstructorFunction`, `isPossibleConstructor`, and `isReachable` functions may also be relevant as they are used within the `create` function to determine the context and reachability of `super()` calls.
+
+#### --- lib/rules/no-class-assign.js ---
+This file contains no relevant functions/classes.
+
+#### --- lib/rules/no-dupe-class-members.js ---
+This file contains no relevant functions/classes.
+
+#### --- lib/rules/no-this-before-super.js ---
+```
+lib/rules/no-this-before-super.js
+function: create
+function: isConstructorFunction
+```
+
+The `create` function in `no-this-before-super.js` is also relevant because it enforces the correct order of `super()` calls in derived class constructors. The `isConstructorFunction` function may also be relevant as it is used to determine if a given AST node is a constructor.
+
+### Summary
+
+The primary files and functions that need inspection or editing to fix the problem are:
+
+```
+lib/rules/constructor-super.js
+function: create
+function: isConstructorFunction
+function: isPossibleConstructor
+function: isReachable
+
+lib/rules/no-this-before-super.js
+function: create
+function: isConstructorFunction
+```

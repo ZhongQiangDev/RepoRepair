@@ -1,0 +1,161 @@
+Based on the issue description, the bug is that when a model has a UniqueConstraint, Django's makemigrations doesn't validate that the fields specified in the constraint actually exist in the model. This is inconsistent with the behavior of unique_together which does validate field existence.
+
+Looking at the code, this validation should be added in the Model._check_constraints() method since that's where other constraint validations happen. We need to add field existence validation similar to how _check_local_fields() validates fields for unique_together.
+
+Here's the fix:
+
+```python
+### django/db/models/base.py
+<<<<<<< SEARCH
+    @classmethod
+    def _check_constraints(cls, databases):
+        errors = []
+        for db in databases:
+            if not router.allow_migrate_model(db, cls):
+                continue
+            connection = connections[db]
+            if not (
+                connection.features.supports_table_check_constraints or
+                'supports_table_check_constraints' in cls._meta.required_db_features
+            ) and any(
+                isinstance(constraint, CheckConstraint)
+                for constraint in cls._meta.constraints
+            ):
+                errors.append(
+                    checks.Warning(
+                        '%s does not support check constraints.' % connection.display_name,
+                        hint=(
+                            "A constraint won't be created. Silence this "
+                            "warning if you don't care about it."
+                        ),
+                        obj=cls,
+                        id='models.W027',
+                    )
+                )
+            if not (
+                connection.features.supports_partial_indexes or
+                'supports_partial_indexes' in cls._meta.required_db_features
+            ) and any(
+                isinstance(constraint, UniqueConstraint) and constraint.condition is not None
+                for constraint in cls._meta.constraints
+            ):
+                errors.append(
+                    checks.Warning(
+                        '%s does not support unique constraints with '
+                        'conditions.' % connection.display_name,
+                        hint=(
+                            "A constraint won't be created. Silence this "
+                            "warning if you don't care about it."
+                        ),
+                        obj=cls,
+                        id='models.W036',
+                    )
+                )
+            if not (
+                connection.features.supports_deferrable_unique_constraints or
+                'supports_deferrable_unique_constraints' in cls._meta.required_db_features
+            ) and any(
+                isinstance(constraint, UniqueConstraint) and constraint.deferrable is not None
+                for constraint in cls._meta.constraints
+            ):
+                errors.append(
+                    checks.Warning(
+                        '%s does not support deferrable unique constraints.'
+                        % connection.display_name,
+                        hint=(
+                            "A constraint won't be created. Silence this "
+                            "warning if you don't care about it."
+                        ),
+                        obj=cls,
+                        id='models.W038',
+                    )
+                )
+        return errors
+=======
+    @classmethod
+    def _check_constraints(cls, databases):
+        errors = []
+        for db in databases:
+            if not router.allow_migrate_model(db, cls):
+                continue
+            connection = connections[db]
+            if not (
+                connection.features.supports_table_check_constraints or
+                'supports_table_check_constraints' in cls._meta.required_db_features
+            ) and any(
+                isinstance(constraint, CheckConstraint)
+                for constraint in cls._meta.constraints
+            ):
+                errors.append(
+                    checks.Warning(
+                        '%s does not support check constraints.' % connection.display_name,
+                        hint=(
+                            "A constraint won't be created. Silence this "
+                            "warning if you don't care about it."
+                        ),
+                        obj=cls,
+                        id='models.W027',
+                    )
+                )
+            if not (
+                connection.features.supports_partial_indexes or
+                'supports_partial_indexes' in cls._meta.required_db_features
+            ) and any(
+                isinstance(constraint, UniqueConstraint) and constraint.condition is not None
+                for constraint in cls._meta.constraints
+            ):
+                errors.append(
+                    checks.Warning(
+                        '%s does not support unique constraints with '
+                        'conditions.' % connection.display_name,
+                        hint=(
+                            "A constraint won't be created. Silence this "
+                            "warning if you don't care about it."
+                        ),
+                        obj=cls,
+                        id='models.W036',
+                    )
+                )
+            if not (
+                connection.features.supports_deferrable_unique_constraints or
+                'supports_deferrable_unique_constraints' in cls._meta.required_db_features
+            ) and any(
+                isinstance(constraint, UniqueConstraint) and constraint.deferrable is not None
+                for constraint in cls._meta.constraints
+            ):
+                errors.append(
+                    checks.Warning(
+                        '%s does not support deferrable unique constraints.'
+                        % connection.display_name,
+                        hint=(
+                            "A constraint won't be created. Silence this "
+                            "warning if you don't care about it."
+                        ),
+                        obj=cls,
+                        id='models.W038',
+                    )
+                )
+
+        # Check that all fields in UniqueConstraints exist
+        for constraint in cls._meta.constraints:
+            if isinstance(constraint, UniqueConstraint):
+                errors.extend(cls._check_local_fields(constraint.fields, "constraints"))
+
+        return errors
+>>>>>>> REPLACE
+```
+
+This change adds field existence validation for UniqueConstraints by:
+
+1. Adding a new check after the database compatibility checks
+2. Iterating through all constraints to find UniqueConstraints
+3. Using the existing _check_local_fields() method to validate that the fields exist in the model
+4. Adding any validation errors to the list of errors
+
+The _check_local_fields() method already handles:
+- Checking if fields exist
+- Ensuring fields are local to the model
+- Preventing use of ManyToManyFields
+- Providing appropriate error messages
+
+This makes UniqueConstraint field validation consistent with unique_together validation.

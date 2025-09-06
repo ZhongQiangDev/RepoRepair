@@ -1,0 +1,32 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue with `blendMode()` not working properly in WebGL mode.
+
+## Analysis of the Problem
+
+1. **Wrong Behavior**: 
+   - When using `blendMode(MULTIPLY)` in WebGL mode, overlapping colors don't blend the same way as they do in 2D mode.
+   - The example shows that in 2D mode, the overlapping red and blue circles create a purple blend, but in WebGL mode, the colors don't blend correctly.
+
+2. **Cause Analysis**:
+   - The issue appears to be in how blend modes are implemented in the WebGL renderer.
+   - WebGL uses different blending functions than the 2D canvas context, and the implementation of `MULTIPLY` blend mode in WebGL is likely incorrect or incomplete.
+   - The problem is specifically in how the WebGL renderer interprets and applies the `MULTIPLY` blend mode compared to the 2D renderer.
+
+3. **Most Relevant Files**:
+
+```
+src/webgl/p5.RendererGL.js
+src/core/rendering.js
+src/webgl/material.js
+src/core/p5.Renderer2D.js
+src/core/p5.Renderer.js
+```
+
+The most important file is `src/webgl/p5.RendererGL.js` as it contains the WebGL renderer implementation including the `blendMode` function for WebGL. This is where the blend mode functionality for WebGL needs to be fixed.
+
+The `src/core/rendering.js` file contains the global `blendMode` function that delegates to the renderer's implementation, making it the second most important.
+
+`src/webgl/material.js` contains WebGL-specific functions including `_applyBlendMode` which is likely used by the WebGL renderer to set blend modes.
+
+`src/core/p5.Renderer2D.js` contains the 2D renderer's implementation of blend modes, which is working correctly and can serve as a reference.
+
+`src/core/p5.Renderer.js` is the base renderer class that both 2D and WebGL renderers extend, providing context for how rendering functions should be implemented.

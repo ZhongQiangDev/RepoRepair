@@ -1,0 +1,21 @@
+Based on the issue description, the bug occurs when trying to save a figure with a text label containing an empty line using the PostScript backend. The error occurs because `curr_stream` can be None when processing empty lines, causing an unpacking error.
+
+Looking at the code, the issue is in the `draw_text` method of the `RendererPS` class in `lib/matplotlib/backends/backend_ps.py`. When processing text with empty lines using TTF fonts, `curr_stream` can be None but is still appended to the stream list.
+
+Here's the fix:
+
+```python
+### lib/matplotlib/backends/backend_ps.py
+<<<<<<< SEARCH
+            # append the last entry
+            stream.append(curr_stream)
+=======
+            # append the last entry if it exists
+            if curr_stream:
+                stream.append(curr_stream)
+>>>>>>> REPLACE
+```
+
+This change adds a check to only append `curr_stream` to the stream list if it is not None. This prevents the TypeError when trying to unpack a None value later when iterating through the stream.
+
+The fix matches the suggestion in the issue that adding "if curr_stream:" would resolve the bug. This handles cases where text contains empty lines, which previously caused the None value to be appended to the stream list.

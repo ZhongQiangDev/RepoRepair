@@ -1,0 +1,245 @@
+I'll analyze the issue and provide a solution for implementing the read-only functionality for RadioButton.
+
+Based on the issue, we need to:
+1. Add a `readOnly` prop to the RadioButton component
+2. Add styles for the read-only state
+3. Ensure the component behaves correctly when in read-only mode
+
+Here are the necessary changes:
+
+```javascript
+### packages/react/src/components/RadioButton/RadioButton.js
+<<<<<<< SEARCH
+  {
+    className,
+    disabled,
+    hideLabel,
+    id,
+    labelPosition = 'right',
+    labelText = '',
+    name,
+    onChange = () => {},
+    value = '',
+    ...rest
+  },
+=======
+  {
+    className,
+    disabled,
+    hideLabel,
+    id,
+    labelPosition = 'right',
+    labelText = '',
+    name,
+    onChange = () => {},
+    readOnly = false,
+    value = '',
+    ...rest
+  },
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/RadioButton/RadioButton.js
+<<<<<<< SEARCH
+  const wrapperClasses = classNames(
+    className,
+    `${prefix}--radio-button-wrapper`,
+    {
+      [`${prefix}--radio-button-wrapper--label-${labelPosition}`]:
+        labelPosition !== 'right',
+    }
+  );
+=======
+  const wrapperClasses = classNames(
+    className,
+    `${prefix}--radio-button-wrapper`,
+    {
+      [`${prefix}--radio-button-wrapper--label-${labelPosition}`]:
+        labelPosition !== 'right',
+      [`${prefix}--radio-button-wrapper--readonly`]: readOnly,
+    }
+  );
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/RadioButton/RadioButton.js
+<<<<<<< SEARCH
+      <input
+        {...rest}
+        type="radio"
+        className={`${prefix}--radio-button`}
+        onChange={handleOnChange}
+        id={uniqueId}
+        ref={ref}
+        disabled={disabled}
+        value={value}
+        name={name}
+      />
+=======
+      <input
+        {...rest}
+        type="radio"
+        className={`${prefix}--radio-button`}
+        onChange={readOnly ? () => {} : handleOnChange}
+        id={uniqueId}
+        ref={ref}
+        disabled={disabled}
+        value={value}
+        name={name}
+        readOnly={readOnly}
+        tabIndex={readOnly ? -1 : rest.tabIndex}
+      />
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/RadioButton/RadioButton.js
+<<<<<<< SEARCH
+RadioButton.propTypes = {
+  /**
+   * Specify whether the `<RadioButton>` is currently checked
+   */
+  checked: PropTypes.bool,
+
+  /**
+   * Provide an optional className to be applied to the containing node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify whether the `<RadioButton>` should be checked by default
+   */
+  defaultChecked: PropTypes.bool,
+
+  /**
+   * Specify whether the control is disabled
+   */
+  disabled: PropTypes.bool,
+
+  /**
+   * Specify whether the label should be hidden, or not
+   */
+  hideLabel: PropTypes.bool,
+
+  /**
+   * Provide a unique id for the underlying `<input>` node
+   */
+  id: PropTypes.string,
+
+  /**
+   * Provide where label text should be placed
+   * NOTE: `top`/`bottom` are deprecated
+   */
+  labelPosition: PropTypes.oneOf(['right', 'left']),
+
+  /**
+   * Provide label text to be read by screen readers when interacting with the
+   * control
+   */
+  labelText: PropTypes.node.isRequired,
+
+  /**
+   * Provide a name for the underlying `<input>` node
+   */
+  name: PropTypes.string,
+
+  /**
+   * Provide an optional `onChange` hook that is called each time the value of
+   * the underlying `<input>` changes
+   */
+  onChange: PropTypes.func,
+
+  /**
+   * Provide a handler that is invoked when a user clicks on the control
+   */
+  onClick: PropTypes.func,
+
+  /**
+   * Specify the value of the `<RadioButton>`
+   */
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+=======
+RadioButton.propTypes = {
+  /**
+   * Specify whether the `<RadioButton>` is currently checked
+   */
+  checked: PropTypes.bool,
+
+  /**
+   * Provide an optional className to be applied to the containing node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify whether the `<RadioButton>` should be checked by default
+   */
+  defaultChecked: PropTypes.bool,
+
+  /**
+   * Specify whether the control is disabled
+   */
+  disabled: PropTypes.bool,
+
+  /**
+   * Specify whether the label should be hidden, or not
+   */
+  hideLabel: PropTypes.bool,
+
+  /**
+   * Provide a unique id for the underlying `<input>` node
+   */
+  id: PropTypes.string,
+
+  /**
+   * Provide where label text should be placed
+   * NOTE: `top`/`bottom` are deprecated
+   */
+  labelPosition: PropTypes.oneOf(['right', 'left']),
+
+  /**
+   * Provide label text to be read by screen readers when interacting with the
+   * control
+   */
+  labelText: PropTypes.node.isRequired,
+
+  /**
+   * Provide a name for the underlying `<input>` node
+   */
+  name: PropTypes.string,
+
+  /**
+   * Provide an optional `onChange` hook that is called each time the value of
+   * the underlying `<input>` changes
+   */
+  onChange: PropTypes.func,
+
+  /**
+   * Provide a handler that is invoked when a user clicks on the control
+   */
+  onClick: PropTypes.func,
+
+  /**
+   * Specify whether the control is read-only
+   */
+  readOnly: PropTypes.bool,
+
+  /**
+   * Specify the value of the `<RadioButton>`
+   */
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+>>>>>>> REPLACE
+```
+
+These changes implement the read-only functionality for the RadioButton component by:
+
+1. Adding a `readOnly` prop with a default value of `false`
+2. Adding a CSS class to the wrapper when in read-only mode
+3. Preventing interaction with the radio button when in read-only mode by:
+   - Providing an empty onChange handler
+   - Setting the tabIndex to -1 to remove it from the tab order
+   - Adding the readOnly attribute to the input
+4. Adding proper PropTypes documentation for the new prop
+
+This implementation satisfies all the acceptance criteria mentioned in the issue.

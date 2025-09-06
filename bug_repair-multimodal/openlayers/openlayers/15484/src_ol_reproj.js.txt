@@ -1,0 +1,43 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about the `wrapX` option in GeoTIFF not being respected when tiles are reprojected. The option is actually used to crop the output to the tile grid extent on both x and y axes, but its name is misleading since it doesn't relate to the typical meaning of "wrapping" in reprojection contexts.
+
+Looking at the code in `src/ol/reproj.js`, I need to identify where this issue might be occurring. The problem appears to be in the `calculateSourceResolution` function, which doesn't respect the cropping behavior when reprojecting.
+
+The issue specifically mentions that the `containsCoordinate` check in the `calculateSourceResolution` function is causing the problem. When reprojecting, this function checks if the source center is within the source extent, but it doesn't properly handle the cropping behavior that the misleadingly named `wrapX` option is supposed to provide.
+
+## Solution
+
+The fix needs to modify the `calculateSourceResolution` function to properly respect the cropping behavior regardless of reprojection. The issue is in the conditional check that only applies the compensation factor when the source center is within the source extent.
+
+```javascript
+### src/ol/reproj.js
+<<<<<<< SEARCH
+  const sourceExtent = sourceProj.getExtent();
+  if (!sourceExtent || containsCoordinate(sourceExtent, sourceCenter)) {
+    const compensationFactor =
+      getPointResolution(sourceProj, sourceResolution, sourceCenter) /
+      sourceResolution;
+    if (isFinite(compensationFactor) && compensationFactor > 0) {
+      sourceResolution /= compensationFactor;
+    }
+  }
+=======
+  const sourceExtent = sourceProj.getExtent();
+  // Always calculate the compensation factor regardless of whether the source center
+  // is within the source extent. This ensures that the cropping behavior (misleadingly
+  // called wrapX) is respected during reprojection.
+  const compensationFactor =
+    getPointResolution(sourceProj, sourceResolution, sourceCenter) /
+    sourceResolution;
+  if (isFinite(compensationFactor) && compensationFactor > 0) {
+    sourceResolution /= compensationFactor;
+  }
+>>>>>>> REPLACE
+```
+
+This change removes the conditional check that was preventing the compensation factor from being applied when the source center was outside the source extent. By always calculating and applying the compensation factor (when valid), we ensure that the cropping behavior is respected during reprojection.
+
+Note: The issue also mentions renaming the `wrapX` option to something more appropriate, but that would be a separate change that would need to be made in the GeoTIFF source code, not in the reprojection code we're looking at here. Since we're focusing on fixing the immediate issue with the current code, I've addressed the reprojection behavior problem.

@@ -1,0 +1,35 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about incorrect use of `layer.getMinZoom()` in the TileLayer renderer. According to the issue:
+
+1. `layer.getMinZoom()` returns a view zoom level, not a tile grid zoom level
+2. It's being used directly as a tile grid index in `src/ol/renderer/webgl/TileLayer.js`
+3. This could prevent tiles from loading correctly
+
+The issue suggests either removing the code or replacing it with a proper calculation using `tileGrid.getZForResolution()` from either `layer.getMaxResolution()` or `view.getResolutionForZoom(layer.getMinZoom())`.
+
+Since the problematic code is in `src/ol/renderer/webgl/TileLayer.js` but not included in the provided files, I'll need to focus on understanding how `getMinZoom()` is correctly used in the provided `Layer.js` file to inform my fix.
+
+Looking at the `inView` function in `Layer.js`, I can see that `minZoom` is correctly used to check if the current view zoom is within the layer's zoom range. This is the correct usage pattern.
+
+## Fix
+
+Since the problematic file isn't provided, I'll create a fix based on the issue description. The issue mentions that the incorrect code is at line 338 in `src/ol/renderer/webgl/TileLayer.js` where `layer.getMinZoom()` is used directly as a tile grid index.
+
+The fix should replace this direct usage with a proper calculation using `tileGrid.getZForResolution()` with either `layer.getMaxResolution()` or `view.getResolutionForZoom(layer.getMinZoom())`.
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+    const minZoom = Math.max(0, layer.getMinZoom());
+=======
+    const tileGrid = tileSource.getTileGrid();
+    const minZoom = Math.max(0, tileGrid.getZForResolution(layer.getMaxResolution() || Infinity));
+>>>>>>> REPLACE
+```
+
+This fix replaces the direct use of `layer.getMinZoom()` with a proper calculation that converts the layer's maximum resolution to a tile grid zoom level using `tileGrid.getZForResolution()`. This ensures that the zoom level is correctly mapped to the tile grid's coordinate system.
+
+Note: Since I don't have the exact context of the surrounding code, this fix assumes that `tileSource` is available in the scope. If it's not, the fix might need to be adjusted to first get the tile source from the layer.

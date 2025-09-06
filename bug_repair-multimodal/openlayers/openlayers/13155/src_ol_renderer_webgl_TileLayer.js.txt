@@ -1,0 +1,37 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about respecting the `imageSmoothing` setting from tile sources when using the WebGLTile renderer. Currently, when `imageSmoothing` is set to `false` on a tile source, the WebGLTile renderer doesn't respect this setting, which causes unwanted smoothing of pixel values in the rendered tiles.
+
+The fix requires passing the `imageSmoothing` setting from the tile source to the `TileTexture` class, which can then use `gl.NEAREST` instead of `gl.LINEAR` for texture filtering when smoothing is disabled.
+
+## Solution
+
+Looking at the code, I need to modify the `WebGLTileLayerRenderer` class to:
+
+1. Check the `imageSmoothing` property of the tile source
+2. Pass this information to the `TileTexture` when creating new tile textures
+
+Here's the fix:
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+          if (!tileTexture) {
+            tileTexture = new TileTexture(tile, tileGrid, this.helper);
+            tileTextureCache.set(tileCoordKey, tileTexture);
+          } else {
+=======
+          if (!tileTexture) {
+            const smooth = tileSource.getImageSmoothing !== undefined ? 
+              tileSource.getImageSmoothing() : true;
+            tileTexture = new TileTexture(tile, tileGrid, this.helper, smooth);
+            tileTextureCache.set(tileCoordKey, tileTexture);
+          } else {
+>>>>>>> REPLACE
+```
+
+This change checks if the tile source has a `getImageSmoothing` method, and if it does, it passes the result to the `TileTexture` constructor. If the method doesn't exist, it defaults to `true` for backward compatibility.
+
+The `TileTexture` class would then need to use this value to set the appropriate texture filtering mode (`gl.NEAREST` when smoothing is disabled, `gl.LINEAR` when it's enabled). However, since the `TileTexture` class implementation is not provided in the code segments, I'm assuming it already has the capability to handle this parameter but it's just not being passed from the renderer.

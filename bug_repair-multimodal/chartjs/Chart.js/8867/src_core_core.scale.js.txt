@@ -1,0 +1,359 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is requesting a feature to allow axis ticks to render inside chart bounds. Currently, when an axis is displayed, the chart adds padding to accommodate the tick labels, which reduces the available space for the chart itself. The user wants an option to place the tick labels inside the chart area instead.
+
+Looking at the code, I need to:
+
+1. Add a new option `ticksInside` to control this behavior
+2. Modify the padding calculation logic to account for this new option
+3. Adjust the label positioning when this option is enabled
+
+## Solution
+
+I'll add a new `ticksInside` option to the ticks configuration and modify the `_calculatePadding` method to handle this new option:
+
+```javascript
+### src/core/core.scale.js
+<<<<<<< SEARCH
+  _calculatePadding(first, last, sin, cos) {
+    const me = this;
+    const {ticks: {align, padding}, position} = me.options;
+    const isRotated = me.labelRotation !== 0;
+    const labelsBelowTicks = position !== 'top' && me.axis === 'x';
+
+    if (me.isHorizontal()) {
+      const offsetLeft = me.getPixelForTick(0) - me.left;
+      const offsetRight = me.right - me.getPixelForTick(me.ticks.length - 1);
+      let paddingLeft = 0;
+      let paddingRight = 0;
+
+      // Ensure that our ticks are always inside the canvas. When rotated, ticks are right aligned
+      // which means that the right padding is dominated by the font height
+      if (isRotated) {
+        if (labelsBelowTicks) {
+          paddingLeft = cos * first.width;
+          paddingRight = sin * last.height;
+        } else {
+          paddingLeft = sin * first.height;
+          paddingRight = cos * last.width;
+        }
+      } else if (align === 'start') {
+        paddingRight = last.width;
+      } else if (align === 'end') {
+        paddingLeft = first.width;
+      } else {
+        paddingLeft = first.width / 2;
+        paddingRight = last.width / 2;
+      }
+
+      // Adjust padding taking into account changes in offsets
+      me.paddingLeft = Math.max((paddingLeft - offsetLeft + padding) * me.width / (me.width - offsetLeft), 0);
+      me.paddingRight = Math.max((paddingRight - offsetRight + padding) * me.width / (me.width - offsetRight), 0);
+    } else {
+      let paddingTop = last.height / 2;
+      let paddingBottom = first.height / 2;
+
+      if (align === 'start') {
+        paddingTop = 0;
+        paddingBottom = first.height;
+      } else if (align === 'end') {
+        paddingTop = last.height;
+        paddingBottom = 0;
+      }
+
+      me.paddingTop = paddingTop + padding;
+      me.paddingBottom = paddingBottom + padding;
+    }
+=======
+  _calculatePadding(first, last, sin, cos) {
+    const me = this;
+    const {ticks: {align, padding, ticksInside}, position} = me.options;
+    const isRotated = me.labelRotation !== 0;
+    const labelsBelowTicks = position !== 'top' && me.axis === 'x';
+
+    if (me.isHorizontal()) {
+      const offsetLeft = me.getPixelForTick(0) - me.left;
+      const offsetRight = me.right - me.getPixelForTick(me.ticks.length - 1);
+      let paddingLeft = 0;
+      let paddingRight = 0;
+
+      // If ticksInside is true, we don't need padding for the labels
+      if (!ticksInside) {
+        // Ensure that our ticks are always inside the canvas. When rotated, ticks are right aligned
+        // which means that the right padding is dominated by the font height
+        if (isRotated) {
+          if (labelsBelowTicks) {
+            paddingLeft = cos * first.width;
+            paddingRight = sin * last.height;
+          } else {
+            paddingLeft = sin * first.height;
+            paddingRight = cos * last.width;
+          }
+        } else if (align === 'start') {
+          paddingRight = last.width;
+        } else if (align === 'end') {
+          paddingLeft = first.width;
+        } else {
+          paddingLeft = first.width / 2;
+          paddingRight = last.width / 2;
+        }
+
+        // Adjust padding taking into account changes in offsets
+        me.paddingLeft = Math.max((paddingLeft - offsetLeft + padding) * me.width / (me.width - offsetLeft), 0);
+        me.paddingRight = Math.max((paddingRight - offsetRight + padding) * me.width / (me.width - offsetRight), 0);
+      } else {
+        // When ticksInside is true, we still need minimal padding for borders/grid
+        me.paddingLeft = padding;
+        me.paddingRight = padding;
+      }
+    } else {
+      let paddingTop = last.height / 2;
+      let paddingBottom = first.height / 2;
+
+      if (!ticksInside) {
+        if (align === 'start') {
+          paddingTop = 0;
+          paddingBottom = first.height;
+        } else if (align === 'end') {
+          paddingTop = last.height;
+          paddingBottom = 0;
+        }
+
+        me.paddingTop = paddingTop + padding;
+        me.paddingBottom = paddingBottom + padding;
+      } else {
+        // When ticksInside is true, we still need minimal padding for borders/grid
+        me.paddingTop = padding;
+        me.paddingBottom = padding;
+      }
+    }
+>>>>>>> REPLACE
+```
+
+Now I need to modify the `_computeLabelItems` method to adjust the position of the labels when `ticksInside` is enabled:
+
+```javascript
+### src/core/core.scale.js
+<<<<<<< SEARCH
+  _computeLabelItems(chartArea) {
+    const me = this;
+    const axis = me.axis;
+    const options = me.options;
+    const {position, ticks: optionTicks} = options;
+    const isHorizontal = me.isHorizontal();
+    const ticks = me.ticks;
+    const {align, crossAlign, padding} = optionTicks;
+    const tl = getTickMarkLength(options.grid);
+    const tickAndPadding = tl + padding;
+    const rotation = -toRadians(me.labelRotation);
+    const items = [];
+    let i, ilen, tick, label, x, y, textAlign, pixel, font, lineHeight, lineCount, textOffset;
+    let textBaseline = 'middle';
+
+    if (position === 'top') {
+      y = me.bottom - tickAndPadding;
+      textAlign = me._getXAxisLabelAlignment();
+    } else if (position === 'bottom') {
+      y = me.top + tickAndPadding;
+      textAlign = me._getXAxisLabelAlignment();
+    } else if (position === 'left') {
+      const ret = this._getYAxisLabelAlignment(tl);
+      textAlign = ret.textAlign;
+      x = ret.x;
+    } else if (position === 'right') {
+      const ret = this._getYAxisLabelAlignment(tl);
+      textAlign = ret.textAlign;
+      x = ret.x;
+    } else if (axis === 'x') {
+      if (position === 'center') {
+        y = ((chartArea.top + chartArea.bottom) / 2) + tickAndPadding;
+      } else if (isObject(position)) {
+        const positionAxisID = Object.keys(position)[0];
+        const value = position[positionAxisID];
+        y = me.chart.scales[positionAxisID].getPixelForValue(value) + tickAndPadding;
+      }
+      textAlign = me._getXAxisLabelAlignment();
+    } else if (axis === 'y') {
+      if (position === 'center') {
+        x = ((chartArea.left + chartArea.right) / 2) - tickAndPadding;
+      } else if (isObject(position)) {
+        const positionAxisID = Object.keys(position)[0];
+        const value = position[positionAxisID];
+        x = me.chart.scales[positionAxisID].getPixelForValue(value);
+      }
+      textAlign = this._getYAxisLabelAlignment(tl).textAlign;
+    }
+=======
+  _computeLabelItems(chartArea) {
+    const me = this;
+    const axis = me.axis;
+    const options = me.options;
+    const {position, ticks: optionTicks} = options;
+    const isHorizontal = me.isHorizontal();
+    const ticks = me.ticks;
+    const {align, crossAlign, padding, ticksInside} = optionTicks;
+    const tl = getTickMarkLength(options.grid);
+    const tickAndPadding = tl + padding;
+    const rotation = -toRadians(me.labelRotation);
+    const items = [];
+    let i, ilen, tick, label, x, y, textAlign, pixel, font, lineHeight, lineCount, textOffset;
+    let textBaseline = 'middle';
+
+    if (position === 'top') {
+      y = ticksInside ? me.top + tickAndPadding : me.bottom - tickAndPadding;
+      textAlign = me._getXAxisLabelAlignment();
+    } else if (position === 'bottom') {
+      y = ticksInside ? me.bottom - tickAndPadding : me.top + tickAndPadding;
+      textAlign = me._getXAxisLabelAlignment();
+    } else if (position === 'left') {
+      const ret = this._getYAxisLabelAlignment(tl);
+      textAlign = ret.textAlign;
+      x = ticksInside ? me.left + tickAndPadding : ret.x;
+    } else if (position === 'right') {
+      const ret = this._getYAxisLabelAlignment(tl);
+      textAlign = ret.textAlign;
+      x = ticksInside ? me.right - tickAndPadding : ret.x;
+    } else if (axis === 'x') {
+      if (position === 'center') {
+        y = ((chartArea.top + chartArea.bottom) / 2) + tickAndPadding;
+      } else if (isObject(position)) {
+        const positionAxisID = Object.keys(position)[0];
+        const value = position[positionAxisID];
+        y = me.chart.scales[positionAxisID].getPixelForValue(value) + tickAndPadding;
+      }
+      textAlign = me._getXAxisLabelAlignment();
+    } else if (axis === 'y') {
+      if (position === 'center') {
+        x = ((chartArea.left + chartArea.right) / 2) - tickAndPadding;
+      } else if (isObject(position)) {
+        const positionAxisID = Object.keys(position)[0];
+        const value = position[positionAxisID];
+        x = me.chart.scales[positionAxisID].getPixelForValue(value);
+      }
+      textAlign = this._getYAxisLabelAlignment(tl).textAlign;
+    }
+>>>>>>> REPLACE
+```
+
+Finally, I need to adjust the `_getYAxisLabelAlignment` method to handle the `ticksInside` option:
+
+```javascript
+### src/core/core.scale.js
+<<<<<<< SEARCH
+  _getYAxisLabelAlignment(tl) {
+    const me = this;
+    const {position, ticks: {crossAlign, mirror, padding}} = me.options;
+    const labelSizes = me._getLabelSizes();
+    const tickAndPadding = tl + padding;
+    const widest = labelSizes.widest.width;
+
+    let textAlign;
+    let x;
+
+    if (position === 'left') {
+      if (mirror) {
+        textAlign = 'left';
+        x = me.right - padding;
+      } else {
+        x = me.right - tickAndPadding;
+
+        if (crossAlign === 'near') {
+          textAlign = 'right';
+        } else if (crossAlign === 'center') {
+          textAlign = 'center';
+          x -= (widest / 2);
+        } else {
+          textAlign = 'left';
+          x = me.left;
+        }
+      }
+    } else if (position === 'right') {
+      if (mirror) {
+        textAlign = 'right';
+        x = me.left + padding;
+      } else {
+        x = me.left + tickAndPadding;
+
+        if (crossAlign === 'near') {
+          textAlign = 'left';
+        } else if (crossAlign === 'center') {
+          textAlign = 'center';
+          x += widest / 2;
+        } else {
+          textAlign = 'right';
+          x = me.right;
+        }
+      }
+    } else {
+      textAlign = 'right';
+    }
+
+    return {textAlign, x};
+=======
+  _getYAxisLabelAlignment(tl) {
+    const me = this;
+    const {position, ticks: {crossAlign, mirror, padding, ticksInside}} = me.options;
+    const labelSizes = me._getLabelSizes();
+    const tickAndPadding = tl + padding;
+    const widest = labelSizes.widest.width;
+
+    let textAlign;
+    let x;
+
+    if (position === 'left') {
+      if (mirror) {
+        textAlign = 'left';
+        x = me.right - padding;
+      } else if (ticksInside) {
+        textAlign = 'left';
+        x = me.left + tickAndPadding;
+      } else {
+        x = me.right - tickAndPadding;
+
+        if (crossAlign === 'near') {
+          textAlign = 'right';
+        } else if (crossAlign === 'center') {
+          textAlign = 'center';
+          x -= (widest / 2);
+        } else {
+          textAlign = 'left';
+          x = me.left;
+        }
+      }
+    } else if (position === 'right') {
+      if (mirror) {
+        textAlign = 'right';
+        x = me.left + padding;
+      } else if (ticksInside) {
+        textAlign = 'right';
+        x = me.right - tickAndPadding;
+      } else {
+        x = me.left + tickAndPadding;
+
+        if (crossAlign === 'near') {
+          textAlign = 'left';
+        } else if (crossAlign === 'center') {
+          textAlign = 'center';
+          x += widest / 2;
+        } else {
+          textAlign = 'right';
+          x = me.right;
+        }
+      }
+    } else {
+      textAlign = 'right';
+    }
+
+    return {textAlign, x};
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Add a new `ticksInside` option to control whether ticks are rendered inside the chart bounds
+2. Modify the padding calculation to use minimal padding when `ticksInside` is enabled
+3. Adjust the position of the labels to be inside the chart area when `ticksInside` is enabled
+4. Handle both horizontal and vertical axes
+
+With these changes, users can set `ticksInside: true` in their axis configuration to have the ticks render inside the chart bounds, which will allow the chart to display edge-to-edge as requested in the issue.

@@ -1,0 +1,73 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description and the animation, the problem is that when navigating between multiple diagrams using the multi-diagram plugin, the deep linking overlay for subprocesses is lost. This happens because the current implementation of `DrilldownOverlayBehavior` is not aware of diagram changes that occur outside of its normal event handlers.
+
+The bug is in the `canDrillDown` method of `DrilldownOverlayBehavior.js`. When switching between diagrams using the multi-diagram plugin, the method doesn't properly check if the element can be drilled down into.
+
+Here's the fix:
+
+```javascript
+### lib/features/drilldown/DrilldownOverlayBehavior.js
+<<<<<<< SEARCH
+DrilldownOverlayBehavior.prototype.canDrillDown = function(element) {
+  var canvas = this._canvas;
+  return is(element, 'bpmn:SubProcess') && canvas.findRoot(getPlaneIdFromShape(element));
+};
+=======
+DrilldownOverlayBehavior.prototype.canDrillDown = function(element) {
+  var canvas = this._canvas;
+  return is(element, 'bpmn:SubProcess') && element.collapsed && canvas.findRoot(getPlaneIdFromShape(element));
+};
+>>>>>>> REPLACE
+```
+
+Additionally, we need to add an event listener for diagram changes to ensure overlays are properly updated when switching between diagrams:
+
+```javascript
+### lib/features/drilldown/DrilldownOverlayBehavior.js
+<<<<<<< SEARCH
+  eventBus.on('import.done', function() {
+    elementRegistry.filter(function(e) {
+      return self.canDrillDown(e);
+    }).map(function(el) {
+      self.addOverlay(el);
+    });
+  });
+
+}
+=======
+  eventBus.on('import.done', function() {
+    elementRegistry.filter(function(e) {
+      return self.canDrillDown(e);
+    }).map(function(el) {
+      self.addOverlay(el);
+    });
+  });
+
+  // Add listener for diagram changes to update overlays when switching diagrams
+  eventBus.on('diagram.clear', function() {
+    setTimeout(function() {
+      elementRegistry.filter(function(e) {
+        return self.canDrillDown(e);
+      }).map(function(el) {
+        self.addOverlay(el);
+      });
+    }, 0);
+  });
+
+  // Listen for root element changes
+  eventBus.on('canvas.viewbox.changed', function() {
+    elementRegistry.filter(function(e) {
+      return self.canDrillDown(e);
+    }).map(function(el) {
+      self.addOverlay(el);
+    });
+  });
+}
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Make sure we only add overlays to collapsed subprocesses
+2. Add event listeners to update overlays when switching between diagrams
+3. Ensure overlays are properly restored after diagram changes

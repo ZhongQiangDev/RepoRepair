@@ -1,0 +1,156 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description and the GIF, the problem occurs when drawing a polygon in OpenLayers 5.3.0. After completing the polygon drawing (on drawend), the map can't be dragged anymore. This issue doesn't happen in OpenLayers 4.6.5.
+
+Looking at the code, I notice that in the `handleUpEvent` method, when a drawing is finished, the `shouldHandle_` flag is set to false, but the `downPx_` property is not reset. This could cause issues with subsequent drag operations.
+
+Here's the fix:
+
+```javascript
+### src/ol/interaction/Draw.js
+<<<<<<< SEARCH
+  /**
+   * @inheritDoc
+   */
+  handleUpEvent(event) {
+    let pass = true;
+
+    if (this.downTimeout_) {
+      clearTimeout(this.downTimeout_);
+      this.downTimeout_ = undefined;
+    }
+
+    this.handlePointerMove_(event);
+
+    const circleMode = this.mode_ === Mode.CIRCLE;
+
+    if (this.shouldHandle_) {
+      if (!this.finishCoordinate_) {
+        this.startDrawing_(event);
+        if (this.mode_ === Mode.POINT) {
+          this.finishDrawing();
+        }
+      } else if (this.freehand_ || circleMode) {
+        this.finishDrawing();
+      } else if (this.atFinish_(event)) {
+        if (this.finishCondition_(event)) {
+          this.finishDrawing();
+        }
+      } else {
+        this.addToDrawing_(event);
+      }
+      pass = false;
+    } else if (this.freehand_) {
+      this.finishCoordinate_ = null;
+      this.abortDrawing_();
+    }
+    if (!pass && this.stopClick_) {
+      event.stopPropagation();
+    }
+    return pass;
+  }
+=======
+  /**
+   * @inheritDoc
+   */
+  handleUpEvent(event) {
+    let pass = true;
+
+    if (this.downTimeout_) {
+      clearTimeout(this.downTimeout_);
+      this.downTimeout_ = undefined;
+    }
+
+    this.handlePointerMove_(event);
+
+    const circleMode = this.mode_ === Mode.CIRCLE;
+
+    if (this.shouldHandle_) {
+      if (!this.finishCoordinate_) {
+        this.startDrawing_(event);
+        if (this.mode_ === Mode.POINT) {
+          this.finishDrawing();
+        }
+      } else if (this.freehand_ || circleMode) {
+        this.finishDrawing();
+      } else if (this.atFinish_(event)) {
+        if (this.finishCondition_(event)) {
+          this.finishDrawing();
+        }
+      } else {
+        this.addToDrawing_(event);
+      }
+      pass = false;
+    } else if (this.freehand_) {
+      this.finishCoordinate_ = null;
+      this.abortDrawing_();
+    }
+    if (!pass && this.stopClick_) {
+      event.stopPropagation();
+    }
+    // Reset downPx_ to prevent issues with map dragging after drawing
+    this.downPx_ = null;
+    return pass;
+  }
+>>>>>>> REPLACE
+```
+
+Additionally, we need to make sure the `downPx_` is also reset when finishing the drawing:
+
+```javascript
+### src/ol/interaction/Draw.js
+<<<<<<< SEARCH
+  /**
+   * Stop drawing and add the sketch feature to the target layer.
+   * The {@link module:ol/interaction/Draw~DrawEventType.DRAWEND} event is
+   * dispatched before inserting the feature.
+   * @api
+   */
+  finishDrawing() {
+    const sketchFeature = this.abortDrawing_();
+    if (!sketchFeature) {
+      return;
+    }
+    let coordinates = this.sketchCoords_;
+    const geometry = /** @type {import("../geom/SimpleGeometry.js").default} */ (sketchFeature.getGeometry());
+    if (this.mode_ === Mode.LINE_STRING) {
+      // remove the redundant last point
+      coordinates.pop();
+      this.geometryFunction_(coordinates, geometry);
+    } else if (this.mode_ === Mode.POLYGON) {
+      // remove the redundant last point in ring
+      /** @type {PolyCoordType} */ (coordinates)[0].pop();
+      this.geometryFunction_(coordinates, geometry);
+      coordinates = geometry.getCoordinates();
+    }
+=======
+  /**
+   * Stop drawing and add the sketch feature to the target layer.
+   * The {@link module:ol/interaction/Draw~DrawEventType.DRAWEND} event is
+   * dispatched before inserting the feature.
+   * @api
+   */
+  finishDrawing() {
+    const sketchFeature = this.abortDrawing_();
+    if (!sketchFeature) {
+      return;
+    }
+    let coordinates = this.sketchCoords_;
+    const geometry = /** @type {import("../geom/SimpleGeometry.js").default} */ (sketchFeature.getGeometry());
+    if (this.mode_ === Mode.LINE_STRING) {
+      // remove the redundant last point
+      coordinates.pop();
+      this.geometryFunction_(coordinates, geometry);
+    } else if (this.mode_ === Mode.POLYGON) {
+      // remove the redundant last point in ring
+      /** @type {PolyCoordType} */ (coordinates)[0].pop();
+      this.geometryFunction_(coordinates, geometry);
+      coordinates = geometry.getCoordinates();
+    }
+    
+    // Reset downPx_ to prevent issues with map dragging after drawing
+    this.downPx_ = null;
+>>>>>>> REPLACE
+```
+
+The issue is that after completing a polygon drawing, the `downPx_` property remains set, which interferes with the normal map dragging behavior. By resetting `downPx_` to null in both the `handleUpEvent` and `finishDrawing` methods, we ensure that after drawing is complete, the map can be properly dragged again.

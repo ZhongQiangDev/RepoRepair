@@ -1,0 +1,32 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that the vector layer canvas has a wrong size when the map is rotated. This was introduced in version 9.1.0, likely by PR #15652. The problem is visible in the screenshots where the polygon gets cut off when the map is rotated.
+
+Looking at the code, I can see that in the `renderFrame` method of `CanvasVectorLayerRenderer`, the canvas size is calculated based on the extent and resolution, but it doesn't account for rotation properly. When the map is rotated, the canvas needs to be large enough to contain the rotated extent.
+
+The issue is in the `renderFrame` method where the width and height of the canvas are calculated. The current calculation doesn't account for rotation, causing the canvas to be too small when the map is rotated.
+
+## Fix
+
+We need to modify the width and height calculation in the `renderFrame` method to account for rotation:
+
+```javascript
+### src/ol/renderer/canvas/VectorLayer.js
+<<<<<<< SEARCH
+    const extent = frameState.extent;
+    const resolution = frameState.viewState.resolution;
+    const width = Math.round((getWidth(extent) / resolution) * pixelRatio);
+    const height = Math.round((getHeight(extent) / resolution) * pixelRatio);
+=======
+    const extent = frameState.extent;
+    const resolution = frameState.viewState.resolution;
+    const rotation = frameState.viewState.rotation;
+    const size = frameState.size;
+    const width = rotation ? Math.round(size[0] * pixelRatio) : Math.round((getWidth(extent) / resolution) * pixelRatio);
+    const height = rotation ? Math.round(size[1] * pixelRatio) : Math.round((getHeight(extent) / resolution) * pixelRatio);
+>>>>>>> REPLACE
+```
+
+This change ensures that when the map is rotated, we use the full map size for the canvas dimensions rather than calculating it from the extent, which doesn't account for rotation. When there's no rotation, we continue using the original calculation.

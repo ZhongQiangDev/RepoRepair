@@ -1,0 +1,47 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The messages framework incorrectly handles empty string extra_tags by converting them to None during serialization/deserialization. When extra_tags="" is serialized and then deserialized, it becomes extra_tags=None, which can cause errors in template tags that expect a string value.
+
+2. Cause Analysis:
+The issue appears to be in the serialization/deserialization process, specifically in how the MessageEncoder and MessageDecoder handle empty string values for extra_tags. The MessageEncoder is checking for truthiness of extra_tags rather than explicitly checking if it's None, which means empty strings are being treated differently than intended.
+
+3. Examining Files:
+
+django/contrib/messages/api.py:
+```
+django/contrib/messages/api.py
+function: add_message
+```
+This file contains the core message creation function that sets the initial extra_tags value.
+
+django/contrib/messages/middleware.py:
+```
+django/contrib/messages/middleware.py
+class: MessageMiddleware
+```
+This class is relevant as it handles the message processing and could affect how messages are stored/retrieved.
+
+django/contrib/messages/storage/base.py:
+```
+django/contrib/messages/storage/base.py
+class: Message
+```
+This class defines the message structure including extra_tags handling.
+
+django/contrib/messages/storage/cookie.py:
+```
+django/contrib/messages/storage/cookie.py
+class: MessageEncoder
+class: MessageDecoder
+```
+These classes are directly responsible for the serialization/deserialization bug with extra_tags.
+
+django/contrib/messages/storage/session.py:
+```
+django/contrib/messages/storage/session.py
+class: SessionStorage
+```
+This class is relevant as it uses MessageEncoder/MessageDecoder for message serialization/deserialization.
+
+The core issue appears to be in the MessageEncoder and MessageDecoder classes in the cookie.py file, as they handle the actual serialization/deserialization process where the empty string is being converted to None.

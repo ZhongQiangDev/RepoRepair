@@ -1,0 +1,44 @@
+Based on the issue description, the bug is in the `atoms()` method of the `Basic` class. The issue states that `expr.atoms()` should return objects with no args instead of subclasses of `Atom`. Currently, it returns all instances of `Atom` subclasses, but it should only return objects that have no `.args`.
+
+Here's the fix:
+
+```python
+### sympy/core/basic.py
+<<<<<<< SEARCH
+        if types:
+            types = tuple(
+                [t if isinstance(t, type) else type(t) for t in types])
+        else:
+            types = (Atom,)
+        result = set()
+        for expr in preorder_traversal(self):
+            if isinstance(expr, types):
+                result.add(expr)
+        return result
+=======
+        if types:
+            types = tuple(
+                [t if isinstance(t, type) else type(t) for t in types])
+            result = set()
+            for expr in preorder_traversal(self):
+                if isinstance(expr, types):
+                    result.add(expr)
+            return result
+        else:
+            result = set()
+            for expr in preorder_traversal(self):
+                if not expr.args:
+                    result.add(expr)
+            return result
+>>>>>>> REPLACE
+```
+
+This change modifies the `atoms()` method to:
+
+1. Keep the existing behavior when specific types are provided as arguments (e.g., `expr.atoms(Symbol)` will still return all symbols)
+
+2. Change the default behavior (when no types are specified) to return only objects that have no `.args`, rather than all instances of `Atom` subclasses
+
+The fix ensures that `expr.atoms()` returns true leaf nodes (nodes with no arguments) rather than all instances of the `Atom` class. This matches the issue description that states "the correct definition of a leaf node should be that it has no `.args`".
+
+The change is backward compatible for cases where specific types are provided, but changes the default behavior to be more logically consistent with what constitutes a leaf node in the expression tree.

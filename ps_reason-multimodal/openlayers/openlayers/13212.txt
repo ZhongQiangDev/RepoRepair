@@ -1,0 +1,25 @@
+Let me analyze the problem description and break down the issues:
+
+### Answer 1
+**Wrong Behavior**: Loss of WebGL contexts when handling larger pyramids with multiple layers
+**Cause**: Creating too many WebGL contexts simultaneously when dealing with multiple WebGLTileLayers, which exceeds the browser's or system's resource limits for concurrent WebGL contexts
+
+### Answer 2
+**Wrong Behavior**: Poor rendering performance (2-5 FPS instead of expected 30 FPS)
+**Cause**: The overhead of managing multiple WebGL contexts and the system's struggle to maintain these contexts leads to significant performance degradation
+
+### Answer 3
+**Wrong Behavior**: Non-rendered tiles appearing in the visualization
+**Cause**: When WebGL contexts are lost due to resource constraints, the system fails to properly render the affected tiles, resulting in missing or incomplete visualization
+
+### Conclusion
+**Summary**: The core issue stems from the current implementation's approach of creating separate WebGL contexts for each layer in the pyramid. This design doesn't scale well with larger pyramids because:
+1. It creates too many simultaneous WebGL contexts
+2. Browsers have limitations on the number of WebGL contexts they can maintain
+3. The overhead of managing multiple contexts impacts performance significantly
+
+The suggested solution of implementing a separate source for GeoTIFF pyramids using a template string and tile grid object would be more efficient as it would:
+- Use a single WebGL context per layer/renderer
+- Handle overlapping tiles from the GeoTIFF pyramid more efficiently
+- Follow a similar pattern to the existing WMTS source implementation
+This approach would likely resolve both the context loss and performance issues.

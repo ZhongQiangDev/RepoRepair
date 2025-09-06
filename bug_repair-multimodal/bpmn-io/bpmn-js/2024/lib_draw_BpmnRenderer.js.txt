@@ -1,0 +1,112 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about correctly rendering pool/lane labels in vertical collaboration diagrams. When a pool is marked as vertical (`isHorizontal="false"`), the labels are not being rendered correctly. The problem is that the current implementation doesn't account for the orientation of the pool when rendering its label.
+
+Looking at the provided code, I need to find where pool/lane labels are rendered and modify it to handle vertical orientation. However, the specific code for rendering pools and lanes isn't included in the provided file segments. 
+
+Since the issue is about label positioning and the file is `BpmnRenderer.js`, I need to look for functions that handle participant/pool rendering. The issue is likely in the renderer for pools/participants, which would check the `isHorizontal` property and adjust label positioning accordingly.
+
+## Solution
+
+Since the complete code for rendering pools isn't provided in the snippets, I'll need to make an educated guess about where the bug might be. Based on the issue description, we need to check if a pool is horizontal or vertical (using the `isHorizontal` property from the DI) and adjust the label positioning accordingly.
+
+Let's look for a function that renders participants or pools in the `BpmnRenderer.js` file. Since it's not in the provided snippets, I'll need to create a solution that would likely fix the issue:
+
+```javascript
+### lib/draw/BpmnRenderer.js
+<<<<<<< SEARCH
+BpmnRenderer.prototype._drawParticipantLabel = function(parentGfx, text, element) {
+  var isHorizontal = true;
+
+  var box = {
+    width: 100,
+    height: 20,
+    x: 0,
+    y: 0
+  };
+
+  if (!text) {
+    return;
+  }
+
+  var lines = text.split(/\r?\n/g);
+
+  var textBox = this._textRenderer.layoutText(lines);
+
+  // vertical alignment
+  var elementHeight = getHeight(element);
+
+  box.y = Math.max(elementHeight / 2 - textBox.height / 2, 0);
+
+  // horizontal alignment
+  var elementWidth = getWidth(element);
+
+  box.x = 0;
+
+  var textElement = this._textRenderer.createText(lines);
+
+  svgAttr(textElement, {
+    transform: 'translate(' + box.x + ', ' + box.y + ')'
+  });
+
+  svgAppend(parentGfx, textElement);
+
+  return textElement;
+};
+=======
+BpmnRenderer.prototype._drawParticipantLabel = function(parentGfx, text, element) {
+  var di = getDi(element);
+  var isHorizontal = di && di.isHorizontal !== false;
+
+  var box = {
+    width: 100,
+    height: 20,
+    x: 0,
+    y: 0
+  };
+
+  if (!text) {
+    return;
+  }
+
+  var lines = text.split(/\r?\n/g);
+
+  var textBox = this._textRenderer.layoutText(lines);
+
+  if (isHorizontal) {
+    // vertical alignment for horizontal pools
+    var elementHeight = getHeight(element);
+    box.y = Math.max(elementHeight / 2 - textBox.height / 2, 0);
+    
+    // horizontal alignment
+    box.x = 0;
+  } else {
+    // horizontal alignment for vertical pools
+    var elementWidth = getWidth(element);
+    box.x = Math.max(elementWidth / 2 - textBox.width / 2, 0);
+    
+    // vertical alignment
+    box.y = 0;
+  }
+
+  var textElement = this._textRenderer.createText(lines);
+
+  svgAttr(textElement, {
+    transform: 'translate(' + box.x + ', ' + box.y + ')'
+  });
+
+  svgAppend(parentGfx, textElement);
+
+  return textElement;
+};
+>>>>>>> REPLACE
+```
+
+This solution:
+1. Checks if the pool is horizontal by examining the `isHorizontal` property from the DI (diagram interchange) data
+2. For horizontal pools (default), positions the label vertically centered on the left side
+3. For vertical pools, positions the label horizontally centered at the top
+
+Note: Since I don't have the complete code, this is a best guess based on the issue description. The actual implementation might differ, but the core concept is to check the `isHorizontal` property and adjust label positioning accordingly.

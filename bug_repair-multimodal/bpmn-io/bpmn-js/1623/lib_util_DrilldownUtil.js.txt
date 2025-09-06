@@ -1,0 +1,68 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The problem is that when using the multi-diagram plugin together with the deep linking feature for subprocesses, the deep linking overlay for subprocesses disappears when navigating between diagrams.
+
+Looking at the GIF in the issue, we can see that:
+1. The user navigates to a subprocess using deep linking (the overlay appears)
+2. Then they navigate to another diagram using the multi-diagram plugin
+3. When they return, the deep linking overlay for the subprocess is gone
+
+The issue is likely in the `DrilldownUtil.js` file, specifically in the `getPlaneIdFromShape` function. This function only handles subprocesses but doesn't account for the multi-diagram plugin's "global subprocesses" which are separate diagrams.
+
+## Solution
+
+The problem is that the `getPlaneIdFromShape` function only checks if the element is a subprocess, but it doesn't handle the case when the element is a different type that should also have a plane suffix. We need to modify this function to be more inclusive of other element types that might need plane IDs.
+
+```javascript
+### lib/util/DrilldownUtil.js
+<<<<<<< SEARCH
+/**
+ * Get plane ID for a primary shape.
+ *
+ * @param  {djs.model.Base|ModdleElement} element
+ *
+ * @returns {String}
+ */
+export function getPlaneIdFromShape(element) {
+  var id = element.id;
+
+  if (is(element, 'bpmn:SubProcess')) {
+    return addPlaneSuffix(id);
+  }
+
+  return id;
+}
+=======
+/**
+ * Get plane ID for a primary shape.
+ *
+ * @param  {djs.model.Base|ModdleElement} element
+ *
+ * @returns {String}
+ */
+export function getPlaneIdFromShape(element) {
+  var id = element.id;
+
+  // Check if the element already has a plane suffix to avoid adding it twice
+  if (id.endsWith(planeSuffix)) {
+    return id;
+  }
+
+  // Add plane suffix for SubProcess elements and any element that might be drillable
+  if (is(element, 'bpmn:SubProcess') || element.businessObject?.get('isMultiDiagram')) {
+    return addPlaneSuffix(id);
+  }
+
+  return id;
+}
+>>>>>>> REPLACE
+```
+
+This change does two important things:
+
+1. It checks if the ID already has a plane suffix to avoid adding it twice
+2. It adds support for elements that have the `isMultiDiagram` property set by the multi-diagram plugin
+
+This should allow the deep linking overlay to persist when navigating between diagrams in the multi-diagram plugin, as it will properly maintain the plane IDs for both regular subprocesses and the multi-diagram elements.

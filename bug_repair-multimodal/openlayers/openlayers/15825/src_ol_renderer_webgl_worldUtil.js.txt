@@ -1,0 +1,74 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about missing tiles in WebGLTileLayer when using a GeoTiff source with a stereographic projection, particularly near the antimeridian. The problem appears to be in the `getWorldParameters` function in `src/ol/renderer/webgl/worldUtil.js`.
+
+The current implementation has two main issues:
+
+1. It's assuming the source is a vector source with a `getWrapX()` method, but the issue is using a GeoTIFF source.
+2. The calculation for determining the start and end world doesn't properly handle the antimeridian case in stereographic projections.
+
+## Fix
+
+The function needs to be modified to:
+1. Check if the source has a `getWrapX()` method before calling it
+2. Improve the calculation of start and end worlds to ensure tiles near the antimeridian are properly rendered
+
+```javascript
+### src/ol/renderer/webgl/worldUtil.js
+<<<<<<< SEARCH
+export function getWorldParameters(frameState, layer) {
+  const projection = frameState.viewState.projection;
+
+  const vectorSource = layer.getSource();
+  const multiWorld = vectorSource.getWrapX() && projection.canWrapX();
+  const projectionExtent = projection.getExtent();
+
+  const extent = frameState.extent;
+  const worldWidth = multiWorld ? getWidth(projectionExtent) : null;
+  const endWorld = multiWorld
+    ? Math.ceil((extent[2] - projectionExtent[2]) / worldWidth) + 1
+    : 1;
+
+  const startWorld = multiWorld
+    ? Math.floor((extent[0] - projectionExtent[0]) / worldWidth)
+    : 0;
+
+  return [startWorld, endWorld, worldWidth];
+}
+=======
+export function getWorldParameters(frameState, layer) {
+  const projection = frameState.viewState.projection;
+
+  const source = layer.getSource();
+  // Check if the source has getWrapX method before calling it
+  const multiWorld = source.getWrapX && source.getWrapX() && projection.canWrapX();
+  const projectionExtent = projection.getExtent();
+
+  const extent = frameState.extent;
+  const worldWidth = multiWorld ? getWidth(projectionExtent) : null;
+  
+  // Add a buffer to ensure tiles near the antimeridian are rendered
+  const endWorld = multiWorld
+    ? Math.ceil((extent[2] - projectionExtent[0]) / worldWidth) + 1
+    : 1;
+
+  const startWorld = multiWorld
+    ? Math.floor((extent[0] - projectionExtent[0]) / worldWidth) - 1
+    : 0;
+
+  return [startWorld, endWorld, worldWidth];
+}
+>>>>>>> REPLACE
+```
+
+This fix makes two important changes:
+
+1. It checks if `source.getWrapX` exists before calling it, making the function work with different source types including GeoTIFF.
+2. It adjusts the calculation of start and end worlds by:
+   - Adding a buffer of -1 to the start world to ensure tiles to the left of the view are loaded
+   - Using projectionExtent[0] consistently in both calculations to ensure proper wrapping
+   - Adding a buffer of +1 to the end world to ensure tiles to the right of the view are loaded
+
+These changes should ensure that tiles near the antimeridian are properly rendered in stereographic projections.

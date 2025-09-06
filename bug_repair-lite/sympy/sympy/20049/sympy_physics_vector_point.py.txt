@@ -1,0 +1,74 @@
+Based on the issue description, the bug is in the `vel()` method of the `Point` class. Currently, it raises a ValueError if the velocity hasn't been explicitly defined, even though it could calculate the velocity from the position information using the time derivative, similar to how angular velocities are calculated automatically.
+
+The fix should modify the `vel()` method to attempt calculating the velocity from position information when it hasn't been explicitly set. Here's the proposed fix:
+
+```python
+### sympy/physics/vector/point.py
+<<<<<<< SEARCH
+    def vel(self, frame):
+        """The velocity Vector of this Point in the ReferenceFrame.
+
+        Parameters
+        ==========
+
+        frame : ReferenceFrame
+            The frame in which the returned velocity vector will be defined in
+
+        Examples
+        ========
+
+        >>> from sympy.physics.vector import Point, ReferenceFrame
+        >>> N = ReferenceFrame('N')
+        >>> p1 = Point('p1')
+        >>> p1.set_vel(N, 10 * N.x)
+        >>> p1.vel(N)
+        10*N.x
+
+        """
+
+        _check_frame(frame)
+        if not (frame in self._vel_dict):
+            raise ValueError('Velocity of point ' + self.name + ' has not been'
+                             ' defined in ReferenceFrame ' + frame.name)
+        return self._vel_dict[frame]
+=======
+    def vel(self, frame):
+        """The velocity Vector of this Point in the ReferenceFrame.
+
+        Parameters
+        ==========
+
+        frame : ReferenceFrame
+            The frame in which the returned velocity vector will be defined in
+
+        Examples
+        ========
+
+        >>> from sympy.physics.vector import Point, ReferenceFrame
+        >>> N = ReferenceFrame('N')
+        >>> p1 = Point('p1')
+        >>> p1.set_vel(N, 10 * N.x)
+        >>> p1.vel(N)
+        10*N.x
+
+        """
+
+        _check_frame(frame)
+        if not (frame in self._vel_dict):
+            # Try to calculate velocity from position if possible
+            for point, pos_vec in self._pos_dict.items():
+                if hasattr(pos_vec, 'dt'):
+                    return pos_vec.dt(frame)
+            raise ValueError('Velocity of point ' + self.name + ' has not been'
+                             ' defined in ReferenceFrame ' + frame.name)
+        return self._vel_dict[frame]
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Checks if velocity is explicitly defined in the velocity dictionary
+2. If not, looks through position vectors to see if any can be differentiated
+3. If a position vector exists and can be differentiated, returns its time derivative
+4. Otherwise, raises the original ValueError
+
+This matches the expected behavior shown in the issue where `Q.vel(A)` should return `r.dt(A)` when `r` is the position vector.

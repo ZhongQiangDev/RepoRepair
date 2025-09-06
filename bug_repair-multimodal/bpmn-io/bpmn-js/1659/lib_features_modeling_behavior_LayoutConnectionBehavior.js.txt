@@ -1,0 +1,202 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is that when a connection is re-laid out after a connected shape is resized, labels and associations don't move with it. Looking at the code, I can see that the `LayoutConnectionBehavior` class handles updating connections when their parent connections are moved or laid out, but it doesn't handle labels.
+
+The problem is that the code only updates incoming and outgoing connections, but doesn't update the labels that are attached to the connection. When a connection is re-laid out, its labels should also be repositioned accordingly.
+
+## Solution
+
+We need to modify the `LayoutConnectionBehavior` class to also update the labels when a connection is re-laid out. Here's the fix:
+
+```javascript
+### lib/features/modeling/behavior/LayoutConnectionBehavior.js
+<<<<<<< SEARCH
+import {
+  assign
+} from 'min-dash';
+
+import inherits from 'inherits';
+
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+
+import { getConnectionAdjustment as getConnectionAnchorPoint } from './util/ConnectionLayoutUtil';
+=======
+import {
+  assign
+} from 'min-dash';
+
+import inherits from 'inherits';
+
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+
+import { getConnectionAdjustment as getConnectionAnchorPoint } from './util/ConnectionLayoutUtil';
+
+import { forEach } from 'min-dash';
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/modeling/behavior/LayoutConnectionBehavior.js
+<<<<<<< SEARCH
+  this.postExecute([
+    'connection.layout',
+    'connection.updateWaypoints'
+  ], function(event) {
+    var context = event.context;
+
+    var connection = context.connection,
+        outgoing = connection.outgoing,
+        incoming = connection.incoming;
+
+    incoming.forEach(function(connection) {
+      var endPoint = connection.waypoints[connection.waypoints.length - 1];
+      var newEndpoint = getnewAnchorPoint(event, endPoint);
+
+      var newWaypoints = [].concat(connection.waypoints.slice(0, -1), [ newEndpoint ]);
+
+      modeling.updateWaypoints(connection, newWaypoints);
+    });
+
+    outgoing.forEach(function(connection) {
+      var startpoint = connection.waypoints[0];
+      var newStartpoint = getnewAnchorPoint(event, startpoint);
+
+      var newWaypoints = [].concat([ newStartpoint ], connection.waypoints.slice(1));
+
+      modeling.updateWaypoints(connection, newWaypoints);
+    });
+
+  });
+=======
+  this.postExecute([
+    'connection.layout',
+    'connection.updateWaypoints'
+  ], function(event) {
+    var context = event.context;
+
+    var connection = context.connection,
+        outgoing = connection.outgoing,
+        incoming = connection.incoming,
+        labels = connection.labels || [];
+
+    incoming.forEach(function(connection) {
+      var endPoint = connection.waypoints[connection.waypoints.length - 1];
+      var newEndpoint = getnewAnchorPoint(event, endPoint);
+
+      var newWaypoints = [].concat(connection.waypoints.slice(0, -1), [ newEndpoint ]);
+
+      modeling.updateWaypoints(connection, newWaypoints);
+    });
+
+    outgoing.forEach(function(connection) {
+      var startpoint = connection.waypoints[0];
+      var newStartpoint = getnewAnchorPoint(event, startpoint);
+
+      var newWaypoints = [].concat([ newStartpoint ], connection.waypoints.slice(1));
+
+      modeling.updateWaypoints(connection, newWaypoints);
+    });
+
+    // Update labels position when connection is re-laid out
+    if (labels.length) {
+      forEach(labels, function(label) {
+        modeling.updateLabel(label, label.businessObject);
+      });
+    }
+  });
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/modeling/behavior/LayoutConnectionBehavior.js
+<<<<<<< SEARCH
+  this.postExecute([
+    'connection.move'
+  ], function(event) {
+    var context = event.context;
+
+    var connection = context.connection,
+        outgoing = connection.outgoing,
+        incoming = connection.incoming,
+        delta = context.delta;
+
+    incoming.forEach(function(connection) {
+      var endPoint = connection.waypoints[connection.waypoints.length - 1];
+      var newEndpoint = {
+        x: endPoint.x + delta.x,
+        y: endPoint.y + delta.y
+      };
+
+      var newWaypoints = [].concat(connection.waypoints.slice(0, -1), [ newEndpoint ]);
+
+      modeling.updateWaypoints(connection, newWaypoints);
+    });
+
+    outgoing.forEach(function(connection) {
+      var startpoint = connection.waypoints[0];
+      var newStartpoint = {
+        x: startpoint.x + delta.x,
+        y: startpoint.y + delta.y
+      };
+
+      var newWaypoints = [].concat([ newStartpoint ], connection.waypoints.slice(1));
+
+      modeling.updateWaypoints(connection, newWaypoints);
+    });
+
+  });
+=======
+  this.postExecute([
+    'connection.move'
+  ], function(event) {
+    var context = event.context;
+
+    var connection = context.connection,
+        outgoing = connection.outgoing,
+        incoming = connection.incoming,
+        labels = connection.labels || [],
+        delta = context.delta;
+
+    incoming.forEach(function(connection) {
+      var endPoint = connection.waypoints[connection.waypoints.length - 1];
+      var newEndpoint = {
+        x: endPoint.x + delta.x,
+        y: endPoint.y + delta.y
+      };
+
+      var newWaypoints = [].concat(connection.waypoints.slice(0, -1), [ newEndpoint ]);
+
+      modeling.updateWaypoints(connection, newWaypoints);
+    });
+
+    outgoing.forEach(function(connection) {
+      var startpoint = connection.waypoints[0];
+      var newStartpoint = {
+        x: startpoint.x + delta.x,
+        y: startpoint.y + delta.y
+      };
+
+      var newWaypoints = [].concat([ newStartpoint ], connection.waypoints.slice(1));
+
+      modeling.updateWaypoints(connection, newWaypoints);
+    });
+
+    // Update labels position when connection is moved
+    if (labels.length) {
+      forEach(labels, function(label) {
+        modeling.updateLabel(label, label.businessObject);
+      });
+    }
+  });
+>>>>>>> REPLACE
+```
+
+These changes add support for updating labels when a connection is re-laid out or moved. The key additions are:
+
+1. Importing `forEach` from 'min-dash' to iterate over the labels
+2. Adding a `labels` variable that gets the connection's labels
+3. Adding code to update each label using the modeling.updateLabel method
+
+This will ensure that when a connection is re-laid out after a connected shape is resized, its labels will be properly repositioned along with the connection.

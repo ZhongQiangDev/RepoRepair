@@ -1,0 +1,161 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is that the Pagination component currently only accepts an array of numbers for the `pageSizes` prop, but the user wants to be able to define custom labels for these values (like showing "All" instead of the actual number for the total items option).
+
+Currently, the component:
+1. Only accepts an array of numbers for `pageSizes`
+2. Renders these numbers directly as strings in the dropdown
+3. Cannot handle custom text labels for each page size option
+
+## Solution
+
+We need to modify the Pagination component to:
+1. Update the PropTypes to accept either an array of numbers or an array of objects with `value` and `text` properties
+2. Update the rendering logic to handle both formats
+3. Ensure calculations still work correctly with the numeric values
+
+Here are the necessary changes:
+
+```javascript
+### packages/react/src/components/Pagination/Pagination.js
+<<<<<<< SEARCH
+    /**
+     * The choices for `pageSize`.
+     */
+    pageSizes: PropTypes.arrayOf(PropTypes.number).isRequired,
+=======
+    /**
+     * The choices for `pageSize`.
+     * Can be either an array of numbers or an array of objects with the shape { value, text }
+     */
+    pageSizes: PropTypes.oneOfType([
+      PropTypes.arrayOf(PropTypes.number),
+      PropTypes.arrayOf(
+        PropTypes.shape({
+          value: PropTypes.number.isRequired,
+          text: PropTypes.string.isRequired,
+        })
+      ),
+    ]).isRequired,
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Pagination/Pagination.js
+<<<<<<< SEARCH
+  static getDerivedStateFromProps({ pageSizes, page, pageSize }, state) {
+    const {
+      prevPageSizes,
+      prevPage,
+      prevPageSize,
+      page: currentPage,
+      pageSize: currentPageSize,
+    } = state;
+    const pageSizesChanged = !equals(pageSizes, prevPageSizes);
+    if (pageSizesChanged && !pageSizes.includes(pageSize)) {
+      pageSize = pageSizes[0];
+    }
+    const pageChanged = page !== prevPage;
+    const pageSizeChanged = pageSize !== prevPageSize;
+    return !pageSizesChanged && !pageChanged && !pageSizeChanged
+      ? null
+      : {
+          page: (pageSizeChanged && 1) || (pageChanged && page) || currentPage,
+          pageSize: pageSizeChanged ? pageSize : currentPageSize,
+          prevPageSizes: pageSizes,
+          prevPage: page,
+          prevPageSize: pageSize,
+        };
+  }
+=======
+  static getDerivedStateFromProps({ pageSizes, page, pageSize }, state) {
+    const {
+      prevPageSizes,
+      prevPage,
+      prevPageSize,
+      page: currentPage,
+      pageSize: currentPageSize,
+    } = state;
+    const pageSizesChanged = !equals(pageSizes, prevPageSizes);
+    
+    // Handle both array of numbers and array of objects
+    const pageSizeValues = pageSizes.map(size => 
+      typeof size === 'number' ? size : size.value
+    );
+    
+    if (pageSizesChanged && !pageSizeValues.includes(pageSize)) {
+      pageSize = pageSizeValues[0];
+    }
+    const pageChanged = page !== prevPage;
+    const pageSizeChanged = pageSize !== prevPageSize;
+    return !pageSizesChanged && !pageChanged && !pageSizeChanged
+      ? null
+      : {
+          page: (pageSizeChanged && 1) || (pageChanged && page) || currentPage,
+          pageSize: pageSizeChanged ? pageSize : currentPageSize,
+          prevPageSizes: pageSizes,
+          prevPage: page,
+          prevPageSize: pageSize,
+        };
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Pagination/Pagination.js
+<<<<<<< SEARCH
+            {pageSizes.map((size) => (
+              <SelectItem key={size} value={size} text={String(size)} />
+            ))}
+=======
+            {pageSizes.map((size) => {
+              if (typeof size === 'number') {
+                return <SelectItem key={size} value={size} text={String(size)} />;
+              }
+              return <SelectItem key={size.value} value={size.value} text={size.text} />;
+            })}
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Pagination/Pagination.js
+<<<<<<< SEARCH
+  constructor(props) {
+    super(props);
+    const { pageSizes, page, pageSize } = this.props;
+    this.state = {
+      page: page,
+      pageSize:
+        pageSize && pageSizes.includes(pageSize) ? pageSize : pageSizes[0],
+      prevPageSizes: pageSizes,
+      prevPage: page,
+      prevPageSize: pageSize,
+    };
+    this.uniqueId = ++instanceId;
+  }
+=======
+  constructor(props) {
+    super(props);
+    const { pageSizes, page, pageSize } = this.props;
+    
+    // Handle both array of numbers and array of objects
+    const pageSizeValues = pageSizes.map(size => 
+      typeof size === 'number' ? size : size.value
+    );
+    
+    this.state = {
+      page: page,
+      pageSize:
+        pageSize && pageSizeValues.includes(pageSize) ? pageSize : pageSizeValues[0],
+      prevPageSizes: pageSizes,
+      prevPage: page,
+      prevPageSize: pageSize,
+    };
+    this.uniqueId = ++instanceId;
+  }
+>>>>>>> REPLACE
+```
+
+These changes will allow developers to use the Pagination component with either the current format (array of numbers) or the new format (array of objects with `value` and `text` properties), making it backward compatible while adding the requested functionality.

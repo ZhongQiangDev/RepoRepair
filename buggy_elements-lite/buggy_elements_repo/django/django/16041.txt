@@ -1,0 +1,37 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+When rendering a formset's empty_form with form_kwargs containing 'empty_permitted' parameter, a KeyError occurs. This happens specifically when trying to access the empty_form property of a formset where form_kwargs includes either {'empty_permitted':True} or {'empty_permitted':False}.
+
+2. Cause Analysis:
+The issue appears to be related to how empty_form handles form_kwargs. The empty_form is meant to be a template form that shouldn't need validation parameters like empty_permitted, but it seems the empty_permitted parameter is being incorrectly passed or handled when constructing the empty form.
+
+3. File Analysis:
+
+django/forms/forms.py:
+```
+django/forms/forms.py
+class: BaseForm
+class: Form
+```
+These are relevant because they handle form initialization and the empty_permitted parameter.
+
+django/forms/formsets.py:
+```
+django/forms/formsets.py
+class: BaseFormSet
+```
+This is highly relevant as it handles the empty_form property and form_kwargs passing.
+
+django/forms/models.py:
+```
+django/forms/models.py
+class: BaseModelFormSet
+function: modelformset_factory
+```
+These are relevant because the issue occurs with a ModelFormSet, which inherits from BaseFormSet and is created via modelformset_factory.
+
+django/forms/models.py:
+The remaining files contain no relevant functions/classes.
+
+The core issue likely lies in BaseFormSet's handling of empty_form and how it passes form_kwargs to the empty form instance. The form_kwargs containing empty_permitted should either be filtered out or handled differently when creating the empty_form.

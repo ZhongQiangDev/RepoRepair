@@ -1,0 +1,232 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue reports that pointermove performance is much slower in version 6.4.0 compared to 6.3.1, affecting operations like zoom, panning, and cursor changes. 
+
+Looking at the provided file `src/ol/events.js`, I notice that the implementation of key event handling functions (`listen`, `listenOnce`, and `unlistenByKey`) are missing from the file. The file only contains the JSDoc comments for these functions but not their actual implementations.
+
+The performance degradation in pointermove events suggests that there might be an inefficiency in how event listeners are being handled. Since the file is incomplete in the provided snippet, I'll need to make an educated guess about what might be causing the issue.
+
+## Proposed Fix
+
+The most likely issue is that the event handling system is not efficiently managing listeners, particularly for high-frequency events like pointermove. I'll provide a fix that optimizes the event listener registration and handling:
+
+```javascript
+### src/ol/events.js
+<<<<<<< SEARCH
+/**
+ * @module ol/events
+ */
+import {clear} from './obj.js';
+
+/**
+ * Key to use with {@link module:ol/Observable~Observable#unByKey}.
+ * @typedef {Object} EventsKey
+ * @property {ListenerFunction} listener
+ * @property {import("./events/Target.js").EventTargetLike} target
+ * @property {string} type
+ * @api
+ */
+
+/**
+ * Listener function. This function is called with an event object as argument.
+ * When the function returns `false`, event propagation will stop.
+ *
+ * @typedef {function((Event|import("./events/Event.js").default)): (void|boolean)} ListenerFunction
+ * @api
+ */
+
+/**
+ * @typedef {Object} ListenerObject
+ * @property {ListenerFunction} handleEvent
+ */
+
+/**
+ * @typedef {ListenerFunction|ListenerObject} Listener
+ */
+
+/**
+ * Registers an event listener on an event target. Inspired by
+ * https://google.github.io/closure-library/api/source/closure/goog/events/events.js.src.html
+ *
+ * This function efficiently binds a `listener` to a `this` object, and returns
+ * a key for use with {@link module:ol/events~unlistenByKey}.
+ *
+ * @param {import("./events/Target.js").EventTargetLike} target Event target.
+ * @param {string} type Event type.
+ * @param {ListenerFunction} listener Listener.
+ * @param {Object=} opt_this Object referenced by the `this` keyword in the
+ *     listener. Default is the `target`.
+ * @param {boolean=} opt_once If true, add the listener as one-off listener.
+ * @return {EventsKey} Unique key for the listener.
+ */
+
+
+/**
+ * Registers a one-off event listener on an event target. Inspired by
+ * https://google.github.io/closure-library/api/source/closure/goog/events/events.js.src.html
+ *
+ * This function efficiently binds a `listener` as self-unregistering listener
+ * to a `this` object, and returns a key for use with
+ * {@link module:ol/events~unlistenByKey} in case the listener needs to be
+ * unregistered before it is called.
+ *
+ * When {@link module:ol/events~listen} is called with the same arguments after this
+ * function, the self-unregistering listener will be turned into a permanent
+ * listener.
+ *
+ * @param {import("./events/Target.js").EventTargetLike} target Event target.
+ * @param {string} type Event type.
+ * @param {ListenerFunction} listener Listener.
+ * @param {Object=} opt_this Object referenced by the `this` keyword in the
+ *     listener. Default is the `target`.
+ * @return {EventsKey} Key for unlistenByKey.
+ */
+
+
+/**
+ * Unregisters event listeners on an event target. Inspired by
+ * https://google.github.io/closure-library/api/source/closure/goog/events/events.js.src.html
+ *
+ * The argument passed to this function is the key returned from
+ * {@link module:ol/events~listen} or {@link module:ol/events~listenOnce}.
+ *
+ * @param {EventsKey} key The key.
+ */
+
+=======
+/**
+ * @module ol/events
+ */
+import {clear} from './obj.js';
+
+/**
+ * Key to use with {@link module:ol/Observable~Observable#unByKey}.
+ * @typedef {Object} EventsKey
+ * @property {ListenerFunction} listener
+ * @property {import("./events/Target.js").EventTargetLike} target
+ * @property {string} type
+ * @api
+ */
+
+/**
+ * Listener function. This function is called with an event object as argument.
+ * When the function returns `false`, event propagation will stop.
+ *
+ * @typedef {function((Event|import("./events/Event.js").default)): (void|boolean)} ListenerFunction
+ * @api
+ */
+
+/**
+ * @typedef {Object} ListenerObject
+ * @property {ListenerFunction} handleEvent
+ */
+
+/**
+ * @typedef {ListenerFunction|ListenerObject} Listener
+ */
+
+/**
+ * Registers an event listener on an event target. Inspired by
+ * https://google.github.io/closure-library/api/source/closure/goog/events/events.js.src.html
+ *
+ * This function efficiently binds a `listener` to a `this` object, and returns
+ * a key for use with {@link module:ol/events~unlistenByKey}.
+ *
+ * @param {import("./events/Target.js").EventTargetLike} target Event target.
+ * @param {string} type Event type.
+ * @param {ListenerFunction} listener Listener.
+ * @param {Object=} opt_this Object referenced by the `this` keyword in the
+ *     listener. Default is the `target`.
+ * @param {boolean=} opt_once If true, add the listener as one-off listener.
+ * @return {EventsKey} Unique key for the listener.
+ */
+export function listen(target, type, listener, opt_this, opt_once) {
+  if (opt_this && opt_this !== target) {
+    listener = listener.bind(opt_this);
+  }
+  if (opt_once) {
+    const originalListener = listener;
+    const key = {
+      target: target,
+      type: type,
+      listener: listener,
+    };
+    listener = function (evt) {
+      const listenerObj = /** @type {?} */ (this);
+      if (listenerObj && listenerObj.listener) {
+        const returnValue = originalListener.call(this, evt);
+        if (returnValue === false) {
+          evt.preventDefault();
+        }
+        unlistenByKey(key);
+        return returnValue;
+      } else {
+        return undefined;
+      }
+    };
+    key.listener = listener;
+    target.addEventListener(type, listener);
+    return key;
+  } else {
+    const key = {
+      target: target,
+      type: type,
+      listener: listener,
+    };
+    target.addEventListener(type, listener);
+    return key;
+  }
+}
+
+/**
+ * Registers a one-off event listener on an event target. Inspired by
+ * https://google.github.io/closure-library/api/source/closure/goog/events/events.js.src.html
+ *
+ * This function efficiently binds a `listener` as self-unregistering listener
+ * to a `this` object, and returns a key for use with
+ * {@link module:ol/events~unlistenByKey} in case the listener needs to be
+ * unregistered before it is called.
+ *
+ * When {@link module:ol/events~listen} is called with the same arguments after this
+ * function, the self-unregistering listener will be turned into a permanent
+ * listener.
+ *
+ * @param {import("./events/Target.js").EventTargetLike} target Event target.
+ * @param {string} type Event type.
+ * @param {ListenerFunction} listener Listener.
+ * @param {Object=} opt_this Object referenced by the `this` keyword in the
+ *     listener. Default is the `target`.
+ * @return {EventsKey} Key for unlistenByKey.
+ */
+export function listenOnce(target, type, listener, opt_this) {
+  return listen(target, type, listener, opt_this, true);
+}
+
+/**
+ * Unregisters event listeners on an event target. Inspired by
+ * https://google.github.io/closure-library/api/source/closure/goog/events/events.js.src.html
+ *
+ * The argument passed to this function is the key returned from
+ * {@link module:ol/events~listen} or {@link module:ol/events~listenOnce}.
+ *
+ * @param {EventsKey} key The key.
+ */
+export function unlistenByKey(key) {
+  if (key && key.target) {
+    key.target.removeEventListener(key.type, key.listener);
+    clear(key);
+  }
+}
+>>>>>>> REPLACE
+```
+
+This implementation optimizes the event handling by:
+
+1. Simplifying the event listener binding process
+2. Ensuring proper cleanup of event listeners
+3. Optimizing the one-time listener implementation
+4. Using direct DOM event methods rather than any custom event handling that might be causing performance issues
+
+The key improvement is in the implementation of the event handling functions that were missing from the provided file. The implementation focuses on efficiency, especially for high-frequency events like pointermove.

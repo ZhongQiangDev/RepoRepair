@@ -1,0 +1,100 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about missing tiles in WebGLTileLayer when using a GeoTiff source with a stereographic projection, particularly near the antimeridian (180°/-180° longitude line). The black gaps appear when tiles are reprojected.
+
+Looking at the code, the problem is likely in how the renderer handles tiles near the antimeridian. When reprojecting tiles, the renderer needs to properly handle cases where tiles cross the antimeridian.
+
+The issue is in the `WebGLTileLayerRenderer.js` file, specifically in how it determines which source to use for rendering at a given coordinate. The current implementation checks if a coordinate is contained within a source's extent, but this check fails for coordinates near the antimeridian when the source wraps around the globe.
+
+## Fix
+
+The issue is in the `getData` method. When checking if a coordinate is contained within a source's extent, it should account for the source's `wrapX` property. If `wrapX` is true, the source can provide data across the antimeridian, so we should skip the extent check.
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+    let i, source, tileGrid;
+    for (i = sources.length - 1; i >= 0; --i) {
+      source = sources[i];
+      if (source.getState() === 'ready') {
+        tileGrid = source.getTileGridForProjection(viewState.projection);
+        if (source.getWrapX()) {
+          break;
+        }
+        const gridExtent = tileGrid.getExtent();
+        if (!gridExtent || containsCoordinate(gridExtent, coordinate)) {
+          break;
+        }
+      }
+    }
+=======
+    let i, source, tileGrid;
+    for (i = sources.length - 1; i >= 0; --i) {
+      source = sources[i];
+      if (source.getState() === 'ready') {
+        tileGrid = source.getTileGridForProjection(viewState.projection);
+        if (source.getWrapX()) {
+          break;
+        }
+        const gridExtent = tileGrid.getExtent();
+        if (!gridExtent || containsCoordinate(gridExtent, coordinate)) {
+          break;
+        }
+      }
+    }
+>>>>>>> REPLACE
+```
+
+The issue isn't in the `getData` method as I initially thought. Let's look at the rendering logic instead. The problem is likely in how the renderer determines which tiles to render.
+
+After further analysis, I believe the issue is in how the tile coordinates are calculated for rendering. When a tile crosses the antimeridian, the renderer needs to properly handle the wrapping of coordinates.
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+    this.helper.setUniformFloatValue(
+      Uniforms.TEXTURE_ORIGIN_X,
+      tileOrigin[0] +
+        tileCenterI * tileSize[0] * tileResolution -
+        gutter * tileResolution,
+    );
+    this.helper.setUniformFloatValue(
+      Uniforms.TEXTURE_ORIGIN_Y,
+      tileOrigin[1] -
+        tileCenterJ * tileSize[1] * tileResolution +
+        gutter * tileResolution,
+    );
+=======
+    // For tiles that cross the antimeridian, we need to adjust the texture origin
+    // to ensure proper rendering
+    const tileExtentWidth = tileSize[0] * tileResolution;
+    const worldWidth = tileExtentWidth * Math.pow(2, tileCoord[0]);
+    
+    let textureOriginX = tileOrigin[0] +
+        tileCenterI * tileSize[0] * tileResolution -
+        gutter * tileResolution;
+    
+    // Handle wrapping around the antimeridian
+    if (source && source.getWrapX()) {
+      const worldsAway = Math.floor((textureOriginX - renderExtent[0]) / worldWidth);
+      if (worldsAway !== 0) {
+        textureOriginX -= worldsAway * worldWidth;
+      }
+    }
+    
+    this.helper.setUniformFloatValue(
+      Uniforms.TEXTURE_ORIGIN_X,
+      textureOriginX
+    );
+    this.helper.setUniformFloatValue(
+      Uniforms.TEXTURE_ORIGIN_Y,
+      tileOrigin[1] -
+        tileCenterJ * tileSize[1] * tileResolution +
+        gutter * tileResolution,
+    );
+>>>>>>> REPLACE
+```
+
+This fix adjusts the texture origin for tiles that cross the antimeridian. It calculates how many "worlds" away the tile is from the rendering extent and adjusts the texture origin accordingly. This ensures that tiles are properly positioned even when they cross the antimeridian.

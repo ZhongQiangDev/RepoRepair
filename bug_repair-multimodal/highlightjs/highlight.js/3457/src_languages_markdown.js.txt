@@ -1,0 +1,96 @@
+I'll analyze the issue and provide a fix for the bold + italics misrender in the markdown language definition.
+
+Based on the issue description and screenshots, there's a problem with nested bold and italic formatting in markdown. When bold and italic formatting are applied to the same text, the closing tags are not properly recognized, causing the rest of the document to be rendered as bold and italic.
+
+Looking at the code, I can see that the issue is in how the `BOLD` and `ITALIC` components are defined and how they contain each other. The current implementation creates a circular reference where `BOLD` contains `ITALIC` and `ITALIC` contains `BOLD`, but this doesn't properly handle nested formatting.
+
+Here's the fix:
+
+```javascript
+### src/languages/markdown.js
+<<<<<<< SEARCH
+  const BOLD = {
+    className: 'strong',
+    contains: [], // defined later
+    variants: [
+      {
+        begin: /_{2}/,
+        end: /_{2}/
+      },
+      {
+        begin: /\*{2}/,
+        end: /\*{2}/
+      }
+    ]
+  };
+  const ITALIC = {
+    className: 'emphasis',
+    contains: [], // defined later
+    variants: [
+      {
+        begin: /\*(?!\*)/,
+        end: /\*/
+      },
+      {
+        begin: /_(?!_)/,
+        end: /_/,
+        relevance: 0
+      }
+    ]
+  };
+  BOLD.contains.push(ITALIC);
+  ITALIC.contains.push(BOLD);
+
+  let CONTAINABLE = [
+    INLINE_HTML,
+    LINK
+  ];
+
+  BOLD.contains = BOLD.contains.concat(CONTAINABLE);
+  ITALIC.contains = ITALIC.contains.concat(CONTAINABLE);
+=======
+  const BOLD = {
+    className: 'strong',
+    contains: [], // defined later
+    variants: [
+      {
+        begin: /_{2}/,
+        end: /_{2}/
+      },
+      {
+        begin: /\*{2}/,
+        end: /\*{2}/
+      }
+    ]
+  };
+  const ITALIC = {
+    className: 'emphasis',
+    contains: [], // defined later
+    variants: [
+      {
+        begin: /\*(?!\*)/,
+        end: /\*/
+      },
+      {
+        begin: /_(?!_)/,
+        end: /_/,
+        relevance: 0
+      }
+    ]
+  };
+
+  let CONTAINABLE = [
+    INLINE_HTML,
+    LINK
+  ];
+
+  // Create temporary copies to avoid circular references
+  const BOLD_WITHOUT_ITALIC = Object.assign({}, BOLD);
+  const ITALIC_WITHOUT_BOLD = Object.assign({}, ITALIC);
+  
+  BOLD.contains = CONTAINABLE.concat(ITALIC_WITHOUT_BOLD);
+  ITALIC.contains = CONTAINABLE.concat(BOLD_WITHOUT_ITALIC);
+>>>>>>> REPLACE
+```
+
+This fix creates temporary copies of the BOLD and ITALIC objects to avoid circular references. Instead of directly pushing one into the other (which creates a circular reference that can cause parsing issues), we create copies that don't contain each other, then use those copies when defining the contains property. This ensures that the parser can properly handle nested bold and italic formatting without getting confused about where the formatting ends.

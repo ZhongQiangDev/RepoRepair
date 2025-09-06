@@ -1,0 +1,42 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The issue occurs when using custom braces in message templates. In Pylint 2.12.2 with Python 3.9, the message template `'{{ "Category": "{category}" }}'` fails to work properly and generates a warning about unrecognized arguments, while it worked correctly in Pylint 1.7 with Python 3.6.
+
+2. Cause Analysis:
+The problem appears to be related to how newer versions of Pylint handle message template parsing, particularly with nested braces. The warning message suggests that the template parser is incorrectly interpreting the double braces and treating `{ "Category"` as an argument name rather than recognizing it as literal text that should be preserved.
+
+3. Relevant Files Analysis:
+
+pylint/interfaces.py:
+```
+This file contains no relevant functions/classes.
+```
+
+pylint/lint/pylinter.py:
+```
+pylint/lint/pylinter.py
+class: PyLinter
+```
+
+pylint/lint/utils.py:
+```
+This file contains no relevant functions/classes.
+```
+
+pylint/message/message.py:
+```
+pylint/message/message.py
+class: Message
+```
+
+pylint/reporters/text.py:
+```
+pylint/reporters/text.py
+class: TextReporter
+class: ParseableTextReporter
+```
+
+The issue primarily stems from the text reporter's template handling in the newer version. The TextReporter class is responsible for processing message templates, and the PyLinter class manages the overall reporting process. The Message class is involved as it handles the actual message formatting. The ParseableTextReporter inherits from TextReporter and could also be affected by this template parsing issue.
+
+The core of the problem likely lies in how TextReporter processes the message template, particularly in its template parsing logic which seems to be mishandling nested braces in the newer version. This would explain why the warning is generated from the text.py file about unrecognized arguments.

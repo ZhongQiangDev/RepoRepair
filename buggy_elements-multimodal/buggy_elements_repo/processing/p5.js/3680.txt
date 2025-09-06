@@ -1,0 +1,55 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when drawing a shape (specifically the letter "C") in WebGL mode, the fill operation does not work as expected. Instead of filling the interior of the "C" shape, it creates an unintended fill from the lower extremity of the "C" to the origin (top left of the letter), resulting in an incorrect visual output.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how the vertices are being processed and rendered in WebGL mode. In 2D mode, the vertices are interpreted correctly to form the "C" shape and fill it appropriately. However, in WebGL mode, the vertices might be interpreted differently, leading to the unintended fill. This could be due to differences in how the `beginShape`, `vertex`, and `endShape` functions handle vertex data in 2D vs. WebGL modes. Specifically, the tessellation or triangulation process in WebGL might be incorrectly connecting vertices, causing the unexpected fill.
+
+### 3. Examine Each File One by One
+
+#### src/core/shape/vertex.js
+
+```
+src/core/shape/vertex.js
+function: function_6
+```
+
+The `endShape` function is responsible for finalizing the drawing of a shape and rendering its vertices to the screen. It processes the vertices differently based on the rendering mode (2D vs. WebGL). The issue might be related to how it handles the vertices in WebGL mode, particularly in the `_processVertices` method.
+
+#### src/webgl/p5.Geometry.js
+
+```
+This file contains no relevant functions/classes.
+```
+
+The `p5.Geometry` class is related to creating and managing 3D geometries, but the issue described is related to 2D shapes in WebGL mode, so this file is not directly relevant.
+
+#### src/webgl/p5.RendererGL.Immediate.js
+
+```
+src/webgl/p5.RendererGL.Immediate.js
+function: function_4
+function: function_5
+```
+
+The `endShape` function in this file is responsible for finalizing the drawing of a shape in WebGL immediate mode. It processes the vertices and handles the tessellation of the shape. The issue might be related to how it handles the tessellation or the `_processVertices` method.
+
+The `_processVertices` function is responsible for processing the vertices of custom shapes. It might be incorrectly handling the vertices in the case of the "C" shape, leading to the unintended fill.
+
+#### src/webgl/p5.RendererGL.js
+
+```
+src/webgl/p5.RendererGL.js
+function: function_39
+```
+
+The `_tesselateShape` function is responsible for tessellating the geometry stored in the `immediateMode.geometry` property. The issue might be related to how it tessellates the "C" shape, leading to the unintended fill.
+
+#### src/webgl/p5.RendererGL.Retained.js
+
+```
+This file contains no relevant functions/classes.
+```
+
+The functions in this file are related to managing retained mode geometry, but the issue described is related to immediate mode rendering, so this file is not directly relevant.

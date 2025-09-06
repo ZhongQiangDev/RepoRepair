@@ -1,0 +1,52 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that in Python, when a number is immediately followed by a keyword (like `1if`), the syntax highlighter is not correctly separating them. The highlighter should recognize that `1if` should be treated as two separate tokens: the number `1` and the keyword `if`.
+
+Looking at the code, the problem is in the NUMBER regex patterns. The current implementation doesn't prevent keywords from being considered part of a number token when they immediately follow a digit. We need to modify the NUMBER patterns to ensure they don't consume keywords that follow numbers.
+
+Here's the fix:
+
+```javascript
+### src/languages/python.js
+<<<<<<< SEARCH
+      {
+        begin: '\\b([1-9](_?[0-9])*|0+(_?0)*)[lLjJ]?\\b'
+      },
+      {
+        begin: '\\b0[bB](_?[01])+[lL]?\\b'
+      },
+      {
+        begin: '\\b0[oO](_?[0-7])+[lL]?\\b'
+      },
+      {
+        begin: '\\b0[xX](_?[0-9a-fA-F])+[lL]?\\b'
+      },
+
+      // imagnumber (digitpart-based)
+      // https://docs.python.org/3.9/reference/lexical_analysis.html#imaginary-literals
+      {
+        begin: `\\b(${digitpart})[jJ]\\b`
+      }
+=======
+      {
+        begin: `\\b([1-9](_?[0-9])*|0+(_?0)*)[lLjJ]?(?![\\p{XID_Continue}])\\b`
+      },
+      {
+        begin: `\\b0[bB](_?[01])+[lL]?(?![\\p{XID_Continue}])\\b`
+      },
+      {
+        begin: `\\b0[oO](_?[0-7])+[lL]?(?![\\p{XID_Continue}])\\b`
+      },
+      {
+        begin: `\\b0[xX](_?[0-9a-fA-F])+[lL]?(?![\\p{XID_Continue}])\\b`
+      },
+
+      // imagnumber (digitpart-based)
+      // https://docs.python.org/3.9/reference/lexical_analysis.html#imaginary-literals
+      {
+        begin: `\\b(${digitpart})[jJ](?![\\p{XID_Continue}])\\b`
+      }
+>>>>>>> REPLACE
+```
+
+This fix adds a negative lookahead assertion `(?![\\p{XID_Continue}])` to each number pattern. This ensures that the number token ends if it's immediately followed by a character that could be part of an identifier (like a keyword). This way, in expressions like `1if`, the `1` will be recognized as a number and `if` as a separate keyword.

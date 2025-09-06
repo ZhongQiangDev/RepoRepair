@@ -1,0 +1,44 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that in Chart.js v3.0.0-beta.7, the legend and title are being rendered twice, but only for certain chart types like pie charts (not for line charts). This suggests a problem with how plugins are being handled during rendering.
+
+Looking at the provided code from `src/core/core.plugins.js`, I notice that the plugin service is responsible for notifying plugins about various lifecycle hooks. The issue is likely related to how plugin descriptors are being managed.
+
+The key problem appears to be in the `_notifyStateChanges` method. When the plugin service invalidates its cache, it stores the old cache in `_oldCache` and then creates a new cache. When `_notifyStateChanges` is called, it compares the old and new descriptors and notifies plugins about state changes. However, there's no check to see if the plugin is actually different beyond just the ID.
+
+This could cause plugins like the legend and title to be notified twice - once when they're "stopped" and once when they're "started" again, even if nothing has actually changed.
+
+## Fix
+
+```javascript
+### src/core/core.plugins.js
+<<<<<<< SEARCH
+	_notifyStateChanges(chart) {
+		const previousDescriptors = this._oldCache || [];
+		const descriptors = this._cache;
+		const diff = (a, b) => a.filter(x => !b.some(y => x.plugin.id === y.plugin.id));
+		this._notify(diff(previousDescriptors, descriptors), chart, 'stop');
+		this._notify(diff(descriptors, previousDescriptors), chart, 'start');
+	}
+=======
+	_notifyStateChanges(chart) {
+		const previousDescriptors = this._oldCache || [];
+		const descriptors = this._cache;
+		
+		// Only notify plugins that have actually changed
+		const diff = (a, b) => a.filter(x => !b.some(y => 
+			x.plugin.id === y.plugin.id && 
+			x.options === y.options
+		));
+		
+		this._notify(diff(previousDescriptors, descriptors), chart, 'stop');
+		this._notify(diff(descriptors, previousDescriptors), chart, 'start');
+	}
+>>>>>>> REPLACE
+```
+
+This fix enhances the comparison in the `diff` function to check not only if the plugin ID is the same but also if the options are the same. This way, if a plugin's options haven't changed, it won't be unnecessarily stopped and started again, which should prevent the double rendering of legends and titles.
+
+The issue occurs because the plugin system is treating the legend and title plugins as if they've changed between renders when they actually haven't, causing them to be re-rendered unnecessarily.

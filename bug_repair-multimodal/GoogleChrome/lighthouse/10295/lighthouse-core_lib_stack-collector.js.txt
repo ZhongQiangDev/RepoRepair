@@ -1,0 +1,36 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description and screenshot, there's a problem with the library detector when it tries to access the `version.match` function. The error message "version.match is not a function" suggests that `version` is not a string in some cases, which is causing the error when the library detector tries to use string methods on it.
+
+Looking at the code in `lighthouse-core/lib/stack-collector.js`, I can see that the `version` property from the library detector result is being passed directly to the output. The issue likely occurs when the library detector returns a version that's not a string (possibly an object or another non-string type).
+
+Here's the fix:
+
+```javascript
+### lighthouse-core/lib/stack-collector.js
+<<<<<<< SEARCH
+  /** @type {JSLibrary[]} */
+  const jsLibraries = await passContext.driver.evaluateAsync(expression);
+
+  return jsLibraries.map(lib => ({
+    detector: /** @type {'js'} */ ('js'),
+    id: lib.id,
+    name: lib.name,
+    version: lib.version || undefined,
+    npm: lib.npm || undefined,
+  }));
+=======
+  /** @type {JSLibrary[]} */
+  const jsLibraries = await passContext.driver.evaluateAsync(expression);
+
+  return jsLibraries.map(lib => ({
+    detector: /** @type {'js'} */ ('js'),
+    id: lib.id,
+    name: lib.name,
+    version: typeof lib.version === 'string' ? lib.version : undefined,
+    npm: lib.npm || undefined,
+  }));
+>>>>>>> REPLACE
+```
+
+This fix ensures that the `version` property is only used if it's a string. If it's not a string (like an object or another type), it will be set to `undefined` instead, preventing the "version.match is not a function" error.

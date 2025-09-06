@@ -1,0 +1,37 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about incorrect use of `layer.getMinZoom()` in the WebGL TileLayer renderer. According to the issue:
+
+1. `layer.getMinZoom()` returns a view zoom level, not a tile grid zoom level
+2. It's being used directly as a tile grid index, which could prevent tiles from loading
+3. It should either be removed or replaced with a proper calculation using `tileGrid.getZForResolution()` from `layer.getMaxResolution()` or `view.getResolutionForZoom(layer.getMinZoom())`
+
+Looking at the code provided, I can see the `TileGrid` class has a `getMinZoom()` method that returns the minimum zoom level for the grid. This is correct for the tile grid itself, but the issue is about how this is being used in the WebGL TileLayer renderer.
+
+Since the file with the bug is mentioned as `src/ol/renderer/webgl/TileLayer.js` at line 338, but that file isn't provided in the code segments, I'll need to create a fix based on the issue description.
+
+## Fix
+
+The fix should replace the direct use of `layer.getMinZoom()` with a proper calculation using `tileGrid.getZForResolution()` from `layer.getMaxResolution()`.
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+    const minZ = layer.getMinZoom();
+=======
+    const tileGrid = tileSource.getTileGrid();
+    const minZ = Math.max(
+      tileGrid.getZForResolution(layer.getMaxResolution() || Infinity),
+      tileGrid.getMinZoom()
+    );
+>>>>>>> REPLACE
+```
+
+This fix replaces the direct use of `layer.getMinZoom()` with a calculation that:
+1. Gets the tile grid from the tile source
+2. Calculates the appropriate zoom level using `tileGrid.getZForResolution()` with the layer's max resolution
+3. Ensures it's not less than the tile grid's minimum zoom level
+
+This approach properly converts from the layer's resolution constraints to the tile grid's zoom levels, which should fix the issue of tiles not loading.

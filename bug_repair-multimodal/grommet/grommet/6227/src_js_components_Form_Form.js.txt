@@ -1,0 +1,59 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when a required field is dynamically added and then removed from a form, the form still reports as invalid. This happens because the `buildValid` function is checking required fields that may no longer be present in the form.
+
+Looking at the code, the problem is in the `buildValid` function. It's checking all fields in `requiredFields.current` against the validation rules, but it's not properly handling the case when a field is removed from the form.
+
+The issue is that when a field is removed, it's removed from the validation rules but not from the `requiredFields.current` array. This causes the form to still consider the removed field as required, making the form invalid.
+
+## Fix
+
+We need to modify the `buildValid` function to only check fields that are both required AND still present in the form's validation rules.
+
+```javascript
+### src/js/components/Form/Form.js
+<<<<<<< SEARCH
+    const buildValid = useCallback(
+      (nextErrors) => {
+        let valid = false;
+        valid = requiredFields.current
+          .filter((n) => Object.keys(validationRulesRef.current).includes(n))
+          .every(
+            (field) =>
+              value[field] && (value[field] !== '' || value[field] !== false),
+          );
+
+        if (Object.keys(nextErrors).length > 0) valid = false;
+        return valid;
+      },
+      [value],
+    );
+=======
+    const buildValid = useCallback(
+      (nextErrors) => {
+        let valid = true;
+        // Only check fields that are both required AND still present in the validation rules
+        valid = requiredFields.current
+          .filter((n) => validationRulesRef.current[n])
+          .every(
+            (field) =>
+              value[field] && (value[field] !== '' || value[field] !== false),
+          );
+
+        if (Object.keys(nextErrors).length > 0) valid = false;
+        return valid;
+      },
+      [value],
+    );
+>>>>>>> REPLACE
+```
+
+The key changes are:
+
+1. Initialize `valid` to `true` instead of `false` (since we want the form to be valid by default)
+2. Change the filter to check if the field exists in `validationRulesRef.current` directly rather than checking if it's included in the keys, which is more efficient and clearer
+3. This ensures that when a field is removed from the form (and thus removed from the validation rules), it won't be considered in the validation check anymore
+
+This fix ensures that when a required field is dynamically removed from the form, it's no longer considered in the validation process, and the form will be valid if all other validations pass.

@@ -1,0 +1,52 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The issue is that urllib3 exceptions (specifically DecodeError and TimeoutError) are being exposed directly to users through the requests API, rather than being wrapped in requests' own exception types. Users have to catch both requests exceptions and urllib3 exceptions.
+
+2. Cause Analysis:
+The root cause appears to be incomplete exception wrapping in the requests library. While requests has its own exception hierarchy, some urllib3 exceptions are not being properly caught and converted to their requests equivalents. This is likely happening in the connection and response handling layers where requests interfaces with urllib3.
+
+3. File Analysis:
+
+requests/adapters.py:
+```
+This file contains no relevant functions/classes.
+```
+
+requests/exceptions.py:
+```
+requests/exceptions.py
+class: RequestException
+class: ConnectionError
+class: HTTPError
+class: Timeout
+```
+These classes form requests' exception hierarchy and should be used to wrap urllib3 exceptions.
+
+requests/packages/urllib3/connectionpool.py:
+```
+requests/packages/urllib3/connectionpool.py
+class: HTTPConnectionPool
+class: HTTPSConnectionPool
+```
+These classes handle the actual HTTP(S) connections and are where urllib3 exceptions originate.
+
+requests/packages/urllib3/exceptions.py:
+```
+requests/packages/urllib3/exceptions.py
+class: DecodeError
+class: TimeoutError
+class: HTTPError
+```
+These are the urllib3 exceptions that are currently leaking through to users.
+
+requests/packages/urllib3/response.py:
+```
+requests/packages/urllib3/response.py
+class: HTTPResponse
+```
+This class handles response processing and could be a source of DecodeError exceptions.
+
+The key issue appears to be in the interaction between the connection pools and requests' exception handling system. The urllib3 exceptions need to be caught and wrapped in their requests equivalents:
+- urllib3.exceptions.DecodeError should be wrapped in requests.exceptions.RequestException
+- urllib3.exceptions.TimeoutError should be wrapped in requests.exceptions.Timeout

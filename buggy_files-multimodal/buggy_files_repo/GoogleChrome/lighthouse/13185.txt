@@ -1,0 +1,30 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- Thumbnail images in reports are hotlinking directly to remote servers
+- This creates CSP/mixed content issues when reports are shown over HTTPS
+- The report already has a full page screenshot (fpss) that could be used instead
+
+2. Cause Analysis:
+- The report is creating `<img>` elements that link directly to external image URLs
+- This is happening for type=thumbnail items
+- Instead of using external URLs, the report should use sections from the full page screenshot that's already captured
+- This would avoid mixed content warnings and CSP issues by keeping all assets local
+
+3. Most Related Files:
+```
+lighthouse-core/audits/screenshot-thumbnails.js
+lighthouse-core/computed/screenshots.js
+lighthouse-core/audits/full-page-screenshot.js
+report/renderer/element-screenshot-renderer.js
+lighthouse-core/gather/gatherers/full-page-screenshot.js
+```
+
+These files are ordered by importance because:
+- screenshot-thumbnails.js directly handles the creation and processing of thumbnails
+- screenshots.js manages screenshot data collection and processing
+- full-page-screenshot.js contains the audit logic for full page screenshots that should be used instead
+- element-screenshot-renderer.js handles rendering of screenshots in the report
+- full-page-screenshot.js gatherer captures the full page screenshot that will be used as the source
+
+These files would need to be modified to change how thumbnails are generated and rendered, switching from external URLs to using sections of the full page screenshot.

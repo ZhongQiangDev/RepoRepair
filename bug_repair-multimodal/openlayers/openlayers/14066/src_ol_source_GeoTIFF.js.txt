@@ -1,0 +1,119 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is requesting support for a `convertToRGB: 'auto'` option for GeoTIFF sources. Currently, the code only supports a boolean value for `convertToRGB` (true or false), which determines whether to use the `readRGB` method or the `readRasters` method when reading GeoTIFF data.
+
+The requested enhancement would allow an 'auto' setting that would intelligently choose between these methods based on the photometric interpretation of the source (CMYK, YCbCr, CIELab, or ICCLab).
+
+## Solution
+
+I need to modify the code to:
+1. Update the `Options` type definition to include 'auto' as a possible value for `convertToRGB`
+2. Add logic to determine the appropriate read method based on the photometric interpretation when 'auto' is specified
+
+Here's the fix:
+
+```javascript
+### src/ol/source/GeoTIFF.js
+<<<<<<< SEARCH
+ * @typedef {Object} Options
+ * @property {Array<SourceInfo>} sources List of information about GeoTIFF sources.
+ * Multiple sources can be combined when their resolution sets are equal after applying a scale.
+ * The list of sources defines a mapping between input bands as they are read from each GeoTIFF and
+ * the output bands that are provided by data tiles. To control which bands to read from each GeoTIFF,
+ * use the {@link import("./GeoTIFF.js").SourceInfo bands} property. If, for example, you specify two
+ * sources, one with 3 bands and {@link import("./GeoTIFF.js").SourceInfo nodata} configured, and
+ * another with 1 band, the resulting data tiles will have 5 bands: 3 from the first source, 1 alpha
+ * band from the first source, and 1 band from the second source.
+ * @property {GeoTIFFSourceOptions} [sourceOptions] Additional options to be passed to [geotiff.js](https://geotiffjs.github.io/geotiff.js/module-geotiff.html)'s `fromUrl` or `fromUrls` methods.
+ * @property {boolean} [convertToRGB = false] By default, bands from the sources are read as-is. When
+ * reading GeoTIFFs with the purpose of displaying them as RGB images, setting this to `true` will
+ * convert other color spaces (YCbCr, CMYK) to RGB.
+=======
+ * @typedef {Object} Options
+ * @property {Array<SourceInfo>} sources List of information about GeoTIFF sources.
+ * Multiple sources can be combined when their resolution sets are equal after applying a scale.
+ * The list of sources defines a mapping between input bands as they are read from each GeoTIFF and
+ * the output bands that are provided by data tiles. To control which bands to read from each GeoTIFF,
+ * use the {@link import("./GeoTIFF.js").SourceInfo bands} property. If, for example, you specify two
+ * sources, one with 3 bands and {@link import("./GeoTIFF.js").SourceInfo nodata} configured, and
+ * another with 1 band, the resulting data tiles will have 5 bands: 3 from the first source, 1 alpha
+ * band from the first source, and 1 band from the second source.
+ * @property {GeoTIFFSourceOptions} [sourceOptions] Additional options to be passed to [geotiff.js](https://geotiffjs.github.io/geotiff.js/module-geotiff.html)'s `fromUrl` or `fromUrls` methods.
+ * @property {boolean|'auto'} [convertToRGB = false] By default, bands from the sources are read as-is. When
+ * reading GeoTIFFs with the purpose of displaying them as RGB images, setting this to `true` will
+ * convert other color spaces (YCbCr, CMYK) to RGB. Setting this to `'auto'` will use the `readRGB` method
+ * when the photometric interpretation is CMYK, YCbCr, CIELab, or ICCLab.
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/source/GeoTIFF.js
+<<<<<<< SEARCH
+    /**
+     * @type {'readRasters' | 'readRGB'}
+     */
+    this.readMethod_ = options.convertToRGB ? 'readRGB' : 'readRasters';
+=======
+    /**
+     * @type {'readRasters' | 'readRGB'}
+     */
+    this.readMethod_ = options.convertToRGB === true ? 'readRGB' : 'readRasters';
+    
+    /**
+     * @type {boolean|'auto'}
+     * @private
+     */
+    this.convertToRGB_ = options.convertToRGB || false;
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/source/GeoTIFF.js
+<<<<<<< SEARCH
+      requests[sourceIndex] = image[this.readMethod_]({
+        window: pixelBounds,
+        width: sourceTileSize[0],
+        height: sourceTileSize[1],
+        samples: samples,
+        fillValue: fillValue,
+        pool: pool,
+        interleave: false,
+      });
+=======
+      let readMethod = this.readMethod_;
+      if (this.convertToRGB_ === 'auto') {
+        const photometric = image.fileDirectory.PhotometricInterpretation;
+        // Use readRGB for these photometric interpretations
+        if (
+          image.getSamplesPerPixel() === 3 && 
+          (photometric === 5 || // CMYK
+           photometric === 6 || // YCbCr
+           photometric === 8 || // CIELab
+           photometric === 9)   // ICCLab
+        ) {
+          readMethod = 'readRGB';
+        } else {
+          readMethod = 'readRasters';
+        }
+      }
+      
+      requests[sourceIndex] = image[readMethod]({
+        window: pixelBounds,
+        width: sourceTileSize[0],
+        height: sourceTileSize[1],
+        samples: samples,
+        fillValue: fillValue,
+        pool: pool,
+        interleave: false,
+      });
+>>>>>>> REPLACE
+```
+
+These changes:
+1. Update the type definition to include 'auto' as a possible value for convertToRGB
+2. Store the original convertToRGB option value for later use
+3. Add logic to determine the appropriate read method when 'auto' is specified, based on the photometric interpretation of the image
+
+The implementation checks if the image has 3 samples per pixel and if the photometric interpretation is one of the specified types (CMYK, YCbCr, CIELab, or ICCLab), and uses readRGB in those cases.

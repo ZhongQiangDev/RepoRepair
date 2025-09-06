@@ -1,0 +1,97 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, when replacing a message flow with a sequence flow, the new sequence flow is not being placed in the appropriate parent container. This causes the modeler to crash when the previous connection source is a Participant.
+
+Looking at the code, the problem is in the `ReplaceConnectionBehavior.js` file. When creating a replacement connection, it doesn't properly set the parent of the new connection. The issue occurs in the `replaceReconnectedConnection` function where a new connection is created but its parent is not explicitly set to match the appropriate process container.
+
+Here's the fix:
+
+```javascript
+### lib/features/modeling/behavior/ReplaceConnectionBehavior.js
+<<<<<<< SEARCH
+  function replaceReconnectedConnection(event) {
+
+    var context = event.context,
+        connection = context.connection,
+        allowed,
+        replacement;
+
+    if (context.newTarget) {
+      allowed = bpmnRules.canConnect(connection.source, context.newTarget);
+    } else {
+      allowed = bpmnRules.canConnect(context.newSource, connection.target);
+    }
+
+    if (!allowed || allowed.type === connection.type) {
+      return;
+    }
+
+    // temporarily connect old shapes with new connection
+    replacement = modeling.connect(connection.source, connection.target, {
+      type: allowed.type,
+      waypoints: connection.waypoints.slice()
+    });
+
+    // remove old connection
+    modeling.removeConnection(connection);
+
+    // replace connection in context to reconnect end/start
+    context.connection = replacement;
+
+    if (dragging) {
+      cleanDraggingSelection(connection, replacement);
+    }
+  }
+=======
+  function replaceReconnectedConnection(event) {
+
+    var context = event.context,
+        connection = context.connection,
+        allowed,
+        replacement;
+
+    if (context.newTarget) {
+      allowed = bpmnRules.canConnect(connection.source, context.newTarget);
+    } else {
+      allowed = bpmnRules.canConnect(context.newSource, connection.target);
+    }
+
+    if (!allowed || allowed.type === connection.type) {
+      return;
+    }
+
+    // determine the appropriate parent for the new connection
+    var parent;
+    
+    if (allowed.type === 'bpmn:SequenceFlow') {
+      // sequence flows should be contained in the process/sub-process
+      // containing source and target
+      parent = connection.source.parent;
+      
+      // if source is a participant, use its process as the parent
+      if (is(connection.source, 'bpmn:Participant')) {
+        parent = connection.target.parent;
+      }
+    }
+
+    // temporarily connect old shapes with new connection
+    replacement = modeling.connect(connection.source, connection.target, {
+      type: allowed.type,
+      waypoints: connection.waypoints.slice(),
+      parent: parent
+    });
+
+    // remove old connection
+    modeling.removeConnection(connection);
+
+    // replace connection in context to reconnect end/start
+    context.connection = replacement;
+
+    if (dragging) {
+      cleanDraggingSelection(connection, replacement);
+    }
+  }
+>>>>>>> REPLACE
+```
+
+This fix determines the appropriate parent for the new connection based on the connection type. For sequence flows, it ensures the parent is set to the process/sub-process containing the source and target. If the source is a participant, it uses the target's parent instead, which should be the correct process container.

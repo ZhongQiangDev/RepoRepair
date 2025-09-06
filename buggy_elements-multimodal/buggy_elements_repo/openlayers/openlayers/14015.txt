@@ -1,0 +1,94 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when the source of a WebGL tile layer is replaced using `setSource()` or when the view projection is changed, the cached tile textures are not invalidated and replaced correctly. As a result, tiles from the old source or projection are still visible when panning back or zooming out, leading to incorrect rendering.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from the failure to properly clear or invalidate the cached tile textures when the source is changed or the view projection is updated. The WebGLTileLayerRenderer and its associated cache management mechanisms may not be correctly handling these changes, leading to the display of outdated textures.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### src/ol/layer/BaseTile.js
+```
+This file contains no relevant functions/classes.
+```
+
+#### src/ol/layer/WebGLTile.js
+```
+src/ol/layer/WebGLTile.js
+class: WebGLTileLayer
+```
+The `WebGLTileLayer` class manages sources and rendering, so it is relevant to the issue of source changes and rendering updates.
+
+#### src/ol/renderer/webgl/TileLayer.js
+```
+src/ol/renderer/webgl/TileLayer.js
+class: WebGLTileLayerRenderer
+function: getCacheKey
+```
+The `WebGLTileLayerRenderer` class is responsible for rendering and managing tile textures, and `getCacheKey` is involved in cache management, making both relevant to the issue.
+
+#### src/ol/source/Tile.js
+```
+This file contains no relevant functions/classes.
+```
+
+#### src/ol/source/TileImage.js
+```
+This file contains no relevant functions/classes.
+```
+
+#### src/ol/source/WMTS.js
+```
+This file contains no relevant functions/classes.
+```
+
+#### src/ol/structs/LRUCache.js
+```
+src/ol/structs/LRUCache.js
+class: LRUCache
+```
+The `LRUCache` class is used for caching, so it is relevant to the issue of cache management.
+
+#### src/ol/tilegrid/TileGrid.js
+```
+This file contains no relevant functions/classes.
+```
+
+#### src/ol/tilegrid/WMTS.js
+```
+This file contains no relevant functions/classes.
+```
+
+#### src/ol/webgl/TileTexture.js
+```
+src/ol/webgl/TileTexture.js
+class: TileTexture
+function: bindAndConfigure
+function: uploadDataTexture
+function: uploadImageTexture
+```
+The `TileTexture` class and the texture upload functions are directly involved in managing and uploading textures, making them relevant to the issue.
+
+### Summary of Relevant Locations
+
+1. ```
+src/ol/layer/WebGLTile.js
+class: WebGLTileLayer
+```
+2. ```
+src/ol/renderer/webgl/TileLayer.js
+class: WebGLTileLayerRenderer
+function: getCacheKey
+```
+3. ```
+src/ol/structs/LRUCache.js
+class: LRUCache
+```
+4. ```
+src/ol/webgl/TileTexture.js
+class: TileTexture
+function: bindAndConfigure
+function: uploadDataTexture
+function: uploadImageTexture
+```

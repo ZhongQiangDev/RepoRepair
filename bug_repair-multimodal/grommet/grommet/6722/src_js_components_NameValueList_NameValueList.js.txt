@@ -1,0 +1,33 @@
+I'll analyze the issue and provide a solution.
+
+The problem is that the `NameValuePair` component's name and value are not vertically aligned when using a `Select` component as the value. Looking at the screenshot, the name ("File log level") is not vertically centered with the Select dropdown.
+
+The issue is in the `NameValueList.js` file. When using the column layout with row direction for pairs, the alignment of the name and value is not being properly handled. The `align` prop passed to the component is not being used in the Grid component.
+
+Here's the fix:
+
+```javascript
+### src/js/components/NameValueList/NameValueList.js
+<<<<<<< SEARCH
+        <Grid
+          as="dl"
+          ref={ref}
+          columns={columns}
+          gap={gap}
+          margin="none" // override browser default margin for dl
+          {...rest}
+        />
+=======
+        <Grid
+          as="dl"
+          ref={ref}
+          columns={columns}
+          gap={gap}
+          margin="none" // override browser default margin for dl
+          align={align || (layout === 'column' && pairProps.direction === 'row' ? 'center' : undefined)}
+          {...rest}
+        />
+>>>>>>> REPLACE
+```
+
+This change adds the `align` prop to the Grid component. If an `align` prop is provided, it will use that value. Otherwise, if the layout is 'column' and the pair direction is 'row' (which is the case in the issue), it will default to 'center' alignment, which will vertically center the name and value. This should fix the vertical alignment issue shown in the screenshot.

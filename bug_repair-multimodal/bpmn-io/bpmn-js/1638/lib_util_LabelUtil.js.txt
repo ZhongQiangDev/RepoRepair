@@ -1,0 +1,67 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when a label is cleared from a task, the `di` (diagram interchange) object still has a `label` property with a value of `null`. According to the expected behavior, the `label` property should not exist at all when cleared.
+
+This issue was introduced when support for embedded label DIs was added. The problem is likely in how labels are handled when they're removed.
+
+Looking at the provided code snippet, I don't see the specific function that handles label removal. However, based on the issue description and the GIF, there should be a function that handles updating or removing labels from the diagram interchange (DI) object.
+
+## Proposed Fix
+
+Since the complete code isn't provided, I'll need to make an educated guess about where the bug might be. The issue is likely in a function that handles label updates or removals. When a label is cleared, instead of setting `di.label = null`, the code should delete the property entirely.
+
+Here's a proposed fix:
+
+```javascript
+### lib/util/LabelUtil.js
+<<<<<<< SEARCH
+/**
+ * Returns the bounds of an elements label, parsed from the elements DI or
+ * generated from its bounds.
+ *
+ * @param {BpmndDi} di
+ * @param {djs.model.Base} element
+ */
+
+
+
+
+=======
+/**
+ * Returns the bounds of an elements label, parsed from the elements DI or
+ * generated from its bounds.
+ *
+ * @param {BpmndDi} di
+ * @param {djs.model.Base} element
+ */
+
+/**
+ * Update the label of a BPMN element.
+ *
+ * @param {Object} di diagram interchange object
+ * @param {String} newLabel new label value
+ */
+export function updateLabel(di, newLabel) {
+  if (!newLabel) {
+    // Remove the label property entirely instead of setting it to null
+    delete di.label;
+  } else {
+    if (!di.label) {
+      di.label = {};
+    }
+    
+    assign(di.label, {
+      bounds: di.label.bounds || DEFAULT_LABEL_SIZE
+    });
+  }
+}
+
+
+>>>>>>> REPLACE
+```
+
+This fix adds a new `updateLabel` function that properly handles label removal by deleting the property entirely when the new label is empty, rather than setting it to null.
+
+Note: Since I don't have the complete codebase, this is an educated guess. The actual implementation might need to be adjusted based on how labels are currently being updated in the codebase. The key point is to use `delete di.label` instead of `di.label = null` when clearing a label.

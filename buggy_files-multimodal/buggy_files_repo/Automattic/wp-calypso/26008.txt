@@ -1,0 +1,26 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## 1. Identifying the Wrong Behavior
+
+The problem is that embedded Crowdsignal (formerly Polldaddy) surveys are not displaying in the Reader. While Crowdsignal polls work fine, surveys are not being rendered at all, resulting in empty posts when a survey is the only content.
+
+## 2. Analyzing the Cause
+
+From the description, we can see that:
+- There's already a rule to detect Polldaddy/Crowdsignal polls in `client/lib/post-normalizer/rule-content-detect-polls.js`
+- However, there's no similar rule to detect Crowdsignal surveys, which embed differently
+- The system needs a new rule to detect and properly render Crowdsignal surveys in the Reader
+
+The issue is that while polls are being detected and rendered correctly, surveys use a different embedding method that isn't currently being detected by the existing code.
+
+## 3. Files Most Related to the Cause
+
+```
+client/lib/post-normalizer/rule-content-detect-polls.js
+client/lib/post-normalizer/index.js
+client/blocks/reader-full-post/index.jsx
+client/reader/stream/post-unavailable.jsx
+client/state/reader/posts/normalization-rules.js
+```
+
+The primary file that needs to be modified is `rule-content-detect-polls.js` to either extend it to handle surveys or create a new similar rule specifically for surveys. The `index.js` file in the same directory would need to be updated to include the new rule in the normalization pipeline. The other files are related to how posts are rendered in the Reader and would be affected by the changes to properly display the surveys once they're detected.

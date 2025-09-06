@@ -1,0 +1,46 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The issue occurs when using autodoc_typehints with "description" setting. The output shows duplicated *args and **kwargs parameters in the documentation, where they appear twice with incomplete information:
+- Once with just the type annotation
+- Once with just the description
+- Instead of being properly combined into a single entry with both type and description
+
+2. Cause Analysis:
+The root cause appears to be in how type hints and parameter descriptions are being merged for special parameters (*args and **kwargs). The merging logic is not properly handling these variadic parameters, leading to duplicate entries where the type information and description are split into separate parameter entries instead of being combined.
+
+3. File Analysis:
+
+sphinx/application.py:
+```
+This file contains no relevant functions/classes.
+```
+
+sphinx/domains/python.py:
+```
+This file contains no relevant functions/classes.
+```
+
+sphinx/ext/autodoc/directive.py:
+```
+This file contains no relevant functions/classes.
+```
+
+sphinx/ext/autodoc/typehints.py:
+```
+sphinx/ext/autodoc/typehints.py
+function: merge_typehints
+function: modify_field_list
+function: augment_descriptions_with_types
+```
+
+sphinx/ext/napoleon/docstring.py:
+```
+This file contains no relevant functions/classes.
+```
+
+The key functions involved are in the typehints.py file:
+- `merge_typehints`: This function is responsible for merging type hint information into the documentation
+- `modify_field_list`: This function handles the actual modification of field lists where the duplication is occurring. It needs to be updated to properly handle *args and **kwargs parameters by combining their type information and descriptions into single entries.
+
+These functions need to be modified to properly handle the special case of variadic parameters (*args and **kwargs) to prevent the duplication and ensure both type information and descriptions are combined correctly.

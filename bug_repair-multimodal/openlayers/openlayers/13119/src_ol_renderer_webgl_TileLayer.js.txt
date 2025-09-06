@@ -1,0 +1,36 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about adding a flag to WebGLTile Layers to allow blending with `gl.ONE` for a subset of tile layers. Currently, the WebGL rendering in OpenLayers doesn't provide a parameter to set different blending options for WebGL rendering.
+
+Looking at the code, the `WebGLTileLayerRenderer` class handles the rendering of tile layers using WebGL. The blending mode is currently hardcoded in the `prepareDraw` method call, which doesn't allow for customization of the blending function.
+
+## Solution
+
+We need to modify the `renderFrame` method to allow for custom blending functions. The key part is where the `helper.prepareDraw()` method is called. Currently, it only passes a boolean parameter indicating whether blending should be enabled or not. We need to extend this to allow passing custom blending functions.
+
+Here's my fix:
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+    this.helper.useProgram(this.program_);
+    this.helper.prepareDraw(frameState, !blend);
+=======
+    this.helper.useProgram(this.program_);
+    
+    const tileLayer = this.getLayer();
+    const blendFunction = tileLayer.get('blendFunction');
+    
+    if (blendFunction) {
+      this.helper.prepareDraw(frameState, !blend, blendFunction);
+    } else {
+      this.helper.prepareDraw(frameState, !blend);
+    }
+>>>>>>> REPLACE
+```
+
+This change allows users to set a custom blending function on the tile layer using the `set` method, like `tileLayer.set('blendFunction', { sourceFactor: 'ONE', destinationFactor: 'ONE' })`. The renderer will then use this blending function when rendering the layer.
+
+Note: This solution assumes that the `prepareDraw` method in the WebGL helper class can accept an optional blending function parameter. If that's not the case, the WebGL helper class would also need to be modified to support custom blending functions.

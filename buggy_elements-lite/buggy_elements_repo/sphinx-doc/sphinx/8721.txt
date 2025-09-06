@@ -1,0 +1,35 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The viewcode extension is creating module pages for EPUB output even when `viewcode_enable_epub=False` is set, which should prevent this behavior.
+
+2. Cause Analysis:
+The issue appears to be related to how the viewcode extension handles EPUB builds. The extension should check the `viewcode_enable_epub` configuration value and skip generating module pages for EPUB builds when this setting is false, but this check might not be properly implemented or respected during the build process.
+
+3. File Analysis:
+
+sphinx/registry.py:
+```
+This file contains no relevant functions/classes.
+```
+
+sphinx/builders/epub3.py:
+```
+sphinx/builders/epub3.py
+class: Epub3Builder
+```
+This builder class is relevant as it handles EPUB generation and should respect the viewcode configuration.
+
+sphinx/ext/viewcode.py:
+```
+sphinx/ext/viewcode.py
+function: doctree_read
+function: collect_pages
+function: setup
+```
+These functions are highly relevant because:
+- `doctree_read` contains the logic to check `viewcode_enable_epub` configuration
+- `collect_pages` is responsible for creating the module pages
+- `setup` registers the configuration value `viewcode_enable_epub`
+
+The core issue likely lies in the interaction between these components, particularly in how `doctree_read` checks for EPUB builds and the `viewcode_enable_epub` setting, and how `collect_pages` generates pages without properly respecting these settings during EPUB builds.

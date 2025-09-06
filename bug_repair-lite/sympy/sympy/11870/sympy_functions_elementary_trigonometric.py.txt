@@ -1,0 +1,44 @@
+Based on the issue description, the problem is that `trigsimp()` is not able to convert exponential expressions like `1/2 * (-I*exp(I*k) + I*exp(-I*k))` into their equivalent trigonometric form `sin(k)`.
+
+Looking at the code, this functionality should be handled by the `sin` class's `_eval_rewrite_as_exp()` method, which currently only handles the forward direction (sin -> exp). We need to add the reverse direction (exp -> sin) to properly handle this case.
+
+Here's the fix:
+
+```python
+### sympy/functions/elementary/trigonometric.py
+<<<<<<< SEARCH
+    def _eval_rewrite_as_exp(self, arg):
+        I = S.ImaginaryUnit
+        if isinstance(arg, TrigonometricFunction) or isinstance(arg, HyperbolicFunction):
+            arg = arg.func(arg.args[0]).rewrite(exp)
+        return (exp(arg*I) - exp(-arg*I)) / (2*I)
+=======
+    def _eval_rewrite_as_exp(self, arg):
+        I = S.ImaginaryUnit
+        if isinstance(arg, TrigonometricFunction) or isinstance(arg, HyperbolicFunction):
+            arg = arg.func(arg.args[0]).rewrite(exp)
+        # Handle both directions: sin -> exp and exp -> sin
+        if arg.is_Add and len(arg.args) == 2:
+            # Check for pattern: -I*exp(I*k)/2 + I*exp(-I*k)/2
+            args = arg.args
+            if (args[0].is_Mul and args[1].is_Mul and
+                len(args[0].args) == len(args[1].args) == 3 and
+                args[0].args[0] == -I and args[1].args[0] == I and
+                args[0].args[1] == S.Half and args[1].args[1] == S.Half and
+                isinstance(args[0].args[2], exp) and isinstance(args[1].args[2], exp)):
+                exp1, exp2 = args[0].args[2], args[1].args[2]
+                if (exp1.args[0] == I*exp2.args[0].args[0] and
+                    exp2.args[0] == -I*exp1.args[0].args[0]):
+                    return sin(exp1.args[0].args[0])
+        return (exp(arg*I) - exp(-arg*I)) / (2*I)
+>>>>>>> REPLACE
+```
+
+This change adds pattern matching to detect expressions of the form `-I*exp(I*k)/2 + I*exp(-I*k)/2` and converts them to `sin(k)`. The fix:
+
+1. Checks if the argument is an Add expression with 2 terms
+2. Verifies each term has the correct structure (-I*exp(I*k)/2 and I*exp(-I*k)/2)
+3. Confirms the exponential arguments are conjugates (I*k and -I*k)
+4. Returns sin(k) when the pattern matches
+
+For the corollary case of `sinc(k)`, once this fix is in place, the expression `1/2/k * (-I*exp(I*k) + I*exp(-I*k))` should automatically simplify to `sin(k)/k`, which is the definition of `sinc(k)`.

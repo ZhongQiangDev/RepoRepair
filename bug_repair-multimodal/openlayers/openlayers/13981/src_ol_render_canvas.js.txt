@@ -1,0 +1,58 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about inconsistent rendering of offset and rotated text between vector layers and vector context. Specifically:
+
+1. In vector layer renderer, text is rotated around the feature from which it is offset
+2. In immediate renderer, text is rotated around its offset anchor point (as defined by textAlign and textBaseline)
+
+The problem appears to be in the `rotateAtOffset` function in `src/ol/render/canvas.js`. This function is responsible for applying rotation to text, but it's not handling the rotation point consistently between the two rendering methods.
+
+## Fix
+
+The issue is in the `rotateAtOffset` function. When text is offset and rotated, the rotation should be applied consistently. Based on the issue description, the vector layer renderer behavior is considered correct, so we need to modify the function to ensure consistent behavior.
+
+```javascript
+### src/ol/render/canvas.js
+<<<<<<< SEARCH
+/**
+ * @param {CanvasRenderingContext2D} context Context.
+ * @param {number} rotation Rotation.
+ * @param {number} offsetX X offset.
+ * @param {number} offsetY Y offset.
+ */
+export function rotateAtOffset(context, rotation, offsetX, offsetY) {
+  if (rotation !== 0) {
+    context.translate(offsetX, offsetY);
+    context.rotate(rotation);
+    context.translate(-offsetX, -offsetY);
+  }
+}
+=======
+/**
+ * @param {CanvasRenderingContext2D} context Context.
+ * @param {number} rotation Rotation.
+ * @param {number} offsetX X offset.
+ * @param {number} offsetY Y offset.
+ * @param {boolean} [rotateWithView=false] When true, rotate relative to the view instead of the anchor point
+ */
+export function rotateAtOffset(context, rotation, offsetX, offsetY, rotateWithView) {
+  if (rotation !== 0) {
+    if (!rotateWithView) {
+      context.translate(offsetX, offsetY);
+      context.rotate(rotation);
+      context.translate(-offsetX, -offsetY);
+    } else {
+      context.rotate(rotation);
+    }
+  }
+}
+>>>>>>> REPLACE
+```
+
+This change adds a new parameter `rotateWithView` to the `rotateAtOffset` function. When this parameter is true, the rotation is applied without translating to the offset point first, which means the rotation will be around the origin (0,0) rather than the offset point. This matches the behavior of the vector layer renderer.
+
+The vector context renderer would call this function with `rotateWithView=false` to maintain its current behavior, while the vector layer renderer would call it with `rotateWithView=true` to ensure consistent behavior.
+
+Note: This fix assumes that the calling code will need to be updated to pass the appropriate value for the new parameter. Since we don't have access to those files in this review, additional changes might be needed in the code that calls this function to fully resolve the issue.

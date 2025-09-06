@@ -1,0 +1,56 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that when `setOpacity` is called on a VectorLayer with `declutter` enabled, the layer disappears. This happens in OpenLayers v9.0.
+
+Looking at the code, I can see that the `CanvasVectorLayerRenderer` class handles rendering vector layers. When opacity is set to a value other than 1, it creates a separate composition context to render the layer, and then draws that context onto the main canvas with the specified opacity.
+
+The bug appears to be in how the decluttered items are handled when opacity changes. When `renderDeclutter` is called, it sets up the composition context but doesn't properly handle the case where opacity is not 1.
+
+## Fix
+
+The issue is in the `renderDeclutter` method. When opacity is not 1, it sets up a composition context but doesn't properly render the decluttered items with the correct opacity. Let's fix this:
+
+```javascript
+### src/ol/renderer/canvas/VectorLayer.js
+<<<<<<< SEARCH
+  /**
+   * Render declutter items for this layer
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   */
+  renderDeclutter(frameState) {
+    const declutter = this.getLayer().getDeclutter();
+    if (!declutter) {
+      return;
+    }
+    this.setupCompositionContext_(); //FIXME Check if this works, or if we need to defer something.
+    this.renderWorlds(this.replayGroup_, frameState, true);
+    this.releaseCompositionContext_();
+  }
+=======
+  /**
+   * Render declutter items for this layer
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   */
+  renderDeclutter(frameState) {
+    const declutter = this.getLayer().getDeclutter();
+    if (!declutter) {
+      return;
+    }
+    // Store the current opacity value
+    const currentOpacity = this.opacity_;
+    // Always use opacity 1 for decluttered items
+    this.opacity_ = 1;
+    this.setupCompositionContext_();
+    this.renderWorlds(this.replayGroup_, frameState, true);
+    this.releaseCompositionContext_();
+    // Restore the original opacity value
+    this.opacity_ = currentOpacity;
+  }
+>>>>>>> REPLACE
+```
+
+This fix ensures that decluttered items are rendered with full opacity (1) regardless of the layer's opacity setting. The layer's opacity is temporarily set to 1 during the declutter rendering process and then restored to its original value afterward.
+
+The issue was that when opacity was set to a value other than 1, the decluttered items were being rendered to a separate canvas but not properly composited back to the main canvas with the correct opacity.

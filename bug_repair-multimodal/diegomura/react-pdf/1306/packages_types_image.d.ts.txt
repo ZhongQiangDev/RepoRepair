@@ -1,0 +1,29 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that the `SourceObject` type definition in `@react-pdf/types/image.d.ts` doesn't support a function that returns a string or Promise<string>, which is mentioned in the documentation. 
+
+According to the issue, the documentation states that an Image source object can be a function that returns a string or a promise of a string: `() => String | Promise<String>`. However, the current type definition doesn't include this option, causing compilation errors when users try to use a function that returns a Promise<string> as the image source.
+
+## Fix
+
+I'll update the `SourceObject` type definition to include the missing function type:
+
+```typescript
+### packages/types/image.d.ts
+<<<<<<< SEARCH
+export type SourceObject =
+  | string
+  | { data: Buffer; format: 'png' | 'jpg' }
+  | { uri: string; method: HTTPMethod; body: any; headers: any };
+=======
+export type SourceObject =
+  | string
+  | { data: Buffer; format: 'png' | 'jpg' }
+  | { uri: string; method: HTTPMethod; body: any; headers: any }
+  | (() => string | Promise<string>);
+>>>>>>> REPLACE
+```
+
+This change adds the function type `(() => string | Promise<string>)` as a valid option for the `SourceObject` type, which will allow users to use functions that return either a string or a Promise<string> as image sources, matching the documented behavior.

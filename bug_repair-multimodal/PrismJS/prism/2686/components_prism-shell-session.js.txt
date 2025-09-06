@@ -1,0 +1,28 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the Shell session tokenizer is not working correctly in the web download. Looking at the screenshots, we can see that in the working version, the shell prompt and commands are properly highlighted, but in the broken version, the entire content is treated as plain text.
+
+The issue appears to be in the regular expression pattern for the 'command' in the `shell-session` language definition. Let's examine the code more closely.
+
+The problem is in the output pattern. The current pattern `.(?:.*(?:[\r\n]|.$))*/` is not correctly matching the output of shell commands. This pattern is too greedy and is causing issues with the tokenization.
+
+Here's the fix:
+
+```javascript
+### components/prism-shell-session.js
+<<<<<<< SEARCH
+	'output': /.(?:.*(?:[\r\n]|.$))*/
+=======
+	'output': {
+		pattern: /(^(?:\s|$))[\s\S]+/,
+		lookbehind: true
+	}
+>>>>>>> REPLACE
+```
+
+This change modifies the output pattern to properly match the shell command output. The new pattern:
+1. Uses a lookbehind to ensure we're matching content that starts with whitespace or at the beginning of a line
+2. Captures all content after that point as output
+3. Is structured as an object with pattern and lookbehind properties, similar to other Prism language definitions
+
+This should fix the tokenization issue for shell sessions in the web download.

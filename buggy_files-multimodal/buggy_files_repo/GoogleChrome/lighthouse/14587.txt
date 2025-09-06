@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When running Lighthouse on a real mobile device (Moto Power G), the report incorrectly shows "Emulated Moto G4" instead of indicating it's running on a real device.
+- This happens even though the user disabled screen emulation and user agent emulation with the flags `--screenEmulation.disabled` and `--no-emulatedUserAgent`.
+
+2. Cause Analysis:
+- The issue appears to be related to how Lighthouse reports the device information in its output.
+- Even though emulation is disabled through CLI flags, the report generator is not properly reflecting that this is a real device test rather than an emulated one.
+- The core issue likely lies in how the report generator handles device information and emulation settings.
+
+3. Most Related Files:
+```
+report/generator/report-generator.js
+core/config/config.js
+cli/cli-flags.js
+core/lib/emulation.js
+report/renderer/report-renderer.js
+```
+
+These files are most relevant because:
+- `report/generator/report-generator.js` is responsible for generating the final report output and likely contains the logic for how device information is displayed
+- `core/config/config.js` handles configuration resolution including emulation settings
+- `cli/cli-flags.js` processes the CLI flags that disable emulation
+- `core/lib/emulation.js` contains the core emulation logic and settings
+- `report/renderer/report-renderer.js` handles how the report is rendered and displayed
+
+The fix would likely need to modify how device information is processed and displayed when emulation is disabled through these files.

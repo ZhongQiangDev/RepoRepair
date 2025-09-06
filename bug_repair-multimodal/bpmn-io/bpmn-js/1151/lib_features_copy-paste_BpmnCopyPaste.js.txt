@@ -1,0 +1,124 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when extracting participant contents (copying and pasting elements from a pool), the labels are lost. This happens because the current implementation doesn't properly handle labels during the copy-paste operation.
+
+Looking at the code, I can see that in the `copyPaste.pasteElement` event handler, there's special handling for labels where it sets the `businessObject` of the label descriptor to the business object of the label target. However, this doesn't properly preserve the label's text and position.
+
+The issue is in the `isLabel` function and how labels are handled during the paste operation. The current implementation doesn't properly copy the label's text and position information.
+
+## Fix
+
+```javascript
+### lib/features/copy-paste/BpmnCopyPaste.js
+<<<<<<< SEARCH
+  eventBus.on('copyPaste.pasteElement', function(context) {
+    var cache = context.cache,
+        descriptor = context.descriptor,
+        oldBusinessObject = descriptor.oldBusinessObject,
+        newBusinessObject;
+
+    // do NOT copy business object if external label
+    if (isLabel(descriptor)) {
+      descriptor.businessObject = getBusinessObject(cache[ descriptor.labelTarget ]);
+
+      return;
+    }
+
+    newBusinessObject = bpmnFactory.create(oldBusinessObject.$type);
+
+    descriptor.businessObject = moddleCopy.copyElement(
+      oldBusinessObject,
+      newBusinessObject
+    );
+
+    // resolve references e.g. default sequence flow
+    resolveReferences(descriptor);
+
+    copyProperties(descriptor, newBusinessObject, 'isExpanded');
+
+    removeProperties(descriptor, 'oldBusinessObject');
+  });
+=======
+  eventBus.on('copyPaste.pasteElement', function(context) {
+    var cache = context.cache,
+        descriptor = context.descriptor,
+        oldBusinessObject = descriptor.oldBusinessObject,
+        newBusinessObject;
+
+    // handle external labels specially
+    if (isLabel(descriptor)) {
+      var labelTarget = cache[ descriptor.labelTarget ];
+      
+      descriptor.businessObject = getBusinessObject(labelTarget);
+      
+      // ensure the label's name is preserved
+      if (oldBusinessObject && oldBusinessObject.name) {
+        descriptor.businessObject.name = oldBusinessObject.name;
+      }
+
+      return;
+    }
+
+    newBusinessObject = bpmnFactory.create(oldBusinessObject.$type);
+
+    descriptor.businessObject = moddleCopy.copyElement(
+      oldBusinessObject,
+      newBusinessObject
+    );
+
+    // resolve references e.g. default sequence flow
+    resolveReferences(descriptor);
+
+    copyProperties(descriptor, newBusinessObject, 'isExpanded');
+
+    removeProperties(descriptor, 'oldBusinessObject');
+  });
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/copy-paste/BpmnCopyPaste.js
+<<<<<<< SEARCH
+function isLabel(element) {
+  return !!element.labelTarget;
+}
+=======
+function isLabel(element) {
+  return !!element.labelTarget;
+}
+
+function copyProperties(source, target, properties) {
+  if (!isArray(properties)) {
+    properties = [ properties ];
+  }
+
+  forEach(properties, function(property) {
+    if (!isUndefined(source[property])) {
+      target[property] = source[property];
+    }
+  });
+}
+
+function removeProperties(element, properties) {
+  if (!isArray(properties)) {
+    properties = [ properties ];
+  }
+
+  forEach(properties, function(property) {
+    if (element[property] !== undefined) {
+      delete element[property];
+    }
+  });
+}
+>>>>>>> REPLACE
+```
+
+The key changes in this fix are:
+
+1. In the `copyPaste.pasteElement` event handler, I've improved the handling of external labels by preserving the label's name from the old business object.
+
+2. I've added the missing helper functions `copyProperties` and `removeProperties` that were being used in the code but weren't defined in the provided snippet.
+
+This fix ensures that when a participant's contents are extracted (copied and pasted), the labels are preserved along with the elements.

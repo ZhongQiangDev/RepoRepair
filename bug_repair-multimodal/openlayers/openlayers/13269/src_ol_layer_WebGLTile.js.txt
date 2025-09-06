@@ -1,0 +1,49 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when using a TileWMS source with the `gutter` option in a WebGLTile layer, the renderer doesn't clip the gutter before creating textures. This results in misplacement and duplication of tiles.
+
+The `gutter` option in TileWMS adds extra pixels around each tile to prevent edge artifacts when rendering. However, these extra pixels need to be clipped before rendering to ensure proper tile alignment.
+
+Looking at the code, the WebGLTileLayer class doesn't handle the gutter property from the source. The renderer needs to be modified to account for the gutter when creating textures from tile images.
+
+## Fix
+
+We need to modify the WebGLTileLayer class to pass the gutter information to the renderer. Since the actual rendering logic is in the WebGLTileLayerRenderer class (which isn't shown in the provided code), we need to ensure the gutter information is passed to the renderer when it's created.
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+  createRenderer() {
+    const parsedStyle = parseStyle(this.style_, this.getSourceBandCount_());
+
+    return new WebGLTileLayerRenderer(this, {
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      cacheSize: this.cacheSize_,
+      paletteTextures: parsedStyle.paletteTextures,
+    });
+  }
+=======
+  createRenderer() {
+    const parsedStyle = parseStyle(this.style_, this.getSourceBandCount_());
+    const source = this.getSource();
+    const gutter = source && 'getGutter' in source ? source.getGutter() : 0;
+
+    return new WebGLTileLayerRenderer(this, {
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      cacheSize: this.cacheSize_,
+      paletteTextures: parsedStyle.paletteTextures,
+      gutter: gutter,
+    });
+  }
+>>>>>>> REPLACE
+```
+
+This change detects if the source has a `getGutter` method (which TileWMS sources do), retrieves the gutter value, and passes it to the WebGLTileLayerRenderer. The renderer can then use this value to properly clip the tile images before creating textures.
+
+Note that this is only part of the fix. The WebGLTileLayerRenderer class would also need to be modified to use this gutter value when processing tiles, but that file isn't included in the provided code. The renderer would need to adjust the texture coordinates or clip the image data to account for the gutter.

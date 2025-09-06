@@ -1,0 +1,41 @@
+Based on the issue description, the bug is in the `join` filter implementation in `django/template/defaultfilters.py`. The issue is that when `autoescape` is off, the joining string (`arg`) is still being escaped when it shouldn't be.
+
+The current implementation always calls `conditional_escape(arg)` regardless of the `autoescape` parameter. When `autoescape` is off, we should not escape the joining string.
+
+Here's the fix:
+
+```python
+### django/template/defaultfilters.py
+<<<<<<< SEARCH
+@register.filter(is_safe=True, needs_autoescape=True)
+def join(value, arg, autoescape=True):
+    """Join a list with a string, like Python's ``str.join(list)``."""
+    try:
+        if autoescape:
+            value = [conditional_escape(v) for v in value]
+        data = conditional_escape(arg).join(value)
+    except TypeError:  # Fail silently if arg isn't iterable.
+        return value
+    return mark_safe(data)
+=======
+@register.filter(is_safe=True, needs_autoescape=True)
+def join(value, arg, autoescape=True):
+    """Join a list with a string, like Python's ``str.join(list)``."""
+    try:
+        if autoescape:
+            value = [conditional_escape(v) for v in value]
+            arg = conditional_escape(arg)
+        data = arg.join(value)
+    except TypeError:  # Fail silently if arg isn't iterable.
+        return value
+    return mark_safe(data)
+>>>>>>> REPLACE
+```
+
+The key changes are:
+1. Moved the `conditional_escape(arg)` inside the `if autoescape:` block
+2. Only escape the joining string (`arg`) when `autoescape` is True
+
+This change ensures that when `autoescape` is off, neither the list items nor the joining string will be escaped, which matches the expected behavior described in the issue.
+
+The test case `test_join02` should now pass since the joining string `<br/>` will no longer be escaped to `&lt;br/&gt;` when `autoescape` is off.

@@ -1,0 +1,56 @@
+Based on the issue description, the bug is in the `AlterField.reduce()` method where it doesn't handle the case of multiple consecutive `AlterField` operations on the same field. The optimizer should be able to reduce multiple `AlterField` operations into just the last one since it represents the final state.
+
+Here's the fix:
+
+```python
+### django/db/migrations/operations/fields.py
+<<<<<<< SEARCH
+    def reduce(self, operation, app_label):
+        if isinstance(operation, RemoveField) and self.is_same_field_operation(
+            operation
+        ):
+            return [operation]
+        elif (
+            isinstance(operation, RenameField)
+            and self.is_same_field_operation(operation)
+            and self.field.db_column is None
+        ):
+            return [
+                operation,
+                AlterField(
+                    model_name=self.model_name,
+                    name=operation.new_name,
+                    field=self.field,
+                ),
+            ]
+        return super().reduce(operation, app_label)
+=======
+    def reduce(self, operation, app_label):
+        if isinstance(operation, RemoveField) and self.is_same_field_operation(
+            operation
+        ):
+            return [operation]
+        elif (
+            isinstance(operation, RenameField)
+            and self.is_same_field_operation(operation)
+            and self.field.db_column is None
+        ):
+            return [
+                operation,
+                AlterField(
+                    model_name=self.model_name,
+                    name=operation.new_name,
+                    field=self.field,
+                ),
+            ]
+        elif isinstance(operation, AlterField) and self.is_same_field_operation(
+            operation
+        ):
+            return [operation]
+        return super().reduce(operation, app_label)
+>>>>>>> REPLACE
+```
+
+This change adds a new condition to check if the operation is an `AlterField` on the same field. If so, it returns just the later operation since it represents the final desired state of the field. This matches the behavior seen when an `AddField` is followed by `AlterField` operations.
+
+The fix allows the optimizer to reduce multiple consecutive `AlterField` operations on the same field into just the last one, which is more efficient and matches the expected behavior described in the issue.

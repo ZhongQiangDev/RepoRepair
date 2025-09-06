@@ -1,0 +1,58 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that the syntax highlighter fails to correctly identify and highlight Perl regex patterns that use the `m` operator with arbitrary delimiters (e.g., `m(/$)`, `m|/$|`, `m#/$#`, `m{/$}`). Instead of highlighting only the regex pattern, it incorrectly highlights the entire line or parts of it.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue arises because the syntax highlighter's regex detection logic is not correctly handling Perl's flexible regex delimiter syntax. Perl allows the use of various delimiters for regex patterns (e.g., `m(/$)`, `m|/$|`, `m#/$#`, `m{/$}`), but the highlighter is likely only configured to recognize a specific delimiter (e.g., `/`), leading to incorrect highlighting.
+
+### 3. Examine Each File One by One
+
+#### `src/languages/perl.js`
+
+This file contains the configuration for Perl syntax highlighting in Highlight.js. The relevant function is `function_1`, which sets up the highlighting rules for Perl code.
+
+#### Relevant Functions/Classes in `src/languages/perl.js`
+
+```
+src/languages/perl.js
+function: function_1
+```
+
+The `function_1` function defines the `PERL_DEFAULT_CONTAINS` array, which includes patterns for highlighting various Perl syntax elements, including regular expressions. The issue likely lies in the regex pattern used to match Perl regexes. The current pattern may not be flexible enough to handle arbitrary delimiters.
+
+### Potential Fixes
+
+To fix the issue, the regex pattern for matching Perl regexes in `PERL_DEFAULT_CONTAINS` should be updated to correctly handle arbitrary delimiters. This may involve modifying the existing regex pattern or adding a new pattern specifically for Perl regexes with arbitrary delimiters.
+
+For example, the current pattern for matching Perl regexes might look something like this:
+
+```javascript
+{
+  className: 'regexp',
+  begin: 'm/',
+  end: '/',
+  contains: [
+    hljs.BACKSLASH_ESCAPE
+  ]
+}
+```
+
+This pattern only matches regexes with `/` as the delimiter. To handle arbitrary delimiters, it could be updated to something like this:
+
+```javascript
+{
+  className: 'regexp',
+  begin: 'm([\\w\\W])(.*?)(?=\\1)',
+  end: '(\\1)',
+  contains: [
+    hljs.BACKSLASH_ESCAPE
+  ]
+}
+```
+
+This updated pattern uses a capturing group to match the delimiter and then uses a positive lookahead to ensure the regex ends with the same delimiter.
+
+### Conclusion
+
+The issue is located in the `function_1` function within `src/languages/perl.js`. The regex pattern used to match Perl regexes needs to be updated to correctly handle arbitrary delimiters.

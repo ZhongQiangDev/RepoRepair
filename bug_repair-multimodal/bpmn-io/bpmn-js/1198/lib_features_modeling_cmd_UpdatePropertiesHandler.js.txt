@@ -1,0 +1,41 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a Timer Intermediate Catch Event (or other catch events) is added to a non-default flow from an exclusive gateway, the `default` attribute on the gateway is being removed. This happens even though the default flow is still visually rendered as the default.
+
+Looking at the code, the problem appears to be in the `UpdatePropertiesHandler.prototype.execute` method. When properties are updated, the code correctly handles visual changes for default flow updates, but when the `execute` method is called to update properties for other elements (like adding a catch event), it doesn't preserve the `default` attribute on related gateways.
+
+The issue is likely in how properties are set on the business object. The `setProperties` function is updating all properties without preserving special references like the `default` flow.
+
+## Fix
+
+```javascript
+### lib/features/modeling/cmd/UpdatePropertiesHandler.js
+<<<<<<< SEARCH
+// update properties
+  setProperties(businessObject, properties);
+
+  // store old values
+  context.oldProperties = oldProperties;
+  context.changed = changed;
+=======
+  // update properties
+  setProperties(businessObject, properties);
+
+  // ensure default flow reference is not lost when updating properties
+  // on sequence flows (e.g., when adding intermediate catch events)
+  if (element.source && element.source.businessObject && 
+      element.source.businessObject.default === businessObject) {
+    element.source.businessObject.default = businessObject;
+  }
+
+  // store old values
+  context.oldProperties = oldProperties;
+  context.changed = changed;
+>>>>>>> REPLACE
+```
+
+This fix adds a check to ensure that if the element being updated is a sequence flow that is set as the default flow of its source node (like an exclusive gateway), the default reference is preserved after updating the properties.
+
+The solution works by checking if the current element's source has a business object with a default flow reference pointing to the current element's business object. If so, it explicitly reassigns this reference to ensure it's not lost during property updates.

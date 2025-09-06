@@ -1,0 +1,70 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is that style expressions support fetching a feature property using `['get', 'attributeName']` (similar to `feature.get('attributeName')`), but there's no way to access the feature ID (equivalent to `feature.getId()`).
+
+Looking at the code, I need to add a new operator to access the feature ID. This should be similar to the existing `get` operator but specifically for the ID property.
+
+## Solution
+
+I'll add a new `id` operator to the `Operators` object that will retrieve the feature ID. This will allow users to access the ID without duplicating it in the properties collection.
+
+```javascript
+### src/ol/style/expressions.js
+<<<<<<< SEARCH
+ *   * `['get', 'attributeName', typeHint]` fetches a feature property value, similar to `feature.get('attributeName')`
+ *     A type hint can optionally be specified, in case the resulting expression contains a type ambiguity which
+ *     will make it invalid. Type hints can be one of: 'string', 'color', 'number', 'boolean', 'number[]'
+ *   * `['geometry-type']` returns a feature's geometry type as string, either: 'LineString', 'Point' or 'Polygon'
+=======
+ *   * `['get', 'attributeName', typeHint]` fetches a feature property value, similar to `feature.get('attributeName')`
+ *     A type hint can optionally be specified, in case the resulting expression contains a type ambiguity which
+ *     will make it invalid. Type hints can be one of: 'string', 'color', 'number', 'boolean', 'number[]'
+ *   * `['id']` fetches a feature's id, similar to `feature.getId()`
+ *   * `['geometry-type']` returns a feature's geometry type as string, either: 'LineString', 'Point' or 'Polygon'
+>>>>>>> REPLACE
+```
+
+Now I need to implement the actual operator:
+
+```javascript
+### src/ol/style/expressions.js
+<<<<<<< SEARCH
+Operators['geometry-type'] = {
+
+
+};
+=======
+Operators['id'] = {
+  getReturnType: function () {
+    return ValueTypes.STRING | ValueTypes.NUMBER;
+  },
+  toGlsl: function (context, args, expectedType) {
+    if (args.length !== 1) {
+      throw new Error('id operator takes no arguments');
+    }
+    const attrName = '_id';
+    context.attributes.push({
+      name: attrName,
+      type: ValueTypes.STRING | ValueTypes.NUMBER,
+      callback: function (feature) {
+        return feature.getId();
+      },
+    });
+    return `a_${attrName}`;
+  },
+};
+
+Operators['geometry-type'] = {
+
+
+};
+>>>>>>> REPLACE
+```
+
+This implementation:
+1. Creates a new `id` operator that takes no arguments
+2. Returns either a string or number type (since feature IDs can be either)
+3. Adds a special attribute to the context with a callback that calls `feature.getId()`
+4. Returns the attribute name for use in the shader

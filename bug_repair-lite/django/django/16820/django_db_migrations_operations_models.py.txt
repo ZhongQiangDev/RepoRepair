@@ -1,0 +1,50 @@
+Based on the issue description, the problem is related to transitioning from `Meta.index_together` to `Meta.indexes` to remove deprecation warnings. Looking at the code, the `AlterIndexTogether` class needs to be modified to handle this transition.
+
+The fix should modify the `AlterIndexTogether` class to convert `index_together` tuples into proper index objects that can be used with the newer `indexes` attribute. Here's the proposed fix:
+
+```python
+### django/db/migrations/operations/models.py
+<<<<<<< SEARCH
+class AlterIndexTogether(AlterTogetherOptionOperation):
+    """
+    Change the value of index_together to the target one.
+    Input value of index_together must be a set of tuples.
+    """
+
+    option_name = "index_together"
+
+    def __init__(self, name, index_together):
+        super().__init__(name, index_together)
+=======
+class AlterIndexTogether(AlterTogetherOptionOperation):
+    """
+    Change the value of index_together to the target one.
+    Input value of index_together must be a set of tuples.
+    """
+
+    option_name = "index_together"
+
+    def __init__(self, name, index_together):
+        super().__init__(name, index_together)
+        self._deprecated = True
+
+    def state_forwards(self, app_label, state):
+        model_state = state.models[app_label, self.name_lower]
+        if self.option_name in model_state.options:
+            # Convert index_together to indexes
+            indexes = []
+            for fields in normalize_together(self.option_value):
+                indexes.append(models.Index(fields=list(fields), name=f"idx_{'_'.join(fields)}"))
+            model_state.options['indexes'] = indexes
+            del model_state.options[self.option_name]
+        state.reload_model(app_label, self.name_lower, delay=True)
+>>>>>>> REPLACE
+```
+
+This change:
+1. Marks the operation as deprecated with `self._deprecated = True`
+2. Overrides `state_forwards` to convert `index_together` tuples into proper `Index` objects
+3. Removes the old `index_together` option and replaces it with the new `indexes` option
+4. Automatically generates index names based on the field names
+
+This will help remove the deprecation warnings by transitioning from the old `index_together` format to the new `indexes` format during migration squashing.

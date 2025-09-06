@@ -1,0 +1,28 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when processing trace events, the code fails with the error "Unable to determine tid for renderer process". This happens because in some cases, the `FrameCommittedInBrowser` event has a `processPseudoId` instead of a `processId`, causing the `mainFramePids` array to contain `undefined` values.
+
+Looking at the code in `findMainFramePidTids`, it's extracting the process IDs from `FrameCommittedInBrowser` events using `e?.args?.data?.processId`. However, according to the issue, sometimes the event has `processPseudoId` instead of `processId`. We need to modify the code to check for both fields.
+
+## Fix
+
+```javascript
+### core/lib/tracehouse/trace-processor.js
+<<<<<<< SEARCH
+    const mainFramePids = frameCommittedEvts.length
+      ? frameCommittedEvts.map(e => e?.args?.data?.processId)
+      // …But old traces and some timespan traces may not. In these situations, we'll assume the
+      // primary process ID remains constant (as there were no navigations).
+      : [mainFrameInfo.startingPid];
+=======
+    const mainFramePids = frameCommittedEvts.length
+      ? frameCommittedEvts.map(e => e?.args?.data?.processId || e?.args?.data?.processPseudoId)
+      // …But old traces and some timespan traces may not. In these situations, we'll assume the
+      // primary process ID remains constant (as there were no navigations).
+      : [mainFrameInfo.startingPid];
+>>>>>>> REPLACE
+```
+
+This change modifies the code to check for both `processId` and `processPseudoId` in the `FrameCommittedInBrowser` events. If `processId` is not available, it will fall back to using `processPseudoId`. This should prevent the `mainFramePids` array from containing `undefined` values, which was causing the error "Unable to determine tid for renderer process".

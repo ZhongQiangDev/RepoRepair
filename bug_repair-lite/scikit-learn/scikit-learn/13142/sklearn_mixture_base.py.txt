@@ -1,0 +1,49 @@
+Based on the issue description, the bug occurs when `n_init > 1` where `fit_predict()` and `predict()` return different results for the same data. Looking at the code, the issue is in the `fit_predict()` method of `BaseMixture` class.
+
+The problem is that after finding the best parameters through multiple initializations, the final e-step is performed but its results are used directly for prediction, rather than using the best parameters that gave the highest lower bound. This causes inconsistency with subsequent `predict()` calls which use the best parameters.
+
+Here's the fix:
+
+```python
+### sklearn/mixture/base.py
+<<<<<<< SEARCH
+        # Always do a final e-step to guarantee that the labels returned by
+        # fit_predict(X) are always consistent with fit(X).predict(X)
+        # for any value of max_iter and tol (and any random_state).
+        _, log_resp = self._e_step(X)
+
+        if not self.converged_:
+            warnings.warn('Initialization %d did not converge. '
+                          'Try different init parameters, '
+                          'or increase max_iter, tol '
+                          'or check for degenerate data.'
+                          % (init + 1), ConvergenceWarning)
+
+        self._set_parameters(best_params)
+        self.n_iter_ = best_n_iter
+        self.lower_bound_ = max_lower_bound
+
+        return log_resp.argmax(axis=1)
+=======
+        if not self.converged_:
+            warnings.warn('Initialization %d did not converge. '
+                          'Try different init parameters, '
+                          'or increase max_iter, tol '
+                          'or check for degenerate data.'
+                          % (init + 1), ConvergenceWarning)
+
+        self._set_parameters(best_params)
+        self.n_iter_ = best_n_iter
+        self.lower_bound_ = max_lower_bound
+
+        # Predict using the best parameters found
+        return self.predict(X)
+>>>>>>> REPLACE
+```
+
+The fix:
+1. Removes the final e-step that was using the last initialization's state
+2. Sets the best parameters found during initialization
+3. Uses `predict()` to get consistent labels based on those best parameters
+
+This ensures that `fit_predict()` and subsequent `predict()` calls will return consistent results since they're both using the same best parameters found during initialization.

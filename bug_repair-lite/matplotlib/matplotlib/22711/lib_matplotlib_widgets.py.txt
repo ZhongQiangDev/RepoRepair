@@ -1,0 +1,34 @@
+Based on the issue description, the bug is in the `set_val` method of the `RangeSlider` class in `lib/matplotlib/widgets.py`. The issue occurs because the code tries to access `xy[4]` when setting the polygon coordinates, but the polygon only has 4 vertices (indices 0-3).
+
+Here's the fix to remove the problematic lines that try to set `xy[4]`:
+
+```python
+### lib/matplotlib/widgets.py
+<<<<<<< SEARCH
+            xy[0] = .25, val[0]
+            xy[1] = .25, val[1]
+            xy[2] = .75, val[1]
+            xy[3] = .75, val[0]
+            xy[4] = .25, val[0]
+        else:
+            xy[0] = val[0], .25
+            xy[1] = val[0], .75
+            xy[2] = val[1], .75
+            xy[3] = val[1], .25
+            xy[4] = val[0], .25
+=======
+            xy[0] = .25, val[0]
+            xy[1] = .25, val[1]
+            xy[2] = .75, val[1]
+            xy[3] = .75, val[0]
+        else:
+            xy[0] = val[0], .25
+            xy[1] = val[0], .75
+            xy[2] = val[1], .75
+            xy[3] = val[1], .25
+>>>>>>> REPLACE
+```
+
+This fix removes the redundant assignments to `xy[4]` in both the vertical and horizontal orientations. The polygon is properly defined by 4 vertices, and trying to set a fifth vertex was causing the IndexError. The slider will now work correctly with initial values.
+
+The issue was that the code was trying to close the polygon by explicitly setting the fifth point equal to the first point, but this is unnecessary since matplotlib automatically closes polygons when drawing them. Removing these lines fixes the IndexError while maintaining the correct visual appearance of the slider.

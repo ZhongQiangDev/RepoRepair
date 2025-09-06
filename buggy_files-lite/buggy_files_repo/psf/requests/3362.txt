@@ -1,0 +1,25 @@
+Let me follow the steps:
+
+1. Wrong Behavior:
+- `iter_content(decode_unicode=True)` is returning bytes instead of unicode/string
+- This conflicts with the expectation that setting `decode_unicode=True` should return unicode, similar to `r.text`
+
+2. Cause Analysis:
+- The issue appears to be related to content decoding in the response handling
+- The core problem likely lies in how the Response class handles unicode decoding when streaming content vs accessing the full text
+- This would involve both the response content handling and character encoding detection
+
+3. Most Related Files:
+```
+requests/models.py
+requests/packages/urllib3/response.py
+requests/packages/chardet/utf8prober.py
+requests/packages/chardet/sbcharsetprober.py
+requests/utils.py
+```
+
+Reasoning for file selection:
+- `models.py` is most important as it contains the Response class implementation with both `iter_content` and `text` properties
+- `urllib3/response.py` handles the low-level response content streaming and decoding
+- `chardet/utf8prober.py` and `sbcharsetprober.py` are involved in character encoding detection which is crucial for proper text decoding
+- `utils.py` likely contains helper functions for content decoding and text handling

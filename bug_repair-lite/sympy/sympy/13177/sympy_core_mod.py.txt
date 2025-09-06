@@ -1,0 +1,40 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is in the `eval` method of the `Mod` class. When checking if `p % q` should be zero, the code doesn't properly check if `p` is a power of `q` when `p` is not an integer.
+
+Specifically, in this condition:
+```python
+if (p == q or p == -q or
+        p.is_Pow and p.exp.is_Integer and p.base == q or
+        p.is_integer and q == 1):
+    return S.Zero
+```
+
+The problem is with the part `p.is_Pow and p.exp.is_Integer and p.base == q`. This checks if `p` is a power of `q`, but it doesn't verify that the exponent is an integer. When `x` is a non-integer (like 1.5), `x**2 % x` should not be zero, but the current code incorrectly returns zero.
+
+## Fix
+
+We need to modify the condition to ensure that when `p` is a power of `q`, we only return zero if the exponent is an integer and the base is an integer or the exponent is greater than or equal to 1.
+
+```python
+### sympy/core/mod.py
+<<<<<<< SEARCH
+            if (p == q or p == -q or
+                    p.is_Pow and p.exp.is_Integer and p.base == q or
+                    p.is_integer and q == 1):
+                return S.Zero
+=======
+            if (p == q or p == -q or
+                    p.is_Pow and p.exp.is_Integer and p.base == q and (p.base.is_integer or p.exp >= 1) or
+                    p.is_integer and q == 1):
+                return S.Zero
+>>>>>>> REPLACE
+```
+
+This fix ensures that when `p` is a power of `q`, we only return zero if either:
+1. The base is an integer, or
+2. The exponent is at least 1 (since any number raised to a power ≥ 1 is divisible by itself)
+
+This will prevent the incorrect simplification of `Mod(x**2, x)` to `0` when `x` is not an integer.

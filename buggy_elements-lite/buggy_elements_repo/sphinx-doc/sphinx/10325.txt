@@ -1,0 +1,42 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The current behavior doesn't allow for selective inheritance documentation when:
+- A class inherits from multiple base classes and you want to document members from some base classes but ignore others
+- Multiple classes in a module inherit from different built-in classes (list, set, tuple) and you want to ignore members from these built-in classes while documenting other inherited members
+
+2. Cause Analysis:
+The root cause appears to be in the autodoc functionality's handling of inherited members. Currently, the `:inherited-members:` option is likely implemented as a boolean flag rather than accepting a list of classes to ignore. This means it's an all-or-nothing approach - either all inherited members are documented or none are.
+
+3. Relevant Files/Functions Analysis:
+
+sphinx/domains/python.py:
+```
+sphinx/domains/python.py
+class: PythonDomain
+class: PyClasslike
+```
+These classes are relevant as they handle Python class documentation and inheritance relationships.
+
+sphinx/ext/autodoc/directive.py:
+```
+sphinx/ext/autodoc/directive.py
+class: AutodocDirective
+```
+This class is relevant as it's the main directive handler for autodoc functionality, which would need to be modified to support the new inherited-members behavior.
+
+sphinx/ext/autodoc/mock.py:
+This file contains no relevant functions/classes.
+
+sphinx/ext/autodoc/typehints.py:
+This file contains no relevant functions/classes.
+
+sphinx/util/inspect.py:
+```
+sphinx/util/inspect.py
+function: getdoc
+function: safe_getattr
+```
+These functions are relevant as they handle attribute retrieval and documentation extraction, which would need to be aware of which inherited members to include or exclude.
+
+The core changes would likely need to be made in the PythonDomain and AutodocDirective classes to support a list of classes in the inherited-members option and filter inherited members accordingly.

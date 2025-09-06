@@ -1,0 +1,30 @@
+Based on the issue description, the bug occurs when the `method` parameter is a binary string (like b'GET') and gets converted to a literal string ("b'GET'") by `builtin_str()`. This causes 404 errors since the HTTP method becomes invalid.
+
+The bug is in the `request()` method of the Session class where `method = builtin_str(method)` is called. Instead of using `builtin_str()`, we should decode the binary string if needed using `to_native_string()` which is already imported from utils.
+
+Here's the fix:
+
+```python
+### requests/sessions.py
+<<<<<<< SEARCH
+        method = builtin_str(method)
+
+        # Create the Request.
+        req = Request(
+=======
+        # Convert binary string methods to native strings
+        method = to_native_string(method)
+
+        # Create the Request.
+        req = Request(
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Replaces `builtin_str()` with `to_native_string()` which properly handles binary strings
+2. Adds a comment explaining the conversion
+3. Maintains proper indentation (8 spaces before each line)
+
+The `to_native_string()` utility function will properly decode binary strings like b'GET' to 'GET' instead of creating the literal string "b'GET'". This should resolve the 404 errors when methods are passed as binary strings from neutronclient.
+
+This change is backward compatible since `to_native_string()` will handle both binary and regular strings appropriately, working in both Python 2.6 and 3.4 environments.

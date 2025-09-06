@@ -1,0 +1,89 @@
+Based on the issue description, the bug occurs when setting a LogNorm after creating a colorbar, with an error "Invalid vmin or vmax" being raised even though valid vmin/vmax values are provided.
+
+Looking at the code, the issue appears to be in the LogNorm implementation. The LogNorm class is created using `make_norm_from_scale()` with `scale.LogScale`, but there seems to be an issue with the validation of vmin/vmax values.
+
+The fix needs to ensure proper validation of vmin/vmax values when using LogNorm. Here's the proposed fix:
+
+```python
+### lib/matplotlib/colors.py
+<<<<<<< SEARCH
+LogNorm = make_norm_from_scale(
+    functools.partial(scale.LogScale, nonpositive="mask"))(Normalize)
+LogNorm.__name__ = LogNorm.__qualname__ = "LogNorm"
+LogNorm.__doc__ = "Normalize a given value to the 0-1 range on a log scale."
+=======
+class LogNorm(Normalize):
+    """Normalize a given value to the 0-1 range on a log scale."""
+    def __init__(self, vmin=None, vmax=None, clip=False):
+        super().__init__(vmin, vmax, clip)
+        self._scale = scale.LogScale(axis=None, nonpositive="mask")
+
+    def __call__(self, value, clip=None):
+        if clip is None:
+            clip = self.clip
+
+        result, is_scalar = self.process_value(value)
+
+        self.autoscale_None(result)
+        
+        # Check for valid vmin/vmax after autoscaling
+        if self.vmin is not None and self.vmin <= 0:
+            raise ValueError("LogNorm cannot handle negative/zero vmin")
+        if self.vmax is not None and self.vmax <= 0:
+            raise ValueError("LogNorm cannot handle negative/zero vmax")
+            
+        # Convert to float without losing precision
+        (vmin,), _ = self.process_value(self.vmin)
+        (vmax,), _ = self.process_value(self.vmax)
+        
+        if vmin == vmax:
+            result.fill(0)
+        elif vmin > vmax:
+            raise ValueError("minvalue must be less than or equal to maxvalue")
+        else:
+            if clip:
+                mask = np.ma.getmask(result)
+                result = np.ma.array(np.clip(result.filled(vmax), vmin, vmax),
+                                   mask=mask)
+            # ma division is very slow; we can take a shortcut
+            resdat = result.data
+            resdat = np.log(resdat)
+            vmin_log = np.log(vmin)
+            vmax_log = np.log(vmax)
+            resdat -= vmin_log
+            resdat /= (vmax_log - vmin_log)
+            result = np.ma.array(resdat, mask=result.mask, copy=False)
+            
+        if is_scalar:
+            result = result[0]
+        return result
+
+    def inverse(self, value):
+        if not self.scaled():
+            raise ValueError("Not invertible until both vmin and vmax are set")
+        (vmin,), _ = self.process_value(self.vmin)
+        (vmax,), _ = self.process_value(self.vmax)
+        
+        if np.iterable(value):
+            val = np.ma.asarray(value)
+            return vmin * np.exp(val * np.log(vmax/vmin))
+        else:
+            return vmin * np.exp(value * np.log(vmax/vmin))
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Replaces the `make_norm_from_scale` implementation with a direct class implementation
+2. Properly handles validation of vmin/vmax values
+3. Implements the logarithmic scaling directly in the `__call__` method
+4. Provides proper inverse transformation
+5. Maintains compatibility with the existing Normalize base class
+
+The main changes:
+- Explicit validation of vmin/vmax to ensure they are positive
+- Direct implementation of logarithmic scaling instead of relying on scale.LogScale
+- Proper handling of the normalization process with logarithmic values
+- Correct inverse transformation for the log scale
+
+This should resolve the issue where setting LogNorm after creating a colorbar fails, while maintaining proper validation of the input values.

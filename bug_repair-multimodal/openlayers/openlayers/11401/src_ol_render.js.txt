@@ -1,0 +1,38 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is related to hit detection and rendering when an icon has a negative scale. According to the issue description:
+1. When the scale is negative and rotation is 0, hit detection doesn't work
+2. The icon is not rendered at the edge of the map
+
+Looking at the code, the problem is likely in how transformations are applied. When a negative scale is used, the transformation matrix needs to be properly handled to ensure both hit detection and rendering work correctly.
+
+The issue is in the `toContext` function in `src/ol/render.js`. When creating the transform, it's only applying the pixel ratio as a scale factor, but it's not considering negative scales that might be applied elsewhere in the rendering pipeline.
+
+## Fix
+
+```javascript
+### src/ol/render.js
+<<<<<<< SEARCH
+  const transform = scaleTransform(createTransform(), pixelRatio, pixelRatio);
+  return new CanvasImmediateRenderer(context, pixelRatio, extent, transform, 0);
+=======
+  const transform = scaleTransform(createTransform(), pixelRatio, pixelRatio);
+  return new CanvasImmediateRenderer(context, pixelRatio, extent, transform, 0);
+>>>>>>> REPLACE
+```
+
+The issue isn't directly visible in the provided code snippet. The problem is likely in the `CanvasImmediateRenderer` class or in how icon rendering is handled with negative scales. Since we don't have access to those files, I'll provide a more general explanation of what needs to be fixed:
+
+The issue is related to how transformations are applied when rendering icons with negative scales. When an icon has a negative scale, the transformation matrix needs to properly account for this to ensure:
+
+1. Hit detection works correctly - The hit detection code needs to properly transform coordinates when checking if a point is inside the icon, even with negative scales.
+2. Rendering at map edges - The clipping logic needs to properly handle negative scales to ensure icons are partially rendered when they're at the edge of the map.
+
+Without seeing the specific implementation of the icon rendering and hit detection code, I can't provide an exact fix. However, the solution would involve ensuring that all transformation operations properly handle negative scale values, particularly in:
+
+1. The hit detection logic for icons
+2. The clipping/rendering logic for icons at map edges
+
+The developers should check how transformations are applied in these areas and ensure that negative scale values are properly accounted for in the transformation matrices.

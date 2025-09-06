@@ -1,0 +1,35 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The issue occurs when using pairplot with hue_order parameter in seaborn 0.11.1. When specifying a subset of hue values in hue_order (not including all possible values from the hue column), instead of simply plotting the specified subset as it did in previous versions, it raises a TypeError about 'isnan' operations.
+
+2. Cause Analysis:
+The error suggests that there's an issue with handling missing/NaN values when filtering data based on hue_order. The TypeError indicates that the code is trying to perform isnan operations on data that can't support it, likely because the filtering of hue values isn't properly handling the excluded categories.
+
+3. Relevant Files/Functions Analysis:
+
+seaborn/axisgrid.py:
+```
+seaborn/axisgrid.py
+class: PairGrid
+class: FacetGrid
+```
+These classes are directly relevant as PairGrid is the core class behind pairplot functionality, and FacetGrid is its parent class that handles the underlying grid structure and data management.
+
+seaborn/categorical.py:
+```
+seaborn/categorical.py
+class: _CategoricalPlotterNew
+```
+This class is relevant as it handles categorical data plotting and hue-based color mapping, which is part of the pairplot functionality.
+
+seaborn/utils.py:
+```
+seaborn/utils.py
+function: remove_na
+```
+This function is relevant as it's involved in handling NA values during data processing, which is related to the TypeError about isnan operations.
+
+The other files and functions/classes are not directly relevant to this specific issue as they deal with other plotting types or utility functions not involved in the core pairplot/hue functionality.
+
+The issue likely stems from how PairGrid and its related classes handle hue filtering and NA value processing when not all hue categories are included in hue_order. The error suggests that the data filtering process needs to be modified to properly handle excluded hue categories before attempting isnan operations.

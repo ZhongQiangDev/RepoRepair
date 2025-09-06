@@ -1,0 +1,73 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when using `ol.render.toContext()` with a specified `pixelRatio`, the `lineDash` property of a stroke style is not scaled appropriately. This results in dashed lines appearing differently on devices with different pixel ratios, particularly causing the dashes and gaps to become much shorter in proportion to the line width on high-DPI displays.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue is that the `lineDash` array values are not being scaled by the `pixelRatio` when rendering with `CanvasImmediate`. In contrast, when rendering on a map, the `lineDash` values are scaled correctly. This discrepancy leads to the dashed lines appearing differently depending on the device's pixel ratio.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### src/ol/render.js
+
+```
+src/ol/render.js
+function: toContext
+```
+
+The `toContext` function initializes the canvas context and applies the `pixelRatio` for scaling. However, it does not handle scaling the `lineDash` values. This function is relevant because it sets up the context where the issue occurs.
+
+#### src/ol/render/canvas.js
+
+```
+src/ol/render/canvas.js
+function: function_10
+```
+
+The `function_10` function handles drawing images with transformations and opacity. While it does not directly handle `lineDash`, it is part of the canvas rendering process and could be relevant if transformations are affecting the line rendering.
+
+#### src/ol/render/canvas/Builder.js
+
+```
+src/ol/render/canvas/Builder.js
+class: CanvasBuilder
+```
+
+The `CanvasBuilder` class manages rendering instructions and styles. It includes methods for applying styles and rendering geometries. The class is relevant because it handles the application of stroke styles, including `lineDash`.
+
+#### src/ol/render/canvas/Immediate.js
+
+```
+src/ol/render/canvas/Immediate.js
+class: CanvasImmediateRenderer
+```
+
+The `CanvasImmediateRenderer` class is responsible for immediate rendering of vector data to a canvas. It manages styles and rendering of geometries, including lines with `lineDash`. This class is directly involved in the rendering process where the issue occurs.
+
+#### src/ol/style/Stroke.js
+
+```
+src/ol/style/Stroke.js
+class: Stroke
+```
+
+The `Stroke` class manages the stroke style properties, including `lineDash`. This class is relevant because it defines the `lineDash` property that needs to be scaled by the `pixelRatio`.
+
+### Summary of Relevant Locations
+
+```
+src/ol/render.js
+function: toContext
+
+src/ol/render/canvas.js
+function: function_10
+
+src/ol/render/canvas/Builder.js
+class: CanvasBuilder
+
+src/ol/render/canvas/Immediate.js
+class: CanvasImmediateRenderer
+
+src/ol/style/Stroke.js
+class: Stroke
+```

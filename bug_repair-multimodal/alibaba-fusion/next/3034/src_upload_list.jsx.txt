@@ -1,0 +1,34 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that the Upload component doesn't support delete functionality when using `itemRender`. Looking at the code, I can see that in the `getPictureCardList` method, when a custom `itemRender` is provided, the delete button (close icon) is not included in the rendered output.
+
+When `itemRender` is used, the component completely replaces the default rendering with the custom rendering, but doesn't provide a way to include the delete functionality in the custom rendering.
+
+## Solution
+
+We need to modify the code to pass the delete functionality to the `itemRender` function so that users can include it in their custom rendering. This way, when users provide a custom `itemRender`, they'll still have access to the delete functionality.
+
+Here's the fix:
+
+```javascript
+### src/upload/list.jsx
+<<<<<<< SEARCH
+            /* eslint-disable no-lonely-if */
+            if (typeof itemRender === 'function') {
+                item = itemRender(file);
+            } else {
+=======
+            /* eslint-disable no-lonely-if */
+            if (typeof itemRender === 'function') {
+                item = itemRender(file, {
+                    remove: this.props.closable && !isPreview ? onClose : null,
+                });
+            } else {
+>>>>>>> REPLACE
+```
+
+This change passes the `remove` function to the `itemRender` callback when the component is closable and not in preview mode. This allows users to include delete functionality in their custom rendering by using the provided `remove` function.
+
+With this change, users can implement their custom rendering while still having access to the delete functionality, which addresses the issue mentioned in the bug report.

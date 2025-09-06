@@ -1,0 +1,121 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when an Intermediate Event is copied and pasted as a Boundary Event, it loses its properties (specifically Async Continuations and Job Configurations fields). 
+
+Looking at the code, the problem appears to be in the `replaceElement` function in `BpmnReplace.js`. When an element is converted from an Intermediate Event to a Boundary Event, the function doesn't properly copy all the necessary properties.
+
+The issue occurs specifically when:
+1. A non-boundary event is being converted to a boundary event
+2. The properties that should be preserved (like async continuations) aren't being copied
+
+The problem is in the conditional logic that handles boundary events. When a non-boundary event is converted to a boundary event, it sets the host property but doesn't ensure all the relevant properties are copied.
+
+## Fix
+
+```javascript
+### lib/features/replace/BpmnReplace.js
+<<<<<<< SEARCH
+    if (
+      target.host &&
+      !is(oldBusinessObject, 'bpmn:BoundaryEvent') &&
+      is(newBusinessObject, 'bpmn:BoundaryEvent')
+    ) {
+      newElement.host = target.host;
+    }
+=======
+    if (
+      target.host &&
+      !is(oldBusinessObject, 'bpmn:BoundaryEvent') &&
+      is(newBusinessObject, 'bpmn:BoundaryEvent')
+    ) {
+      newElement.host = target.host;
+      
+      // When converting to a boundary event, ensure we copy all properties
+      // including async continuations and job configurations
+      newBusinessObject = moddleCopy.copyElement(
+        oldBusinessObject,
+        newBusinessObject,
+        properties
+      );
+    }
+>>>>>>> REPLACE
+```
+
+Wait, I see a problem with my fix. The `moddleCopy.copyElement` is already called earlier in the function. The issue is that when converting to a boundary event, some properties might be filtered out by the `properties` array. Let me revise the fix:
+
+```javascript
+### lib/features/replace/BpmnReplace.js
+<<<<<<< SEARCH
+    var properties = filter(copyProps, function(propertyName) {
+
+      // copying event definitions, unless we replace
+      if (propertyName === 'eventDefinitions') {
+        return hasEventDefinition(element, target.eventDefinitionType);
+      }
+
+      // retain loop characteristics if the target element
+      // is not an event sub process
+      if (propertyName === 'loopCharacteristics') {
+        return !isEventSubProcess(newBusinessObject);
+      }
+
+      // so the applied properties from 'target' don't get lost
+      if (newBusinessObject.hasOwnProperty(propertyName)) {
+        return false;
+      }
+
+      if (propertyName === 'processRef' && target.isExpanded === false) {
+        return false;
+      }
+
+      if (propertyName === 'triggeredByEvent') {
+        return false;
+      }
+
+      return true;
+    });
+=======
+    var properties = filter(copyProps, function(propertyName) {
+
+      // copying event definitions, unless we replace
+      if (propertyName === 'eventDefinitions') {
+        return hasEventDefinition(element, target.eventDefinitionType);
+      }
+
+      // retain loop characteristics if the target element
+      // is not an event sub process
+      if (propertyName === 'loopCharacteristics') {
+        return !isEventSubProcess(newBusinessObject);
+      }
+
+      // so the applied properties from 'target' don't get lost
+      if (newBusinessObject.hasOwnProperty(propertyName)) {
+        return false;
+      }
+
+      if (propertyName === 'processRef' && target.isExpanded === false) {
+        return false;
+      }
+
+      if (propertyName === 'triggeredByEvent') {
+        return false;
+      }
+
+      // Always preserve async continuations and job configurations
+      // when converting between event types
+      if (propertyName === 'asyncBefore' || 
+          propertyName === 'asyncAfter' || 
+          propertyName === 'jobPriority' ||
+          propertyName.startsWith('camunda:') || 
+          propertyName.startsWith('flowable:')) {
+        return true;
+      }
+
+      return true;
+    });
+>>>>>>> REPLACE
+```
+
+This fix ensures that when filtering properties to copy, we always include the async continuations and job configurations properties, which are typically prefixed with vendor-specific namespaces like 'camunda:' or 'flowable:'. This should preserve these properties when copying an Intermediate Event and pasting it as a Boundary Event.

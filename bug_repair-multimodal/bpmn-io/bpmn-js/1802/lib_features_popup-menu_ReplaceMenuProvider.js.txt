@@ -1,0 +1,137 @@
+I'll analyze the issue and provide the necessary edits to implement the "append to contextPad" feature.
+
+Based on the issue description, we need to:
+1. Add an entry to the context pad
+2. Add append menu entries provider
+
+Looking at the provided file, I notice that it's the `ReplaceMenuProvider.js` file, which handles the popup menu for replacing elements. However, the file is missing the implementation of the `register()` method that's called in the constructor. This is where we need to add the functionality to register the append menu provider.
+
+Here's my solution:
+
+```javascript
+### lib/features/popup-menu/ReplaceMenuProvider.js
+<<<<<<< SEARCH
+/**
+ * Register replace menu provider in the popup menu
+ */
+
+
+=======
+/**
+ * Register replace menu provider in the popup menu
+ */
+ReplaceMenuProvider.prototype.register = function() {
+  this._popupMenu.registerProvider('bpmn-replace', this);
+  this._popupMenu.registerProvider('bpmn-append', this);
+};
+
+/**
+ * Get append menu entries
+ *
+ * @param {djs.model.Base} element
+ *
+ * @return {Array<Object>} a list of menu entry items
+ */
+ReplaceMenuProvider.prototype.getAppendEntries = function(element) {
+  return this._createEntries(element, replaceOptions.APPEND);
+};
+
+>>>>>>> REPLACE
+```
+
+Now we need to implement the `_createEntries` method that will be used by the `getAppendEntries` method:
+
+```javascript
+### lib/features/popup-menu/ReplaceMenuProvider.js
+<<<<<<< SEARCH
+/**
+ * Creates an array of menu entry objects for a given element and filters the replaceOptions
+ * according to a filter function.
+ *
+ * @param  {djs.model.Base} element
+ * @param  {Object} replaceOptions
+ *
+ * @return {Array<Object>} a list of menu items
+ */
+
+=======
+/**
+ * Creates an array of menu entry objects for a given element and filters the replaceOptions
+ * according to a filter function.
+ *
+ * @param  {djs.model.Base} element
+ * @param  {Object} replaceOptions
+ *
+ * @return {Array<Object>} a list of menu items
+ */
+ReplaceMenuProvider.prototype._createEntries = function(element, replaceOptions) {
+  var menuEntries = [];
+
+  var self = this;
+
+  forEach(replaceOptions, function(definition) {
+    var entry = self._createMenuEntry(definition, element, function() {
+      return self._bpmnReplace.replaceElement(element, definition.target);
+    });
+
+    menuEntries.push(entry);
+  });
+
+  return menuEntries;
+};
+
+>>>>>>> REPLACE
+```
+
+Finally, we need to implement the `_createMenuEntry` method:
+
+```javascript
+### lib/features/popup-menu/ReplaceMenuProvider.js
+<<<<<<< SEARCH
+/**
+ * Creates and returns a single menu entry item.
+ *
+ * @param  {Object} definition a single replace options definition object
+ * @param  {djs.model.Base} element
+ * @param  {Function} [action] an action callback function which gets called when
+ *                             the menu entry is being triggered.
+ *
+ * @return {Object} menu entry item
+ */
+
+=======
+/**
+ * Creates and returns a single menu entry item.
+ *
+ * @param  {Object} definition a single replace options definition object
+ * @param  {djs.model.Base} element
+ * @param  {Function} [action] an action callback function which gets called when
+ *                             the menu entry is being triggered.
+ *
+ * @return {Object} menu entry item
+ */
+ReplaceMenuProvider.prototype._createMenuEntry = function(definition, element, action) {
+  var translate = this._translate;
+  var replaceElement = this._bpmnReplace.replaceElement;
+
+  var menuEntry = {
+    label: translate(definition.label),
+    className: definition.className,
+    id: definition.actionName,
+    action: action || function() {
+      return replaceElement(element, definition.target);
+    }
+  };
+
+  return menuEntry;
+};
+
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Register the provider for both 'bpmn-replace' and 'bpmn-append' menus
+2. Add a method to get append entries from the replace options
+3. Implement the necessary helper methods to create menu entries
+
+Note that this implementation assumes that there's an `APPEND` property in the `replaceOptions` module that contains the list of elements that can be appended. The context pad integration would need to be implemented in a separate file (likely in a ContextPadProvider).

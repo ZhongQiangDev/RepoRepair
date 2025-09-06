@@ -1,0 +1,45 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when elements with labels are copied and pasted onto a flow, the `AdaptiveLabelPositioningBehavior` is not applied to position the labels correctly. Looking at the code, I can see that the behavior is registered for events like `connection.create`, `connection.layout`, `connection.updateWaypoints`, and `label.create`, but it's not registered for the `elements.paste` event.
+
+When elements are pasted, the behavior needs to check and adjust the label positions based on the flow direction. This is missing in the current implementation.
+
+## Fix
+
+I'll add an event handler for the `elements.paste` event to check and adjust the labels of pasted elements:
+
+```javascript
+### lib/features/modeling/behavior/AdaptiveLabelPositioningBehavior.js
+<<<<<<< SEARCH
+  this.postExecuted([
+    'label.create'
+  ], function(event) {
+    checkLabelAdjustment(event.context.shape.labelTarget);
+  });
+
+=======
+  this.postExecuted([
+    'label.create'
+  ], function(event) {
+    checkLabelAdjustment(event.context.shape.labelTarget);
+  });
+
+  this.postExecuted([
+    'elements.paste'
+  ], function(event) {
+    var context = event.context,
+        elements = context.elements;
+
+    elements.forEach(function(element) {
+      checkLabelAdjustment(element);
+    });
+  });
+
+>>>>>>> REPLACE
+```
+
+This fix adds a new event handler for the `elements.paste` event. When elements are pasted, it iterates through all pasted elements and calls `checkLabelAdjustment` on each one, which will adjust the label position if needed.
+
+The issue occurs because when elements are pasted, their labels are also pasted, but the adaptive positioning behavior isn't triggered. By adding this event handler, we ensure that label positions are adjusted after pasting, which will fix the issue shown in the GIF where the label position doesn't adapt to the flow direction after pasting.

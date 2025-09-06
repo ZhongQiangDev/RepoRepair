@@ -1,0 +1,30 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When passing named 2-tuples as arguments to range queryset filters in Django 3.0, it raises a TypeError stating "__new__() missing 1 required positional argument: 'far'"
+- This worked fine in Django 2.2 but breaks in 3.0
+
+2. Cause Analysis:
+- The issue occurs in the Query.resolve_lookup_value method
+- When resolving lookups, it processes tuple elements and tries to reconstruct the tuple
+- The method preserves the tuple type (named tuple) but passes an iterator to its constructor
+- Named tuples don't support construction from iterators directly, requiring explicit positional arguments
+- This causes the TypeError when trying to reconstruct the named tuple
+
+3. Most Relevant Files:
+Based on the repository information and the cause analysis, here are the most relevant files:
+
+```
+django/db/models/sql/query.py
+django/db/models/lookups.py
+django/db/models/utils.py
+django/db/migrations/operations/utils.py
+django/utils/deconstruct.py
+```
+
+These files are ordered by relevance because:
+- query.py contains the Query class where the resolve_lookup_value method resides
+- lookups.py handles lookup value processing and transformations
+- models/utils.py likely contains tuple handling utilities
+- operations/utils.py includes ModelTuple handling which is related to tuple processing
+- deconstruct.py handles object reconstruction which is relevant to the tuple reconstruction issue

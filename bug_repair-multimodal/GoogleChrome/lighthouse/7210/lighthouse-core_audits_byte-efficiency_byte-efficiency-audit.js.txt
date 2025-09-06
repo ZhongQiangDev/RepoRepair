@@ -1,0 +1,65 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about the default GZIP compression ratio used in the `estimateTransferSize` method of the `UnusedBytes` class. Currently, it uses a default compression ratio of 0.5 (50%) for all resource types, which is too pessimistic for CSS resources. 
+
+According to the issue, a CSS resource that is actually around 20KB gzipped is being reported as 80KB with potential savings of 70KB. This suggests that the compression ratio for CSS should be more aggressive than the default 0.5.
+
+## Solution
+
+We need to modify the `estimateTransferSize` method to use a more appropriate compression ratio for CSS resources. Based on the issue, CSS can be compressed much more efficiently than the current default assumes.
+
+Here's the fix:
+
+```javascript
+### lighthouse-core/audits/byte-efficiency/byte-efficiency-audit.js
+<<<<<<< SEARCH
+  /**
+   * Estimates the number of bytes this network record would have consumed on the network based on the
+   * uncompressed size (totalBytes). Uses the actual transfer size from the network record if applicable.
+   *
+   * @param {LH.Artifacts.NetworkRequest=} networkRecord
+   * @param {number} totalBytes Uncompressed size of the resource
+   * @param {LH.Crdp.Page.ResourceType=} resourceType
+   * @param {number=} compressionRatio
+   * @return {number}
+   */
+  static estimateTransferSize(networkRecord, totalBytes, resourceType, compressionRatio = 0.5) {
+    if (!networkRecord) {
+      // We don't know how many bytes this asset used on the network, but we can guess it was
+      // roughly the size of the content gzipped.
+      // See https://discuss.httparchive.org/t/file-size-and-compression-savings/145 for multipliers
+      return Math.round(totalBytes * compressionRatio);
+=======
+  /**
+   * Estimates the number of bytes this network record would have consumed on the network based on the
+   * uncompressed size (totalBytes). Uses the actual transfer size from the network record if applicable.
+   *
+   * @param {LH.Artifacts.NetworkRequest=} networkRecord
+   * @param {number} totalBytes Uncompressed size of the resource
+   * @param {LH.Crdp.Page.ResourceType=} resourceType
+   * @param {number=} compressionRatio
+   * @return {number}
+   */
+  static estimateTransferSize(networkRecord, totalBytes, resourceType, compressionRatio) {
+    if (!networkRecord) {
+      // We don't know how many bytes this asset used on the network, but we can guess it was
+      // roughly the size of the content gzipped.
+      // See https://discuss.httparchive.org/t/file-size-and-compression-savings/145 for multipliers
+      
+      // Use a resource-specific compression ratio when provided, otherwise use a default
+      // CSS has a higher compression ratio than the average resource
+      if (compressionRatio === undefined) {
+        if (resourceType === 'Stylesheet') {
+          compressionRatio = 0.2; // 80% compression for CSS
+        } else {
+          compressionRatio = 0.5; // 50% compression for other resources
+        }
+      }
+      
+      return Math.round(totalBytes * compressionRatio);
+>>>>>>> REPLACE
+```
+
+This change modifies the `estimateTransferSize` method to use a more appropriate compression ratio for CSS resources (Stylesheet type). For CSS, it now uses a compression ratio of 0.2 (meaning 80% compression), while keeping the default of 0.5 (50% compression) for other resource types. This should more accurately reflect the real-world compression capabilities of CSS files and prevent the overestimation of potential savings.

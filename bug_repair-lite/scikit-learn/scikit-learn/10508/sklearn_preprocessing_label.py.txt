@@ -1,0 +1,36 @@
+Based on the issue description, the bug occurs in the `transform` method of `LabelEncoder` when trying to transform an empty list after fitting with string labels. The error suggests there's a type casting issue between float64 and string types during the `np.searchsorted` operation.
+
+The root cause is that when an empty list is passed to `transform()`, NumPy's type inference defaults to float64, which then fails to cast to the string type of `self.classes_` when string labels were used during fitting.
+
+Here's the fix - we need to ensure the input array has the same dtype as classes_ when it's empty:
+
+```python
+### sklearn/preprocessing/label.py
+<<<<<<< SEARCH
+        y = column_or_1d(y, warn=True)
+
+        classes = np.unique(y)
+        if len(np.intersect1d(classes, self.classes_)) < len(classes):
+            diff = np.setdiff1d(classes, self.classes_)
+            raise ValueError(
+                    "y contains previously unseen labels: %s" % str(diff))
+        return np.searchsorted(self.classes_, y)
+=======
+        y = column_or_1d(y, warn=True)
+        
+        # Handle empty arrays
+        if len(y) == 0:
+            return np.array([], dtype=int)
+
+        classes = np.unique(y)
+        if len(np.intersect1d(classes, self.classes_)) < len(classes):
+            diff = np.setdiff1d(classes, self.classes_)
+            raise ValueError(
+                    "y contains previously unseen labels: %s" % str(diff))
+        return np.searchsorted(self.classes_, y)
+>>>>>>> REPLACE
+```
+
+This fix adds a special case for empty arrays, returning an empty int array immediately. This avoids the type casting issue entirely for empty inputs while maintaining the expected behavior of returning an empty array.
+
+The fix is minimal and maintains the existing behavior for non-empty arrays while properly handling the edge case of empty arrays. This matches the behavior seen when using numeric labels and fixes the inconsistency in the original implementation.

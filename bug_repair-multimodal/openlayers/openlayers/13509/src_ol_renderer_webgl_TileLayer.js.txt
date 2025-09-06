@@ -1,0 +1,49 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that a WebGlTile layer inside a layer group remains visible even when the group's visibility is set to false. This doesn't happen with regular Tile layers, suggesting there's a specific issue with the WebGlTile layer implementation.
+
+Looking at the code, I need to find where the visibility of layers is checked in the WebGLTileLayerRenderer. The key issue is likely that the renderer is not properly respecting the visibility of its parent group.
+
+After examining the code, I found that in the `renderFrame` method, there's no check for the layer's visibility before rendering. The `prepareFrameInternal` method should be checking if the layer is visible, but it appears to be missing this check.
+
+## Fix
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+  prepareFrameInternal(frameState) {
+    const layer = this.getLayer();
+    const source = layer.getRenderSource();
+    if (!source) {
+      return false;
+    }
+
+    if (isEmpty(getRenderExtent(frameState, frameState.extent))) {
+      return false;
+    }
+    return source.getState() === State.READY;
+  }
+=======
+  prepareFrameInternal(frameState) {
+    const layer = this.getLayer();
+    if (!layer.getVisible()) {
+      return false;
+    }
+    const source = layer.getRenderSource();
+    if (!source) {
+      return false;
+    }
+
+    if (isEmpty(getRenderExtent(frameState, frameState.extent))) {
+      return false;
+    }
+    return source.getState() === State.READY;
+  }
+>>>>>>> REPLACE
+```
+
+This fix adds a check for the layer's visibility in the `prepareFrameInternal` method. If the layer is not visible (which would be the case when its parent group is set to not visible), the method will return false, preventing the layer from being rendered.
+
+The issue was that the WebGLTileLayerRenderer wasn't checking the visibility of its layer before rendering, unlike other layer renderers. By adding this check, we ensure that WebGlTile layers respect the visibility setting of their parent groups, just like regular Tile layers do.

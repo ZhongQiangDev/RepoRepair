@@ -1,0 +1,61 @@
+Based on the issue description, the bug occurs when trying to print an `Indexed` object to MathML. The error shows that the MathML printer is trying to iterate over the `Indexed` object in the `_print_Basic` method, but `Indexed` objects are not iterable.
+
+Looking at the provided code, we need to add a specific printer method for `Indexed` objects in the MathML printer class. The fix should be added to `sympy/printing/mathml.py`.
+
+Here's the proposed fix:
+
+```python
+### sympy/printing/mathml.py
+<<<<<<< SEARCH
+from sympy.printing.printer import Printer
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#For backward compatibility
+=======
+from sympy.printing.printer import Printer
+from sympy.tensor.indexed import Indexed
+
+class MathMLContentPrinter(Printer):
+    """Prints an expression to the Content MathML markup language.
+
+    References: https://www.w3.org/TR/MathML2/chapter4.html
+    """
+    printmethod = '_mathml'
+
+    def _print_Indexed(self, expr):
+        """Print an Indexed object as MathML"""
+        base = self._print(expr.base)
+        indices = self._print(expr.indices[0])  # For single index
+        apply = self.dom.createElement('apply')
+        select = self.dom.createElement('select')
+        apply.appendChild(select)
+        apply.appendChild(base)
+        apply.appendChild(indices)
+        return apply
+
+#For backward compatibility
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Adds the import for `Indexed` from sympy.tensor.indexed
+2. Adds the `MathMLContentPrinter` class definition (which was missing from the shown snippet)
+3. Implements a specific `_print_Indexed` method that handles Indexed objects properly
+
+The `_print_Indexed` method creates a MathML structure that represents the indexed expression using the `select` operator, which is the appropriate way to represent subscripted/indexed expressions in Content MathML.
+
+This should resolve the TypeError by providing a specific handling method for Indexed objects rather than trying to iterate over them as if they were basic expressions.

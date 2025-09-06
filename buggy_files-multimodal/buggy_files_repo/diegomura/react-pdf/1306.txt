@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- The type definition for Image source object in `@react-pdf/types/image.d.ts` doesn't support a function that returns a Promise<string>, despite the documentation stating this is supported.
+- This causes TypeScript compilation errors when trying to use async functions as image sources.
+
+2. Cause Analysis:
+- The type definition in `@react-pdf/types/image.d.ts` is incomplete, missing the function type `() => Promise<string>` in the `SourceObject` union type.
+- The documentation states that image sources can be functions returning strings or promised strings, but the type definition only supports direct strings, buffer objects, and HTTP request objects.
+- This mismatch between documentation and type definitions causes TypeScript to reject valid usage patterns.
+
+3. Most Related Files:
+```
+packages/types/image.d.ts
+packages/image/src/resolve.js
+packages/image/src/cache.js
+packages/layout/src/image/fetchImage.js
+packages/layout/src/image/getSource.js
+```
+
+These files are ordered by importance because:
+1. `packages/types/image.d.ts` contains the actual type definitions that need to be updated
+2. `packages/image/src/resolve.js` handles image source resolution including functions and promises
+3. `packages/image/src/cache.js` manages image caching which interacts with source resolution
+4. `packages/layout/src/image/fetchImage.js` handles fetching images from various sources including functions
+5. `packages/layout/src/image/getSource.js` extracts and normalizes image sources
+
+The fix would primarily involve updating the SourceObject type in `image.d.ts` to include the function type that returns a Promise<string>.

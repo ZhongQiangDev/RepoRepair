@@ -1,0 +1,26 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the problem is that the 'Clear Filters' button is missing when users interact with Data Toolbar components. Looking at the screenshots, the 'Clear Filters' button should appear at the top level alongside the filter controls, not just embedded within the filter dropdown or layer.
+
+The issue is in the `DataFilters.js` file. Currently, the `clearControl` is only rendered inside the filter dropdown/layer when `controlled` is true, or within the content when `layer` is true but not `controlled`. However, it should also be rendered at the top level alongside the filter control button.
+
+Here's the fix:
+
+```javascript
+### src/js/components/DataFilters/DataFilters.js
+<<<<<<< SEARCH
+  return (
+    <Box flex={false} direction="row" {...rest}>
+      {control}
+      {clearControl}
+      {layer && showContent && (
+=======
+  return (
+    <Box flex={false} direction="row" {...rest}>
+      {control}
+      {!showContent && clearControl}
+      {layer && showContent && (
+>>>>>>> REPLACE
+```
+
+This change ensures that the `clearControl` (Clear Filters button) is displayed at the top level alongside the filter control button when filters are applied, but only when the filter dropdown/layer is not currently open (to avoid duplicate clear buttons). This matches the expected behavior shown in the screenshots where the Clear Filters button appears next to the filter button.

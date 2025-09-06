@@ -1,0 +1,43 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that VoiceOver on Mac is reading dropdown items twice when navigating through them. This is a common accessibility issue that occurs when elements have redundant or duplicate accessibility information.
+
+Looking at the code, I can see that in the `ComboBox.js` file, when rendering the menu items, there are potentially duplicate accessibility attributes that could cause screen readers to announce items twice:
+
+1. The `aria-current` and `aria-selected` attributes are both being used on menu items
+2. The `title` attribute is being set, which can cause additional announcements
+3. The content is being rendered both as a title and as content
+
+## Solution
+
+The main fix is to remove the redundant `title` attribute from the `ListBox.MenuItem` component. This attribute is causing VoiceOver to read the item twice - once for the title and once for the content.
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+                              isHighlighted={
+                                highlightedIndex === index ||
+                                (selectedItem && selectedItem.id === item.id) ||
+                                false
+                              }
+                              title={
+                                itemToElement ? item.text : itemToString(item)
+                              }
+                              {...itemProps}>
+=======
+                              isHighlighted={
+                                highlightedIndex === index ||
+                                (selectedItem && selectedItem.id === item.id) ||
+                                false
+                              }
+                              {...itemProps}>
+>>>>>>> REPLACE
+```
+
+This change removes the redundant `title` attribute from the menu items. The screen reader will now only read the content of the menu item once, which is provided by either the `ItemToElement` component or the `itemToString` function.
+
+The content itself is already accessible to screen readers, and adding a title attribute creates redundancy that causes VoiceOver to read the same information twice.

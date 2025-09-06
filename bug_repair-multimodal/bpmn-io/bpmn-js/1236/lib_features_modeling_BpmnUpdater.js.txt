@@ -1,0 +1,203 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about an Ad Hoc Collapsed Subprocess getting weird dimensions when:
+1. A subprocess with a child element is created and expanded
+2. The subprocess is collapsed
+3. The subprocess is converted to an Ad Hoc subprocess
+
+From the GIF, it appears that the subprocess dimensions change unexpectedly when it's converted to an Ad Hoc subprocess. The expected behavior is that the dimensions should remain the same.
+
+Looking at the provided code, I can see the `BpmnUpdater.js` file which contains the `updateBounds` method responsible for updating the dimensions of elements. However, the code is incomplete, and I don't see any specific handling for Ad Hoc subprocesses.
+
+The issue likely occurs because when converting a collapsed subprocess to an Ad Hoc subprocess, the dimensions are not properly preserved. The `updateBounds` method needs to be modified to handle this case correctly.
+
+## Fix
+
+Based on the issue, we need to ensure that when a subprocess is converted to an Ad Hoc subprocess, its dimensions are preserved. The problem might be in how the bounds are updated during element type changes.
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+BpmnUpdater.prototype.updateBounds = function(shape) {
+
+  var di = shape.businessObject.di;
+
+  var target = (shape instanceof Label) ? this._getLabel(di) : di;
+
+  var bounds = target.bounds;
+
+  if (!bounds) {
+    bounds = this._bpmnFactory.createDiBounds();
+    target.set('bounds', bounds);
+  }
+
+  assign(bounds, {
+    x: shape.x,
+    y: shape.y,
+    width: shape.width,
+    height: shape.height
+  });
+};
+=======
+BpmnUpdater.prototype.updateBounds = function(shape) {
+
+  var di = shape.businessObject.di;
+
+  var target = (shape instanceof Label) ? this._getLabel(di) : di;
+
+  var bounds = target.bounds;
+
+  if (!bounds) {
+    bounds = this._bpmnFactory.createDiBounds();
+    target.set('bounds', bounds);
+  }
+
+  // Preserve original dimensions for collapsed subprocesses when changing type
+  if (is(shape, 'bpmn:SubProcess') && !shape.collapsed) {
+    // Only update position for expanded subprocesses
+    assign(bounds, {
+      x: shape.x,
+      y: shape.y
+    });
+  } else {
+    // Update both position and dimensions for other elements
+    assign(bounds, {
+      x: shape.x,
+      y: shape.y,
+      width: shape.width,
+      height: shape.height
+    });
+  }
+};
+>>>>>>> REPLACE
+```
+
+Wait, I think I misunderstood the issue. Let me correct my approach:
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+BpmnUpdater.prototype.updateBounds = function(shape) {
+
+  var di = shape.businessObject.di;
+
+  var target = (shape instanceof Label) ? this._getLabel(di) : di;
+
+  var bounds = target.bounds;
+
+  if (!bounds) {
+    bounds = this._bpmnFactory.createDiBounds();
+    target.set('bounds', bounds);
+  }
+
+  assign(bounds, {
+    x: shape.x,
+    y: shape.y,
+    width: shape.width,
+    height: shape.height
+  });
+};
+=======
+BpmnUpdater.prototype.updateBounds = function(shape) {
+
+  var di = shape.businessObject.di;
+
+  var target = (shape instanceof Label) ? this._getLabel(di) : di;
+
+  var bounds = target.bounds;
+
+  if (!bounds) {
+    bounds = this._bpmnFactory.createDiBounds();
+    target.set('bounds', bounds);
+  }
+
+  // When converting to Ad Hoc subprocess, preserve the original dimensions
+  // if the subprocess is collapsed
+  if (is(shape, 'bpmn:AdHocSubProcess') && shape.collapsed) {
+    // Only update position if dimensions already exist
+    if (bounds.width && bounds.height) {
+      assign(bounds, {
+        x: shape.x,
+        y: shape.y
+      });
+    } else {
+      assign(bounds, {
+        x: shape.x,
+        y: shape.y,
+        width: shape.width,
+        height: shape.height
+      });
+    }
+  } else {
+    assign(bounds, {
+      x: shape.x,
+      y: shape.y,
+      width: shape.width,
+      height: shape.height
+    });
+  }
+};
+>>>>>>> REPLACE
+```
+
+Actually, after reviewing the issue more carefully, I think the problem is that when converting a collapsed subprocess to an Ad Hoc subprocess, the dimensions are being reset or recalculated incorrectly. Let me provide a more targeted fix:
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+BpmnUpdater.prototype.updateBounds = function(shape) {
+
+  var di = shape.businessObject.di;
+
+  var target = (shape instanceof Label) ? this._getLabel(di) : di;
+
+  var bounds = target.bounds;
+
+  if (!bounds) {
+    bounds = this._bpmnFactory.createDiBounds();
+    target.set('bounds', bounds);
+  }
+
+  assign(bounds, {
+    x: shape.x,
+    y: shape.y,
+    width: shape.width,
+    height: shape.height
+  });
+};
+=======
+BpmnUpdater.prototype.updateBounds = function(shape) {
+
+  var di = shape.businessObject.di;
+
+  var target = (shape instanceof Label) ? this._getLabel(di) : di;
+
+  var bounds = target.bounds;
+
+  if (!bounds) {
+    bounds = this._bpmnFactory.createDiBounds();
+    target.set('bounds', bounds);
+  }
+
+  // For collapsed subprocesses, ensure we don't change dimensions
+  // when the type changes (e.g., to AdHocSubProcess)
+  if (shape.collapsed && isAny(shape, ['bpmn:SubProcess', 'bpmn:AdHocSubProcess']) && 
+      bounds.width && bounds.height) {
+    assign(bounds, {
+      x: shape.x,
+      y: shape.y
+      // Keep existing width and height
+    });
+  } else {
+    assign(bounds, {
+      x: shape.x,
+      y: shape.y,
+      width: shape.width,
+      height: shape.height
+    });
+  }
+};
+>>>>>>> REPLACE
+```

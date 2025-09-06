@@ -1,0 +1,47 @@
+I'll analyze the issue and provide a fix.
+
+Based on the error message and the issue description, the problem occurs when inserting a gateway onto a flow. The error is:
+```
+TypeError: Cannot read properties of undefined (reading 'segmentIndex')
+```
+
+Looking at the code and the error stack trace, the issue happens during the reconnection process in the `insertShape` function. The problem appears to be in the handling of the intersection point when determining waypoints.
+
+The bug is that when `getApproxIntersection` returns an intersection, but the intersection doesn't have a valid index or bendpoint information, the code tries to slice the waypoints array incorrectly, leading to undefined values.
+
+Here's the fix:
+
+```javascript
+### lib/features/modeling/behavior/DropOnFlowBehavior.js
+<<<<<<< SEARCH
+    var intersection = getApproxIntersection(waypoints, mid);
+
+    if (intersection) {
+      waypointsBefore = waypoints.slice(0, intersection.index);
+      waypointsAfter = waypoints.slice(intersection.index + (intersection.bendpoint ? 1 : 0));
+
+      // due to inaccuracy intersection might have been found
+      if (!waypointsBefore.length || !waypointsAfter.length) {
+        return;
+      }
+
+      dockingPoint = intersection.bendpoint ? waypoints[intersection.index] : mid;
+=======
+    var intersection = getApproxIntersection(waypoints, mid);
+
+    if (intersection && isNumber(intersection.index)) {
+      waypointsBefore = waypoints.slice(0, intersection.index);
+      waypointsAfter = waypoints.slice(intersection.index + (intersection.bendpoint ? 1 : 0));
+
+      // due to inaccuracy intersection might have been found
+      if (!waypointsBefore.length || !waypointsAfter.length) {
+        return;
+      }
+
+      dockingPoint = intersection.bendpoint ? waypoints[intersection.index] : mid;
+>>>>>>> REPLACE
+```
+
+Additionally, I notice that the `isPointInsideBBox` function is used but not defined in the provided code. However, since the error is specifically about `segmentIndex` and not related to this function, I'm focusing on the intersection handling issue.
+
+The fix adds a check to ensure that `intersection.index` is a valid number before attempting to use it for slicing the waypoints array. This prevents the error when trying to access properties of undefined values.

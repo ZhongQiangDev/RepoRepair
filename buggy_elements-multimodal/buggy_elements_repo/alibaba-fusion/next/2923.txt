@@ -1,0 +1,51 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that the `ConfigProvider` component is causing a memory leak in a Server-Side Rendering (SSR) environment. Specifically, the internal cache of `ConfigProvider` grows over time and cannot be garbage collected (GC) due to the nature of SSR, where the `componentWillUnmount` lifecycle method is not called.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of the memory leak is that the `ConfigProvider` component uses an internal cache that is not being cleared when the component is unmounted. In a typical React application, the `componentWillUnmount` lifecycle method would be used to clean up resources like this cache. However, in an SSR environment, `componentWillUnmount` is not called, so the cache remains in memory and continues to grow with each request, leading to a memory leak.
+
+### 3. Examine Each File One by One
+
+#### --- scripts/server/middlewares/get-variables.js ---
+```
+This file contains no relevant functions/classes.
+```
+
+#### --- scripts/server/middlewares/rebuild-scss.js ---
+```
+This file contains no relevant functions/classes.
+```
+
+#### --- src/config-provider/cache.js ---
+```
+file: src/config-provider/cache.js
+class: Cache
+```
+
+The `Cache` class is likely used by `ConfigProvider` to manage its internal cache. This class needs to be inspected to understand how the cache is managed and potentially modified to provide a way to manually clear the cache.
+
+#### --- src/config-provider/index.jsx ---
+```
+file: src/config-provider/index.jsx
+class: ConfigProvider
+```
+
+The `ConfigProvider` class is the main component causing the memory leak. It needs to be inspected to understand how it uses the cache and how it can be modified to provide a way to manually clear the cache in an SSR environment.
+
+#### --- types/config-provider/index.d.ts ---
+```
+This file contains no relevant functions/classes.
+```
+
+### Summary of Relevant Locations
+
+1. ```
+   file: src/config-provider/cache.js
+   class: Cache
+   ```
+2. ```
+   file: src/config-provider/index.jsx
+   class: ConfigProvider
+   ```

@@ -1,0 +1,24 @@
+I'll analyze the wrong behaviors and their causes from the GitHub problem description:
+
+### Answer 1
+**Wrong Behavior**: Antialiasing on transparent regions incorrectly blends with the background color
+**Cause**: When premultipliedAlpha is set to false (default), the antialiased edges of shapes get tinted towards the RGB value of the background color, ignoring the background's alpha value. This creates unexpected visual artifacts around the edges of WebGL objects.
+
+### Answer 2
+**Wrong Behavior**: Transparent objects incorrectly cut away the background
+**Cause**: The current blending mode and shader implementation doesn't handle transparency properly. This is due to:
+1. Incorrect blend function settings
+2. Shaders not being configured to write premultiplied alpha
+3. Images' alpha channels not being properly premultiplied when sent to shaders
+
+### Answer 3
+**Wrong Behavior**: Inconsistency between 2D and WebGL mode regarding alpha channel behavior
+**Cause**: WebGL mode currently defaults to premultipliedAlpha: false while 2D mode handles alpha differently, causing confusion among users who expect consistent behavior across both modes.
+
+### Conclusion
+**Summary**: The issues stem from three main problems: incorrect antialiasing behavior with transparency, improper handling of transparent object blending, and inconsistent alpha handling between 2D and WebGL modes. The root cause appears to be the default premultipliedAlpha: false setting combined with inadequate blend function configuration and shader implementation. Fixing these would require:
+1. Setting premultipliedAlpha to true by default
+2. Updating shader code to properly handle premultiplied alpha
+3. Modifying blend functions (specifically to ONE, ONE_MINUS_SRC_ALPHA)
+4. Ensuring proper alpha premultiplication when loading images
+However, these changes could potentially break existing shaders that handle transparency in their own way.

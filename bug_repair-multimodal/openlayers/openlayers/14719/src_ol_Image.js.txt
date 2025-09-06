@@ -1,0 +1,55 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue states that WMS images become blurry when the ratio is not a round integer, or when map width or height is not even. This is a common problem with canvas rendering when the pixel ratio isn't properly handled.
+
+Looking at the code, I can see that in the `getImage()` method, when drawing the loaded image to a canvas, the canvas dimensions are set directly to the image's width and height without considering the pixel ratio. This can cause blurriness when the device has a high pixel ratio (like on retina displays) or when the dimensions aren't exact integers.
+
+## Fix
+
+We need to modify the `getImage()` method to properly account for pixel ratio when setting the canvas dimensions and drawing the image:
+
+```javascript
+### src/ol/Image.js
+<<<<<<< SEARCH
+  getImage() {
+    if (
+      this.state == ImageState.LOADED &&
+      this.context_ &&
+      !(this.image_ instanceof HTMLCanvasElement)
+    ) {
+      const canvas = this.context_.canvas;
+      canvas.width = this.image_.width;
+      canvas.height = this.image_.height;
+      this.context_.drawImage(this.image_, 0, 0);
+      this.image_ = this.context_.canvas;
+    }
+    return this.image_;
+  }
+=======
+  getImage() {
+    if (
+      this.state == ImageState.LOADED &&
+      this.context_ &&
+      !(this.image_ instanceof HTMLCanvasElement)
+    ) {
+      const canvas = this.context_.canvas;
+      const width = Math.round(this.image_.width);
+      const height = Math.round(this.image_.height);
+      canvas.width = width;
+      canvas.height = height;
+      this.context_.drawImage(this.image_, 0, 0, width, height);
+      this.image_ = this.context_.canvas;
+    }
+    return this.image_;
+  }
+>>>>>>> REPLACE
+```
+
+This fix ensures that:
+1. The canvas dimensions are rounded to whole integers to avoid sub-pixel rendering issues
+2. The image is drawn with explicit width and height parameters that match the canvas dimensions
+3. This prevents blurriness that occurs when the browser has to scale the image to fit non-integer dimensions
+
+The rounding ensures pixel-perfect rendering even when the original dimensions aren't whole numbers or when the map width/height isn't even.

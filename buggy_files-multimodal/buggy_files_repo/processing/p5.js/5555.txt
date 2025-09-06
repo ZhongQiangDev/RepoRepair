@@ -1,0 +1,27 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## 1. Identifying the Wrong Behavior
+
+The problem involves alpha blending in WebGL mode. When using WebGL renderer with semi-transparent shapes, the alpha blending is occurring against the page background (blue) rather than the canvas background (black). This differs from the behavior in 2D mode, where alpha blending occurs correctly against the canvas background.
+
+## 2. Analyzing the Cause
+
+The issue is related to how the WebGL context is initialized with respect to the alpha channel. Currently, the WebGL context is created with alpha=true by default, which means transparent pixels in the canvas allow the page background to show through. The user found that adding `setAttributes('alpha', false)` fixes the issue by making the canvas opaque, causing alpha blending to occur only within the canvas itself.
+
+## 3. Files Most Related to the Cause
+
+Based on the repository information, these are the most relevant files that would need to be edited to fix the issue:
+
+```
+src/webgl/p5.RendererGL.js
+src/core/p5.Renderer.js
+src/webgl/p5.RendererGL.Retained.js
+src/core/rendering.js
+src/webgl/material.js
+```
+
+The primary file would be `src/webgl/p5.RendererGL.js` which contains the WebGL renderer initialization and context setup. The `_initContext` and `_setAttributeDefaults` methods in this file would likely need modification to change the default alpha setting.
+
+The `src/core/rendering.js` file is also important as it contains the `createCanvas` function that initializes the renderer.
+
+The other files provide supporting functionality that might be affected by or interact with the alpha channel settings.

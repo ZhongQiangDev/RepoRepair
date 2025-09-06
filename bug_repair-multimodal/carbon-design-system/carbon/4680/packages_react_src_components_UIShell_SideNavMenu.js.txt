@@ -1,0 +1,31 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that the `SideNavMenu` component is created using `React.forwardRef()` but doesn't have a `displayName` set. This causes it to appear as "Anonymous" in React DevTools, making debugging more difficult.
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/UIShell/SideNavMenu.js
+<<<<<<< SEARCH
+export default React.forwardRef((props, ref) => {
+  return <SideNavMenu {...props} buttonRef={ref} />;
+});
+=======
+const ForwardRefSideNavMenu = React.forwardRef((props, ref) => {
+  return <SideNavMenu {...props} buttonRef={ref} />;
+});
+
+ForwardRefSideNavMenu.displayName = 'SideNavMenu';
+
+export default ForwardRefSideNavMenu;
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Assigns the forwarded ref component to a variable (`ForwardRefSideNavMenu`)
+2. Sets the `displayName` property to "SideNavMenu"
+3. Exports the named component
+
+This will ensure the component appears with its proper name in React DevTools instead of showing as "Anonymous".
+
+Note: The issue also mentions `HeaderMenu` having the same problem, but that file wasn't provided in the code segments. A similar fix would be needed for that component as well.

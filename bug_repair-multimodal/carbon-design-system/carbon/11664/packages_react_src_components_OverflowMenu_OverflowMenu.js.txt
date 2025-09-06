@@ -1,0 +1,102 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that the `OverflowMenu` component is showing a deprecation warning for the `light` prop even when the prop is not explicitly set by the user. This happens because the component has a default value for the `light` prop set to `false` in the `defaultProps`.
+
+When React processes props, it merges the user-provided props with the default props. So even if the user doesn't explicitly set the `light` prop, it gets the default value of `false`. Since the prop is marked with `deprecate()`, the warning is shown regardless of whether the user explicitly set it or not.
+
+## Solution
+
+The fix is to modify the component to only show the deprecation warning when the `light` prop is explicitly provided by the user, not when it's using the default value.
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/OverflowMenu/OverflowMenu.js
+<<<<<<< SEARCH
+    /**
+     * `true` to use the light version. For use on $ui-01 backgrounds only.
+     * Don't use this to make OverflowMenu background color same as container background color.
+     */
+    light: FeatureFlags.enabled('enable-v11-release')
+      ? deprecate(
+          PropTypes.bool,
+          'The `light` prop for `OverflowMenu` is no longer needed and has been deprecated. It will be removed in the next major release. Use the Layer component instead.'
+        )
+      : PropTypes.bool,
+=======
+    /**
+     * `true` to use the light version. For use on $ui-01 backgrounds only.
+     * Don't use this to make OverflowMenu background color same as container background color.
+     */
+    light: PropTypes.bool,
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/OverflowMenu/OverflowMenu.js
+<<<<<<< SEARCH
+  render() {
+    const prefix = this.context;
+    const {
+      id,
+      ariaLabel,
+      children,
+      iconDescription,
+      direction,
+      flipped,
+      focusTrap,
+      menuOffset,
+      menuOffsetFlip,
+      iconClass,
+      onClick, // eslint-disable-line
+      onOpen, // eslint-disable-line
+      selectorPrimaryFocus = '[data-floating-menu-primary-focus]', // eslint-disable-line
+      renderIcon: IconElement,
+      // eslint-disable-next-line react/prop-types
+      innerRef: ref,
+      menuOptionsClass,
+      light,
+      size = 'md',
+      ...other
+    } = this.props;
+=======
+  render() {
+    const prefix = this.context;
+    const {
+      id,
+      ariaLabel,
+      children,
+      iconDescription,
+      direction,
+      flipped,
+      focusTrap,
+      menuOffset,
+      menuOffsetFlip,
+      iconClass,
+      onClick, // eslint-disable-line
+      onOpen, // eslint-disable-line
+      selectorPrimaryFocus = '[data-floating-menu-primary-focus]', // eslint-disable-line
+      renderIcon: IconElement,
+      // eslint-disable-next-line react/prop-types
+      innerRef: ref,
+      menuOptionsClass,
+      size = 'md',
+      ...other
+    } = this.props;
+
+    // Only show deprecation warning if 'light' prop is explicitly provided
+    if (FeatureFlags.enabled('enable-v11-release') && 'light' in this.props) {
+      deprecate(
+        () => {},
+        'The `light` prop for `OverflowMenu` is no longer needed and has been deprecated. It will be removed in the next major release. Use the Layer component instead.'
+      )();
+    }
+
+    const { light } = this.props;
+=======
+>>>>>>> REPLACE
+```
+
+This fix removes the `deprecate` wrapper from the prop type definition and instead adds a runtime check to see if the `light` prop was explicitly provided by the user. If it was, only then do we show the deprecation warning.

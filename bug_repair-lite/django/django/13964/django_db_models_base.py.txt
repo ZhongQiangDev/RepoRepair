@@ -1,0 +1,45 @@
+Based on the issue description, the bug occurs when setting a foreign key relation on a parent object with an empty instance that doesn't yet specify its primary key. The primary key's change is not reflected in the parent object's foreign key field.
+
+The issue is in the Model class's `__init__` method where related fields are handled. When a related object is assigned, the code needs to ensure that any subsequent changes to the related object's primary key are properly reflected in the parent object's foreign key field.
+
+Here's the fix:
+
+```python
+### django/db/models/base.py
+<<<<<<< SEARCH
+            if is_related_object:
+                # If we are passed a related instance, set it using the
+                # field.name instead of field.attname (e.g. "user" instead of
+                # "user_id") so that the object gets properly cached (and type
+                # checked) by the RelatedObjectDescriptor.
+                if rel_obj is not _DEFERRED:
+                    _setattr(self, field.name, rel_obj)
+            else:
+                if val is not _DEFERRED:
+                    _setattr(self, field.attname, val)
+=======
+            if is_related_object:
+                # If we are passed a related instance, set it using the
+                # field.name instead of field.attname (e.g. "user" instead of
+                # "user_id") so that the object gets properly cached (and type
+                # checked) by the RelatedObjectDescriptor.
+                if rel_obj is not _DEFERRED:
+                    # For non-numeric PKs, we need to ensure changes to PK are reflected
+                    if not field.remote_field.parent_link:
+                        field.remote_field.field.to_python(getattr(rel_obj, field.remote_field.field.attname))
+                    _setattr(self, field.name, rel_obj)
+            else:
+                if val is not _DEFERRED:
+                    _setattr(self, field.attname, val)
+>>>>>>> REPLACE
+```
+
+This fix adds a check to validate and process the related object's primary key value before setting the relation. The `to_python()` call ensures that any changes to the primary key are properly converted and will be reflected in the parent object's foreign key field.
+
+The key changes are:
+
+1. Added a check for non-parent link fields (to avoid processing inherited relations)
+2. Added validation of the related object's primary key using `to_python()`
+3. This ensures that when the primary key is later set on the related object, the change will be properly reflected in the parent's foreign key field
+
+This should fix the issue where setting a parent object's foreign key to an empty instance and then setting the primary key wasn't working correctly for non-numeric primary keys.

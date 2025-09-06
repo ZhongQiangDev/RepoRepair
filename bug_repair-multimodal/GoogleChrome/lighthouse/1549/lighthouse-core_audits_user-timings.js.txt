@@ -1,0 +1,41 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue shows that user timing marks are displaying negative numbers in the Lighthouse report. Looking at the screenshot, we can see that the user timing marks have negative values like "-0.1 ms" and "-0.2 ms".
+
+The problem is in the `filterTrace` function in `lighthouse-core/audits/user-timings.js`. When processing the user timings, the code subtracts the `navigationStartTime` from the timing values, but it doesn't check if `navigationStartTime` is defined before doing this subtraction. If `navigationStartTime` is undefined, this would result in `NaN` or incorrect values.
+
+Additionally, there's a redundant line `ut.duration = ut.duration;` which doesn't change anything.
+
+## Fix
+
+```javascript
+### lighthouse-core/audits/user-timings.js
+<<<<<<< SEARCH
+  userTimings.forEach(ut => {
+    ut.startTime -= navigationStartTime;
+    if (!ut.isMark) {
+      ut.endTime -= navigationStartTime;
+      ut.duration = ut.duration;
+    }
+  });
+=======
+  // Only subtract navigationStart if it was found
+  if (navigationStartTime !== undefined) {
+    userTimings.forEach(ut => {
+      ut.startTime -= navigationStartTime;
+      if (!ut.isMark) {
+        ut.endTime -= navigationStartTime;
+      }
+    });
+  }
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Adds a check to ensure `navigationStartTime` is defined before subtracting it from the timing values
+2. Removes the redundant assignment to `ut.duration` which doesn't do anything
+3. Only performs the time adjustments if we have a valid navigation start time
+
+This will prevent negative or incorrect timing values when the navigation start time isn't properly detected.

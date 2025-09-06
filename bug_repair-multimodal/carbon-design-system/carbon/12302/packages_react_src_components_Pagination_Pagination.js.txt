@@ -1,0 +1,46 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when `pagesUnknown` is set to `true`, the pagination component shows redundant information. Specifically, the page number appears twice:
+1. Once in the select dropdown (which is correct)
+2. Again in the text that follows the dropdown (which is redundant)
+
+Looking at the code, I can see that when `pagesUnknown` is true, the component renders:
+```jsx
+<span className={`${prefix}--pagination__text`}>
+  {pagesUnknown ? pageText(page) : pageRangeText(page, totalPages)}
+</span>
+```
+
+The `pageText` function is defined as:
+```jsx
+pageText = (page) => `page ${page}`
+```
+
+This is what's causing the redundancy. When `pagesUnknown` is true, it shows "page X" right after the dropdown that already shows the page number.
+
+## Fix
+
+The fix is to modify the component to not display redundant information when `pagesUnknown` is true. We should either:
+1. Not show any text after the dropdown when `pagesUnknown` is true, or
+2. Show a different text that doesn't repeat the page number
+
+Let's implement option 1 since it's cleaner:
+
+```javascript
+### packages/react/src/components/Pagination/Pagination.js
+<<<<<<< SEARCH
+        <span className={`${prefix}--pagination__text`}>
+          {pagesUnknown ? pageText(page) : pageRangeText(page, totalPages)}
+        </span>
+=======
+        {!pagesUnknown && (
+          <span className={`${prefix}--pagination__text`}>
+            {pageRangeText(page, totalPages)}
+          </span>
+        )}
+>>>>>>> REPLACE
+```
+
+This change removes the redundant text when `pagesUnknown` is true, while maintaining the original behavior when `pagesUnknown` is false. When `pagesUnknown` is true, only the dropdown with the page number will be shown, without the additional text that repeats the page number.

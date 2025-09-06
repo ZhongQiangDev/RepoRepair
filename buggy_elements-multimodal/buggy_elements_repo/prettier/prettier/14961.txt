@@ -1,0 +1,83 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that Prettier 2.8.0 is adding unnecessary spaces around pipe arguments in Angular pipes. This results in the following transformation:
+
+**Input:**
+```html
+{{ (user$ | async).credit | currency:'CAD':'symbol-narrow':'4.2-2' }}
+{{ (user$ | async).items | slice:1:5 }}
+```
+
+**Output:**
+```html
+{{ (user$ | async).credit | currency : 'CAD' : 'symbol-narrow' : '4.2-2' }}
+{{ (user$ | async).items | slice : 1 : 5 }}
+```
+
+**Expected behavior:**
+```html
+{{ (user$ | async).credit | currency:'CAD':'symbol-narrow':'4.2-2' }}
+{{ (user$ | async).items | slice:1:5 }}
+```
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior is likely due to the way Prettier handles the formatting of Angular pipes. Specifically, it seems that Prettier is applying a general rule for adding spaces around operators, which is not appropriate for Angular pipes. The issue arises because Prettier does not recognize the specific syntax rules for Angular pipes and applies a more generic formatting rule instead.
+
+### 3. Examine Each File One by One
+
+#### `src/language-html/embed/angular-attributes.js`
+
+This file contains functions related to formatting Angular attributes. The `createAngularPrinter` function is responsible for formatting Angular attribute values, and the `printAngularAttribute` function handles Angular-specific attributes. However, these functions do not directly handle the formatting of Angular pipes.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `src/language-html/embed/angular-interpolation.js`
+
+This file contains the `printAngularInterpolation` function, which processes Angular interpolation expressions. While this function is related to formatting Angular expressions, it does not directly handle the formatting of Angular pipes.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `src/language-js/print/angular.js`
+
+This file contains the `printAngular` function, which handles various Angular-specific syntax nodes. The `NGPipeExpression` node is specifically related to Angular pipes. This function is likely the one that needs to be inspected and potentially modified to fix the issue.
+
+```
+src/language-js/print/angular.js
+function: printAngular
+```
+
+#### `src/language-js/print/binaryish.js`
+
+This file contains functions related to formatting binary-like expressions. The `printBinaryishExpression` and `printBinaryishExpressions` functions handle the formatting of binary expressions, which may include Angular pipes. However, these functions are more general and may not be specifically tailored to Angular pipes.
+
+```
+src/language-js/print/binaryish.js
+function: printBinaryishExpression
+function: printBinaryishExpressions
+```
+
+#### `src/language-js/print/misc.js`
+
+This file contains various utility functions for formatting different types of expressions. None of these functions are directly related to the formatting of Angular pipes.
+
+```
+This file contains no relevant functions/classes.
+```
+
+### Summary
+
+The relevant functions that need to be inspected or edited to fix the problem are:
+
+```
+src/language-js/print/angular.js
+function: printAngular
+
+src/language-js/print/binaryish.js
+function: printBinaryishExpression
+function: printBinaryishExpressions
+```

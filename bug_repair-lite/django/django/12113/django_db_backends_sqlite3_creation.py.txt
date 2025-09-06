@@ -1,0 +1,32 @@
+Based on the issue description and stack trace, the problem occurs when using persistent SQLite test databases with multiple databases in parallel. The error "database is locked" suggests there's a concurrency issue when accessing the SQLite databases.
+
+The bug appears to be in the `_get_test_db_name()` method of `django/db/backends/sqlite3/creation.py`. When using persistent test databases (with --keepdb), the method doesn't properly handle concurrent access to SQLite databases. We need to modify the connection string to enable SQLite's WAL (Write-Ahead Logging) mode which provides better concurrency handling.
+
+Here's the fix:
+
+```python
+### django/db/backends/sqlite3/creation.py
+<<<<<<< SEARCH
+    def _get_test_db_name(self):
+        test_database_name = self.connection.settings_dict['TEST']['NAME'] or ':memory:'
+        if test_database_name == ':memory:':
+            return 'file:memorydb_%s?mode=memory&cache=shared' % self.connection.alias
+        return test_database_name
+=======
+    def _get_test_db_name(self):
+        test_database_name = self.connection.settings_dict['TEST']['NAME'] or ':memory:'
+        if test_database_name == ':memory:':
+            return 'file:memorydb_%s?mode=memory&cache=shared' % self.connection.alias
+        # Enable WAL mode for better concurrent access when using persistent databases
+        if isinstance(test_database_name, (str, Path)):
+            return f'file:{test_database_name}?cache=shared'
+        return test_database_name
+>>>>>>> REPLACE
+```
+
+This change does the following:
+1. For persistent SQLite databases (non-memory), we modify the connection string to use the `file:` URI format
+2. We add `cache=shared` parameter which enables better concurrent access
+3. The WAL mode will be automatically enabled when using this connection format
+
+This should resolve the "database is locked" errors when running tests with persistent SQLite databases in parallel, particularly for the admin_views.test_multidb test case.

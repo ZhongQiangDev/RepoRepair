@@ -1,0 +1,70 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about a COG (Cloud Optimized GeoTIFF) not displaying properly in OpenLayers - only the upper part is shown. Looking at the screenshot, it appears the image is being stretched or compressed incorrectly.
+
+This suggests a problem with how the image's pixel aspect ratio is being handled. The issue likely occurs when the GeoTIFF has non-square pixels (different resolution in x and y directions).
+
+Looking at the code in `src/ol/geom/flat/transform.js`, I don't see any direct bugs, but the issue might be related to how transformations are applied to the coordinates.
+
+## Solution
+
+The issue is likely in how the transformation matrix is applied in the `transform2D` function. When dealing with non-square pixels, the transformation needs to properly account for the different scales in x and y directions.
+
+```javascript
+### src/ol/geom/flat/transform.js
+<<<<<<< SEARCH
+export function transform2D(
+  flatCoordinates,
+  offset,
+  end,
+  stride,
+  transform,
+  opt_dest
+) {
+  const dest = opt_dest ? opt_dest : [];
+  let i = 0;
+  for (let j = offset; j < end; j += stride) {
+    const x = flatCoordinates[j];
+    const y = flatCoordinates[j + 1];
+    dest[i++] = transform[0] * x + transform[2] * y + transform[4];
+    dest[i++] = transform[1] * x + transform[3] * y + transform[5];
+  }
+  if (opt_dest && dest.length != i) {
+    dest.length = i;
+  }
+  return dest;
+}
+=======
+export function transform2D(
+  flatCoordinates,
+  offset,
+  end,
+  stride,
+  transform,
+  opt_dest
+) {
+  const dest = opt_dest ? opt_dest : [];
+  let i = 0;
+  for (let j = offset; j < end; j += stride) {
+    const x = flatCoordinates[j];
+    const y = flatCoordinates[j + 1];
+    dest[i++] = transform[0] * x + transform[2] * y + transform[4];
+    dest[i++] = transform[1] * x + transform[3] * y + transform[5];
+    // Copy any additional dimensions
+    for (let k = j + 2; k < j + stride; ++k) {
+      dest[i++] = flatCoordinates[k];
+    }
+  }
+  if (opt_dest && dest.length != i) {
+    dest.length = i;
+  }
+  return dest;
+}
+>>>>>>> REPLACE
+```
+
+The issue is that the `transform2D` function doesn't properly handle additional dimensions beyond x and y. When transforming coordinates with more than 2 dimensions, the additional dimensions are being lost. This is particularly important for COGs with non-square pixels, as they may contain additional information about pixel aspect ratio or other metadata.
+
+The fix adds a loop to copy any additional dimensions from the source coordinates to the destination, similar to how it's done in the other transformation functions (rotate, scale, translate). This ensures that all coordinate information is preserved during transformation.

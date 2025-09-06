@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- `Exists(Product.objects.all()) & Q()` works correctly
+- `Q() & Exists(Product.objects.all())` raises a TypeError
+- The & (AND) operator is not commutative between Q and Exists objects as it should be
+
+2. Cause Analysis:
+- The error occurs in `django/db/models/query_utils.py` where Q.__and__ method checks if the other operand is a Q object
+- If not a Q object, it raises TypeError
+- The issue is that while Exists objects can handle Q objects on their right side, Q objects don't know how to handle Exists objects on their right side
+- This suggests missing `__rand__` implementation for proper commutative behavior
+
+3. Most Related Files:
+```
+django/db/models/expressions.py
+django/db/models/query_utils.py
+django/db/models/sql/query.py
+django/db/models/sql/datastructures.py
+django/db/models/fields/related.py
+```
+
+These files are ordered by importance because:
+1. expressions.py contains the Exists class implementation
+2. query_utils.py contains the Q class where the error occurs
+3. query.py handles how queries are constructed and combined
+4. datastructures.py provides core structures for query building
+5. related.py may be involved as Exists often deals with related field queries

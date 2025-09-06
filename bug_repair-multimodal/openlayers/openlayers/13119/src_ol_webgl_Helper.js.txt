@@ -1,0 +1,225 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the problem is that WebGLTile Layers need a way to change the WebGL blend function. Currently, the WebGLHelper class in OpenLayers has a fixed blend function setting in the `prepareDraw` method, but the user needs to be able to specify different blending options for different tile layers.
+
+Looking at the code, I can see that in the `prepareDraw` method, there's a hardcoded blend function setting:
+
+```javascript
+gl.blendFunc(
+  gl.ONE,
+  opt_disableAlphaBlend ? gl.ZERO : gl.ONE_MINUS_SRC_ALPHA
+);
+```
+
+The issue is requesting a flag to change this to `gl.blendFunc(gl.ONE, gl.ONE)` for certain tile layers.
+
+Here's my fix:
+
+```javascript
+### src/ol/webgl/Helper.js
+<<<<<<< SEARCH
+  /**
+   * Clear the buffer & set the viewport to draw.
+   * Post process passes will be initialized here, the first one being bound as a render target for
+   * subsequent draw calls.
+   * @param {import("../PluggableMap.js").FrameState} frameState current frame state
+   * @param {boolean} [opt_disableAlphaBlend] If true, no alpha blending will happen.
+   * @api
+   */
+  prepareDraw(frameState, opt_disableAlphaBlend) {
+    const gl = this.getGL();
+    const canvas = this.getCanvas();
+    const size = frameState.size;
+    const pixelRatio = frameState.pixelRatio;
+
+    canvas.width = size[0] * pixelRatio;
+    canvas.height = size[1] * pixelRatio;
+    canvas.style.width = size[0] + 'px';
+    canvas.style.height = size[1] + 'px';
+
+    gl.useProgram(this.currentProgram_);
+
+    // loop backwards in post processes list
+    for (let i = this.postProcessPasses_.length - 1; i >= 0; i--) {
+      this.postProcessPasses_[i].init(frameState);
+    }
+
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(
+      gl.ONE,
+      opt_disableAlphaBlend ? gl.ZERO : gl.ONE_MINUS_SRC_ALPHA
+    );
+
+    gl.useProgram(this.currentProgram_);
+    this.applyFrameState(frameState);
+    this.applyUniforms(frameState);
+  }
+=======
+  /**
+   * Clear the buffer & set the viewport to draw.
+   * Post process passes will be initialized here, the first one being bound as a render target for
+   * subsequent draw calls.
+   * @param {import("../PluggableMap.js").FrameState} frameState current frame state
+   * @param {boolean|Object} [opt_blendOptions] Blend options.
+   *   If a boolean, it's interpreted as the `disableAlphaBlend` option.
+   *   If an object, it can have the following properties:
+   *   * disableAlphaBlend: If true, no alpha blending will happen.
+   *   * blendFunction: Array of 2 strings, specifying source and destination blend functions.
+   *     Valid values are 'ONE' and 'ONE_MINUS_SRC_ALPHA' (and more based on the WebGL spec).
+   * @api
+   */
+  prepareDraw(frameState, opt_blendOptions) {
+    const gl = this.getGL();
+    const canvas = this.getCanvas();
+    const size = frameState.size;
+    const pixelRatio = frameState.pixelRatio;
+
+    canvas.width = size[0] * pixelRatio;
+    canvas.height = size[1] * pixelRatio;
+    canvas.style.width = size[0] + 'px';
+    canvas.style.height = size[1] + 'px';
+
+    gl.useProgram(this.currentProgram_);
+
+    // loop backwards in post processes list
+    for (let i = this.postProcessPasses_.length - 1; i >= 0; i--) {
+      this.postProcessPasses_[i].init(frameState);
+    }
+
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    gl.enable(gl.BLEND);
+    
+    // Handle different types of blend options
+    let disableAlphaBlend = false;
+    let srcBlend = gl.ONE;
+    let dstBlend = gl.ONE_MINUS_SRC_ALPHA;
+    
+    if (opt_blendOptions) {
+      if (typeof opt_blendOptions === 'boolean') {
+        disableAlphaBlend = opt_blendOptions;
+      } else {
+        if (opt_blendOptions.disableAlphaBlend) {
+          disableAlphaBlend = opt_blendOptions.disableAlphaBlend;
+        }
+        if (opt_blendOptions.blendFunction && opt_blendOptions.blendFunction.length === 2) {
+          srcBlend = gl[opt_blendOptions.blendFunction[0]] || srcBlend;
+          dstBlend = gl[opt_blendOptions.blendFunction[1]] || dstBlend;
+        }
+      }
+    }
+    
+    gl.blendFunc(
+      srcBlend,
+      disableAlphaBlend ? gl.ZERO : dstBlend
+    );
+
+    gl.useProgram(this.currentProgram_);
+    this.applyFrameState(frameState);
+    this.applyUniforms(frameState);
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/webgl/Helper.js
+<<<<<<< SEARCH
+  /**
+   * Clear the render target & bind it for future draw operations.
+   * This is similar to `prepareDraw`, only post processes will not be applied.
+   * Note: the whole viewport will be drawn to the render target, regardless of its size.
+   * @param {import("../PluggableMap.js").FrameState} frameState current frame state
+   * @param {import("./RenderTarget.js").default} renderTarget Render target to draw to
+   * @param {boolean} [opt_disableAlphaBlend] If true, no alpha blending will happen.
+   */
+  prepareDrawToRenderTarget(frameState, renderTarget, opt_disableAlphaBlend) {
+    const gl = this.getGL();
+    const size = renderTarget.getSize();
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, renderTarget.getFramebuffer());
+    gl.viewport(0, 0, size[0], size[1]);
+    gl.bindTexture(gl.TEXTURE_2D, renderTarget.getTexture());
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(
+      gl.ONE,
+      opt_disableAlphaBlend ? gl.ZERO : gl.ONE_MINUS_SRC_ALPHA
+    );
+
+    gl.useProgram(this.currentProgram_);
+    this.applyFrameState(frameState);
+    this.applyUniforms(frameState);
+  }
+=======
+  /**
+   * Clear the render target & bind it for future draw operations.
+   * This is similar to `prepareDraw`, only post processes will not be applied.
+   * Note: the whole viewport will be drawn to the render target, regardless of its size.
+   * @param {import("../PluggableMap.js").FrameState} frameState current frame state
+   * @param {import("./RenderTarget.js").default} renderTarget Render target to draw to
+   * @param {boolean|Object} [opt_blendOptions] Blend options.
+   *   If a boolean, it's interpreted as the `disableAlphaBlend` option.
+   *   If an object, it can have the following properties:
+   *   * disableAlphaBlend: If true, no alpha blending will happen.
+   *   * blendFunction: Array of 2 strings, specifying source and destination blend functions.
+   *     Valid values are 'ONE' and 'ONE_MINUS_SRC_ALPHA' (and more based on the WebGL spec).
+   */
+  prepareDrawToRenderTarget(frameState, renderTarget, opt_blendOptions) {
+    const gl = this.getGL();
+    const size = renderTarget.getSize();
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, renderTarget.getFramebuffer());
+    gl.viewport(0, 0, size[0], size[1]);
+    gl.bindTexture(gl.TEXTURE_2D, renderTarget.getTexture());
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.enable(gl.BLEND);
+    
+    // Handle different types of blend options
+    let disableAlphaBlend = false;
+    let srcBlend = gl.ONE;
+    let dstBlend = gl.ONE_MINUS_SRC_ALPHA;
+    
+    if (opt_blendOptions) {
+      if (typeof opt_blendOptions === 'boolean') {
+        disableAlphaBlend = opt_blendOptions;
+      } else {
+        if (opt_blendOptions.disableAlphaBlend) {
+          disableAlphaBlend = opt_blendOptions.disableAlphaBlend;
+        }
+        if (opt_blendOptions.blendFunction && opt_blendOptions.blendFunction.length === 2) {
+          srcBlend = gl[opt_blendOptions.blendFunction[0]] || srcBlend;
+          dstBlend = gl[opt_blendOptions.blendFunction[1]] || dstBlend;
+        }
+      }
+    }
+    
+    gl.blendFunc(
+      srcBlend,
+      disableAlphaBlend ? gl.ZERO : dstBlend
+    );
+
+    gl.useProgram(this.currentProgram_);
+    this.applyFrameState(frameState);
+    this.applyUniforms(frameState);
+  }
+>>>>>>> REPLACE
+```
+
+This solution:
+
+1. Enhances the `prepareDraw` and `prepareDrawToRenderTarget` methods to accept either a boolean (for backward compatibility) or an object with blend options
+2. Adds a new `blendFunction` option that allows specifying the source and destination blend functions as strings (like 'ONE' and 'ONE_MINUS_SRC_ALPHA')
+3. Maintains backward compatibility by handling the boolean case the same way as before
+4. Provides proper JSDoc documentation for the new parameter
+
+With this change, users can now specify custom blend functions for WebGLTile layers, including the requested `gl.ONE, gl.ONE` blend function.

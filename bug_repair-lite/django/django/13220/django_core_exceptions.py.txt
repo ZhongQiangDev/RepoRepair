@@ -1,0 +1,57 @@
+Based on the issue description, the bug is that ValidationError objects with identical messages don't equal each other because the class lacks an `__eq__` method. The issue requests adding equality comparison that is independent of error order.
+
+Here's the fix to add proper equality comparison to the ValidationError class:
+
+```python
+### django/core/exceptions.py
+<<<<<<< SEARCH
+    def __repr__(self):
+        return 'ValidationError(%s)' % self
+
+
+
+
+
+
+
+=======
+    def __repr__(self):
+        return 'ValidationError(%s)' % self
+
+    def __eq__(self, other):
+        if not isinstance(other, ValidationError):
+            return NotImplemented
+        
+        if hasattr(self, 'error_dict') and hasattr(other, 'error_dict'):
+            # Compare error dictionaries, ensuring field errors match regardless of order
+            if set(self.error_dict.keys()) != set(other.error_dict.keys()):
+                return False
+            return all(
+                sorted(self.error_dict[field], key=lambda e: e.message) == 
+                sorted(other.error_dict[field], key=lambda e: e.message)
+                for field in self.error_dict
+            )
+        elif hasattr(self, 'error_list') and hasattr(other, 'error_list'):
+            # Compare error lists, ensuring errors match regardless of order
+            return sorted(self.error_list, key=lambda e: e.message) == sorted(other.error_list, key=lambda e: e.message)
+        elif hasattr(self, 'message') and hasattr(other, 'message'):
+            # Compare single error messages
+            return (self.message == other.message and 
+                   self.code == other.code and 
+                   self.params == other.params)
+        return False
+
+>>>>>>> REPLACE
+```
+
+This fix adds an `__eq__` method that:
+
+1. First checks if the other object is a ValidationError
+2. Handles three cases:
+   - Comparing error dictionaries (comparing field errors independent of order)
+   - Comparing error lists (comparing errors independent of order)
+   - Comparing single error messages (comparing message, code and params)
+3. Uses sorting to ensure order-independent comparison
+4. Returns False if the ValidationErrors have different structures
+
+The implementation ensures that ValidationErrors with the same content will be equal regardless of the order in which errors were added, addressing the core issue while maintaining proper comparison semantics.

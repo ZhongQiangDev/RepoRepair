@@ -1,0 +1,97 @@
+I'll analyze the issue and provide a solution.
+
+Based on the issue description, we need to add the ability to switch between DataObjectReference and DataStoreReference in the replace menu. Currently, the menu only shows a collection marker option for DataObjectReference elements.
+
+Looking at the code, I can see that the `ReplaceMenuProvider.prototype.getEntries` method handles different element types, but there's no specific handling for DataObjectReference or DataStoreReference elements. We need to add this functionality.
+
+Here's my solution:
+
+```javascript
+### lib/features/popup-menu/ReplaceMenuProvider.js
+<<<<<<< SEARCH
+  // flow nodes
+  if (is(businessObject, 'bpmn:FlowNode')) {
+    entries = filter(replaceOptions.TASK, differentType);
+
+    // collapsed SubProcess can not be replaced with itself
+    if (is(businessObject, 'bpmn:SubProcess') && !isExpanded(businessObject)) {
+      entries = filter(entries, function(entry) {
+        return entry.label !== 'Sub Process (collapsed)';
+      });
+    }
+
+    return this._createEntries(element, entries);
+  }
+
+  return [];
+=======
+  // data object reference
+  if (is(businessObject, 'bpmn:DataObjectReference')) {
+    entries = filter(replaceOptions.DATA_OBJECT_REFERENCE, differentType);
+    
+    return this._createEntries(element, entries);
+  }
+
+  // data store reference
+  if (is(businessObject, 'bpmn:DataStoreReference')) {
+    entries = filter(replaceOptions.DATA_STORE_REFERENCE, differentType);
+    
+    return this._createEntries(element, entries);
+  }
+
+  // flow nodes
+  if (is(businessObject, 'bpmn:FlowNode')) {
+    entries = filter(replaceOptions.TASK, differentType);
+
+    // collapsed SubProcess can not be replaced with itself
+    if (is(businessObject, 'bpmn:SubProcess') && !isExpanded(businessObject)) {
+      entries = filter(entries, function(entry) {
+        return entry.label !== 'Sub Process (collapsed)';
+      });
+    }
+
+    return this._createEntries(element, entries);
+  }
+
+  return [];
+>>>>>>> REPLACE
+```
+
+Now we need to add the corresponding replace options in the ReplaceOptions.js file. Since that file isn't provided in the code segments, I'll create a search/replace edit that assumes the structure of that file:
+
+```javascript
+### lib/features/replace/ReplaceOptions.js
+<<<<<<< SEARCH
+export var SEQUENCE_FLOW = [
+  // ...existing sequence flow options...
+];
+=======
+export var SEQUENCE_FLOW = [
+  // ...existing sequence flow options...
+];
+
+export var DATA_OBJECT_REFERENCE = [
+  {
+    label: 'Data Store',
+    actionName: 'replace-with-data-store',
+    className: 'bpmn-icon-data-store',
+    target: {
+      type: 'bpmn:DataStoreReference'
+    }
+  }
+];
+
+export var DATA_STORE_REFERENCE = [
+  {
+    label: 'Data Object',
+    actionName: 'replace-with-data-object',
+    className: 'bpmn-icon-data-object',
+    target: {
+      type: 'bpmn:DataObjectReference'
+    }
+  }
+];
+>>>>>>> REPLACE
+```
+
+These changes will add the ability to switch between DataObjectReference and DataStoreReference in the replace menu, addressing the issue described.

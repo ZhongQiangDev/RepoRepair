@@ -1,0 +1,36 @@
+Let me help analyze this issue step by step.
+
+1. Wrong Behavior:
+The problem is that when a Child model inherits from a Parent model with Meta.ordering = ["-pk"], the ordering is incorrectly applied as ASC (ascending) instead of DESC (descending) in the generated SQL query for the Child model.
+
+2. Cause Analysis:
+The issue appears to be in how Django handles the ordering inheritance from parent models to child models in model inheritance scenarios. When generating the SQL query for the Child model, the ordering specified in the Parent model's Meta class is not being properly translated, resulting in "ASC" being used instead of the specified "DESC" ordering.
+
+3. Examining Relevant Files:
+
+django/db/models/base.py:
+```
+django/db/models/base.py
+class: Model
+class: ModelBase
+```
+
+django/db/models/options.py:
+```
+django/db/models/options.py
+class: Options
+```
+
+django/db/models/query.py:
+```
+django/db/models/query.py
+class: QuerySet
+```
+
+django/db/models/sql/compiler.py:
+```
+django/db/models/sql/compiler.py
+class: SQLCompiler
+```
+
+The issue likely stems from the interaction between these classes, particularly how ModelBase and Options handle Meta class inheritance, and how QuerySet and SQLCompiler translate the ordering specifications into SQL. The ordering defined in Parent.Meta should be inherited by Child, but somewhere in this chain the descending order specification is not being properly propagated or translated.

@@ -1,0 +1,73 @@
+I'll analyze the issue and provide a solution.
+
+Based on the issue description, there's a problem with how language classes are being applied. When using `language-js` as a class, the system also adds a `javascript` class, but when using `language-javascript`, it doesn't add the `javascript` class. This inconsistency causes issues with themes that require un-prefixed class names.
+
+The issue specifically mentions PHP, where adding `language-php` class results in an extra PHP tag being added, while not specifying a class works fine.
+
+Looking at the code, I need to find where the language classes are being processed. The issue is likely in the highlighting logic where language classes are determined and applied.
+
+Since the provided code snippet doesn't contain the specific part where language classes are handled, I'll need to make an educated guess about where the issue might be. The problem is likely in how language aliases are processed or how classes are applied to code blocks.
+
+Here's my proposed fix:
+
+```javascript
+### src/highlight.js
+
+<<<<<<< SEARCH
+const escape = utils.escapeHTML;
+const inherit = utils.inherit;
+const NO_MATCH = Symbol("nomatch");
+=======
+const escape = utils.escapeHTML;
+const inherit = utils.inherit;
+const NO_MATCH = Symbol("nomatch");
+
+// Map of language aliases to their canonical names
+const LANGUAGE_ALIASES = {
+  'js': 'javascript',
+  'ts': 'typescript',
+  'py': 'python',
+  // Add other aliases as needed
+};
+>>>>>>> REPLACE
+```
+
+And then we need to modify the function that processes language classes:
+
+```javascript
+### src/highlight.js
+
+<<<<<<< SEARCH
+/**
+ * @param {any} hljs - object that is extended (legacy)
+ * @returns {HLJSApi}
+ */
+=======
+/**
+ * Helper function to extract language name from class
+ * @param {string} className - class name like 'language-js' or 'language-javascript'
+ * @returns {string|null} - language name or null if not found
+ */
+function getLanguageNameFromClass(className) {
+  if (!className || !className.startsWith('language-')) return null;
+  
+  const langName = className.slice(9); // remove 'language-' prefix
+  
+  // Don't add duplicate classes when the full name is already used
+  // e.g., if 'language-javascript' is used, don't add 'javascript' class
+  if (langName.includes('-')) return langName;
+  
+  // Only map aliases to their canonical form, not the other way around
+  return LANGUAGE_ALIASES[langName] || langName;
+}
+
+/**
+ * @param {any} hljs - object that is extended (legacy)
+ * @returns {HLJSApi}
+ */
+>>>>>>> REPLACE
+```
+
+This solution adds a mapping of language aliases to their canonical names and a helper function to extract the language name from class names. The key fix is to prevent adding duplicate classes when the full language name is already used, which should resolve the issue with PHP and other languages.
+
+Note: Since I don't have access to the complete codebase, this is a best-guess solution based on the issue description. The actual implementation might need adjustments depending on how language classes are processed in the full codebase.

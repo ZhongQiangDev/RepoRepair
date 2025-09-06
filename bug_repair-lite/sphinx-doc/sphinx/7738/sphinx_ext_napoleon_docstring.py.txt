@@ -1,0 +1,29 @@
+Based on the issue description, the bug is in the `_escape_args_and_kwargs` method of the `GoogleDocstring` class in `sphinx/ext/napoleon/docstring.py`. The issue is that trailing underscores are being escaped with a backslash, which is causing them to appear visibly in the HTML output.
+
+The fix is to remove the special handling of trailing underscores since they don't need escaping. Here's the edit:
+
+```python
+### sphinx/ext/napoleon/docstring.py
+<<<<<<< SEARCH
+    def _escape_args_and_kwargs(self, name: str) -> str:
+        if name.endswith('_'):
+            name = name[:-1] + r'\_'
+
+        if name[:2] == '**':
+            return r'\*\*' + name[2:]
+        elif name[:1] == '*':
+            return r'\*' + name[1:]
+        else:
+            return name
+=======
+    def _escape_args_and_kwargs(self, name: str) -> str:
+        if name[:2] == '**':
+            return r'\*\*' + name[2:]
+        elif name[:1] == '*':
+            return r'\*' + name[1:]
+        else:
+            return name
+>>>>>>> REPLACE
+```
+
+This edit removes the special handling of trailing underscores while keeping the escaping of `*` and `**` prefixes which are still needed for proper rendering of argument names. The trailing underscore doesn't need escaping since it's not a special character in reStructuredText.

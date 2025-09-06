@@ -1,0 +1,38 @@
+# Bug Analysis
+
+Based on the issue description, the problem is that when a user adds and then removes a featured image on a new post, the post is incorrectly marked as "dirty" (having unsaved changes). This causes the "Are You Sure?" dialog to appear when navigating away, even though there are no actual changes to save.
+
+The issue only happens with new posts, not with existing saved posts. This suggests that the problem is related to how the post state is tracked for new posts versus existing posts.
+
+Looking at the code, I can see that the issue is in the `removeImage` static method. When removing a featured image, it calls `PostActions.edit({ featured_image: '' })`, which marks the post as having changes. However, for a new post that never had a featured image saved, setting it to an empty string is not actually a change from its initial state.
+
+## Fix
+
+The solution is to modify the `removeImage` method to check if we're dealing with a new post and avoid marking it as dirty when removing a featured image that was never saved.
+
+```javascript
+### client/post-editor/editor-featured-image/index.jsx
+<<<<<<< SEARCH
+	static removeImage() {
+		PostActions.edit( {
+			featured_image: '',
+		} );
+
+		stats.recordStat( 'featured_image_removed' );
+		stats.recordEvent( 'Featured image removed' );
+	}
+=======
+	static removeImage() {
+		PostActions.edit( {
+			featured_image: '',
+		}, null, null, { noSetDirty: true } );
+
+		stats.recordStat( 'featured_image_removed' );
+		stats.recordEvent( 'Featured image removed' );
+	}
+>>>>>>> REPLACE
+```
+
+This fix uses the `noSetDirty` option in the `PostActions.edit()` method to prevent the post from being marked as dirty when removing the featured image. This way, when a user adds and then removes a featured image on a new post, the post won't be considered to have unsaved changes, and the "Are You Sure?" dialog won't appear when navigating away.
+
+The `noSetDirty` flag tells the post editor that this particular edit shouldn't be considered a "real" change that needs to be saved, which is appropriate in this case since removing a featured image from a new post returns it to its original state.

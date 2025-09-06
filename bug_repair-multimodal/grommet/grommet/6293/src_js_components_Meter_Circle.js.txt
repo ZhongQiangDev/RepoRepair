@@ -1,0 +1,40 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the Meter component with type="circle" is not rendering all data points correctly in v2.25.0, while it worked fine in v2.24.0. Looking at the screenshots, we can see that in the broken version, only the last data point is being rendered.
+
+After examining the code, I found the issue. In the Circle.js file, when rendering the paths for each value, the paths are being added to the array in the wrong order when `round` is true. The code is using `paths.unshift()` which adds elements to the beginning of the array, causing only the last element to be visible as it's drawn first and then covered by subsequent elements.
+
+Here's the fix:
+
+```javascript
+### src/js/components/Meter/Circle.js
+<<<<<<< SEARCH
+        paths.unshift(
+          <path
+            key={key}
+            d={d1}
+            fill="none"
+            {...stroke}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            {...hoverProps}
+            {...pathRest}
+          />,
+        );
+=======
+        paths.push(
+          <path
+            key={key}
+            d={d1}
+            fill="none"
+            {...stroke}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            {...hoverProps}
+            {...pathRest}
+          />,
+        );
+>>>>>>> REPLACE
+```
+
+This change replaces `unshift()` with `push()` to ensure that the paths are added to the array in the correct order, so all data points will be rendered properly. The issue was that `unshift()` was adding each new path to the beginning of the array, causing earlier paths to be drawn on top of later ones, effectively hiding all but the last path.

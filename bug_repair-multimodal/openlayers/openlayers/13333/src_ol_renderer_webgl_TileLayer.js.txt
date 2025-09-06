@@ -1,0 +1,45 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+Based on the issue title "WebGLTile layer rendered error images outside original extent" and the screenshots provided, it appears that the WebGL tile layer is rendering tiles outside the intended extent. This is likely happening because the code is not properly checking or limiting the rendering to the specified extent.
+
+Looking at the code, I notice that the `getRenderExtent` function is referenced but not defined in the provided code. This function is responsible for determining the extent to render, but it seems to be using the frame's extent directly without properly intersecting it with the layer's extent.
+
+The issue is likely in how the render extent is calculated. The function should be intersecting the frame extent with the layer's extent to ensure tiles are only rendered within the layer's defined boundaries.
+
+## Fix
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+/**
+ * @param {import("../../PluggableMap.js").FrameState} frameState Frame state.
+ * @param {import("../../extent.js").Extent} extent The frame extent.
+ * @return {import("../../extent.js").Extent} Frame extent intersected with layer extents.
+ */
+
+
+
+
+=======
+/**
+ * @param {import("../../PluggableMap.js").FrameState} frameState Frame state.
+ * @param {import("../../extent.js").Extent} extent The frame extent.
+ * @return {import("../../extent.js").Extent} Frame extent intersected with layer extents.
+ */
+function getRenderExtent(frameState, extent) {
+  const layerState = frameState.layerStatesArray[frameState.layerIndex];
+  if (layerState.extent) {
+    const layerExtent = fromUserExtent(layerState.extent, frameState.viewState.projection);
+    return getIntersection(extent, layerExtent);
+  }
+  return extent;
+}
+
+>>>>>>> REPLACE
+```
+
+This fix adds the missing `getRenderExtent` function implementation that properly intersects the frame extent with the layer's extent. When a layer has a defined extent, the function will return the intersection of that extent with the frame extent, ensuring that tiles are only rendered within the layer's boundaries. If the layer doesn't have a defined extent, it will return the original frame extent.
+
+The function uses `fromUserExtent` to convert the layer's extent from user coordinates to the current projection, and then uses `getIntersection` to find the overlap between the frame extent and the layer extent.

@@ -1,0 +1,55 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that VoiceOver on Mac is reading dropdown items twice when navigating through them. This is likely happening because the dropdown items have both a `title` attribute and text content that are the same, causing screen readers to read the same information twice.
+
+Looking at the code, I can see that in the `ListBox.MenuItem` component, there's a `title` attribute being set to the same value as the content inside the component:
+
+```javascript
+<ListBox.MenuItem
+  key={itemProps.id}
+  isActive={selectedItem === item}
+  isHighlighted={highlightedIndex === index || selectedItem === item}
+  title={itemToElement ? item.text : itemToString(item)}
+  {...itemProps}>
+  {itemToElement ? (
+    <ItemToElement key={itemProps.id} {...item} />
+  ) : (
+    itemToString(item)
+  )}
+  {selectedItem === item && (
+    <Checkmark16
+      className={`${prefix}--list-box__menu-item__selected-icon`}
+    />
+  )}
+</ListBox.MenuItem>
+```
+
+The `title` attribute is redundant here since the text content already provides the same information. Screen readers will read both the `title` attribute and the text content, causing the duplication.
+
+## Fix
+
+```javascript
+### packages/react/src/components/Dropdown/Dropdown.js
+<<<<<<< SEARCH
+                <ListBox.MenuItem
+                  key={itemProps.id}
+                  isActive={selectedItem === item}
+                  isHighlighted={
+                    highlightedIndex === index || selectedItem === item
+                  }
+                  title={itemToElement ? item.text : itemToString(item)}
+                  {...itemProps}>
+=======
+                <ListBox.MenuItem
+                  key={itemProps.id}
+                  isActive={selectedItem === item}
+                  isHighlighted={
+                    highlightedIndex === index || selectedItem === item
+                  }
+                  {...itemProps}>
+>>>>>>> REPLACE
+```
+
+This fix removes the redundant `title` attribute from the `ListBox.MenuItem` component. The text content inside the component already provides the necessary information for screen readers, so removing the `title` attribute will prevent VoiceOver from reading the same information twice.

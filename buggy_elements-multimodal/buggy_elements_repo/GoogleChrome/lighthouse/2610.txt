@@ -1,0 +1,61 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that the sizes listed under the Critical Request Chain (CRC) in Lighthouse reports are incorrect. Specifically, all listed sizes are the same (38.18KB), which does not match the actual sizes of the resources as shown in the second image. This indicates that the transfer size calculation or reporting for the CRC is flawed.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely lies in how the transfer sizes are calculated or reported within the CRC analysis. The problem could be due to:
+
+- Incorrect calculation of transfer sizes when building the CRC tree.
+- Incorrect propagation of transfer sizes through the CRC tree structure.
+- Incorrect rendering of transfer sizes in the final report.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### lighthouse-core/audits/critical-request-chains.js
+```
+lighthouse-core/audits/critical-request-chains.js
+class: CriticalRequestChains
+```
+This file contains the `CriticalRequestChains` class, which is responsible for analyzing and generating the critical request chains. The `_traverse` and `_getLongestChain` methods might be involved in calculating and collecting transfer sizes. The `audit` method generates the final report, so it could be responsible for the incorrect reporting of sizes.
+
+#### lighthouse-core/gather/computed/critical-request-chains.js
+```
+lighthouse-core/gather/computed/critical-request-chains.js
+class: CriticalRequestChains
+```
+This file contains the `CriticalRequestChains` class, which builds the tree of critical request chains. The `compute_` method constructs the tree structure, and it might be responsible for incorrectly calculating or propagating transfer sizes.
+
+#### lighthouse-core/gather/gatherers/chrome-console-messages.js
+```
+This file contains no relevant functions/classes.
+```
+This file is related to collecting console log messages and is not directly involved in calculating or reporting transfer sizes for CRC.
+
+#### lighthouse-core/lib/network-recorder.js
+```
+This file contains no relevant functions/classes.
+```
+This file is related to tracking network requests and their lifecycle but does not directly handle the calculation or reporting of transfer sizes for CRC.
+
+#### lighthouse-core/report/v2/renderer/crc-details-renderer.js
+```
+lighthouse-core/report/v2/renderer/crc-details-renderer.js
+class: CriticalRequestChainRenderer
+```
+This file contains the `CriticalRequestChainRenderer` class, which is responsible for rendering the CRC visualization. The `createChainNode` and `render` methods might be involved in incorrectly displaying the transfer sizes in the final report.
+
+### Summary of Relevant Locations
+
+1. ```
+   lighthouse-core/audits/critical-request-chains.js
+   class: CriticalRequestChains
+   ```
+2. ```
+   lighthouse-core/gather/computed/critical-request-chains.js
+   class: CriticalRequestChains
+   ```
+3. ```
+   lighthouse-core/report/v2/renderer/crc-details-renderer.js
+   class: CriticalRequestChainRenderer
+   ```

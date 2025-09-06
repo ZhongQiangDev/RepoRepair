@@ -1,0 +1,56 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about an Ad Hoc Collapsed Subprocess getting weird dimensions when a regular subprocess is collapsed and then converted to an Ad Hoc subprocess. Based on the GIF, it appears that the subprocess is incorrectly resizing when it's converted to an Ad Hoc subprocess.
+
+Looking at the `BpmnAutoResize.js` file, I notice that the current implementation doesn't have any special handling for Ad Hoc subprocesses. The issue likely occurs because when a subprocess is converted to an Ad Hoc subprocess, the auto-resize functionality doesn't properly account for this change.
+
+## Fix
+
+We need to modify the `resize` method in `BpmnAutoResize.js` to properly handle Ad Hoc subprocesses. The fix should check if the target is an Ad Hoc subprocess and ensure its dimensions are maintained appropriately.
+
+```javascript
+### lib/features/auto-resize/BpmnAutoResize.js
+<<<<<<< SEARCH
+/**
+ * Resize shapes and lanes.
+ *
+ * @param {djs.model.Shape} target
+ * @param {Bounds} newBounds
+ * @param {Object} hints
+ */
+BpmnAutoResize.prototype.resize = function(target, newBounds, hints) {
+
+  if (is(target, 'bpmn:Participant')) {
+    this._modeling.resizeLane(target, newBounds, null, hints);
+  } else {
+    this._modeling.resizeShape(target, newBounds, null, hints);
+  }
+};
+=======
+/**
+ * Resize shapes and lanes.
+ *
+ * @param {djs.model.Shape} target
+ * @param {Bounds} newBounds
+ * @param {Object} hints
+ */
+BpmnAutoResize.prototype.resize = function(target, newBounds, hints) {
+
+  if (is(target, 'bpmn:Participant')) {
+    this._modeling.resizeLane(target, newBounds, null, hints);
+  } else if (is(target, 'bpmn:SubProcess') && target.businessObject.isAdHoc) {
+    // For Ad Hoc subprocesses, preserve dimensions when collapsed
+    if (target.collapsed) {
+      return;
+    }
+    this._modeling.resizeShape(target, newBounds, null, hints);
+  } else {
+    this._modeling.resizeShape(target, newBounds, null, hints);
+  }
+};
+>>>>>>> REPLACE
+```
+
+This fix adds a special case for Ad Hoc subprocesses. When an Ad Hoc subprocess is collapsed, we skip the resize operation to preserve its dimensions. This should prevent the weird dimensions issue shown in the GIF when a subprocess is collapsed and then converted to an Ad Hoc subprocess.

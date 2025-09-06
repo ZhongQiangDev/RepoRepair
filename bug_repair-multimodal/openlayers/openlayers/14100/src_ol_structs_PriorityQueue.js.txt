@@ -1,0 +1,80 @@
+Looking at the issue, the problem is that tile requests for layers in a LayerGroup changed from concurrent (parallel) loading in version 6.1 to sequential loading in version 7.0. This suggests there's an issue with how the priority queue is handling elements with the same priority.
+
+The issue appears to be in the `siftUp_` method of the PriorityQueue class. When multiple elements have the same priority (which would be common for tiles in the same LayerGroup), the current implementation may not maintain the proper heap structure, potentially causing elements to be processed sequentially rather than allowing for concurrent processing.
+
+The problem is in the comparison logic in `siftUp_`. When priorities are equal, the current code doesn't handle this case properly, which can lead to suboptimal heap ordering and sequential processing.
+
+```javascript
+### src/ol/structs/PriorityQueue.js
+<<<<<<< SEARCH
+  /**
+   * @param {number} index The index of the node to move down.
+   * @private
+   */
+  siftUp_(index) {
+    const elements = this.elements_;
+    const priorities = this.priorities_;
+    const count = elements.length;
+    const element = elements[index];
+    const priority = priorities[index];
+    const startIndex = index;
+
+    while (index < count >> 1) {
+      const lIndex = this.getLeftChildIndex_(index);
+      const rIndex = this.getRightChildIndex_(index);
+
+      const smallerChildIndex =
+        rIndex < count && priorities[rIndex] < priorities[lIndex]
+          ? rIndex
+          : lIndex;
+
+      elements[index] = elements[smallerChildIndex];
+      priorities[index] = priorities[smallerChildIndex];
+      index = smallerChildIndex;
+    }
+
+    elements[index] = element;
+    priorities[index] = priority;
+    this.siftDown_(startIndex, index);
+  }
+=======
+  /**
+   * @param {number} index The index of the node to move down.
+   * @private
+   */
+  siftUp_(index) {
+    const elements = this.elements_;
+    const priorities = this.priorities_;
+    const count = elements.length;
+    const element = elements[index];
+    const priority = priorities[index];
+    const startIndex = index;
+
+    while (index < count >> 1) {
+      const lIndex = this.getLeftChildIndex_(index);
+      const rIndex = this.getRightChildIndex_(index);
+
+      const smallerChildIndex =
+        rIndex < count && priorities[rIndex] < priorities[lIndex]
+          ? rIndex
+          : lIndex;
+
+      if (priorities[smallerChildIndex] >= priority) {
+        break;
+      }
+
+      elements[index] = elements[smallerChildIndex];
+      priorities[index] = priorities[smallerChildIndex];
+      index = smallerChildIndex;
+    }
+
+    elements[index] = element;
+    priorities[index] = priority;
+    this.siftDown_(startIndex, index);
+  }
+>>>>>>> REPLACE
+```
+
+The key change is adding the condition `if (priorities[smallerChildIndex] >= priority) { break; }` before moving elements. This ensures that we only continue sifting down if the child actually has a smaller priority than the current element. Without this check, the algorithm was moving elements unnecessarily, which could disrupt the proper heap ordering and lead to sequential rather than concurrent processing of elements with equal priorities.
+
+This fix should restore the concurrent tile loading behavior that was present in version 6.1, allowing multiple tiles in a LayerGroup to be requested in parallel rather than sequentially.

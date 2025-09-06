@@ -1,0 +1,44 @@
+I'll analyze the issue and provide a fix.
+
+Based on the error message and the issue description, the problem occurs when trying to insert a gateway onto a flow, specifically when the code tries to access `segmentIndex` of an undefined `attachment` object. The error happens in the `getLabelAdjustment` function in `LabelLayoutUtil.js`.
+
+Looking at the code, I can see that in the `getLabelAdjustment` function, there's no check to ensure that the `attachment` object is defined before accessing its `segmentIndex` property. This is likely causing the error when certain conditions are met during the gateway insertion.
+
+Here's my fix:
+
+```javascript
+### lib/features/modeling/behavior/util/LabelLayoutUtil.js
+<<<<<<< SEARCH
+export function getLabelAdjustment(label, newWaypoints, oldWaypoints, hints) {
+
+  var x = 0,
+      y = 0;
+
+  var labelPosition = getLabelMid(label);
+
+  // get closest attachment
+  var attachment = getAttachment(labelPosition, oldWaypoints),
+      oldLabelLineIndex = attachment.segmentIndex,
+      newLabelLineIndex = findNewLabelLineStartIndex(oldWaypoints, newWaypoints, attachment, hints);
+=======
+export function getLabelAdjustment(label, newWaypoints, oldWaypoints, hints) {
+
+  var x = 0,
+      y = 0;
+
+  var labelPosition = getLabelMid(label);
+
+  // get closest attachment
+  var attachment = getAttachment(labelPosition, oldWaypoints);
+  
+  // return early if no attachment could be determined
+  if (!attachment) {
+    return { x: x, y: y };
+  }
+  
+  var oldLabelLineIndex = attachment.segmentIndex,
+      newLabelLineIndex = findNewLabelLineStartIndex(oldWaypoints, newWaypoints, attachment, hints);
+>>>>>>> REPLACE
+```
+
+This fix adds a check to ensure that the `attachment` object is defined before trying to access its properties. If `attachment` is undefined, the function returns early with the default adjustment values (no movement), preventing the error from occurring.

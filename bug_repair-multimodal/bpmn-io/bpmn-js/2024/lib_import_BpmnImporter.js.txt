@@ -1,0 +1,87 @@
+I'll analyze the issue and provide a fix for the vertical pool/lane label rendering problem.
+
+## Bug Analysis
+
+The issue is about vertical pools not being rendered correctly. When a pool is marked as vertical (`isHorizontal="false"` in the BPMN XML), the labels are still positioned as if the pool were horizontal, resulting in misplaced labels.
+
+Looking at the code, I can see that the `BpmnImporter` class handles importing BPMN elements, including their labels. However, it doesn't account for the orientation of pools when positioning labels.
+
+The bug is in the `addLabel` method of `BpmnImporter.js`. When getting the external label bounds, it doesn't consider whether the element is a vertical pool or lane.
+
+## Fix
+
+We need to modify the `addLabel` method to check if the element is a pool or lane and if it's vertical (not horizontal), and adjust the label positioning accordingly.
+
+```javascript
+### lib/import/BpmnImporter.js
+<<<<<<< SEARCH
+BpmnImporter.prototype.addLabel = function(semantic, di, element) {
+  var bounds,
+      text,
+      label;
+
+  bounds = getExternalLabelBounds(di, element);
+
+  text = getLabel(element);
+
+  if (text) {
+
+    // get corrected bounds from actual layouted text
+    bounds = this._textRenderer.getExternalLabelBounds(bounds, text);
+  }
+
+  label = this._elementFactory.createLabel(elementData(semantic, di, {
+    id: semantic.id + '_label',
+    labelTarget: element,
+    type: 'label',
+    hidden: element.hidden || !getLabel(element),
+    x: Math.round(bounds.x),
+    y: Math.round(bounds.y),
+    width: Math.round(bounds.width),
+    height: Math.round(bounds.height)
+  }));
+
+  return this._canvas.addShape(label, element.parent);
+};
+=======
+BpmnImporter.prototype.addLabel = function(semantic, di, element) {
+  var bounds,
+      text,
+      label;
+
+  bounds = getExternalLabelBounds(di, element);
+
+  text = getLabel(element);
+
+  if (text) {
+
+    // get corrected bounds from actual layouted text
+    bounds = this._textRenderer.getExternalLabelBounds(bounds, text);
+  }
+
+  // Check if the element is a vertical pool or lane
+  var isVertical = false;
+  if ((is(semantic, 'bpmn:Participant') || is(semantic, 'bpmn:Lane')) && di && di.isHorizontal === false) {
+    isVertical = true;
+  }
+
+  label = this._elementFactory.createLabel(elementData(semantic, di, {
+    id: semantic.id + '_label',
+    labelTarget: element,
+    type: 'label',
+    hidden: element.hidden || !getLabel(element),
+    x: Math.round(bounds.x),
+    y: Math.round(bounds.y),
+    width: Math.round(bounds.width),
+    height: Math.round(bounds.height),
+    isVertical: isVertical
+  }));
+
+  return this._canvas.addShape(label, element.parent);
+};
+>>>>>>> REPLACE
+```
+
+This change adds a check for vertical pools and lanes by examining the `isHorizontal` property of the DI element. If the element is a participant or lane and `isHorizontal` is explicitly set to `false`, we mark the label as vertical by adding an `isVertical` property to the label data.
+
+Note that this is only part of the solution. The rendering code that uses this information would also need to be updated to properly position the label based on the `isVertical` flag. However, that code is not included in the provided file segments, so I'm focusing on the part we can see.

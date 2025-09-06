@@ -1,0 +1,119 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the docking snapping functionality that was present in v3.x is no longer working in v4-beta. The issue shows that when moving elements that are connected, they should snap to their docking points, but this behavior is missing.
+
+Looking at the provided code, I notice that the `BpmnCreateMoveSnapping.js` file is missing the implementation of the constructor function and any docking-related snapping functionality. The class inherits from `CreateMoveSnapping` but doesn't appear to override or extend any methods to handle the docking snapping behavior.
+
+Here's my fix:
+
+```javascript
+### lib/features/snapping/BpmnCreateMoveSnapping.js
+<<<<<<< SEARCH
+/**
+ * Snap during create and move.
+ *
+ * @param {BpmnRules} bpmnRules
+ * @param {EventBus} eventBus
+ * @param {Injector} injector
+ */
+
+
+inherits(BpmnCreateMoveSnapping, CreateMoveSnapping);
+
+BpmnCreateMoveSnapping.$inject = [
+  'bpmnRules',
+  'eventBus',
+  'injector'
+];
+
+
+=======
+/**
+ * Snap during create and move.
+ *
+ * @param {BpmnRules} bpmnRules
+ * @param {EventBus} eventBus
+ * @param {Injector} injector
+ */
+function BpmnCreateMoveSnapping(bpmnRules, eventBus, injector) {
+  CreateMoveSnapping.call(this, eventBus);
+
+  var self = this;
+
+  eventBus.on([
+    'create.move',
+    'create.end',
+    'shape.move.move',
+    'shape.move.end'
+  ], HIGH_PRIORITY, function(event) {
+    var context = event.context,
+        canExecute = context.canExecute,
+        target = context.target;
+
+    var snapContext = context.snapContext;
+
+    if (canExecute === false || !target) {
+      return;
+    }
+
+    if (context.shape) {
+      self.snapShape(event, snapContext);
+    }
+  });
+
+  eventBus.on([
+    'shape.move.move',
+    'shape.move.end'
+  ], HIGH_PRIORITY, function(event) {
+    var snapContext = event.context.snapContext;
+
+    self.snapDocking(event, snapContext);
+  });
+}
+
+inherits(BpmnCreateMoveSnapping, CreateMoveSnapping);
+
+BpmnCreateMoveSnapping.$inject = [
+  'bpmnRules',
+  'eventBus',
+  'injector'
+];
+
+/**
+ * Snap shape to docking points.
+ *
+ * @param {Event} event
+ * @param {SnapContext} snapContext
+ */
+BpmnCreateMoveSnapping.prototype.snapDocking = function(event, snapContext) {
+  var context = event.context,
+      shape = context.shape,
+      target = context.target,
+      position = {
+        x: event.x,
+        y: event.y
+      };
+
+  if (!target || !target.host || isSnapped(event, 'x') || isSnapped(event, 'y')) {
+    return;
+  }
+
+  var shapeTrbl = asTRBL(shape);
+
+  var attachPosition = getBoundaryAttachment(position, target, shapeTrbl);
+
+  if (attachPosition) {
+    if (!isSnapped(event, 'x')) {
+      setSnapped(event, 'x', attachPosition.x);
+    }
+
+    if (!isSnapped(event, 'y')) {
+      setSnapped(event, 'y', attachPosition.y);
+    }
+  }
+};
+
+>>>>>>> REPLACE
+```
+
+This fix adds the missing constructor function and implements the `snapDocking` method that was missing from the provided code. The constructor sets up event listeners for move events, and the `snapDocking` method handles the actual snapping to docking points. This should restore the docking snapping behavior that was present in v3.x.

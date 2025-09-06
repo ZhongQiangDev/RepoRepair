@@ -1,0 +1,29 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the problem is that XML tags with single-letter namespace prefixes (like `<a:FAIL>`) are not being highlighted correctly since version 10.4.0. Looking at the code, I can see that the issue is in the regular expression that defines the tag name pattern.
+
+The current implementation uses:
+```javascript
+const TAG_NAME_RE = regex.concat(/[A-Z_]/, regex.optional(/[A-Z0-9_.-]+:/), /[A-Z0-9_.-]*/);
+```
+
+This pattern expects either:
+1. A tag without a namespace prefix, or
+2. A tag with a namespace prefix that has at least 2 characters (due to the `+` in `/[A-Z0-9_.-]+:/`)
+
+This is why single-letter namespace prefixes like `a:` aren't being highlighted correctly.
+
+Here's the fix:
+
+```javascript
+### src/languages/xml.js
+<<<<<<< SEARCH
+  // Element names can contain letters, digits, hyphens, underscores, and periods
+  const TAG_NAME_RE = regex.concat(/[A-Z_]/, regex.optional(/[A-Z0-9_.-]+:/), /[A-Z0-9_.-]*/);
+=======
+  // Element names can contain letters, digits, hyphens, underscores, and periods
+  const TAG_NAME_RE = regex.concat(/[A-Z_]/, regex.optional(/[A-Z0-9_.-]*:/), /[A-Z0-9_.-]*/);
+>>>>>>> REPLACE
+```
+
+This change replaces the `+` quantifier with `*` in the namespace prefix part of the regex, allowing for single-letter namespace prefixes like `a:` to be properly matched and highlighted.

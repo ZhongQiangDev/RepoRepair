@@ -1,0 +1,35 @@
+Based on the issue description, the bug is in the `_set_lim` method of the `Axis` class. The issue is that when setting axis limits with shared axes, the `xlim_changed` callback is not emitted for the shared axes because `emit=False` is passed when updating them.
+
+The fix is to move the callback processing outside of the `if emit:` block so that callbacks are always triggered regardless of the emit flag. Here's the edit:
+
+```python
+### lib/matplotlib/axis.py
+<<<<<<< SEARCH
+        if emit:
+            self.callbacks.process('xlim_changed', self)
+            # Call all of the other x-axes that are shared with this one
+            for other in self._shared_x_axes.get_siblings(self):
+                if other is not self:
+                    other.set_xlim(self.viewLim.intervalx,
+                                   emit=False, auto=auto)
+=======
+        # Process callbacks regardless of emit flag
+        self.callbacks.process('xlim_changed', self)
+        if emit:
+            # Call all of the other x-axes that are shared with this one
+            for other in self._shared_x_axes.get_siblings(self):
+                if other is not self:
+                    other.set_xlim(self.viewLim.intervalx,
+                                   emit=False, auto=auto)
+>>>>>>> REPLACE
+```
+
+This change ensures that the `xlim_changed` callback is always processed when limits are changed, while still preventing infinite recursion by using `emit=False` when propagating changes to shared axes.
+
+The fix moves the callback processing outside the `emit` condition while keeping the shared axis updates inside it. This way:
+
+1. The callback is always triggered when limits change
+2. The shared axis updates still use `emit=False` to prevent recursion
+3. Each axis will process its own callbacks when its limits are changed
+
+This addresses the issue while maintaining the necessary recursion prevention.

@@ -1,0 +1,100 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about slider monitors in Scratch 3.0. In Scratch 2.0, users could right-click a slider monitor to change its minimum and maximum values, but in Scratch 3.0, the range is fixed to 0-100 for monitors created in 3.0 (although it imports custom ranges from 2.0 projects).
+
+Looking at the code, I can see that the `Monitor` component already receives `min` and `max` props and passes them to the `MonitorComponent`, but there's no functionality to change these values. We need to add handlers to update the min and max values of a slider monitor.
+
+## Solution
+
+We need to:
+1. Add handler methods for updating min and max values
+2. Bind these methods in the constructor
+3. Pass these handlers to the MonitorComponent
+
+Here's the fix:
+
+```javascript
+### src/containers/monitor.jsx
+<<<<<<< SEARCH
+    constructor (props) {
+        super(props);
+        bindAll(this, [
+            'handleDragEnd',
+            'handleNextMode',
+            'handleSetModeToDefault',
+            'handleSetModeToLarge',
+            'handleSetModeToSlider',
+            'handleImport',
+            'handleExport',
+            'setElement'
+        ]);
+    }
+=======
+    constructor (props) {
+        super(props);
+        bindAll(this, [
+            'handleDragEnd',
+            'handleNextMode',
+            'handleSetModeToDefault',
+            'handleSetModeToLarge',
+            'handleSetModeToSlider',
+            'handleImport',
+            'handleExport',
+            'handleChangeMinMax',
+            'setElement'
+        ]);
+    }
+>>>>>>> REPLACE
+```
+
+Now let's add the handler method for changing min and max values:
+
+```javascript
+### src/containers/monitor.jsx
+<<<<<<< SEARCH
+    handleExport () {
+        const {vm, targetId, id: variableId} = this.props;
+        const variable = getVariable(vm, targetId, variableId);
+        const text = variable.value.join('\r\n');
+        const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+        downloadBlob(`${variable.name}.txt`, blob);
+    }
+=======
+    handleExport () {
+        const {vm, targetId, id: variableId} = this.props;
+        const variable = getVariable(vm, targetId, variableId);
+        const text = variable.value.join('\r\n');
+        const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+        downloadBlob(`${variable.name}.txt`, blob);
+    }
+    handleChangeMinMax (min, max) {
+        this.props.vm.runtime.requestUpdateMonitor(Map({
+            id: this.props.id,
+            min,
+            max
+        }));
+    }
+>>>>>>> REPLACE
+```
+
+Finally, let's pass this handler to the MonitorComponent:
+
+```javascript
+### src/containers/monitor.jsx
+<<<<<<< SEARCH
+                onNextMode={this.handleNextMode}
+                onSetModeToDefault={isList ? null : this.handleSetModeToDefault}
+                onSetModeToLarge={isList ? null : this.handleSetModeToLarge}
+                onSetModeToSlider={showSliderOption ? this.handleSetModeToSlider : null}
+=======
+                onNextMode={this.handleNextMode}
+                onSetModeToDefault={isList ? null : this.handleSetModeToDefault}
+                onSetModeToLarge={isList ? null : this.handleSetModeToLarge}
+                onSetModeToSlider={showSliderOption ? this.handleSetModeToSlider : null}
+                onChangeMinMax={this.handleChangeMinMax}
+>>>>>>> REPLACE
+```
+
+These changes add the necessary functionality to update the min and max values of a slider monitor. The `MonitorComponent` will need to implement the UI for changing these values (like a right-click menu option), but that would be in a different file. This change provides the handler that will be called when the user wants to change the min/max values.

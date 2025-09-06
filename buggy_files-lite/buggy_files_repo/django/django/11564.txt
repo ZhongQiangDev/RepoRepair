@@ -1,0 +1,29 @@
+I'll analyze the problem and identify the most relevant files that would need to be edited to fix the issue.
+
+## Identifying the Wrong Behavior
+The problem is that Django doesn't properly handle `SCRIPT_NAME` (the WSGI parameter for applications running on a sub-path) when generating URLs for static and media files. When a Django application is deployed on a sub-path (e.g., at `/myapp/` instead of the root `/`), the static URLs don't include this prefix, resulting in incorrect URLs.
+
+## Analyzing the Cause
+The issue occurs because:
+1. The `{% static %}` template tag simply appends paths to `STATIC_URL` without considering `SCRIPT_NAME`
+2. The `FileSystemStorage` and `StaticFilesStorage` classes ignore `SCRIPT_NAME` when generating URLs
+3. Django doesn't automatically incorporate the WSGI `SCRIPT_NAME` parameter into the URL generation process
+
+## Most Related Files
+Based on the repository information, here are the most important files that would need to be modified:
+
+```
+django/templatetags/static.py
+django/contrib/staticfiles/storage.py
+django/core/handlers/wsgi.py
+django/contrib/staticfiles/views.py
+django/contrib/staticfiles/handlers.py
+```
+
+The `django/templatetags/static.py` file contains the `StaticNode` class that generates URLs for static files in templates, which needs to be updated to consider `SCRIPT_NAME`.
+
+The `django/contrib/staticfiles/storage.py` file contains the storage classes that need to be modified to respect `SCRIPT_NAME` when generating URLs.
+
+The `django/core/handlers/wsgi.py` file contains the WSGI request handling code where `SCRIPT_NAME` is processed.
+
+The `django/contrib/staticfiles/views.py` and `django/contrib/staticfiles/handlers.py` files contain code for serving static files that would need to be updated to properly handle `SCRIPT_NAME`.

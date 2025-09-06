@@ -1,0 +1,58 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when creating a new task from an existing one, the diagram contains an illegal `waypoints` property on a `sequenceFlow` element in the XML. The waypoints are being serialized as the string "[object Object],[object Object],[object Object],[object Object]" instead of being properly handled.
+
+Looking at the code in `BpmnFactory.js`, I can see that there's a `createDiWaypoints` method that handles waypoints, but there seems to be an issue with how these waypoints are being processed when they're added to the sequenceFlow element.
+
+The problem is likely that the waypoints objects are being directly assigned to an attribute of the sequenceFlow element, rather than being properly processed or omitted from serialization.
+
+## Fix
+
+We need to modify the code to ensure that waypoints aren't directly serialized as an attribute on the sequenceFlow element. Since the issue occurs in the BpmnFactory, we need to ensure that waypoints are properly handled when creating or updating elements.
+
+```javascript
+### lib/features/modeling/BpmnFactory.js
+<<<<<<< SEARCH
+BpmnFactory.prototype.createDiWaypoints = function(waypoints) {
+  var self = this;
+
+  return map(waypoints, function(pos) {
+    return self.createDiWaypoint(pos);
+  });
+};
+=======
+BpmnFactory.prototype.createDiWaypoints = function(waypoints) {
+  var self = this;
+
+  return map(waypoints, function(pos) {
+    return self.createDiWaypoint(pos);
+  });
+};
+
+/**
+ * Create a bpmn element with the given type and
+ * a number of pre-set attributes.
+ *
+ * @param  {String} type
+ * @param  {Object} attrs
+ * @return {djs.model.Base} the newly created element
+ */
+BpmnFactory.prototype.create = function(type, attrs) {
+  var elementAttrs = assign({}, attrs);
+
+  // remove waypoints attribute from attrs
+  // so they're not serialized as an attribute
+  if (elementAttrs.waypoints) {
+    delete elementAttrs.waypoints;
+  }
+
+  return this.moddle.create(type, elementAttrs);
+};
+>>>>>>> REPLACE
+```
+
+This fix adds a `create` method to the `BpmnFactory` prototype that ensures waypoints are removed from the attributes before creating a BPMN element. This prevents waypoints from being serialized as an attribute on the sequenceFlow element.
+
+Note: If the `create` method already exists elsewhere in the file (which isn't shown in the provided code segment), we would need to modify that existing method instead of adding a new one. The key part is ensuring that waypoints are removed from the attributes before element creation.

@@ -1,0 +1,45 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a Call Activity is transformed into a SubProcess, the shape doesn't resize properly. According to the steps:
+
+1. A task is created
+2. The task is turned into a call activity
+3. The call activity is turned into an expanded sub-process
+4. The resulting element visually still looks like a task (it doesn't resize to the proper dimensions for a sub-process)
+
+Looking at the code, the problem appears to be in the `ElementFactory.js` file. When elements are transformed, the code should update the size of the element based on its new type. The `getDefaultSize` method correctly defines different sizes for different element types, including expanded sub-processes, but this size isn't being applied when transforming a call activity to a sub-process.
+
+The issue is that when a call activity is transformed into a sub-process, the code doesn't update the element's dimensions to match the default size for an expanded sub-process.
+
+## Fix
+
+```javascript
+### lib/features/modeling/ElementFactory.js
+<<<<<<< SEARCH
+  if (is(businessObject, 'bpmn:SubProcess')) {
+    attrs.collapsed = !isExpanded(businessObject, di);
+  }
+=======
+  if (is(businessObject, 'bpmn:SubProcess')) {
+    var isCollapsed = !isExpanded(businessObject, di);
+    attrs.collapsed = isCollapsed;
+    
+    // Apply the correct size when creating or transforming to a SubProcess
+    if (!attrs.width || !attrs.height) {
+      if (isCollapsed) {
+        attrs.width = 100;
+        attrs.height = 80;
+      } else {
+        attrs.width = 350;
+        attrs.height = 200;
+      }
+    }
+  }
+>>>>>>> REPLACE
+```
+
+This fix ensures that when an element is transformed into a SubProcess, it gets the correct dimensions based on whether it's collapsed or expanded. The original code was only setting the `collapsed` attribute but wasn't updating the actual dimensions of the shape. 
+
+The fix checks if width and height are already specified (which they might not be during a transformation), and if not, it applies the appropriate dimensions based on whether the subprocess is collapsed or expanded. This matches the dimensions defined in the `getDefaultSize` method.

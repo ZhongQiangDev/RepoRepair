@@ -1,0 +1,58 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that after drawing a polygon in OpenLayers 5.3.0, the map sometimes can't be dragged anymore. This only happens after completing a drawing (on drawend event). The user mentioned that rolling back to OpenLayers 4.6.5 fixed the issue.
+
+Looking at the code, I notice that the map drag interaction is likely conflicting with the draw interaction. The issue specifically mentions using an "altkeyonly condition" for dragging, but this isn't set up in the provided code.
+
+The problem is that after drawing ends, the draw interaction might still be capturing some events that should be handled by the map's drag interaction. We need to ensure that the draw interaction properly cleans up after itself when drawing ends.
+
+## Fix
+
+We need to modify the `addInteraction()` function to:
+1. Set up proper event handling for the draw interaction
+2. Ensure the map can be dragged after drawing ends
+
+```javascript
+### examples/draw-features.js
+<<<<<<< SEARCH
+let draw; // global so we can remove it later
+function addInteraction() {
+  const value = typeSelect.value;
+  if (value !== 'None') {
+    draw = new Draw({
+      source: source,
+      type: typeSelect.value
+    });
+    map.addInteraction(draw);
+  }
+}
+=======
+let draw; // global so we can remove it later
+function addInteraction() {
+  const value = typeSelect.value;
+  if (value !== 'None') {
+    draw = new Draw({
+      source: source,
+      type: typeSelect.value
+    });
+    
+    // Add event listener for drawend to ensure map can be dragged after drawing
+    draw.on('drawend', function() {
+      // Small delay to ensure proper event cleanup
+      setTimeout(function() {
+        // Force map to refresh its interactions
+        map.updateSize();
+      }, 0);
+    });
+    
+    map.addInteraction(draw);
+  }
+}
+>>>>>>> REPLACE
+```
+
+This fix adds an event listener to the `drawend` event of the draw interaction. When drawing ends, it uses a small timeout to ensure proper event cleanup and then calls `map.updateSize()` to force the map to refresh its interactions. This should resolve the issue where the map can't be dragged after completing a polygon drawing.
+
+The timeout is necessary to ensure that all internal event handling in OpenLayers has completed before we attempt to refresh the map's state.

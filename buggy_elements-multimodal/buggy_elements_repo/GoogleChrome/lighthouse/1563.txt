@@ -1,0 +1,49 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that the Lighthouse audit is including irrelevant user timing marks, such as those injected by Google Ads. These marks are cluttering the audit results and making it difficult to focus on the relevant performance metrics.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue is likely related to the filtering mechanism used by the `UserTimings` class in `lighthouse-core/audits/user-timings.js`. The `blacklistedPrefixes` property is intended to filter out unwanted third-party marks and measures, but it seems that the current list of blacklisted prefixes is not sufficient to exclude the Google Ads marks. This could be due to the prefixes used by Google Ads not being included in the `blacklistedPrefixes` array, or the filtering logic in the `excludeBlacklisted` method not being robust enough to handle all cases.
+
+### 3. Examine Each File One by One
+
+#### `lighthouse-core/audits/user-timings.js`
+This file contains the `UserTimings` class, which is directly related to the issue. The `blacklistedPrefixes` property and the `excludeBlacklisted` method are key components that need to be inspected and potentially edited to fix the problem.
+
+```
+lighthouse-core/audits/user-timings.js
+class: UserTimings
+```
+
+#### `lighthouse-core/formatters/user-timings.js`
+This file contains the `UserTimings` class, which is responsible for formatting user timing events. While this class is related to the presentation of the user timing data, it does not directly handle the filtering of irrelevant marks. Therefore, it is not directly relevant to the cause of the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `lighthouse-core/lib/network-recorder.js`
+This file contains the `NetworkRecorder` class, which is related to tracking network requests. It does not handle user timing events or their filtering, so it is not relevant to the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `lighthouse-core/lib/traces/devtools-timeline-model.js`
+This file contains the `TimelineModel` class, which processes tracing data. While it is part of the overall performance analysis, it does not directly handle the filtering of user timing marks. Therefore, it is not directly relevant to the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `lighthouse-core/lib/traces/tracing-processor.js`
+This file contains the `TraceProcessor` class and some utility functions. The `TraceProcessor` class is involved in processing trace data, but it does not handle the specific filtering of user timing marks. Therefore, it is not directly relevant to the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+### Summary
+
+The only file that contains relevant functions or classes for fixing the issue is `lighthouse-core/audits/user-timings.js`. The `UserTimings` class, specifically the `blacklistedPrefixes` property and the `excludeBlacklisted` method, need to be inspected and potentially edited to ensure that irrelevant user timing marks, such as those injected by Google Ads, are properly filtered out.

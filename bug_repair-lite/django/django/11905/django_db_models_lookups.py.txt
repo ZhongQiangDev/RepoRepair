@@ -1,0 +1,45 @@
+Based on the issue description, the bug is in the `IsNull` lookup class where it doesn't validate that the right-hand side value (`rhs`) is a boolean. Currently, it accepts any truthy/falsey values, which can lead to confusion and inconsistency.
+
+Here's the fix that adds validation for boolean values:
+
+```python
+### django/db/models/lookups.py
+<<<<<<< SEARCH
+class IsNull(BuiltinLookup):
+    lookup_name = 'isnull'
+    prepare_rhs = False
+
+    def as_sql(self, compiler, connection):
+        sql, params = compiler.compile(self.lhs)
+        if self.rhs:
+            return "%s IS NULL" % sql, params
+        else:
+            return "%s IS NOT NULL" % sql, params
+=======
+class IsNull(BuiltinLookup):
+    lookup_name = 'isnull'
+    prepare_rhs = False
+
+    def get_prep_lookup(self):
+        if not isinstance(self.rhs, bool):
+            raise ValueError(
+                'The QuerySet value for an isnull lookup must be True or False.'
+            )
+        return self.rhs
+
+    def as_sql(self, compiler, connection):
+        sql, params = compiler.compile(self.lhs)
+        if self.rhs:
+            return "%s IS NULL" % sql, params
+        else:
+            return "%s IS NOT NULL" % sql, params
+>>>>>>> REPLACE
+```
+
+The changes:
+
+1. Added a `get_prep_lookup()` method that validates the right-hand side value (`self.rhs`)
+2. Added a type check using `isinstance(self.rhs, bool)` to ensure only boolean values are accepted
+3. Added an informative error message when a non-boolean value is provided
+
+This change will now raise a `ValueError` if someone tries to use a non-boolean value with the `__isnull` lookup, making the behavior more explicit and consistent.

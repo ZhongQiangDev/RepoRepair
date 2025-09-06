@@ -1,0 +1,118 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about connecting message flows to pool boundaries. When a pool has had more than one lane in the past (even if it now has only one lane), it becomes difficult to connect a message flow to the pool's body - it only works when connecting to the pool's header.
+
+Looking at the provided code, the issue is likely in the `DropOnFlowBehavior.js` file. However, this file doesn't directly handle the connection of message flows to pools. The issue is probably related to how the system determines valid connection points after a lane has been added and then removed.
+
+The problem is that the code doesn't properly check if a point is inside a shape's bounds. The function `isPointInsideBBox` is referenced but not defined in the provided code. This function is crucial for determining if a connection point is valid.
+
+## Fix
+
+I need to add the missing `isPointInsideBBox` function to properly check if a point is inside a shape's bounding box. This function should check if a point is within the boundaries of a shape.
+
+```javascript
+### lib/features/modeling/behavior/DropOnFlowBehavior.js
+<<<<<<< SEARCH
+import {
+  getApproxIntersection
+} from 'diagram-js/lib/util/LineIntersection';
+
+=======
+import {
+  getApproxIntersection
+} from 'diagram-js/lib/util/LineIntersection';
+
+import {
+  asTRBL
+} from 'diagram-js/lib/layout/LayoutUtil';
+
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/modeling/behavior/DropOnFlowBehavior.js
+<<<<<<< SEARCH
+      // if last waypointBefore is inside shape's bounds, ignore docking point
+      if (!isPointInsideBBox(shape, waypointsBefore[waypointsBefore.length-1])) {
+        waypointsBefore.push(copy(dockingPoint));
+      }
+
+      // if first waypointAfter is inside shape's bounds, ignore docking point
+      if (!isPointInsideBBox(shape, waypointsAfter[0])) {
+        waypointsAfter.unshift(copy(dockingPoint));
+      }
+=======
+      // if last waypointBefore is inside shape's bounds, ignore docking point
+      if (!isPointInsideBBox(shape, waypointsBefore[waypointsBefore.length-1])) {
+        waypointsBefore.push(copy(dockingPoint));
+      }
+
+      // if first waypointAfter is inside shape's bounds, ignore docking point
+      if (!isPointInsideBBox(shape, waypointsAfter[0])) {
+        waypointsAfter.unshift(copy(dockingPoint));
+      }
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/modeling/behavior/DropOnFlowBehavior.js
+<<<<<<< SEARCH
+inherits(DropOnFlowBehavior, CommandInterceptor);
+
+DropOnFlowBehavior.$inject = [
+  'eventBus',
+  'bpmnRules',
+  'modeling'
+];
+
+
+
+
+
+
+
+
+
+
+
+=======
+inherits(DropOnFlowBehavior, CommandInterceptor);
+
+DropOnFlowBehavior.$inject = [
+  'eventBus',
+  'bpmnRules',
+  'modeling'
+];
+
+// helpers //////////////////////
+
+function isPointInsideBBox(shape, point) {
+  var bbox = asTRBL(shape);
+  
+  return point.x >= bbox.left &&
+         point.x <= bbox.right &&
+         point.y >= bbox.top &&
+         point.y <= bbox.bottom;
+}
+
+function copy(obj) {
+  return assign({}, obj);
+}
+
+function getMid(shape) {
+  return {
+    x: shape.x + shape.width / 2,
+    y: shape.y + shape.height / 2
+  };
+}
+>>>>>>> REPLACE
+```
+
+The fix adds:
+1. Import for `asTRBL` from LayoutUtil to help with bounding box calculations
+2. Implementation of the missing `isPointInsideBBox` function that checks if a point is inside a shape's bounding box
+3. Implementation of the missing `copy` and `getMid` helper functions that were referenced but not defined
+
+These changes should fix the issue by properly determining when a point is inside a shape's bounds, which is crucial for connecting message flows to pool boundaries, especially after lane modifications.

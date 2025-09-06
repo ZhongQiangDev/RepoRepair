@@ -1,0 +1,42 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description and the screenshot, the problem is that when setting `timePanelProps.defaultValue`, the DatePicker2 component shows "Invalid Date". Looking at the code, I can see the issue is in the `DatePanel` component's constructor.
+
+The bug is in how the `defaultTime` is being processed. When `timePanelProps.defaultValue` is provided, it's being converted to a date object using `datejs()`, but there's no validation to ensure it's a valid date. If the conversion fails, it results in an invalid date being stored in the state.
+
+Here's the fix:
+
+```javascript
+### src/date-picker2/panels/date-panel.jsx
+<<<<<<< SEARCH
+        let defaultTime = timePanelProps.defaultValue;
+        if (defaultTime) {
+            defaultTime = datejs(defaultTime, timePanelProps.format || 'HH:mm:ss');
+        }
+
+        this.state = {
+            defaultTime,
+        };
+=======
+        let defaultTime = null;
+        if (timePanelProps.defaultValue) {
+            defaultTime = datejs(timePanelProps.defaultValue, timePanelProps.format || 'HH:mm:ss');
+            // Check if the date is valid
+            if (!defaultTime.isValid()) {
+                defaultTime = null;
+            }
+        }
+
+        this.state = {
+            defaultTime,
+        };
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Initializes `defaultTime` as null
+2. Only attempts to convert `timePanelProps.defaultValue` if it exists
+3. Adds validation to check if the resulting date is valid using the `isValid()` method
+4. Sets `defaultTime` to null if the date is invalid
+
+This will prevent the "Invalid Date" from being displayed when an invalid date format is provided in `timePanelProps.defaultValue`.

@@ -1,0 +1,28 @@
+Based on the issue description, the bug occurs when trying to create a Point2D with `evaluate(False)` using `sp.S('Point2D(Integer(1),Integer(2))')`. The error message indicates that it's incorrectly detecting imaginary coordinates when they are actually real integers.
+
+Looking at the code, the issue is in the `Point.__new__` method where it checks for imaginary coordinates. The check `if any(a.is_number and im(a) for a in coords)` is too aggressive - it's checking if coordinates are imaginary before they are properly evaluated.
+
+Here's the fix:
+
+```python
+### sympy/geometry/point.py
+<<<<<<< SEARCH
+        if any(a.is_number and im(a) for a in coords):
+            raise ValueError('Imaginary coordinates are not permitted.')
+        if not all(isinstance(a, Expr) for a in coords):
+            raise TypeError('Coordinates must be valid SymPy expressions.')
+=======
+        if not all(isinstance(a, Expr) for a in coords):
+            raise TypeError('Coordinates must be valid SymPy expressions.')
+        if evaluate and any(a.is_number and im(a) for a in coords):
+            raise ValueError('Imaginary coordinates are not permitted.')
+>>>>>>> REPLACE
+```
+
+The fix moves the imaginary coordinate check after the expression type check and only performs it when `evaluate=True`. This allows unevaluated expressions to pass through without triggering the imaginary coordinate check prematurely.
+
+The key changes are:
+1. Reordered the checks so type checking happens first
+2. Added `evaluate and` condition to the imaginary check so it only runs when evaluation is enabled
+
+This should allow `sp.S('Point2D(Integer(1),Integer(2))')` to work properly with `evaluate(False)` since the imaginary coordinate check will be skipped in that case.

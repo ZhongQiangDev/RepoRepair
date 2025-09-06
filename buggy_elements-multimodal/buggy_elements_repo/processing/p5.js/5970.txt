@@ -1,0 +1,47 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that a square created using `p5.Geometry` with lighting enabled does not render on an Android smartphone, while it renders correctly on a note PC. This issue seems to be related to how WebGL handles vertex attributes and buffers when switching between different types of drawing operations (textured vs. untextured).
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of the issue is likely due to the WebGL state not being properly reset or cleaned up between drawing operations. Specifically, when a textured triangle is drawn first, it leaves some vertex attribute registers in a state that is not compatible with the subsequent drawing of an untextured square. This can lead to insufficient data being provided for the square's vertices, causing the rendering to fail on certain devices like the Android smartphone.
+
+### 3. Examine Each File One by One
+
+#### --- src/webgl/p5.RenderBuffer.js ---
+This file contains no relevant functions/classes.
+
+#### --- src/webgl/p5.RendererGL.js ---
+```
+src/webgl/p5.RendererGL.js
+function: function_2
+function: function_49
+function: function_51
+function: function_52
+function: function_53
+```
+
+- `function_2`: This function is responsible for defining stroke join enums, which is not directly related to the issue.
+- `function_49`: This function sets fill uniforms, which could be relevant if there are issues with how material properties are being set for the square.
+- `function_51`: This function binds buffers, which is crucial for ensuring that the correct vertex data is being used for rendering. If the buffer is not properly bound or cleaned up, it could lead to the issue described.
+- `function_52`: This function checks if two arrays are equal, which might be used for comparing vertex data but is not directly related to the issue.
+- `function_53`: This function checks if an array is a typed array, which is relevant for ensuring that vertex data is in the correct format.
+
+#### --- src/webgl/p5.Shader.js ---
+```
+src/webgl/p5.Shader.js
+function: function_20
+function: function_2
+function: function_20
+function: function_3
+function: function_4
+```
+
+- `function_20`: This function enables vertex attributes, which is crucial for ensuring that the correct attributes are enabled for rendering. If attributes are not properly enabled or disabled, it could lead to the issue described.
+- `function_2`: This function initializes the shader program, which is relevant for ensuring that the shader is properly set up for rendering.
+- `function_3`: This function loads attributes, which is relevant for ensuring that the correct attributes are loaded for rendering.
+- `function_4`: This function loads uniforms, which is relevant for ensuring that the correct uniforms are loaded for rendering.
+
+### Summary
+
+The issue appears to be related to how vertex attributes and buffers are managed between different drawing operations. The relevant functions and classes are primarily found in `p5.RendererGL.js` and `p5.Shader.js`, specifically those related to buffer binding, attribute enabling/disabling, and shader initialization.

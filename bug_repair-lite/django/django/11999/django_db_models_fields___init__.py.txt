@@ -1,0 +1,29 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that in Django 2.2+, users can't override the `get_FIELD_display()` method for model fields with choices. According to the issue description, in Django 2.1 this worked, but in 2.2 it doesn't.
+
+Looking at the code, I found the problem in the `contribute_to_class` method of the `Field` class. When a field with choices is added to a model, Django creates a method called `get_FIELD_display()` to display the human-readable value for the field. The issue is that this method is being created unconditionally, overriding any existing method with the same name that the user might have defined.
+
+## Fix
+
+We need to modify the `contribute_to_class` method to check if the method already exists before creating it. This way, if a user has defined their own `get_FIELD_display()` method, it won't be overridden.
+
+```python
+### django/db/models/fields/__init__.py
+<<<<<<< SEARCH
+        if self.choices is not None:
+            setattr(cls, 'get_%s_display' % self.name,
+                    partialmethod(cls._get_FIELD_display, field=self))
+=======
+        if self.choices is not None:
+            # Only set the get_xxx_display method if it doesn't already exist
+            get_display_method_name = 'get_%s_display' % self.name
+            if not hasattr(cls, get_display_method_name):
+                setattr(cls, get_display_method_name,
+                        partialmethod(cls._get_FIELD_display, field=self))
+>>>>>>> REPLACE
+```
+
+This change checks if the method already exists before setting it, allowing users to override the method with their own implementation.

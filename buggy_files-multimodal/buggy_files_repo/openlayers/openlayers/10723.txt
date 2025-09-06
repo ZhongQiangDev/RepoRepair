@@ -1,0 +1,29 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue with graticule display when the view projection crosses the dateline.
+
+## 1. Identifying the Wrong Behavior
+The graticule (grid of meridians and parallels) doesn't display correctly when the map projection crosses the international date line (180°/-180° longitude). Specifically:
+- Most meridians (longitude lines) don't appear
+- Parallels (latitude lines) either begin at the dateline and/or extend too far
+
+## 2. Analyzing the Cause
+The issue occurs because:
+1. When a projection crosses the dateline, the coordinate system wraps around, causing discontinuities
+2. The current implementation doesn't properly handle this wrapping behavior
+3. The problem is that proj4 returns normalized longitudes (between -180 and 180), which makes it difficult to extend lines across the dateline
+4. The code needs to determine which side of the dateline the majority of the projection is on and adjust the rendering accordingly
+
+## 3. Files Most Related to the Cause
+
+```
+src/ol/layer/Graticule.js
+src/ol/geom/flat/geodesic.js
+src/ol/proj.js
+src/ol/extent.js
+src/ol/coordinate.js
+```
+
+The `src/ol/layer/Graticule.js` file is the most important as it contains the main implementation of the graticule layer and is responsible for generating the meridians and parallels. The issue is likely in how it handles projections that cross the dateline.
+
+The `src/ol/geom/flat/geodesic.js` file is next most important as it contains functions for generating geodesic lines like meridians and parallels, which need to properly handle the dateline crossing.
+
+The remaining files provide supporting functionality for coordinate transformations, extent handling, and coordinate manipulation that would be needed to fix the issue with dateline crossing.

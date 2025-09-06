@@ -1,0 +1,37 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when using browser navigation (back/forward buttons), the sorting arrow icon in the DataTable header doesn't update to reflect the sorting parameters stored in the URL. 
+
+Looking at the code, I can see that the DataTable component initializes the sort state from the `sortProp` prop, but it doesn't update this state when the `sortProp` changes after the initial render. This is why the arrows don't update when navigating with browser buttons - the URL changes, but the component doesn't react to the new sort parameters.
+
+## Solution
+
+We need to add a `useEffect` hook that updates the internal `sort` state whenever the `sortProp` changes. This will ensure that when navigation occurs and the parent component passes a new `sortProp` value, the DataTable will update its UI accordingly.
+
+Here's the fix:
+
+```javascript
+### src/js/components/DataTable/DataTable.js
+<<<<<<< SEARCH
+  // which column we are sorting on, with direction
+  const [sort, setSort] = useState(sortProp || {});
+
+  // the data filtered and sorted, if needed
+=======
+  // which column we are sorting on, with direction
+  const [sort, setSort] = useState(sortProp || {});
+
+  // Update sort when sortProp changes (e.g., from URL changes during navigation)
+  useEffect(() => {
+    if (sortProp) {
+      setSort(sortProp);
+    }
+  }, [sortProp]);
+
+  // the data filtered and sorted, if needed
+>>>>>>> REPLACE
+```
+
+This change adds a `useEffect` hook that watches for changes to the `sortProp` prop. When `sortProp` changes (which would happen when the URL changes during browser navigation), it updates the internal `sort` state, which will then cause the header icons to update accordingly.

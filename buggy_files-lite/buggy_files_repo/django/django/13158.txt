@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When using `union()` on querysets in a `ModelMultipleChoiceField`, submitting an empty form (no selections) incorrectly adds ALL objects matching the queryset instead of adding NO objects.
+- This differs from using OR (`|`) operator which correctly adds NO objects when the form is empty.
+
+2. Cause Analysis:
+- The issue appears to be in how Django handles empty form submissions with `ModelMultipleChoiceField` when the underlying queryset uses `union()`.
+- The behavior suggests that the empty value validation or cleaning in `ModelMultipleChoiceField` is not properly handling querysets created via `union()` operations.
+- This likely stems from how Django processes the cleaned data for empty submissions and how it interacts with different types of combined querysets (union vs OR operations).
+
+3. Most Related Files:
+The most relevant files dealing with form field validation and queryset operations would be:
+
+```
+django/forms/models.py
+django/db/models/query.py
+django/db/models/lookups.py
+django/db/models/sql/query.py
+django/db/models/manager.py
+```
+
+These files are ordered by importance because:
+1. `forms/models.py` contains `ModelMultipleChoiceField` which is directly involved in the issue
+2. `models/query.py` handles queryset operations including `union()`
+3. `models/lookups.py` manages query lookups and filtering
+4. `models/sql/query.py` handles low-level query construction
+5. `models/manager.py` provides the base queryset functionality

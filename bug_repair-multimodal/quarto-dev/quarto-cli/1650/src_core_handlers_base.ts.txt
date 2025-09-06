@@ -1,0 +1,89 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that when using `echo: true` or `echo: fenced` with mermaid and dot chunks, there's a blank line appearing at the top of the code chunk in the output. Looking at the code, I can see that the problem is in the `baseHandler.build` method.
+
+When processing the content lines, the code is correctly identifying and separating front matter lines from input lines. However, when building the output for `echo: true` case, it's not properly handling the newlines, resulting in an extra blank line at the beginning of the code chunk.
+
+Here's my fix:
+
+```typescript
+### src/core/handlers/base.ts
+<<<<<<< SEARCH
+      case true: {
+        const cellInput = t3({
+          classes: cellInputClasses,
+          attrs: cellInputAttrs,
+        });
+        cellInput.push(pandocRawStr(mappedConcat(inputLines)));
+        cellBlock.push(cellInput);
+        break;
+      }
+=======
+      case true: {
+        const cellInput = t3({
+          classes: cellInputClasses,
+          attrs: cellInputAttrs,
+        });
+        // Trim any leading empty lines from the input
+        let startIndex = 0;
+        while (startIndex < inputLines.length && inputLines[startIndex].value.trim() === '') {
+          startIndex++;
+        }
+        cellInput.push(pandocRawStr(mappedConcat(inputLines.slice(startIndex))));
+        cellBlock.push(cellInput);
+        break;
+      }
+>>>>>>> REPLACE
+```
+
+And similarly for the `echo: fenced` case:
+
+```typescript
+### src/core/handlers/base.ts
+<<<<<<< SEARCH
+      case "fenced": {
+        const cellInput = t4({
+          classes: ["markdown", ...cellInputClasses.slice(1)], // replace the language class with markdown
+          attrs: cellInputAttrs,
+        });
+        const cellFence = t3({
+          language: this.languageName,
+          skipFirstLineBreak: true,
+        });
+        const fencedInput = mappedConcat([
+          ...frontMatterLines,
+          ...inputLines,
+        ]);
+        cellFence.push(pandocRawStr(fencedInput));
+        cellInput.push(cellFence);
+        cellBlock.push(cellInput);
+        break;
+      }
+=======
+      case "fenced": {
+        const cellInput = t4({
+          classes: ["markdown", ...cellInputClasses.slice(1)], // replace the language class with markdown
+          attrs: cellInputAttrs,
+        });
+        const cellFence = t3({
+          language: this.languageName,
+          skipFirstLineBreak: true,
+        });
+        // Trim any leading empty lines from the input
+        let startIndex = 0;
+        while (startIndex < inputLines.length && inputLines[startIndex].value.trim() === '') {
+          startIndex++;
+        }
+        const fencedInput = mappedConcat([
+          ...frontMatterLines,
+          ...inputLines.slice(startIndex),
+        ]);
+        cellFence.push(pandocRawStr(fencedInput));
+        cellInput.push(cellFence);
+        cellBlock.push(cellInput);
+        break;
+      }
+>>>>>>> REPLACE
+```
+
+These changes will remove any leading empty lines from the input before rendering the code chunk, which should fix the issue with the blank line appearing at the top of mermaid and dot chunks when using `echo: true` or `echo: fenced`.

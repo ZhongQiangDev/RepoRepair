@@ -1,0 +1,44 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is in the `clone()` method of the `ImageStyle` class. When an icon is cloned, the scale value is being handled incorrectly. 
+
+The problem occurs because:
+1. When a user sets a scale as a number (e.g., `setScale(2)`), the `scale_` property stores the number value
+2. But when cloning, the constructor is called with an object that includes the scale
+3. The current implementation doesn't preserve the original data type of the scale (number vs array)
+
+The issue is specifically in the `clone()` method where it's not properly preserving the original scale type. Even though it checks if the scale is an array, it doesn't ensure that the cloned object gets the same type of scale value as the original.
+
+## Fix
+
+```javascript
+### src/ol/style/Image.js
+<<<<<<< SEARCH
+  clone() {
+    const scale = this.getScale();
+    return new ImageStyle({
+      opacity: this.getOpacity(),
+      scale: Array.isArray(scale) ? scale.slice() : scale,
+      rotation: this.getRotation(),
+      rotateWithView: this.getRotateWithView(),
+      displacement: this.getDisplacement().slice(),
+      declutterMode: this.getDeclutterMode(),
+    });
+  }
+=======
+  clone() {
+    return new ImageStyle({
+      opacity: this.getOpacity(),
+      scale: this.scale_,  // Use the original scale_ value directly to preserve its type
+      rotation: this.getRotation(),
+      rotateWithView: this.getRotateWithView(),
+      displacement: this.getDisplacement().slice(),
+      declutterMode: this.getDeclutterMode(),
+    });
+  }
+>>>>>>> REPLACE
+```
+
+This fix directly uses the original `scale_` property instead of going through `getScale()` and then trying to determine if it's an array. By using the original `scale_` value directly, we preserve its exact type (number or array) when creating the clone.

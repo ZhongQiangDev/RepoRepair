@@ -1,0 +1,53 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The GitHub problem description highlights that the current JavaScript parser used by Prettier (likely Babylon) is slower compared to Cherow. The goal is to improve the speed of Prettier by using Cherow as the parser, which is reported to be about 40% faster than Babylon based on the provided benchmark.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of the slower performance is the use of Babylon as the default parser for JavaScript in Prettier. Since Cherow is significantly faster, switching to Cherow could potentially reduce the parsing time and improve the overall performance of Prettier, especially in scenarios like format-on-save where speed is crucial.
+
+### 3. Examine Each File One by One
+
+#### --- src/common/load-plugins.js ---
+This file contains no relevant functions/classes.
+
+#### --- src/language-js/index.js ---
+```
+src/language-js/index.js
+function: babel
+function: espree
+function: flow
+function: typescript
+function: json
+```
+
+These functions are getters that return different parsers (Babel, Espree, Flow, TypeScript, JSON). Since the goal is to switch to Cherow, these functions need to be updated to use Cherow instead of the current parsers.
+
+#### --- src/language-js/parser-babel.js ---
+```
+src/language-js/parser-babel.js
+function: createParse
+function: babelOptions
+function: parseJson
+function: hasPragma
+```
+
+The `createParse` function is responsible for creating a parsing function using Babel. This function needs to be modified to use Cherow instead of Babel. The `babelOptions` function configures Babel options, which may need to be adjusted or replaced with Cherow-specific options. The `parseJson` function uses Babel's `parseExpression`, which might need to be replaced with a Cherow equivalent. The `hasPragma` function is not directly related to parsing but may need to be reviewed if Cherow handles pragmas differently.
+
+#### --- src/language-js/parser-flow.js ---
+```
+src/language-js/parser-flow.js
+function: parse
+```
+
+This function uses the Flow parser, which is not directly related to the issue of switching from Babylon to Cherow. However, if Cherow supports Flow syntax in the future, this function might need to be updated to use Cherow.
+
+#### --- src/main/parser.js ---
+```
+src/main/parser.js
+function: getParsers
+function: parse
+function: resolveParser
+```
+
+The `getParsers` function retrieves available parsers, which may need to be updated to include Cherow. The `parse` function selects and uses a parser, so it needs to be modified to support Cherow. The `resolveParser` function resolves the appropriate parser based on options, which may need to be updated to handle Cherow as a valid parser option.

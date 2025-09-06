@@ -1,0 +1,44 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The problem occurs when using OpenLayers with proj4js version 2.6.1 and above. The issue description mentions that proj4js 2.6.1 "Fixed interpretation of axis order", which is causing compatibility problems with OpenLayers.
+
+Looking at the screenshots, we can see that when using proj4js 2.6.1, layers with different projections are rotated incorrectly. This suggests that there's a mismatch in how OpenLayers and proj4js 2.6.1+ handle axis order.
+
+The key file to examine is `src/ol/proj/epsg4326.js`, which defines projections. The issue is likely related to the axis orientation handling.
+
+## Solution
+
+The problem is that OpenLayers is not properly handling the axis order changes introduced in proj4js 2.6.1. In the EPSG4326 projection definitions, we need to ensure consistent axis orientation handling.
+
+The fix involves updating the axis orientation for the 'CRS:84' and other projections that don't explicitly specify 'neu' (north, east, up) axis orientation:
+
+```javascript
+### src/ol/proj/epsg4326.js
+<<<<<<< SEARCH
+export const PROJECTIONS = [
+  new EPSG4326Projection('CRS:84'),
+  new EPSG4326Projection('EPSG:4326', 'neu'),
+  new EPSG4326Projection('urn:ogc:def:crs:EPSG::4326', 'neu'),
+  new EPSG4326Projection('urn:ogc:def:crs:EPSG:6.6:4326', 'neu'),
+  new EPSG4326Projection('urn:ogc:def:crs:OGC:1.3:CRS84'),
+  new EPSG4326Projection('urn:ogc:def:crs:OGC:2:84'),
+  new EPSG4326Projection('http://www.opengis.net/gml/srs/epsg.xml#4326', 'neu'),
+  new EPSG4326Projection('urn:x-ogc:def:crs:EPSG:4326', 'neu'),
+];
+=======
+export const PROJECTIONS = [
+  new EPSG4326Projection('CRS:84', 'enu'),
+  new EPSG4326Projection('EPSG:4326', 'neu'),
+  new EPSG4326Projection('urn:ogc:def:crs:EPSG::4326', 'neu'),
+  new EPSG4326Projection('urn:ogc:def:crs:EPSG:6.6:4326', 'neu'),
+  new EPSG4326Projection('urn:ogc:def:crs:OGC:1.3:CRS84', 'enu'),
+  new EPSG4326Projection('urn:ogc:def:crs:OGC:2:84', 'enu'),
+  new EPSG4326Projection('http://www.opengis.net/gml/srs/epsg.xml#4326', 'neu'),
+  new EPSG4326Projection('urn:x-ogc:def:crs:EPSG:4326', 'neu'),
+];
+>>>>>>> REPLACE
+```
+
+This fix explicitly sets the axis orientation for all projections. The CRS:84 and OGC CRS84 variants use 'enu' (east, north, up) axis orientation, while the EPSG:4326 variants use 'neu' (north, east, up) axis orientation. This ensures compatibility with proj4js 2.6.1+ which now correctly handles axis order according to the projection specifications.

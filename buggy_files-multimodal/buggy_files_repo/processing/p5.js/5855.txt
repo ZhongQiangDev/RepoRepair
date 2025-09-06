@@ -1,0 +1,27 @@
+I'll analyze the WebGL blending issue with transparent textures and identify the most relevant files.
+
+## 1. Identifying the Wrong Behavior
+
+The problem involves WebGL blending not working correctly with transparent textures, specifically in MULTIPLY blend mode. When rendering text with MULTIPLY blend mode, the alpha channel of the text is ignored, causing the text to appear as solid rectangles rather than properly blended glyphs.
+
+## 2. Analyzing the Cause
+
+The issue appears to be in how the WebGL renderer handles blend modes, particularly MULTIPLY, when working with transparent textures like text glyphs. In WebGL, blend modes require specific configurations of `gl.blendFunc()` and `gl.blendEquation()`. The problem likely occurs because:
+
+1. The alpha channel is not being properly considered in the blending equation for MULTIPLY mode
+2. The renderer might not be correctly configuring the WebGL blending parameters for transparent textures
+3. There could be an issue with how text is rendered as textures in WebGL mode
+
+## 3. Most Related Files
+
+Based on the repository information, these are the most relevant files to fix the issue:
+
+```
+src/webgl/p5.RendererGL.js
+src/webgl/material.js
+src/core/p5.Renderer2D.js
+src/webgl/text.js
+src/webgl/p5.Texture.js
+```
+
+The issue is most likely in the WebGL renderer's implementation of blend modes (`p5.RendererGL.js` and `material.js`), particularly in how it handles the MULTIPLY blend mode with transparent textures. The `_applyColorBlend` and `_applyBlendMode` functions in `material.js` are especially relevant as they control the WebGL blending configuration. The text rendering in WebGL (`text.js`) and texture handling (`p5.Texture.js`) are also important since they affect how text is processed before blending occurs. The `p5.Renderer2D.js` file is included for reference since it contains the 2D implementation of blend modes that works correctly.

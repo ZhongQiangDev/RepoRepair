@@ -1,0 +1,23 @@
+Let me analyze the problem and its causes based on the provided GitHub issue description and images.
+
+### Answer 1
+**Wrong Behavior**: The modeler disallows message flows targeting intermediate message catch boundary events, which contradicts the BPMN 2.0 specification.
+
+**Cause**: This appears to be an implementation error in the modeler's validation rules. The code is incorrectly treating all boundary events the same way, without making the necessary exception for message catch boundary events as specified in the BPMN 2.0 specification (page 254, table 10.90).
+
+### Answer 2
+**Wrong Behavior**: The validation rules are too restrictive and don't align with the message flow connection rules shown in Table 7.4 of the BPMN specification.
+
+**Cause**: The modeler's current implementation likely has a blanket rule preventing message flows to boundary events, without checking the specific type of the boundary event. According to Table 7.4 in the specification, message flows should be allowed to connect to message catch boundary events specifically.
+
+### Answer 3
+**Wrong Behavior**: The modeler doesn't properly implement the special case handling for message catch events as boundary events.
+
+**Cause**: This appears to be related to a previous code change (referenced issue #1300) that modified the rules affecting message flows, but didn't properly account for the special case of message catch boundary events. The implementation needs to distinguish between different types of boundary events and their allowed connections.
+
+### Conclusion
+**Summary**: The core issue stems from the modeler's overly restrictive implementation of message flow validation rules. While the BPMN 2.0 specification explicitly allows message flows to target intermediate message catch boundary events (and provides this as a special case exception), the current implementation incorrectly blocks all message flows to boundary events. This needs to be fixed by:
+1. Updating the validation rules to recognize message catch boundary events as valid targets
+2. Implementing proper type checking for boundary events
+3. Aligning the implementation with both Table 7.4 and Table 10.90 of the BPMN 2.0 specification
+4. Reviewing and potentially reverting or modifying changes from issue #1300 that may have contributed to this problem

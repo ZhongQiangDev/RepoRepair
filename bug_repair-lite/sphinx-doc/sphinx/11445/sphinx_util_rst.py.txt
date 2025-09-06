@@ -1,0 +1,65 @@
+Based on the issue description, the bug occurs when `rst_prolog` is set and a document contains a domain directive (like `:mod:`) in its first heading. The issue appears to be in how the prolog content is being inserted into the document, specifically in the `prepend_prolog` function in `sphinx/util/rst.py`.
+
+The current implementation only checks for docinfo lines (lines starting with :word:) but doesn't properly handle domain directives in section titles. The function needs to be modified to preserve the section structure when inserting the prolog.
+
+Here's the fix:
+
+```python
+### sphinx/util/rst.py
+<<<<<<< SEARCH
+def prepend_prolog(content: StringList, prolog: str) -> None:
+    """Prepend a string to content body as prolog."""
+    if prolog:
+        pos = 0
+        for line in content:
+            if docinfo_re.match(line):
+                pos += 1
+            else:
+                break
+
+        if pos > 0:
+            # insert a blank line after docinfo
+            content.insert(pos, '', '<generated>', 0)
+            pos += 1
+
+        # insert prolog (after docinfo if exists)
+        for lineno, line in enumerate(prolog.splitlines()):
+            content.insert(pos + lineno, line, '<rst_prolog>', lineno)
+
+        content.insert(pos + lineno + 1, '', '<generated>', 0)
+=======
+def prepend_prolog(content: StringList, prolog: str) -> None:
+    """Prepend a string to content body as prolog."""
+    if prolog:
+        pos = 0
+        # Skip the first two lines if they form a section title
+        if len(content) >= 2 and all(c in SECTIONING_CHARS for c in content[1]):
+            pos = 2
+        else:
+            # Check for docinfo
+            for line in content:
+                if docinfo_re.match(line):
+                    pos += 1
+                else:
+                    break
+
+        if pos > 0:
+            # insert a blank line after docinfo/title
+            content.insert(pos, '', '<generated>', 0)
+            pos += 1
+
+        # insert prolog
+        for lineno, line in enumerate(prolog.splitlines()):
+            content.insert(pos + lineno, line, '<rst_prolog>', lineno)
+
+        content.insert(pos + lineno + 1, '', '<generated>', 0)
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Checks if the first two lines form a section title (a line followed by underline characters)
+2. If they do, skips past them before inserting the prolog
+3. Otherwise, falls back to the original docinfo checking behavior
+4. Ensures proper spacing by adding blank lines around the prolog content
+
+This modification preserves the section structure when domain directives are used in headings, while maintaining the original functionality for docinfo handling.

@@ -1,0 +1,55 @@
+I'll analyze the issue and provide a fix.
+
+The issue is in the CSS highlighting where a string within parentheses is not being properly highlighted when the string contains a closing parenthesis character. This happens in the URL function where the current regex pattern is causing the string to terminate prematurely when it encounters a closing parenthesis within the string.
+
+Looking at the code, the problem is in the URL handling section. The current implementation uses `endsWithParent: true` which means the string will end when it encounters the parent's end character (which is a closing parenthesis). However, this doesn't account for strings that contain closing parentheses within them.
+
+Here's the fix:
+
+```javascript
+### src/languages/css.js
+<<<<<<< SEARCH
+          {
+            begin: /(url|data-uri)\(/,
+            end: /\)/,
+            relevance: 0, // from keywords
+            keywords: { built_in: "url data-uri" },
+            contains: [
+              {
+                className: "string",
+                // any character other than `)` as in `url()` will be the start
+                // of a string, which ends with `)` (from the parent mode)
+                begin: /[^)]/,
+                endsWithParent: true,
+                excludeEnd: true
+              }
+            ]
+          },
+=======
+          {
+            begin: /(url|data-uri)\(/,
+            end: /\)/,
+            relevance: 0, // from keywords
+            keywords: { built_in: "url data-uri" },
+            contains: [
+              ...STRINGS,
+              {
+                className: "string",
+                // any character other than `)` as in `url()` will be the start
+                // of a string, which ends with `)` (from the parent mode)
+                begin: /[^)'"\s]+/,
+                endsWithParent: true,
+                excludeEnd: true
+              }
+            ]
+          },
+>>>>>>> REPLACE
+```
+
+This fix does two important things:
+
+1. It adds the `STRINGS` array to the contains list, which includes both single and double quoted string modes. This ensures that quoted strings within the URL function are properly highlighted, even if they contain parentheses.
+
+2. It modifies the fallback string pattern to match only unquoted content, avoiding conflicts with the quoted string modes.
+
+With this change, strings within parentheses in CSS URLs will be properly highlighted, even when they contain closing parentheses.

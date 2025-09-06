@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- TableContainer's title and description nodes don't have IDs that can be referenced by the Table's aria-labelledby/aria-describedby attributes
+- This prevents proper accessibility labeling of tables using their container's title/description
+- Without proper labeling, screen readers fall back to using table rows to announce the table
+
+2. Cause Analysis:
+- The TableContainer component doesn't generate and assign unique IDs to its title and description elements
+- This makes it impossible to programmatically reference these elements for ARIA labeling
+- The issue impacts accessibility as screen readers can't properly announce table context
+
+3. Most Relevant Files:
+```
+packages/react/src/components/DataTable/TableContainer.js
+packages/react/src/internal/useId.js
+packages/react/src/components/DataTable/DataTable.js
+packages/react/src/tools/uniqueId.js
+packages/react/src/tools/setupGetInstanceId.js
+```
+
+These files are ordered by relevance because:
+- TableContainer.js is the main component needing modification to add IDs
+- useId.js provides React hooks for generating unique IDs
+- DataTable.js needs to reference the container's IDs for ARIA attributes
+- uniqueId.js and setupGetInstanceId.js provide underlying ID generation utilities
+
+The fix would primarily involve modifying TableContainer.js to generate and assign unique IDs to its title and description elements, then exposing these IDs so DataTable can reference them in its ARIA attributes.

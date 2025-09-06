@@ -1,0 +1,25 @@
+Based on the issue description, the bug is in the `Subquery` class's `as_sql()` method. The issue occurs because the method incorrectly removes the first and last characters from the subquery SQL by using string slicing `[1:-1]`, which assumes there are always parentheses to remove. However, these parentheses may not exist in all cases.
+
+The fix should be to set `query.subquery = True` in the `Subquery` constructor to ensure proper SQL generation. Here's the fix:
+
+```python
+### django/db/models/expressions.py
+<<<<<<< SEARCH
+    def __init__(self, queryset, output_field=None, **extra):
+        # Allow the usage of both QuerySet and sql.Query objects.
+        self.query = getattr(queryset, 'query', queryset)
+        self.extra = extra
+        super().__init__(output_field)
+=======
+    def __init__(self, queryset, output_field=None, **extra):
+        # Allow the usage of both QuerySet and sql.Query objects.
+        self.query = getattr(queryset, 'query', queryset)
+        self.query.subquery = True
+        self.extra = extra
+        super().__init__(output_field)
+>>>>>>> REPLACE
+```
+
+This fix adds `self.query.subquery = True` in the constructor to ensure the query is properly marked as a subquery. This will make the SQL generation work correctly without incorrectly stripping characters from the SQL string.
+
+The issue occurs because when `subquery` is not set to `True`, the query's `as_sql()` method doesn't wrap the query in parentheses, but the Subquery class's `as_sql()` method assumes it does by stripping the first and last characters. By setting `subquery = True`, we ensure the proper parentheses are added at the query level, making the string slicing in `as_sql()` work correctly.

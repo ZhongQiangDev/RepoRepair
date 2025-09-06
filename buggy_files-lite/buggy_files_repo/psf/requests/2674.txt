@@ -1,0 +1,22 @@
+Let me follow the steps:
+
+1. Wrong Behavior:
+- urllib3 exceptions (DecodeError and TimeoutError) are passing through directly to the application code instead of being wrapped in requests' own exception types
+- This breaks the abstraction layer that requests provides over urllib3
+
+2. Cause Analysis:
+- Requests library uses urllib3 internally but aims to provide its own exception hierarchy
+- Some urllib3 exceptions are not being properly caught and wrapped in corresponding requests exceptions
+- Specifically DecodeError and TimeoutError from urllib3 are leaking through
+
+3. Most Related Files (ordered by importance):
+
+```
+requests/adapters.py
+requests/exceptions.py
+requests/packages/urllib3/exceptions.py
+requests/packages/urllib3/response.py
+requests/packages/urllib3/connectionpool.py
+```
+
+The adapters.py file would be most important as it handles the interface between requests and urllib3. The exceptions.py files define the exception hierarchies, while response.py and connectionpool.py are where these exceptions typically originate. These files would need to be modified to properly catch and wrap the urllib3 exceptions.

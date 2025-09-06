@@ -1,0 +1,107 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is that each WebGL TileLayer creates its own WebGL context, and browsers typically limit the number of WebGL contexts to around 16. This becomes problematic when an application needs to display multiple WebGL TileLayers, as it can hit this limit and cause the application to break down.
+
+The proposed solution is to make WebGL TileLayers within the same OpenLayers map share a single WebGL context.
+
+## Bug Localization
+
+Looking at the provided code in `src/ol/renderer/webgl/Layer.js`, I can see that the issue is in the `prepareFrame` method. Currently, each WebGLLayerRenderer creates its own WebGLHelper instance, which in turn creates a new WebGL context. This happens in the `prepareFrame` method where a new WebGLHelper is created if it doesn't exist yet.
+
+The fix would involve modifying the WebGLLayerRenderer to use a shared WebGL context that's managed at the map level rather than creating a new one for each layer.
+
+## Solution
+
+We need to modify the `prepareFrame` method to accept an existing WebGLHelper instance from the map, and only create a new one if none is provided. This will allow multiple WebGL layers to share the same WebGL context.
+
+```javascript
+### src/ol/renderer/webgl/Layer.js
+<<<<<<< SEARCH
+  /**
+   * Determine whether renderFrame should be called.
+   * @param {import("../../PluggableMap.js").FrameState} frameState Frame state.
+   * @return {boolean} Layer is ready to be rendered.
+   */
+  prepareFrame(frameState) {
+    if (!this.helper && !!this.getLayer().getSource()) {
+      this.helper = new WebGLHelper({
+        postProcesses: this.postProcesses_,
+        uniforms: this.uniforms_,
+      });
+
+      const className = this.getLayer().getClassName();
+      if (className) {
+        this.helper.getCanvas().className = className;
+      }
+
+      this.afterHelperCreated();
+    }
+
+    return this.prepareFrameInternal(frameState);
+  }
+=======
+  /**
+   * Determine whether renderFrame should be called.
+   * @param {import("../../PluggableMap.js").FrameState} frameState Frame state.
+   * @return {boolean} Layer is ready to be rendered.
+   */
+  prepareFrame(frameState) {
+    if (!this.helper && !!this.getLayer().getSource()) {
+      // Use the shared WebGL context from the map if available
+      if (frameState.mapWebGLHelper) {
+        this.helper = frameState.mapWebGLHelper;
+      } else {
+        this.helper = new WebGLHelper({
+          postProcesses: this.postProcesses_,
+          uniforms: this.uniforms_,
+        });
+        
+        // Store the helper on the frameState so other layers can use it
+        frameState.mapWebGLHelper = this.helper;
+      }
+
+      const className = this.getLayer().getClassName();
+      if (className) {
+        this.helper.getCanvas().className = className;
+      }
+
+      this.afterHelperCreated();
+    }
+
+    return this.prepareFrameInternal(frameState);
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/renderer/webgl/Layer.js
+<<<<<<< SEARCH
+  removeHelper_() {
+    if (this.helper) {
+      this.helper.dispose();
+      delete this.helper;
+    }
+  }
+=======
+  removeHelper_() {
+    if (this.helper) {
+      // Only dispose the helper if it's not shared with other layers
+      if (!this.helper.isShared) {
+        this.helper.dispose();
+      }
+      delete this.helper;
+    }
+  }
+>>>>>>> REPLACE
+```
+
+These changes will:
+
+1. Check if there's already a WebGLHelper instance available in the frameState (shared from the map)
+2. If available, use that shared instance instead of creating a new one
+3. If not available, create a new one and store it in the frameState for other layers to use
+4. Modify the removeHelper_ method to only dispose the WebGLHelper if it's not shared with other layers
+
+This implementation allows WebGL TileLayers within the same map to share a single WebGL context, which should significantly reduce the number of WebGL contexts required and help avoid hitting the browser's limit.

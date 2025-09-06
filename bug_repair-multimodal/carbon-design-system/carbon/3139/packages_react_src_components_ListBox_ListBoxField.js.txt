@@ -1,0 +1,47 @@
+I'll analyze the issue and provide a fix for the DAP violations in the React Dropdown component.
+
+## Issue Analysis
+
+Looking at the screenshots from the issue, there are two accessibility violations detected by both DAP and Axe-Core:
+
+1. The combobox element is missing the required attribute `aria-autocomplete`
+2. The combobox element is missing the required attribute `aria-activedescendant`
+
+These are standard ARIA requirements for combobox elements to properly communicate their state to assistive technologies like screen readers.
+
+## Fix
+
+I'll update the `ListBoxField.js` file to add the missing ARIA attributes:
+
+```javascript
+### packages/react/src/components/ListBox/ListBoxField.js
+<<<<<<< SEARCH
+  <div
+    role="combobox"
+    aria-haspopup="listbox"
+    aria-expanded={rest[`aria-expanded`]}
+    aria-owns={`${id}__menu`}
+    aria-controls={`${id}__menu`}
+    className={`${prefix}--list-box__field`}
+    tabIndex={rest.tabIndex || -1}
+    {...rest}>
+=======
+  <div
+    role="combobox"
+    aria-haspopup="listbox"
+    aria-expanded={rest[`aria-expanded`]}
+    aria-owns={`${id}__menu`}
+    aria-controls={`${id}__menu`}
+    aria-autocomplete="list"
+    aria-activedescendant={rest[`aria-activedescendant`]}
+    className={`${prefix}--list-box__field`}
+    tabIndex={rest.tabIndex || -1}
+    {...rest}>
+>>>>>>> REPLACE
+```
+
+This fix adds:
+1. `aria-autocomplete="list"` - Indicates that a list of options appears as the user types
+2. `aria-activedescendant={rest[`aria-activedescendant`]}` - Allows the parent component to specify which child element is currently active/focused
+
+These changes will resolve both accessibility violations identified in the issue. The `aria-activedescendant` attribute will be passed down from parent components that manage the selection state, similar to how `aria-expanded` is currently handled.

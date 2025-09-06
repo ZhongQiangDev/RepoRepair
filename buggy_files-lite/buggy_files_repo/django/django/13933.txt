@@ -1,0 +1,29 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- `ModelChoiceField` does not show the invalid choice value when raising a validation error
+- This contrasts with `ChoiceField` which does include the invalid value in its error message
+- The error message is less helpful for debugging without the actual invalid value
+
+2. Cause Analysis:
+- Looking at the code, `ModelChoiceField` inherits from `ChoiceField` but doesn't pass the invalid value parameter when raising the validation error
+- The error message template exists in `default_error_messages` with placeholder `%(value)s` but the value isn't being passed
+- This is likely a validation handling issue in the form fields implementation
+
+3. Most Related Files:
+```
+django/forms/models.py
+django/forms/fields.py
+django/core/exceptions.py
+django/db/models/fields/mixins.py
+django/forms/widgets.py
+```
+
+Reasoning for file selection:
+- `django/forms/models.py` contains `ModelChoiceField` implementation which is central to the issue
+- `django/forms/fields.py` contains the base `ChoiceField` that `ModelChoiceField` inherits from
+- `django/core/exceptions.py` would contain the `ValidationError` handling
+- `django/db/models/fields/mixins.py` contains field mixins that might affect validation behavior
+- `django/forms/widgets.py` handles the form field rendering and could be involved in error display
+
+The first two files are most critical as they directly contain the field implementations where the validation error handling needs to be fixed.

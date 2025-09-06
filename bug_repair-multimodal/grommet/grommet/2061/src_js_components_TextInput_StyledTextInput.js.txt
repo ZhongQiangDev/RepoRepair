@@ -1,0 +1,41 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that in Safari, the search input field in the Select component is very small because padding is being ignored. According to the issue description, this was solved in v1 by adding the CSS property `-webkit-appearance: textfield;` for `<input type='search' />`.
+
+Looking at the code, I can see that in `StyledTextInput.js`, there's a `plainStyle` CSS block that sets `-webkit-appearance: none;`, but there's no specific handling for search input types. The issue occurs because Safari has a default styling for search inputs that needs to be overridden.
+
+## Fix
+
+We need to add a specific style for search input types to set `-webkit-appearance: textfield;` when the input is of type "search". This will ensure that Safari respects the padding for search inputs.
+
+```javascript
+### src/js/components/TextInput/StyledTextInput.js
+<<<<<<< SEARCH
+const plainStyle = css`
+  border: none;
+  -webkit-appearance: none;
+`;
+
+const StyledTextInput = styled.input`
+=======
+const plainStyle = css`
+  border: none;
+  -webkit-appearance: none;
+`;
+
+const searchStyle = css`
+  &[type="search"] {
+    -webkit-appearance: textfield;
+  }
+`;
+
+const StyledTextInput = styled.input`
+  ${searchStyle}
+>>>>>>> REPLACE
+```
+
+This change adds a new CSS block called `searchStyle` that specifically targets inputs with `type="search"` and sets `-webkit-appearance: textfield;` for them. Then it applies this style to the `StyledTextInput` component.
+
+This fix will ensure that search inputs in the Select component have the proper size and respect padding in Safari, while maintaining the existing behavior in other browsers.

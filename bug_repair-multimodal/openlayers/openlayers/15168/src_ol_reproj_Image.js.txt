@@ -1,0 +1,50 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is about raster reprojection in OpenLayers. When reprojecting a raster image from one projection to another, OpenLayers is currently assuming that the target pixels should be square, which causes misalignment problems. 
+
+In the example provided, a 5×5 pixel image where each pixel covers a 3km by 2km area is being reprojected from Lambert Conformal Conic to Web Mercator. The result shows that while pixels are correctly aligned vertically, there's a horizontal misalignment because OpenLayers is trying to maintain square pixels in the output.
+
+The bug is in the `reproject_()` method of the `ReprojImage` class in `src/ol/reproj/Image.js`. The issue is that the width and height of the target canvas are calculated based solely on the target extent and resolution, without considering the aspect ratio of the source pixels.
+
+## Solution
+
+We need to modify the `reproject_()` method to account for the aspect ratio of the source pixels. Instead of calculating width and height based only on the target extent and resolution, we should preserve the original pixel count from the source image.
+
+Here's the fix:
+
+```javascript
+### src/ol/reproj/Image.js
+<<<<<<< SEARCH
+  reproject_() {
+    const sourceState = this.sourceImage_.getState();
+    if (sourceState == ImageState.LOADED) {
+      const width = getWidth(this.targetExtent_) / this.targetResolution_;
+      const height = getHeight(this.targetExtent_) / this.targetResolution_;
+      this.canvas_ = renderReprojected(
+        width,
+        height,
+=======
+  reproject_() {
+    const sourceState = this.sourceImage_.getState();
+    if (sourceState == ImageState.LOADED) {
+      // Get the dimensions of the source image
+      const sourceImage = this.sourceImage_.getImage();
+      const sourceWidth = sourceImage ? sourceImage.width : 0;
+      const sourceHeight = sourceImage ? sourceImage.height : 0;
+      
+      // Use source image dimensions instead of calculating from extent
+      // This preserves the original pixel count
+      const width = sourceWidth;
+      const height = sourceHeight;
+      
+      this.canvas_ = renderReprojected(
+        width,
+        height,
+>>>>>>> REPLACE
+```
+
+This change ensures that the reprojected image will have the same number of pixels as the source image, rather than trying to create square pixels based on the target extent and resolution. This should fix the misalignment issue described in the bug report.
+
+The solution preserves the original pixel count from the source image, which means that the pixels in the target projection might not be perfectly square, but they will correctly represent the data from the source image without introducing the misalignments shown in the issue.

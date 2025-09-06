@@ -1,0 +1,44 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when Prettier processes markdown tables containing HTML or other complex content, it generates excessively long lines in the formatted output. Specifically, the lines exceed the desired width, leading to a single line with a length of 865 characters, as shown in the provided image. This makes the table difficult to read and maintain.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior is likely related to how Prettier handles the formatting of markdown tables. When Prettier processes a table, it attempts to normalize the table by aligning columns and ensuring consistent formatting. However, in cases where the table contains complex content like HTML, the normalization process may result in very long lines because Prettier tries to fit all the content within a single line without breaking it into multiple lines.
+
+### 3. Examine Each File One by One
+
+#### --- src/doc/doc-printer.js ---
+```
+src/doc/doc-printer.js
+function: printDocToString
+```
+The `printDocToString` function is responsible for processing a document object and generating a formatted string. It handles various document types, including tables. If the table normalization logic is not properly handling long lines, this function could be a relevant location to inspect.
+
+#### --- src/language-markdown/embed.js ---
+```
+This file contains no relevant functions/classes.
+```
+The `embed` function in this file is related to processing code blocks within markdown documents, not tables.
+
+#### --- src/language-markdown/index.js ---
+```
+This file contains no relevant functions/classes.
+```
+The `parse` function in this file is a getter method that loads a module for parsing markdown, but it does not directly handle table formatting.
+
+#### --- src/language-markdown/parser-markdown.js ---
+```
+src/language-markdown/parser-markdown.js
+function: parse
+```
+The `parse` function processes the input text and applies various remark plugins, including `mergeContinuousTexts`, which could affect how text within tables is handled. However, this function is more about parsing the markdown into an AST rather than formatting it.
+
+#### --- src/language-markdown/printer-markdown.js ---
+```
+src/language-markdown/printer-markdown.js
+function: printTable
+function: printChildren
+function: printLine
+```
+The `printTable` function is directly responsible for formatting markdown tables. It calculates column widths and constructs the table output. If this function is not properly handling long lines, it could be the source of the issue. The `printChildren` function processes the children of a node, which could include table cells, and the `printLine` function handles line breaks, which could also be relevant to ensuring lines do not exceed the desired width.

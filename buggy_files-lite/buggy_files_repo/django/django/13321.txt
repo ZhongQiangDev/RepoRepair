@@ -1,0 +1,32 @@
+Let me help analyze this issue.
+
+1. Wrong Behavior:
+- When accessing any URL, the application crashes with a session decoding error
+- The issue only occurs in Chrome browser, not Firefox
+- This happens after upgrading to Django 3.1 on a staging server
+
+2. Cause Analysis:
+The error trace shows:
+- There's an invalid/corrupted session data that can't be decoded
+- The error occurs during session loading and decoding process
+- The signature validation fails with "BadSignature" error
+- The issue stems from an incompatibility between old session data and the new Django version
+
+3. Most relevant files (ordered by importance):
+
+```
+django/contrib/sessions/backends/base.py
+django/contrib/sessions/middleware.py
+django/core/signing.py
+django/contrib/sessions/backends/db.py
+django/contrib/sessions/models.py
+```
+
+Reasoning:
+- `backends/base.py` contains core session decoding logic where the error originates
+- `middleware.py` handles session processing during requests where the crash occurs
+- `signing.py` contains the signature validation code that's failing
+- `backends/db.py` manages database session storage
+- `models.py` defines the session model structure
+
+The fix would primarily involve handling invalid session data gracefully in these files, particularly in the session decoding and signature validation processes.

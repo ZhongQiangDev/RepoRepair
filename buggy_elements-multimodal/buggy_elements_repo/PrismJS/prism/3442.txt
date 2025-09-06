@@ -1,0 +1,54 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that quotes inside HTML attribute values are being highlighted as punctuation. For example, in the provided HTML snippet:
+
+`html
+<google-chart data='[["Month", "Days"], ["Jan", 31]]'></google-chart>
+`
+
+The single quotes (`'`) and double quotes (`"`) inside the `data` attribute value are being highlighted as punctuation, which is not the expected behavior.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior is likely related to how Prism.js handles the parsing and highlighting of HTML attribute values. Specifically, the regex patterns used to match and tokenize the content within HTML attributes might be incorrectly identifying the quotes as punctuation rather than as part of the attribute value.
+
+### 3. Examine Each File One by One
+
+#### --- prism.js ---
+This file contains several functions that are relevant to the issue:
+
+```
+prism.js
+function: function_38
+```
+
+**Reason:** The `function_38` function is responsible for dynamically adding patterns to Prism.js's markup language processor to highlight code embedded within HTML attributes. It constructs a regex pattern to match the specified attribute and its value, and it identifies punctuation marks (such as quotes) for styling purposes. This function is likely the source of the issue, as it determines how quotes within attribute values are treated.
+
+#### --- components/prism-cshtml.js ---
+```
+This file contains no relevant functions/classes.
+```
+
+**Reason:** The functions in this file are related to generating patterns for matching nested structures in Razor/C# syntax highlighting. They do not directly handle HTML attribute value parsing or highlighting.
+
+#### --- components/prism-markup.js ---
+This file contains several functions that are relevant to the issue:
+
+```
+components/prism-markup.js
+function: function_4
+```
+
+**Reason:** The `function_4` function is responsible for dynamically extending Prism.js's syntax highlighting capabilities to support languages embedded within HTML attributes. It constructs a regex pattern to match the specified attribute and its value, and it identifies punctuation marks (such as quotes) for styling purposes. This function is likely contributing to the issue, as it determines how quotes within attribute values are treated.
+
+### Summary of Relevant Locations
+
+```
+prism.js
+function: function_38
+
+components/prism-markup.js
+function: function_4
+```
+
+These functions need to be inspected and potentially modified to ensure that quotes within HTML attribute values are not incorrectly highlighted as punctuation.

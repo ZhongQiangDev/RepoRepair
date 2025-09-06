@@ -1,0 +1,30 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue with broken projections when using proj4js definitions.
+
+## 1. Identifying the Wrong Behavior
+
+The issue occurs when using proj4js definitions with OpenLayers. Specifically:
+- When adding a new projection definition via `proj4.defs()` and then registering it with `ol.proj.proj4.register(proj4)`, the resulting projection is invalid.
+- The invalid projection is missing required parameters like `units` and has incorrect default values for `axisOrientation`.
+- This causes the map display to be broken when using these projections.
+
+## 2. Analyzing the Cause
+
+The root cause appears to be in how OpenLayers processes proj4js definitions:
+1. When a geographic CRS (coordinate reference system) is defined in proj4js, it often doesn't explicitly specify units.
+2. OpenLayers fails to correctly infer that geographic projections should use "degrees" as the default unit when not specified.
+3. Additionally, the axis orientation is not being correctly set - it defaults to 'enu' when it should be 'neu' for the given example.
+4. These issues affect geographic projections specifically, as mentioned in the problem description.
+
+## 3. Files Most Related to the Cause
+
+Based on the repository information and the nature of the problem, these are the most relevant files:
+
+```
+src/ol/proj/proj4.js
+src/ol/proj/Projection.js
+src/ol/proj.js
+src/ol/proj/projections.js
+src/ol/proj/transforms.js
+```
+
+The issue is primarily in how OpenLayers integrates with proj4js and handles projection definitions. The `src/ol/proj/proj4.js` file is likely the most important as it handles the registration of proj4 definitions. The `Projection.js` file defines how projections are created and configured, while `proj.js` contains core projection functionality. The `projections.js` and `transforms.js` files handle the storage and transformation aspects of projections, which could be involved in the issue.

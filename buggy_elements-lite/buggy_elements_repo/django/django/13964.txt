@@ -1,0 +1,41 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+When saving a parent object (Order) after setting a child object (Product) with a non-numeric primary key, the foreign key value in the parent object is not properly updated to reflect the child's primary key. Instead, it's set to an empty string, which later causes a ForeignKeyViolation when the transaction commits.
+
+2. Cause Analysis:
+The issue appears to be in how Django handles foreign key assignments when the related object's primary key is initially empty and then set after the relationship is established. The foreign key value is cached at assignment time but not updated when the related object's primary key is later set and saved. This particularly affects models with non-auto CharField primary keys.
+
+3. Relevant Files/Functions Analysis:
+
+```
+django/db/models/base.py
+class: Model
+class: ModelBase
+```
+These classes are relevant because they handle the core model functionality including how model instances are created, saved, and how their attributes are managed.
+
+```
+django/db/models/fields/related.py
+class: ForeignKey
+class: RelatedField
+```
+These classes are directly relevant as they manage foreign key relationships and how foreign key values are set and retrieved.
+
+```
+django/db/transaction.py
+class: Atomic
+```
+This class is relevant because it manages the transaction context where the issue occurs, particularly how changes are tracked and committed.
+
+```
+django/db/backends/base/base.py
+This file contains no relevant functions/classes.
+```
+
+```
+django/db/models/manager.py
+This file contains no relevant functions/classes.
+```
+
+The issue primarily lies in the interaction between Model, ForeignKey, and transaction handling classes. The problem occurs because the foreign key descriptor doesn't properly update its cached value when the related object's primary key changes after the relationship is established but before saving.

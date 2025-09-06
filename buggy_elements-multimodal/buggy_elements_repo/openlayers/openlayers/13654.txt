@@ -1,0 +1,65 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that a Cloud Optimized GeoTIFF (COG) in a UTM projection (EPSG:32636) is not being displayed correctly on a map with a different projection (EPSG:4326 or EPSG:3857). The COG layer is not visible, even though other layers like OSM are displayed correctly, and the map is fitting to the COG extent.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from the lack of proper reprojection of the COG data from its original UTM projection (EPSG:32636) to the map's projection (EPSG:4326 or EPSG:3857). The COG data is not being transformed to match the map's coordinate system, resulting in it not being displayed. This could be due to missing or incorrect reprojection settings in the code or limitations in the current implementation of the `ol.source.GeoTIFF` and `ol.layer.WebGLTile` classes.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### src/ol/reproj.js
+```
+src/ol/reproj.js
+function: calculateSourceExtentResolution
+function: calculateSourceResolution
+```
+These functions are responsible for calculating the resolution and extent during reprojection, which is likely relevant to the issue of displaying the COG in a different projection.
+
+#### src/ol/layer/WebGLTile.js
+```
+src/ol/layer/WebGLTile.js
+class: WebGLTileLayer
+```
+The `WebGLTileLayer` class manages the rendering of WebGL-based tile layers. It may need to be configured or extended to handle reprojection correctly.
+
+#### src/ol/renderer/webgl/TileLayer.js
+```
+src/ol/renderer/webgl/TileLayer.js
+class: WebGLTileLayerRenderer
+```
+The `WebGLTileLayerRenderer` class is responsible for rendering tile layers using WebGL. It may need adjustments to handle the reprojection of COG data.
+
+#### src/ol/source/GeoTIFF.js
+```
+src/ol/source/GeoTIFF.js
+class: GeoTIFFSource
+function: getProjection
+function: getResolution
+```
+The `GeoTIFFSource` class and the `getProjection` and `getResolution` functions are directly involved in handling GeoTIFF data and its projection, which is crucial for the reprojection issue.
+
+#### src/ol/source/TileImage.js
+```
+src/ol/source/TileImage.js
+class: TileImage
+```
+The `TileImage` class manages image tiles and their reprojection, which may need to be configured to handle the COG data correctly.
+
+#### src/ol/tilegrid/TileGrid.js
+```
+This file contains no relevant functions/classes.
+```
+The `TileGrid` class manages tile grids but does not directly handle reprojection or the specific issue described.
+
+#### src/ol/source/DataTile.js
+```
+This file contains no relevant functions/classes.
+```
+The `DataTileSource` class is more general and does not directly address the specific reprojection issue with COG data.
+
+#### src/ol/source/Source.js
+```
+This file contains no relevant functions/classes.
+```
+The `Source` class is an abstract base class and does not directly handle the reprojection issue.

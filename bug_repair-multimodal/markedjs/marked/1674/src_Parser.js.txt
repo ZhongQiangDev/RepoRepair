@@ -1,0 +1,57 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when rendering an empty checkbox list item. Looking at the error message:
+> `Uncaught TypeError: Cannot read property 'type' of undefined`
+
+This suggests that the code is trying to access a property 'type' on an undefined object. Based on the issue description and the code, the problem likely occurs in the list item processing section of the Parser.js file.
+
+The issue happens specifically when a checkbox list item is empty. In this case, `item.tokens` might be an empty array, and when the code tries to access `item.tokens[0]`, it gets `undefined`. Then, trying to access `undefined.type` causes the crash.
+
+## Fix
+
+```javascript
+### src/Parser.js
+<<<<<<< SEARCH
+            if (item.task) {
+              checkbox = this.renderer.checkbox(checked);
+              if (loose) {
+                if (item.tokens[0].type === 'text') {
+                  item.tokens[0].text = checkbox + ' ' + item.tokens[0].text;
+                  if (item.tokens[0].tokens && item.tokens[0].tokens.length > 0 && item.tokens[0].tokens[0].type === 'text') {
+                    item.tokens[0].tokens[0].text = checkbox + ' ' + item.tokens[0].tokens[0].text;
+                  }
+                } else {
+                  item.tokens.unshift({
+                    type: 'text',
+                    text: checkbox
+                  });
+                }
+              } else {
+                itemBody += checkbox;
+              }
+            }
+=======
+            if (item.task) {
+              checkbox = this.renderer.checkbox(checked);
+              if (loose) {
+                if (item.tokens.length > 0 && item.tokens[0].type === 'text') {
+                  item.tokens[0].text = checkbox + ' ' + item.tokens[0].text;
+                  if (item.tokens[0].tokens && item.tokens[0].tokens.length > 0 && item.tokens[0].tokens[0].type === 'text') {
+                    item.tokens[0].tokens[0].text = checkbox + ' ' + item.tokens[0].tokens[0].text;
+                  }
+                } else {
+                  item.tokens.unshift({
+                    type: 'text',
+                    text: checkbox
+                  });
+                }
+              } else {
+                itemBody += checkbox;
+              }
+            }
+>>>>>>> REPLACE
+```
+
+The fix adds a check to ensure that `item.tokens` has at least one element before trying to access `item.tokens[0].type`. This prevents the TypeError when rendering an empty checkbox list item.

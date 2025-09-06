@@ -1,0 +1,42 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that PowerShell double-dash flags (`--flag`) are not being highlighted correctly, while single-dash flags (`-flag`) are working properly. Looking at the code, I can see that the problem is in the `PS_ARGUMENTS` section where only single-dash flags are defined in the regex pattern.
+
+Here's the fix:
+
+```javascript
+### src/languages/powershell.js
+<<<<<<< SEARCH
+  const PS_ARGUMENTS = {
+    variants: [
+      // PS literals are pretty verbose so it's a good idea to accent them a bit.
+      {
+        className: 'operator',
+        begin: '('.concat(COMPARISON_OPERATORS, ')\\b')
+      },
+      {
+        className: 'literal',
+        begin: /(-)[\w\d]+/,
+        relevance: 0
+      }
+    ]
+  };
+=======
+  const PS_ARGUMENTS = {
+    variants: [
+      // PS literals are pretty verbose so it's a good idea to accent them a bit.
+      {
+        className: 'operator',
+        begin: '('.concat(COMPARISON_OPERATORS, ')\\b')
+      },
+      {
+        className: 'literal',
+        begin: /(-{1,2})[\w\d]+/,
+        relevance: 0
+      }
+    ]
+  };
+>>>>>>> REPLACE
+```
+
+This change modifies the regex pattern for flag highlighting from `/(-)[\w\d]+/` to `/(-{1,2})[\w\d]+/`, which will match both single-dash flags (`-flag`) and double-dash flags (`--flag`). The `{1,2}` quantifier allows for either one or two dash characters before the flag name.

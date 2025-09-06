@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When filtering ProductMetaData with a metadata_type that has a field named "filterable", Django raises a NotSupportedError stating "ProductMetaDataType is disallowed in the filter clause"
+- The error occurs specifically because one of the model fields is named "filterable"
+
+2. Cause Analysis:
+- The issue stems from Django's query builder interpreting the field name "filterable" as a special keyword
+- In Django's SQL query construction, there appears to be a check that prevents fields named "filterable" from being used in filter clauses
+- This is likely a naming conflict where Django's internal query builder is confusing the field name with a property or method used for determining if an object can be filtered
+
+3. Most Related Files:
+Based on the repository information and the error trace, here are the most relevant files:
+
+```
+django/db/models/sql/query.py
+django/db/models/sql/datastructures.py
+django/db/models/fields/related.py
+django/db/models/query.py
+django/db/models/manager.py
+```
+
+These files are ordered by importance because:
+- `query.py` contains the core SQL query building logic where the NotSupportedError is raised
+- `datastructures.py` defines the base structures used in SQL query building
+- `related.py` handles field relationships which are involved in the filtering process
+- `query.py` manages the QuerySet operations that lead to filter execution
+- `manager.py` provides the high-level interface for model querying

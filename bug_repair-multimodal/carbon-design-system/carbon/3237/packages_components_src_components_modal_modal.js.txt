@@ -1,0 +1,169 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is that when a modal is open, the background (body) element can still be scrolled, which is not the desired behavior. The user wants to disable scrolling of the background when a modal is open, similar to how Bootstrap adds a `modal-open` class to the body element.
+
+Looking at the code, I can see that the Modal component has a `classNoScroll` option defined in the JSDoc comments, but it's not actually being used in the implementation. We need to add functionality to add/remove this class to the body element when the modal is shown/hidden.
+
+## Solution
+
+We need to modify the `_changeState` method to add the `classNoScroll` class to the body when the modal is shown and remove it when the modal is hidden.
+
+```javascript
+### packages/components/src/components/modal/modal.js
+<<<<<<< SEARCH
+  _changeState(state, detail, callback) {
+    let handleTransitionEnd;
+    const transitionEnd = () => {
+      if (handleTransitionEnd) {
+        handleTransitionEnd = this.unmanage(handleTransitionEnd).release();
+      }
+      if (
+        state === 'shown' &&
+        this.element.offsetWidth > 0 &&
+        this.element.offsetHeight > 0
+      ) {
+        (
+          this.element.querySelector(this.options.selectorPrimaryFocus) ||
+          this.element
+        ).focus();
+      }
+      callback();
+    };
+
+    if (this._handleFocusinListener) {
+      this._handleFocusinListener = this.unmanage(
+        this._handleFocusinListener
+      ).release();
+    }
+
+    if (state === 'shown') {
+      const hasFocusin = 'onfocusin' in this.element.ownerDocument.defaultView;
+      const focusinEventName = hasFocusin ? 'focusin' : 'focus';
+      this._handleFocusinListener = this.manage(
+        on(
+          this.element.ownerDocument,
+          focusinEventName,
+          this._handleFocusin,
+          !hasFocusin
+        )
+      );
+    }
+
+    if (state === 'hidden') {
+      this.element.classList.toggle(this.options.classVisible, false);
+    } else if (state === 'shown') {
+      this.element.classList.toggle(this.options.classVisible, true);
+    }
+=======
+  _changeState(state, detail, callback) {
+    let handleTransitionEnd;
+    const transitionEnd = () => {
+      if (handleTransitionEnd) {
+        handleTransitionEnd = this.unmanage(handleTransitionEnd).release();
+      }
+      if (
+        state === 'shown' &&
+        this.element.offsetWidth > 0 &&
+        this.element.offsetHeight > 0
+      ) {
+        (
+          this.element.querySelector(this.options.selectorPrimaryFocus) ||
+          this.element
+        ).focus();
+      }
+      callback();
+    };
+
+    if (this._handleFocusinListener) {
+      this._handleFocusinListener = this.unmanage(
+        this._handleFocusinListener
+      ).release();
+    }
+
+    if (state === 'shown') {
+      const hasFocusin = 'onfocusin' in this.element.ownerDocument.defaultView;
+      const focusinEventName = hasFocusin ? 'focusin' : 'focus';
+      this._handleFocusinListener = this.manage(
+        on(
+          this.element.ownerDocument,
+          focusinEventName,
+          this._handleFocusin,
+          !hasFocusin
+        )
+      );
+      // Add no-scroll class to body when modal is shown
+      if (this.options.classNoScroll) {
+        this.element.ownerDocument.body.classList.add(this.options.classNoScroll);
+      }
+    }
+
+    if (state === 'hidden') {
+      this.element.classList.toggle(this.options.classVisible, false);
+      // Remove no-scroll class from body when modal is hidden
+      if (this.options.classNoScroll) {
+        this.element.ownerDocument.body.classList.remove(this.options.classNoScroll);
+      }
+    } else if (state === 'shown') {
+      this.element.classList.toggle(this.options.classVisible, true);
+    }
+>>>>>>> REPLACE
+```
+
+Now we need to add a default value for the `classNoScroll` option in the static options:
+
+```javascript
+### packages/components/src/components/modal/modal.js
+<<<<<<< SEARCH
+  static get options() {
+    const { prefix } = settings;
+    return {
+      selectorInit: '[data-modal]',
+      selectorModalClose: '[data-modal-close]',
+      selectorPrimaryFocus: '[data-modal-primary-focus]',
+      selectorsFloatingMenus: [
+        `.${prefix}--overflow-menu-options`,
+        `.${prefix}--tooltip`,
+        '.flatpickr-calendar',
+      ],
+      classVisible: 'is-visible',
+      attribInitTarget: 'data-modal-target',
+      initEventNames: ['click'],
+      eventBeforeShown: 'modal-beingshown',
+      eventAfterShown: 'modal-shown',
+      eventBeforeHidden: 'modal-beinghidden',
+      eventAfterHidden: 'modal-hidden',
+    };
+  }
+=======
+  static get options() {
+    const { prefix } = settings;
+    return {
+      selectorInit: '[data-modal]',
+      selectorModalClose: '[data-modal-close]',
+      selectorPrimaryFocus: '[data-modal-primary-focus]',
+      selectorsFloatingMenus: [
+        `.${prefix}--overflow-menu-options`,
+        `.${prefix}--tooltip`,
+        '.flatpickr-calendar',
+      ],
+      classVisible: 'is-visible',
+      classNoScroll: `${prefix}--body--with-modal-open`,
+      attribInitTarget: 'data-modal-target',
+      initEventNames: ['click'],
+      eventBeforeShown: 'modal-beingshown',
+      eventAfterShown: 'modal-shown',
+      eventBeforeHidden: 'modal-beinghidden',
+      eventAfterHidden: 'modal-hidden',
+    };
+  }
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Add a default class name for the no-scroll functionality (`${prefix}--body--with-modal-open`)
+2. Add the class to the body element when the modal is shown
+3. Remove the class from the body element when the modal is hidden
+
+This implementation follows the pattern mentioned in the issue where Bootstrap adds a `modal-open` class to the body element when a modal is open.

@@ -1,0 +1,23 @@
+Based on the issue description, the bug is in the `submit_row` function where the `show_save_as_new` condition needs to include a check for `has_add_permission` since saving as new is effectively creating a new record.
+
+The fix requires modifying the `show_save_as_new` condition in the context dictionary. Here's the *SEARCH/REPLACE* edit:
+
+```python
+### django/contrib/admin/templatetags/admin_modify.py
+<<<<<<< SEARCH
+            "show_save_as_new": not is_popup
+            and has_change_permission
+            and change
+            and save_as,
+=======
+            "show_save_as_new": not is_popup
+            and has_add_permission
+            and has_change_permission
+            and change
+            and save_as,
+>>>>>>> REPLACE
+```
+
+This change adds the `has_add_permission` check to ensure that users can only see and use the "Save as new" option if they have both change and add permissions. This aligns with the security principle that creating new records should require add permission, even when copying from an existing record.
+
+The indentation is preserved exactly as in the original file (12 spaces before each line) to maintain the proper dictionary structure.

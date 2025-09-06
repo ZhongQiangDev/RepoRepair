@@ -1,0 +1,42 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about fixing image+label combinations when `declutterMode` is different than 'declutter'. The problem appears to be in the `forEachFeatureAtCoordinate` method of the `ExecutorGroup` class, where there's a check that prevents hit detection for decluttered features that are not included in the `declutteredFeatures` array.
+
+Currently, the code has this condition:
+```javascript
+if (
+  !declutteredFeatures ||
+  (builderType !== 'Image' && builderType !== 'Text') ||
+  declutteredFeatures.includes(feature)
+) {
+  // Process the feature
+}
+```
+
+This means that if a feature is an Image or Text and it's not in the declutteredFeatures array, it won't be processed. However, according to the issue, we need to fix image+label combinations when declutterMode is different than 'declutter', which suggests that we need to modify this condition to handle different declutter modes.
+
+## Fix
+
+The fix should modify the condition to properly handle image+label combinations with different declutter modes. Let's update the code:
+
+```javascript
+### src/ol/render/canvas/ExecutorGroup.js
+<<<<<<< SEARCH
+          if (
+            !declutteredFeatures ||
+            (builderType !== 'Image' && builderType !== 'Text') ||
+            declutteredFeatures.includes(feature)
+          ) {
+=======
+          if (
+            !declutteredFeatures ||
+            (builderType !== 'Image' && builderType !== 'Text') ||
+            declutteredFeatures.includes(feature) ||
+            (builderType === 'Image' && feature.get('declutterMode') !== 'declutter')
+          ) {
+>>>>>>> REPLACE
+```
+
+This change adds an additional condition to allow hit detection for Image features when their declutterMode is not set to 'declutter'. This way, image+label combinations will work correctly when declutterMode is different than 'declutter'.

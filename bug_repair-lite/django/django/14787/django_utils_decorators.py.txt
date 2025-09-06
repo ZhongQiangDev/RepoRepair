@@ -1,0 +1,24 @@
+Based on the issue description, the bug occurs when using `method_decorator` with a function decorator that expects the wrapped function to have standard function attributes like `__name__`. The issue is in the `_multi_decorate` function where we create a `bound_method` using `partial` but don't preserve the original function's attributes.
+
+The fix is to update the `bound_method` with the original method's attributes before applying decorators. Here's the *SEARCH/REPLACE* edit:
+
+```python
+### django/utils/decorators.py
+<<<<<<< SEARCH
+        bound_method = partial(method.__get__(self, type(self)))
+        for dec in decorators:
+            bound_method = dec(bound_method)
+        return bound_method(*args, **kwargs)
+=======
+        bound_method = partial(method.__get__(self, type(self)))
+        # Preserve the original method's attributes on the partial object
+        update_wrapper(bound_method, method)
+        for dec in decorators:
+            bound_method = dec(bound_method)
+        return bound_method(*args, **kwargs)
+>>>>>>> REPLACE
+```
+
+This fix adds `update_wrapper(bound_method, method)` after creating the partial object but before applying decorators. This ensures that the partial object has all the necessary attributes from the original method, such as `__name__`, `__module__`, etc.
+
+The fix addresses the specific error in the issue where `AttributeError: 'functools.partial' object has no attribute '__name__'` was occurring. Now when decorators like the `logger` example try to access `func.__name__`, they will find the attribute properly copied from the original method.

@@ -1,0 +1,129 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that the `DatePicker` component in Carbon v11 doesn't use `forwardRef`, which means refs passed to the component aren't properly forwarded. This prevents users from accessing the component's DOM elements through refs, which was possible in v10.
+
+Looking at the code, I can see that the `DatePicker` component is defined as a regular function component without using `React.forwardRef()`. This means any ref passed to this component will be ignored rather than being forwarded to the underlying DOM element.
+
+## Solution
+
+We need to wrap the `DatePicker` component with `React.forwardRef()` to properly handle refs passed to it. The ref should be forwarded to the appropriate DOM element, which in this case would be the calendar container.
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/DatePicker/DatePicker.js
+<<<<<<< SEARCH
+import React, { useEffect, useRef } from 'react';
+=======
+import React, { useEffect, useRef, forwardRef } from 'react';
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/DatePicker/DatePicker.js
+<<<<<<< SEARCH
+function DatePicker({
+  allowInput,
+  appendTo,
+  children,
+  className,
+  closeOnSelect = true,
+  dateFormat = 'm/d/Y',
+  datePickerType,
+  disable,
+  enable,
+  inline,
+  light,
+  locale = 'en',
+  maxDate,
+  minDate,
+  onChange,
+  onClose,
+  onOpen,
+  short = false,
+  value,
+  ...rest
+}) {
+=======
+const DatePicker = forwardRef(function DatePicker(
+  {
+    allowInput,
+    appendTo,
+    children,
+    className,
+    closeOnSelect = true,
+    dateFormat = 'm/d/Y',
+    datePickerType,
+    disable,
+    enable,
+    inline,
+    light,
+    locale = 'en',
+    maxDate,
+    minDate,
+    onChange,
+    onClose,
+    onOpen,
+    short = false,
+    value,
+    ...rest
+  },
+  ref
+) {
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/DatePicker/DatePicker.js
+<<<<<<< SEARCH
+  useEffect(() => {
+    if (calendarRef.current) {
+      if (value !== undefined) {
+        calendarRef.current.setDate(value);
+      }
+      updateClassNames(calendarRef.current, prefix);
+      //for simple date picker w/o calendar; initial mount may not have value
+    } else if (!calendarRef.current && value) {
+      startInputField.current.value = value;
+    }
+  }, [value, prefix]);
+=======
+  useEffect(() => {
+    if (calendarRef.current) {
+      if (value !== undefined) {
+        calendarRef.current.setDate(value);
+      }
+      updateClassNames(calendarRef.current, prefix);
+      //for simple date picker w/o calendar; initial mount may not have value
+    } else if (!calendarRef.current && value) {
+      startInputField.current.value = value;
+    }
+  }, [value, prefix]);
+
+  // Expose the calendar ref to parent components via the forwarded ref
+  React.useImperativeHandle(ref, () => ({
+    ...calendarRef.current,
+    input: startInputField.current,
+  }));
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/DatePicker/DatePicker.js
+<<<<<<< SEARCH
+export default DatePicker;
+=======
+export default DatePicker;
+>>>>>>> REPLACE
+```
+
+These changes:
+
+1. Import `forwardRef` from React
+2. Wrap the `DatePicker` component with `forwardRef`
+3. Add a `ref` parameter to the component function
+4. Use `useImperativeHandle` to expose the calendar instance and input element through the forwarded ref
+
+This implementation will allow users to access the calendar instance and input element through refs, maintaining compatibility with code that worked in v10.

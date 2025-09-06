@@ -1,0 +1,72 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about the Overlay component having incorrect positioning when there are two scrollbars. Looking at the issue description:
+
+1. When clicking a datepicker and scrolling down a bit, the datepicker popup appears in the wrong position
+2. This suggests that the position calculation isn't properly accounting for scrolling in certain scenarios
+
+After examining the code, I found the problem in the `_getElementRect` function. This function calculates the position of an element, but it's incorrectly handling scrolling. The current implementation subtracts both the element's scroll values and the document's scroll values, which can lead to incorrect positioning when there are nested scrollable elements.
+
+## Fix
+
+```javascript
+### src/overlay/utils/position.js
+<<<<<<< SEARCH
+function _getElementRect(elem) {
+    let offsetTop = 0,
+        offsetLeft = 0,
+        scrollTop = 0,
+        scrollLeft = 0;
+
+    const offsetHeight = elem.offsetHeight;
+    const offsetWidth = elem.offsetWidth;
+
+    do {
+        if (!isNaN(elem.offsetTop)) {
+            offsetTop += elem.offsetTop;
+        }
+        if (!isNaN(elem.offsetLeft)) {
+            offsetLeft += elem.offsetLeft;
+        }
+        if (!isNaN(elem.scrollTop)) {
+            scrollTop += elem.scrollTop;
+        }
+        if (!isNaN(elem.scrollLeft)) {
+            scrollLeft += elem.scrollLeft;
+        }
+    } while ((elem = elem.offsetParent) !== null);
+
+    return {
+        top:
+            offsetTop -
+            scrollTop -
+            (document.documentElement.scrollTop || document.body.scrollTop),
+        left:
+            offsetLeft -
+            scrollLeft -
+            (document.documentElement.scrollLeft || document.body.scrollLeft),
+        height: offsetHeight,
+        width: offsetWidth,
+    };
+}
+=======
+function _getElementRect(elem) {
+    // Use getBoundingClientRect for more accurate positioning
+    // This accounts for all scrolling contexts automatically
+    const rect = elem.getBoundingClientRect();
+    
+    return {
+        top: rect.top,
+        left: rect.left,
+        height: rect.height,
+        width: rect.width,
+    };
+}
+>>>>>>> REPLACE
+```
+
+This fix replaces the complex manual calculation with the browser's built-in `getBoundingClientRect()` method, which provides the element's position relative to the viewport. This automatically accounts for all scrolling contexts, including nested scrollable elements, which solves the issue of incorrect positioning when there are multiple scrollbars.
+
+The `getBoundingClientRect()` method returns coordinates relative to the viewport, which is exactly what we need for positioning overlay elements correctly, regardless of how many scrollable containers are involved.

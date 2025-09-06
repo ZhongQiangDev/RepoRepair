@@ -1,0 +1,30 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When running `./manage.py dbshell -- -c "select * from some_table;"`, the `-c` option and SQL command are ignored by psql
+- psql shows warnings that these arguments are being ignored
+- The shell opens interactively instead of executing the command and exiting
+
+2. Cause Analysis:
+- The issue is in the order of arguments being passed to psql
+- psql requires all options (like -c) to come before the database name
+- Currently, Django is placing the database name before the additional arguments, causing psql to ignore them
+- The fix would involve reordering the arguments to ensure options come before the database name specifically for PostgreSQL
+
+3. Most Relevant Files:
+```
+django/core/management/commands/dbshell.py
+django/db/backends/postgresql/client.py
+django/db/backends/base/introspection.py
+django/core/management/base.py
+django/db/backends/postgresql/base.py
+```
+
+These files are ordered by relevance because:
+- dbshell.py contains the main command implementation that needs modification
+- postgresql/client.py handles PostgreSQL-specific shell command construction
+- base/introspection.py provides database inspection capabilities
+- management/base.py contains base command functionality
+- postgresql/base.py handles PostgreSQL-specific database operations
+
+The fix would primarily involve modifying how arguments are ordered in dbshell.py and postgresql/client.py to ensure proper argument ordering for PostgreSQL.

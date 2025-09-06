@@ -1,0 +1,36 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the problem is that the background color for radio buttons is being applied to all radio buttons, not just the checked ones. Looking at the code, I can see that in `StyledRadioButtonBox`, the background color is being applied unconditionally from the theme, without checking if the radio button is checked.
+
+Here's the fix:
+
+```javascript
+### src/js/components/RadioButton/StyledRadioButton.js
+<<<<<<< SEARCH
+const StyledRadioButtonBox = styled.div`
+  background-color: ${(props) =>
+    normalizeColor(
+      props.theme.radioButton.check.background?.color,
+      props.theme,
+    )};
+
+  ${(props) => props.theme.radioButton.check.extend};
+`;
+=======
+const StyledRadioButtonBox = styled.div`
+  background-color: ${(props) =>
+    props.checked
+      ? normalizeColor(
+          props.theme.radioButton.check.background?.color,
+          props.theme,
+        )
+      : normalizeColor('control', props.theme)};
+
+  ${(props) => props.theme.radioButton.check.extend};
+`;
+>>>>>>> REPLACE
+```
+
+This change modifies the `StyledRadioButtonBox` component to conditionally apply the background color based on whether the radio button is checked. If it's checked, it uses the theme's specified color for checked radio buttons. If not, it uses the default 'control' color from the theme.
+
+The fix ensures that only the checked radio button will have the custom background color, while unchecked radio buttons will maintain the default appearance.

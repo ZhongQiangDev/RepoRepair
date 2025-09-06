@@ -1,0 +1,27 @@
+Let me help analyze this issue.
+
+1. Wrong Behavior:
+The rightmost data point in a line chart gets cropped off/cut off at the edge, even though the tooltip for that point displays correctly.
+
+2. Cause Analysis:
+This appears to be a layout/scaling issue where the chart's drawing area isn't properly accounting for the full width needed to display all data points. Since the tooltip works, the data point exists in the dataset but isn't being rendered properly due to clipping or boundary calculation issues.
+
+The core issue likely lies in how the chart calculates its layout boundaries and scales, particularly for the x-axis. Since this is a line chart issue and involves layout calculations, we should look at files handling line charts, layouts, and scale calculations.
+
+3. Most Relevant Files:
+```
+src/controllers/controller.line.js
+src/core/core.layouts.js
+src/scales/scale.linear.js
+src/core/core.controller.js
+src/platform/platform.dom.js
+```
+
+These files are most relevant because:
+- controller.line.js: Directly handles line chart rendering and point positioning
+- core.layouts.js: Manages chart layout calculations and boundaries
+- scale.linear.js: Handles axis scaling which affects point positioning
+- core.controller.js: Coordinates overall chart rendering and updates
+- platform.dom.js: Handles canvas sizing and DOM-specific rendering aspects
+
+The issue is most likely caused by an interaction between line chart rendering logic and layout boundary calculations, with the linear scale possibly not providing enough padding for the rightmost point.

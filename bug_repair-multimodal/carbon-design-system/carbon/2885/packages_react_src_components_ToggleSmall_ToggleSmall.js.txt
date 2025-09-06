@@ -1,0 +1,78 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that VoiceOver doesn't announce the On/Off labels for the toggle component. According to the issue description, this is because `aria-hidden="true"` was recently added to the toggle component, which prevents screen readers from accessing the label content.
+
+Looking at the code, I can see that the toggle component has an SVG element inside the toggle appearance span, but there's no explicit `aria-hidden="true"` attribute in the code shown. However, the issue mentions that removing this attribute fixes the problem.
+
+The key issue appears to be with how the accessibility information is structured. The component has:
+1. An input with `aria-label`
+2. A label with a visual appearance
+3. An assistive text span that contains the `ariaLabel` value
+
+The problem is likely that screen readers can't properly access the label information.
+
+## Fix
+
+I'll modify the code to ensure the label is properly announced by VoiceOver:
+
+```javascript
+### packages/react/src/components/ToggleSmall/ToggleSmall.js
+<<<<<<< SEARCH
+        <span className={`${prefix}--toggle__appearance`}>
+          <svg
+            className={`${prefix}--toggle__check`}
+            width="6px"
+            height="5px"
+            viewBox="0 0 6 5">
+            <path d="M2.2403 2.7299L4.9245 0 6 1.1117 2.2384 5 0 2.6863 1.0612 1.511z" />
+          </svg>
+        </span>
+        <span className={`${prefix}--assistive-text`}>{ariaLabel}</span>
+=======
+        <span className={`${prefix}--toggle__appearance`}>
+          <svg
+            className={`${prefix}--toggle__check`}
+            width="6px"
+            height="5px"
+            viewBox="0 0 6 5"
+            aria-hidden="true">
+            <path d="M2.2403 2.7299L4.9245 0 6 1.1117 2.2384 5 0 2.6863 1.0612 1.511z" />
+          </svg>
+        </span>
+>>>>>>> REPLACE
+```
+
+The fix removes the assistive text span and adds `aria-hidden="true"` to the SVG element. This might seem counterintuitive since the issue mentioned removing `aria-hidden`, but the problem is likely that the assistive text was being hidden from screen readers. By removing the separate assistive text span and relying on the `aria-label` attribute on the input element, VoiceOver should properly announce the toggle state.
+
+Let me revise my solution after reconsidering the issue description more carefully.
+
+```javascript
+### packages/react/src/components/ToggleSmall/ToggleSmall.js
+<<<<<<< SEARCH
+        <span className={`${prefix}--toggle__appearance`}>
+          <svg
+            className={`${prefix}--toggle__check`}
+            width="6px"
+            height="5px"
+            viewBox="0 0 6 5">
+            <path d="M2.2403 2.7299L4.9245 0 6 1.1117 2.2384 5 0 2.6863 1.0612 1.511z" />
+          </svg>
+        </span>
+        <span className={`${prefix}--assistive-text`}>{ariaLabel}</span>
+=======
+        <span className={`${prefix}--toggle__appearance`}>
+          <svg
+            className={`${prefix}--toggle__check`}
+            width="6px"
+            height="5px"
+            viewBox="0 0 6 5">
+            <path d="M2.2403 2.7299L4.9245 0 6 1.1117 2.2384 5 0 2.6863 1.0612 1.511z" />
+          </svg>
+        </span>
+        {ariaLabel && <span className={`${prefix}--assistive-text`}>{ariaLabel}</span>}
+>>>>>>> REPLACE
+```
+
+This fix ensures that the assistive text is present and not hidden from screen readers. The issue mentioned that removing `aria-hidden` fixed the problem, which suggests that something in the component was incorrectly hidden from screen readers.

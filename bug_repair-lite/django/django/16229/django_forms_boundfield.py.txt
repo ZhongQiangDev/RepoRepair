@@ -1,0 +1,45 @@
+Based on the issue description, the bug appears to be related to how ModelForm fields with callable defaults (like `default=list` for ArrayField) handle validation and initial values in the admin interface. The issue manifests when a form with an inline ArrayField is submitted twice after an error.
+
+Looking at the code in `django/forms/boundfield.py`, the issue stems from how the `value()` method handles initial values and bound data. The current implementation doesn't properly handle callable defaults when dealing with initial values in the context of form validation.
+
+Here's the fix:
+
+```python
+### django/forms/boundfield.py
+<<<<<<< SEARCH
+    def value(self):
+        """
+        Return the value for this BoundField, using the initial value if
+        the form is not bound or the data otherwise.
+        """
+        data = self.initial
+        if self.form.is_bound:
+            data = self.field.bound_data(self.data, data)
+        return self.field.prepare_value(data)
+=======
+    def value(self):
+        """
+        Return the value for this BoundField, using the initial value if
+        the form is not bound or the data otherwise.
+        """
+        data = self.initial
+        if self.form.is_bound:
+            data = self.field.bound_data(self.data, data)
+            # Handle callable defaults when form is bound but data is None/empty
+            if data is None and hasattr(self.field, 'default'):
+                default = self.field.default
+                if callable(default):
+                    data = default()
+        return self.field.prepare_value(data)
+>>>>>>> REPLACE
+```
+
+This change adds handling for callable defaults when the form is bound but the data is None. This fixes the issue where ArrayField with `default=list` wasn't properly maintaining its default value during form validation cycles.
+
+The fix ensures that:
+1. When the form is bound and validation fails
+2. And the field data becomes None
+3. And the field has a callable default
+4. The callable default is properly invoked to provide the default value
+
+This prevents the issue where the ArrayField becomes empty on the second submission after validation error.

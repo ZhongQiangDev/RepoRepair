@@ -1,0 +1,146 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when a WebGLTileLayer with a palette style is removed and then added back to the map. The error messages indicate that the WebGL texture is being reused across different WebGL contexts, which is not allowed.
+
+When a layer is removed from the map, its WebGL context is destroyed. However, the `PaletteTexture` class is keeping a reference to the texture created in the previous context. When the layer is added back, it tries to use this stale texture reference with the new WebGL context, causing the errors.
+
+The fix is to ensure that the texture is recreated when the WebGL context changes. We need to add a method to dispose of the texture and make sure it's called when the layer is removed from the map.
+
+## Fix
+
+```javascript
+### src/ol/webgl/PaletteTexture.js
+<<<<<<< SEARCH
+/**
+ * @module ol/webgl/PaletteTexture
+ */
+
+class PaletteTexture {
+  /**
+   * @param {string} name The name of the texture.
+   * @param {Uint8Array} data The texture data.
+   */
+  constructor(name, data) {
+    this.name = name;
+    this.data = data;
+
+    /**
+     * @type {WebGLTexture|null}
+     * @private
+     */
+    this.texture_ = null;
+  }
+
+  /**
+   * @param {WebGLRenderingContext} gl Rendering context.
+   * @return {WebGLTexture} The texture.
+   */
+  getTexture(gl) {
+    if (!this.texture_) {
+      const texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        this.data.length / 4,
+        1,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        this.data,
+      );
+      this.texture_ = texture;
+    }
+    return this.texture_;
+  }
+}
+
+export default PaletteTexture;
+=======
+/**
+ * @module ol/webgl/PaletteTexture
+ */
+
+class PaletteTexture {
+  /**
+   * @param {string} name The name of the texture.
+   * @param {Uint8Array} data The texture data.
+   */
+  constructor(name, data) {
+    this.name = name;
+    this.data = data;
+
+    /**
+     * @type {WebGLTexture|null}
+     * @private
+     */
+    this.texture_ = null;
+
+    /**
+     * @type {WebGLRenderingContext|null}
+     * @private
+     */
+    this.gl_ = null;
+  }
+
+  /**
+   * @param {WebGLRenderingContext} gl Rendering context.
+   * @return {WebGLTexture} The texture.
+   */
+  getTexture(gl) {
+    // If the context has changed or we don't have a texture yet, create a new one
+    if (!this.texture_ || this.gl_ !== gl) {
+      // Dispose of the old texture if it exists
+      this.dispose();
+      
+      this.gl_ = gl;
+      const texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        this.data.length / 4,
+        1,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        this.data,
+      );
+      this.texture_ = texture;
+    }
+    return this.texture_;
+  }
+
+  /**
+   * Dispose of the texture.
+   */
+  dispose() {
+    if (this.texture_ && this.gl_) {
+      this.gl_.deleteTexture(this.texture_);
+      this.texture_ = null;
+    }
+  }
+}
+
+export default PaletteTexture;
+>>>>>>> REPLACE
+```
+
+This fix adds two important changes:
+
+1. It tracks the WebGL context (`gl`) that created the texture, so we can detect when the context changes.
+2. It adds a `dispose()` method to properly clean up the texture when it's no longer needed.
+
+When `getTexture()` is called with a new WebGL context, it will now properly dispose of the old texture and create a new one in the current context, preventing the "object does not belong to this context" errors.

@@ -1,0 +1,76 @@
+I'll analyze the issue and provide the necessary fixes.
+
+Based on the screenshots from the issue, there are two accessibility violations detected by DAP and Axe-Core:
+
+1. The dropdown component has an accessibility issue related to the aria-label
+2. There appears to be an issue with the form field not having a proper label association
+
+Looking at the code, I can identify two specific problems:
+
+1. The `ListBox.Menu` has an `aria-label` but it's not being properly associated with the menu
+2. The dropdown field doesn't have a proper label association with the form control
+
+Here are the fixes:
+
+```javascript
+### packages/react/src/components/Dropdown/Dropdown.js
+<<<<<<< SEARCH
+              <ListBox.Field
+                id={id}
+                tabIndex="0"
+                disabled={disabled}
+                aria-disabled={disabled}
+                translateWithId={translateWithId}
+                {...getButtonProps({
+                  onKeyDown: event => {
+                    if (match(event, keys.Enter)) {
+                      toggleMenu();
+                    }
+                  },
+                  disabled,
+                })}>
+                <span
+                  className={`${prefix}--list-box__label`}
+                  {...getLabelProps()}>
+                  {selectedItem ? itemToString(selectedItem) : label}
+                </span>
+=======
+              <ListBox.Field
+                id={id}
+                tabIndex="0"
+                disabled={disabled}
+                aria-disabled={disabled}
+                aria-label={ariaLabel || label}
+                translateWithId={translateWithId}
+                {...getButtonProps({
+                  onKeyDown: event => {
+                    if (match(event, keys.Enter)) {
+                      toggleMenu();
+                    }
+                  },
+                  disabled,
+                })}>
+                <span
+                  className={`${prefix}--list-box__label`}
+                  {...getLabelProps()}>
+                  {selectedItem ? itemToString(selectedItem) : label}
+                </span>
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Dropdown/Dropdown.js
+<<<<<<< SEARCH
+                <ListBox.Menu aria-label={ariaLabel} id={id}>
+=======
+                <ListBox.Menu id={`${id}-menu`}>
+>>>>>>> REPLACE
+```
+
+These changes address the accessibility issues by:
+
+1. Adding the `aria-label` attribute directly to the `ListBox.Field` component, which is the interactive element that users will focus on. This ensures screen readers announce the purpose of the control.
+
+2. Removing the `aria-label` from the `ListBox.Menu` and instead giving it a unique ID that's derived from the main component ID. This avoids having multiple competing labels and ensures proper identification of the menu.
+
+These changes should resolve the two DAP violations shown in the screenshots, making the dropdown component more accessible to screen reader users.

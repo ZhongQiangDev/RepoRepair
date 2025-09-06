@@ -1,0 +1,91 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about a bug in the TreeSelect component where disabled items that are also selected by default cause duplicate labels to appear in the input field. The error message indicates there are duplicate keys in the React component, which is causing the warning:
+
+```
+Warning: Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.%s
+```
+
+Looking at the code, the issue is likely in the `getCheckedKeys` method. When processing disabled nodes that are also checked by default, the method doesn't properly handle them, causing duplicate keys in the checked keys array.
+
+## Fix
+
+The issue is in the `getCheckedKeys` method. When processing the checked keys, it doesn't properly filter out disabled nodes when they're also checked by default. Let's modify the method to fix this:
+
+```javascript
+### src/tree/view/tree.jsx
+<<<<<<< SEARCH
+    /* istanbul ignore next */
+    getCheckedKeys(props, willReceiveProps) {
+        let checkedKeys = props.defaultCheckedKeys;
+
+        if ('checkedKeys' in props) {
+            checkedKeys = props.checkedKeys;
+        } else if (willReceiveProps) {
+            checkedKeys = [];
+        }
+
+        const { checkStrictly } = this.props;
+        if (checkStrictly) {
+            if (isPlainObject(checkedKeys)) {
+                const { checked, indeterminate } = checkedKeys;
+                checkedKeys = normalizeToArray(checked);
+                this.indeterminateKeys = normalizeToArray(indeterminate);
+            } else {
+                checkedKeys = normalizeToArray(checkedKeys);
+            }
+
+            checkedKeys = checkedKeys.filter(key => !!this._k2n[key]);
+        } else {
+            checkedKeys = getAllCheckedKeys(checkedKeys, this._k2n, this._p2n);
+            checkedKeys = checkedKeys.filter(key => !!this._k2n[key]);
+
+            this.indeterminateKeys = this.getIndeterminateKeys(checkedKeys);
+        }
+
+        return checkedKeys;
+=======
+    /* istanbul ignore next */
+    getCheckedKeys(props, willReceiveProps) {
+        let checkedKeys = props.defaultCheckedKeys;
+
+        if ('checkedKeys' in props) {
+            checkedKeys = props.checkedKeys;
+        } else if (willReceiveProps) {
+            checkedKeys = [];
+        }
+
+        const { checkStrictly } = this.props;
+        if (checkStrictly) {
+            if (isPlainObject(checkedKeys)) {
+                const { checked, indeterminate } = checkedKeys;
+                checkedKeys = normalizeToArray(checked);
+                this.indeterminateKeys = normalizeToArray(indeterminate);
+            } else {
+                checkedKeys = normalizeToArray(checkedKeys);
+            }
+
+            // Filter out keys that don't exist in the tree
+            checkedKeys = checkedKeys.filter(key => !!this._k2n[key]);
+            
+            // Remove duplicate keys
+            checkedKeys = [...new Set(checkedKeys)];
+        } else {
+            checkedKeys = getAllCheckedKeys(checkedKeys, this._k2n, this._p2n);
+            
+            // Filter out keys that don't exist in the tree
+            checkedKeys = checkedKeys.filter(key => !!this._k2n[key]);
+            
+            // Remove duplicate keys
+            checkedKeys = [...new Set(checkedKeys)];
+
+            this.indeterminateKeys = this.getIndeterminateKeys(checkedKeys);
+        }
+
+        return checkedKeys;
+>>>>>>> REPLACE
+```
+
+This fix adds a step to remove duplicate keys by using a Set to ensure uniqueness. This will prevent the warning about duplicate keys and fix the issue where disabled items that are also selected by default cause duplicate labels to appear in the input field.

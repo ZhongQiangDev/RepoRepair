@@ -1,0 +1,48 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that the Java code highlighter in Prism.js is not correctly highlighting "UUID" as a class name. Looking at the code, the problem is in the regular expression pattern for class names.
+
+The current class name pattern is looking for class names that start with an uppercase letter followed by any number of digits or uppercase letters, and then a lowercase letter. This pattern doesn't match class names that consist only of uppercase letters like "UUID".
+
+Here's the fix:
+
+```javascript
+### components/prism-java.js
+<<<<<<< SEARCH
+	// based on the java naming conventions
+	var className = {
+		pattern: RegExp(classNamePrefix + /[A-Z](?:[\d_A-Z]*[a-z]\w*)?\b/.source),
+		lookbehind: true,
+		inside: {
+			'namespace': {
+				pattern: /^[a-z]\w*(?:\s*\.\s*[a-z]\w*)*(?:\s*\.)?/,
+				inside: {
+					'punctuation': /\./
+				}
+			},
+			'punctuation': /\./
+		}
+	};
+=======
+	// based on the java naming conventions
+	var className = {
+		pattern: RegExp(classNamePrefix + /[A-Z](?:[\d_A-Z]*[a-z]\w*|[\d_A-Z]*)\b/.source),
+		lookbehind: true,
+		inside: {
+			'namespace': {
+				pattern: /^[a-z]\w*(?:\s*\.\s*[a-z]\w*)*(?:\s*\.)?/,
+				inside: {
+					'punctuation': /\./
+				}
+			},
+			'punctuation': /\./
+		}
+	};
+>>>>>>> REPLACE
+```
+
+This change modifies the regular expression pattern to match both:
+1. Class names that follow the traditional Java naming convention (starting with uppercase, containing lowercase)
+2. Class names that consist entirely of uppercase letters and digits (like UUID, HTML, JSON, etc.)
+
+The fix adds an alternative pattern `|[\d_A-Z]*` to match class names that consist only of uppercase letters, digits, and underscores.

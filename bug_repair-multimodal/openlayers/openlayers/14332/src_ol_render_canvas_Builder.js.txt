@@ -1,0 +1,84 @@
+Looking at the issue description, the problem is with incorrect rendering in vector context of rotated tile layers, specifically affecting stroke width, text scale, and precision of geometry at rotations close to 90 and 270 degrees.
+
+The issue mentions that there's inconsistency between vector contexts of tile and vector layers. Looking at the code in `CanvasBuilder.js`, I can see that the `createStroke` method applies `pixelRatio` to line width and line dash offset:
+
+```javascript
+createStroke(state) {
+  return [
+    CanvasInstruction.SET_STROKE_STYLE,
+    state.strokeStyle,
+    state.lineWidth * this.pixelRatio,  // <-- pixelRatio applied here
+    state.lineCap,
+    state.lineJoin,
+    state.miterLimit,
+    this.applyPixelRatio(state.lineDash),
+    state.lineDashOffset * this.pixelRatio,  // <-- and here
+  ];
+}
+```
+
+The problem likely stems from the fact that when rendering rotated tile layers, the pixel ratio scaling is being applied incorrectly or inconsistently compared to vector layers. At rotations close to 90 and 270 degrees, the coordinate system transformation can cause issues with how the pixel ratio is applied.
+
+Looking at the `applyPixelRatio` method and how it's used, the issue appears to be that the pixel ratio is being applied uniformly without considering the rotation context. For rotated contexts, especially at 90/270 degrees, the scaling should account for the transformation.
+
+However, looking more closely at the code, I notice that the `getBufferedMaxExtent()` method calculates a buffer based on `this.resolution * (this.maxLineWidth + 1) / 2`, but this doesn't account for pixel ratio properly in rotated contexts.
+
+The main issue seems to be in the `createStroke` method where pixel ratio is applied to line width and dash offset. In rotated tile contexts, this scaling may not be appropriate or may need to be adjusted.
+
+Let me examine the `getBufferedMaxExtent` method more carefully:
+
+```javascript
+getBufferedMaxExtent() {
+  if (!this.bufferedMaxExtent_) {
+    this.bufferedMaxExtent_ = clone(this.maxExtent);
+    if (this.maxLineWidth > 0) {
+      const width = (this.resolution * (this.maxLineWidth + 1)) / 2;
+      buffer(this.bufferedMaxExtent_, width, this.bufferedMaxExtent_);
+    }
+  }
+  return this.bufferedMaxExtent_;
+}
+```
+
+The issue is that `this.maxLineWidth` is stored as the raw line width, but when calculating the buffer, it should account for the pixel ratio that will be applied during rendering. The buffer calculation should use the same scaling that's applied in `createStroke`.
+
+```javascript
+### src/ol/render/canvas/Builder.js
+<<<<<<< SEARCH
+  /**
+   * Get the buffered rendering extent.  Rendering will be clipped to the extent
+   * provided to the constructor.  To account for symbolizers that may intersect
+   * this extent, we calculate a buffered extent (e.g. based on stroke width).
+   * @return {import("../../extent.js").Extent} The buffered rendering extent.
+   * @protected
+   */
+  getBufferedMaxExtent() {
+    if (!this.bufferedMaxExtent_) {
+      this.bufferedMaxExtent_ = clone(this.maxExtent);
+      if (this.maxLineWidth > 0) {
+        const width = (this.resolution * (this.maxLineWidth + 1)) / 2;
+        buffer(this.bufferedMaxExtent_, width, this.bufferedMaxExtent_);
+      }
+    }
+    return this.bufferedMaxExtent_;
+  }
+=======
+  /**
+   * Get the buffered rendering extent.  Rendering will be clipped to the extent
+   * provided to the constructor.  To account for symbolizers that may intersect
+   * this extent, we calculate a buffered extent (e.g. based on stroke width).
+   * @return {import("../../extent.js").Extent} The buffered rendering extent.
+   * @protected
+   */
+  getBufferedMaxExtent() {
+    if (!this.bufferedMaxExtent_) {
+      this.bufferedMaxExtent_ = clone(this.maxExtent);
+      if (this.maxLineWidth > 0) {
+        const width = (this.resolution * (this.maxLineWidth * this.pixelRatio + 1)) / 2;
+        buffer(this.bufferedMaxExtent_, width, this.bufferedMaxExtent_);
+      }
+    }
+    return this.bufferedMaxExtent_;
+  }
+>>>>>>> REPLACE
+```

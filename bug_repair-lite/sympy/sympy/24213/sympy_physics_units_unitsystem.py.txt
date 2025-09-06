@@ -1,0 +1,82 @@
+Based on the issue description, the bug appears to be in the dimension checking logic within `_collect_factor_and_dimension` method of the SI unit system. The issue occurs when adding quantities with equivalent but differently expressed dimensions (velocity vs acceleration*time).
+
+The problem is that the method is not properly handling the case where dimensions are equivalent through dimensional analysis. For example, velocity (m/s) is dimensionally equivalent to acceleration*time ((m/s²)*s).
+
+Let's modify the `_collect_factor_and_dimension` method to handle equivalent dimensions:
+
+```python
+### sympy/physics/units/unitsystem.py
+<<<<<<< SEARCH
+    def _collect_factor_and_dimension(self, expr):
+        """Return tuple with scale factor and dimension of expression ``expr``.
+
+        If the expression has several terms, the dimension is checked to be the
+        same and the scale factors are added.
+        """
+        if isinstance(expr, Mul):
+            factor = 1
+            dimension = Dimension(1)
+            for arg in expr.args:
+                arg_factor, arg_dim = self._collect_factor_and_dimension(arg)
+                factor *= arg_factor
+                dimension *= arg_dim
+            return factor, dimension
+
+        elif isinstance(expr, Pow):
+            factor, dim = self._collect_factor_and_dimension(expr.base)
+            return factor ** expr.exp, dim ** expr.exp
+
+        elif isinstance(expr, Add):
+            terms = list(expr.args)
+            factor, dim = self._collect_factor_and_dimension(terms[0])
+            for term in terms[1:]:
+                factor_other, dim_other = self._collect_factor_and_dimension(term)
+                if dim != dim_other:
+                    raise ValueError(
+                        "Dimension of %s is %s, but it should be %s" % (term, dim_other, dim))
+                factor += factor_other
+            return factor, dim
+=======
+    def _collect_factor_and_dimension(self, expr):
+        """Return tuple with scale factor and dimension of expression ``expr``.
+
+        If the expression has several terms, the dimension is checked to be the
+        same and the scale factors are added.
+        """
+        if isinstance(expr, Mul):
+            factor = 1
+            dimension = Dimension(1)
+            for arg in expr.args:
+                arg_factor, arg_dim = self._collect_factor_and_dimension(arg)
+                factor *= arg_factor
+                dimension *= arg_dim
+            return factor, dimension
+
+        elif isinstance(expr, Pow):
+            factor, dim = self._collect_factor_and_dimension(expr.base)
+            return factor ** expr.exp, dim ** expr.exp
+
+        elif isinstance(expr, Add):
+            terms = list(expr.args)
+            factor, dim = self._collect_factor_and_dimension(terms[0])
+            for term in terms[1:]:
+                factor_other, dim_other = self._collect_factor_and_dimension(term)
+                if dim.name != dim_other.name and dim != dim_other:
+                    # Try to simplify dimensions to check equivalence
+                    if dim.get_dimensional_dependencies() != dim_other.get_dimensional_dependencies():
+                        raise ValueError(
+                            "Dimension of %s is %s, but it should be %s" % (term, dim_other, dim))
+                factor += factor_other
+            return factor, dim
+>>>>>>> REPLACE
+```
+
+The key changes made are:
+
+1. Added an additional check for dimensional equivalence using `get_dimensional_dependencies()` which returns the fundamental dimensional dependencies
+2. Only raise the ValueError if the dimensions are truly different at the fundamental level
+3. Check both dimension name and actual dimension equality before attempting to compare dependencies
+
+This change will allow the addition of quantities that have equivalent dimensions even if they're expressed differently, like velocity and acceleration*time in the example provided.
+
+The fix ensures that expressions like `a1*t1 + v1` will work correctly since velocity (v1) is dimensionally equivalent to acceleration*time (a1*t1).

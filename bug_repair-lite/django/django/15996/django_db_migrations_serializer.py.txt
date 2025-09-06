@@ -1,0 +1,53 @@
+Based on the issue description, the bug is in the `EnumSerializer` class where it doesn't properly handle serialization of combined enum flags (like `re.UNICODE | re.IGNORECASE`). The current implementation only handles single enum values by trying to access their `.name` attribute, but fails when dealing with combined flags.
+
+Here's the fix that adds support for combined enum flags:
+
+```python
+### django/db/migrations/serializer.py
+<<<<<<< SEARCH
+class EnumSerializer(BaseSerializer):
+    def serialize(self):
+        enum_class = self.value.__class__
+        module = enum_class.__module__
+        return (
+            "%s.%s[%r]" % (module, enum_class.__qualname__, self.value.name),
+            {"import %s" % module},
+        )
+=======
+class EnumSerializer(BaseSerializer):
+    def serialize(self):
+        enum_class = self.value.__class__
+        module = enum_class.__module__
+        
+        # Handle combined flags case
+        if hasattr(enum_class, '_decompose'):
+            # Get the individual flag names that make up this combined value
+            names = [flag.name for flag in enum_class._decompose(self.value)]
+            if names:
+                # Join the flags with the OR operator
+                flags_expr = ' | '.join(f"{module}.{enum_class.__qualname__}.{name}" for name in names)
+                return flags_expr, {"import %s" % module}
+        
+        # Handle single enum value case
+        return (
+            "%s.%s[%r]" % (module, enum_class.__qualname__, self.value.name),
+            {"import %s" % module},
+        )
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Checks if the enum class has a `_decompose` method (which is present in flag-based enums like `re.RegexFlag`)
+2. If present, decomposes the combined value into individual flags
+3. Creates an expression that combines the individual flags with the OR operator (|)
+4. Falls back to the original behavior for single enum values
+
+This will now properly handle cases like:
+```python
+regex_flags = models.IntegerField(default=re.UNICODE | re.IGNORECASE)
+```
+
+Instead of trying to find a single name for the combined value (which doesn't exist), it will generate a migration with something like:
+```python
+default=re.RegexFlag.UNICODE | re.RegexFlag.IGNORECASE
+```

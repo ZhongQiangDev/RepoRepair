@@ -1,0 +1,169 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when a user drops an intermediate event on a sequence flow that has a condition expression, and then changes that event into a "Timer Intermediate Catch Event", the condition expression is removed from the sequence flow. This behavior is unintended.
+
+Based on the issue description and the GIF, this is happening during element replacement. The `ReplaceElementBehaviour` class is responsible for handling what happens when one BPMN element is replaced with another.
+
+The file we're looking at is incomplete, but it's likely that the bug is in this class. The issue is similar to a previous issue (#1197), which suggests that there's a pattern of condition expressions being lost during element replacement.
+
+Since we don't have the complete file, I'll need to infer what's happening. When replacing elements, the code is likely not preserving all properties of the sequence flows connected to the element being replaced.
+
+## Fix Proposal
+
+We need to modify the `ReplaceElementBehaviour` class to ensure that when replacing elements, the condition expressions on sequence flows are preserved. Let's search for the implementation of this class and add code to preserve the condition expressions.
+
+```javascript
+### lib/features/modeling/behavior/ReplaceElementBehaviour.js
+<<<<<<< SEARCH
+import inherits from 'inherits';
+
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+
+import {
+  forEach
+} from 'min-dash';
+
+import {
+  isEventSubProcess
+} from '../../../util/DiUtil';
+
+import { is } from '../../../util/ModelUtil';
+
+
+/**
+ * Defines the behaviour of what happens to the elements inside a container
+ * that morphs into another BPMN element
+ */
+
+
+inherits(ReplaceElementBehaviour, CommandInterceptor);
+
+
+
+
+ReplaceElementBehaviour.$inject = [
+  'eventBus',
+  'bpmnReplace',
+  'bpmnRules',
+  'elementRegistry',
+  'selection',
+  'modeling'
+];
+=======
+import inherits from 'inherits';
+
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+
+import {
+  forEach
+} from 'min-dash';
+
+import {
+  isEventSubProcess
+} from '../../../util/DiUtil';
+
+import { is } from '../../../util/ModelUtil';
+
+
+/**
+ * Defines the behaviour of what happens to the elements inside a container
+ * that morphs into another BPMN element
+ */
+
+
+inherits(ReplaceElementBehaviour, CommandInterceptor);
+
+
+
+
+ReplaceElementBehaviour.$inject = [
+  'eventBus',
+  'bpmnReplace',
+  'bpmnRules',
+  'elementRegistry',
+  'selection',
+  'modeling'
+];
+
+/**
+ * Preserves the condition expression when an element on a sequence flow is replaced
+ */
+function preserveConnectionProperties(connection, newElement) {
+  if (connection && connection.businessObject) {
+    // Preserve the condition expression when replacing elements
+    if (connection.businessObject.conditionExpression) {
+      return {
+        type: connection.businessObject.$type,
+        businessObject: {
+          conditionExpression: connection.businessObject.conditionExpression
+        }
+      };
+    }
+  }
+  return null;
+}
+>>>>>>> REPLACE
+```
+
+Now, we need to add code to use this helper function during element replacement. Since we don't have the complete file, I'll make an educated guess about where to add this code:
+
+```javascript
+### lib/features/modeling/behavior/ReplaceElementBehaviour.js
+<<<<<<< SEARCH
+ReplaceElementBehaviour.$inject = [
+  'eventBus',
+  'bpmnReplace',
+  'bpmnRules',
+  'elementRegistry',
+  'selection',
+  'modeling'
+];
+=======
+ReplaceElementBehaviour.$inject = [
+  'eventBus',
+  'bpmnReplace',
+  'bpmnRules',
+  'elementRegistry',
+  'selection',
+  'modeling'
+];
+
+function ReplaceElementBehaviour(
+    eventBus, bpmnReplace, bpmnRules,
+    elementRegistry, selection, modeling) {
+
+  CommandInterceptor.call(this, eventBus);
+
+  this.postExecuted('shape.replace', function(event) {
+    var context = event.context,
+        oldShape = context.oldShape,
+        newShape = context.newShape;
+
+    // Handle sequence flow connections and preserve their properties
+    if (oldShape.incoming && oldShape.incoming.length) {
+      oldShape.incoming.forEach(function(connection) {
+        var properties = preserveConnectionProperties(connection, newShape);
+        if (properties) {
+          modeling.updateProperties(connection, properties.businessObject);
+        }
+      });
+    }
+
+    if (oldShape.outgoing && oldShape.outgoing.length) {
+      oldShape.outgoing.forEach(function(connection) {
+        var properties = preserveConnectionProperties(connection, newShape);
+        if (properties) {
+          modeling.updateProperties(connection, properties.businessObject);
+        }
+      });
+    }
+  });
+}
+>>>>>>> REPLACE
+```
+
+This fix adds a helper function `preserveConnectionProperties` that extracts the condition expression from a connection if it exists. Then, in the `shape.replace` post-execution hook, we check all incoming and outgoing connections of the replaced shape and preserve their condition expressions by updating their properties.
+
+Note: Since I don't have the complete file, this is my best guess at a fix. The actual implementation might need adjustments based on the existing code structure and how connections are handled during element replacement.

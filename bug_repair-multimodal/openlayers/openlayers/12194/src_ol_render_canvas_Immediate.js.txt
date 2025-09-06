@@ -1,0 +1,86 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when rendering dashed lines using Canvas Immediate with a pixelRatio greater than 1, the lineDash pattern is not scaled properly. This causes dashed lines to appear differently (often blurred into continuous lines) compared to when they're rendered on a map.
+
+Looking at the code, I can see that in the `setContextStrokeState_` method, the line width is properly scaled by the pixelRatio:
+
+```javascript
+lineWidth:
+  this.pixelRatio_ *
+  (strokeStyleWidth !== undefined
+    ? strokeStyleWidth
+    : defaultLineWidth),
+```
+
+However, the lineDash pattern is not scaled by the pixelRatio. This is the bug we need to fix.
+
+## Fix
+
+We need to modify the `setContextStrokeState_` method to scale the lineDash values by the pixelRatio when setting them on the context:
+
+```javascript
+### src/ol/render/canvas/Immediate.js
+<<<<<<< SEARCH
+      if (context.setLineDash) {
+        if (!equals(contextStrokeState.lineDash, strokeState.lineDash)) {
+          context.setLineDash(
+            (contextStrokeState.lineDash = strokeState.lineDash)
+          );
+        }
+        if (contextStrokeState.lineDashOffset != strokeState.lineDashOffset) {
+          contextStrokeState.lineDashOffset = strokeState.lineDashOffset;
+          context.lineDashOffset = strokeState.lineDashOffset;
+        }
+      }
+=======
+      if (context.setLineDash) {
+        if (!equals(contextStrokeState.lineDash, strokeState.lineDash)) {
+          contextStrokeState.lineDash = strokeState.lineDash;
+          if (strokeState.lineDash) {
+            const lineDash = strokeState.lineDash.slice();
+            for (let i = 0; i < lineDash.length; i++) {
+              lineDash[i] = lineDash[i] * this.pixelRatio_;
+            }
+            context.setLineDash(lineDash);
+          } else {
+            context.setLineDash(strokeState.lineDash);
+          }
+        }
+        if (contextStrokeState.lineDashOffset != strokeState.lineDashOffset) {
+          contextStrokeState.lineDashOffset = strokeState.lineDashOffset;
+          context.lineDashOffset = strokeState.lineDashOffset * this.pixelRatio_;
+        }
+      }
+>>>>>>> REPLACE
+```
+
+Additionally, we need to make a similar change in the initial setting of the stroke state:
+
+```javascript
+### src/ol/render/canvas/Immediate.js
+<<<<<<< SEARCH
+      context.lineCap = strokeState.lineCap;
+      if (context.setLineDash) {
+        context.setLineDash(strokeState.lineDash);
+        context.lineDashOffset = strokeState.lineDashOffset;
+      }
+=======
+      context.lineCap = strokeState.lineCap;
+      if (context.setLineDash) {
+        if (strokeState.lineDash) {
+          const lineDash = strokeState.lineDash.slice();
+          for (let i = 0; i < lineDash.length; i++) {
+            lineDash[i] = lineDash[i] * this.pixelRatio_;
+          }
+          context.setLineDash(lineDash);
+        } else {
+          context.setLineDash(strokeState.lineDash);
+        }
+        context.lineDashOffset = strokeState.lineDashOffset * this.pixelRatio_;
+      }
+>>>>>>> REPLACE
+```
+
+These changes will ensure that both the line width and the line dash pattern are scaled by the pixelRatio, which will make dashed lines appear consistent regardless of the device pixel ratio.

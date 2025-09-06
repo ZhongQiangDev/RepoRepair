@@ -1,0 +1,75 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub issue is that the option to crop GeoTIFF source tiles to the tile grid extent is not respected when the tiles are reprojected. Specifically, when a non-zero nodata value is specified, the tiles are not cropped as expected. This issue is observed in the example for #15402 and may also occur with other example sources if they are reprojected.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely lies in how the reprojection process handles the cropping of GeoTIFF tiles. The `wrapX` option in GeoTIFF is used to crop the output to the tile grid extent on both the x and y axes, but this behavior is not respected during reprojection. The reprojection process may be ignoring or overriding the cropping logic, leading to tiles that are not cropped as expected.
+
+### 3. Examine Each File One by One
+
+#### `src/ol/reproj.js`
+
+This file contains functions related to reprojection, which are likely relevant to the issue. The functions `calculateSourceExtentResolution` and `calculateSourceResolution` are involved in determining the resolution and extent for reprojection, which could affect how the tiles are cropped.
+
+```
+src/ol/reproj.js
+function: calculateSourceExtentResolution
+function: calculateSourceResolution
+```
+
+#### `src/ol/reproj/DataTile.js`
+
+This file contains the `ReprojDataTile` class, which handles the reprojection of tile data. The class interacts with various utility functions and classes to manage the reprojection process, making it relevant to the issue.
+
+```
+src/ol/reproj/DataTile.js
+class: ReprojDataTile
+```
+
+#### `src/ol/reproj/Tile.js`
+
+This file contains the `ReprojTile` class, which manages the reprojection of a single tile. The class includes methods for loading, reprojecting, and rendering tiles, which are directly related to the issue.
+
+```
+src/ol/reproj/Tile.js
+class: ReprojTile
+```
+
+#### `src/ol/source/DataTile.js`
+
+This file contains the `DataTileSource` class, which manages tile loading and caching. While it is related to tile management, it does not directly handle reprojection or cropping, so it is less likely to be directly relevant to the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `src/ol/source/GeoTIFF.js`
+
+This file contains the `GeoTIFFSource` class and various functions related to GeoTIFF data handling. The class and functions are directly involved in loading and processing GeoTIFF tiles, making them relevant to the issue.
+
+```
+src/ol/source/GeoTIFF.js
+class: GeoTIFFSource
+function: getBoundingBox
+function: getOrigin
+function: getProjection
+```
+
+#### `src/ol/source/Tile.js`
+
+This file contains the `TileSource` and `TileSourceEvent` classes, which are abstract classes for tile-based image sources and events. While they provide foundational functionality, they do not directly handle reprojection or cropping.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `src/ol/source/TileImage.js`
+
+This file contains the `TileImage` class and the `defaultTileLoadFunction`, which are related to managing image tiles. The class includes methods for tile creation and reprojection, making it relevant to the issue.
+
+```
+src/ol/source/TileImage.js
+class: TileImage
+function: defaultTileLoadFunction
+```

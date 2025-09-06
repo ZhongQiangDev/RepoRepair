@@ -1,0 +1,82 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about layer opacity stacking in OpenLayers 6.8.1 and later versions. When multiple layers have the same opacity value (e.g., 0.5), the top-most layer appears opaque relative to other OpenLayers layers, though it still allows basemaps to show through.
+
+Looking at the code, the problem appears to be in the `renderFrame` method of the `CanvasTileLayerRenderer` class. The issue likely occurs in how the canvas context is managed when drawing tiles with opacity.
+
+The key observation from the issue description is:
+1. This only happens in 6.8.1 and later versions
+2. It only happens when multiple layers have identical opacity values
+3. When layers have slightly different opacity values (0.49, 0.50, 0.51), they render correctly
+
+After examining the code, I believe the issue is in the `drawTileImage` method. When drawing tiles with opacity, the context's global alpha is set, but it's not being properly reset between different layers with the same opacity value.
+
+## Fix
+
+```javascript
+### src/ol/renderer/canvas/TileLayer.js
+<<<<<<< SEARCH
+  drawTileImage(tile, frameState, x, y, w, h, gutter, transition) {
+    const image = this.getTileImage(tile);
+    if (!image) {
+      return;
+    }
+    const uid = getUid(this);
+    const alpha = transition ? tile.getAlpha(uid, frameState.time) : 1;
+    const alphaChanged = alpha !== this.context.globalAlpha;
+    if (alphaChanged) {
+      this.context.save();
+      this.context.globalAlpha = alpha;
+    }
+    this.context.drawImage(
+      image,
+      gutter,
+      gutter,
+      image.width - 2 * gutter,
+      image.height - 2 * gutter,
+      x,
+      y,
+      w,
+      h
+    );
+
+    if (alphaChanged) {
+      this.context.restore();
+    }
+=======
+  drawTileImage(tile, frameState, x, y, w, h, gutter, transition) {
+    const image = this.getTileImage(tile);
+    if (!image) {
+      return;
+    }
+    const uid = getUid(this);
+    const alpha = transition ? tile.getAlpha(uid, frameState.time) : 1;
+    // Always save and restore context when drawing tiles with alpha
+    this.context.save();
+    this.context.globalAlpha = alpha;
+    
+    this.context.drawImage(
+      image,
+      gutter,
+      gutter,
+      image.width - 2 * gutter,
+      image.height - 2 * gutter,
+      x,
+      y,
+      w,
+      h
+    );
+
+    this.context.restore();
+>>>>>>> REPLACE
+```
+
+## Explanation
+
+The bug occurs because the code only saves and restores the canvas context when the alpha value changes from the previous tile. This means that when multiple layers have the same opacity value, the context state isn't properly reset between them.
+
+The fix always saves and restores the context state for each tile, regardless of whether the alpha value has changed. This ensures that each tile is drawn with the correct opacity, independent of other tiles that might have the same opacity value.
+
+By always using `save()` and `restore()`, we ensure that the drawing context is in a clean state for each tile, preventing any unintended stacking effects when multiple layers have identical opacity values.

@@ -1,0 +1,22 @@
+Based on the issue description, the bug is in how `SeqFormula` is rendered in LaTeX. The issue is that the sequence brackets are being escaped with backslashes (`\[` and `\]`) when they shouldn't be.
+
+Looking at the code, the `_print_SeqFormula` method in `LatexPrinter` class is responsible for this. The issue is that it's using `\left[` and `\right]` which adds unnecessary escaping. We should use regular square brackets instead.
+
+Here's the fix:
+
+```python
+### sympy/printing/latex.py
+<<<<<<< SEARCH
+        return (r"\left\["
+              + r", ".join(self._print(el) for el in printset)
+              + r"\right\]")
+=======
+        return (r"["
+              + r", ".join(self._print(el) for el in printset)
+              + r"]")
+>>>>>>> REPLACE
+```
+
+This change removes the `\left` and `\right` directives around the brackets, which were causing the unnecessary escaping. The sequence will now be rendered with simple square brackets, which is what's needed for proper rendering in markdown cells.
+
+The fix is minimal and focused specifically on the reported issue. It maintains the same functionality but produces the correct LaTeX output format that works in both Jupyter and markdown contexts.

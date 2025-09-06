@@ -1,0 +1,96 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue states that a green success banner should be displayed after successfully creating a Stripe Connect account. Looking at the code, I can see that there are action creators for handling the success case of creating a Stripe Connect account (`createSuccess`) and completing OAuth connection (`oauthConnectSuccess`), but they don't include any notification or success message.
+
+To fix this issue, we need to modify these success action creators to include a success notification that will display the green banner.
+
+## Solution
+
+We need to modify both the `createSuccess` and `oauthConnectSuccess` functions to include a success notification. The notification system in Calypso typically uses a `successNotice` action that needs to be imported and dispatched.
+
+```javascript
+### client/extensions/woocommerce/state/sites/settings/stripe-connect-account/actions.js
+<<<<<<< SEARCH
+/**
+ * External dependencies
+ */
+
+/**
+ * Internal dependencies
+ */
+=======
+/**
+ * External dependencies
+ */
+import { translate } from 'i18n-calypso';
+
+/**
+ * Internal dependencies
+ */
+import { successNotice } from 'state/notices/actions';
+>>>>>>> REPLACE
+```
+
+Now let's update the `createSuccess` function to dispatch a success notice:
+
+```javascript
+### client/extensions/woocommerce/state/sites/settings/stripe-connect-account/actions.js
+<<<<<<< SEARCH
+function createSuccess( siteId, { email }, { account_id } ) {
+	return {
+		type: WOOCOMMERCE_SETTINGS_STRIPE_CONNECT_ACCOUNT_CREATE_COMPLETE,
+		connectedUserID: account_id,
+		email,
+		siteId,
+	};
+}
+=======
+function createSuccess( siteId, { email }, { account_id } ) {
+	return dispatch => {
+		dispatch( successNotice( translate( 'Stripe account connected successfully!' ), { duration: 8000 } ) );
+		dispatch( {
+			type: WOOCOMMERCE_SETTINGS_STRIPE_CONNECT_ACCOUNT_CREATE_COMPLETE,
+			connectedUserID: account_id,
+			email,
+			siteId,
+		} );
+	};
+}
+>>>>>>> REPLACE
+```
+
+Similarly, let's update the `oauthConnectSuccess` function:
+
+```javascript
+### client/extensions/woocommerce/state/sites/settings/stripe-connect-account/actions.js
+<<<<<<< SEARCH
+function oauthConnectSuccess( siteId, action, { account_id } ) {
+	return {
+		type: WOOCOMMERCE_SETTINGS_STRIPE_CONNECT_ACCOUNT_OAUTH_CONNECT_COMPLETE,
+		connectedUserID: account_id,
+		siteId,
+	};
+}
+=======
+function oauthConnectSuccess( siteId, action, { account_id } ) {
+	return dispatch => {
+		dispatch( successNotice( translate( 'Stripe account connected successfully!' ), { duration: 8000 } ) );
+		dispatch( {
+			type: WOOCOMMERCE_SETTINGS_STRIPE_CONNECT_ACCOUNT_OAUTH_CONNECT_COMPLETE,
+			connectedUserID: account_id,
+			siteId,
+		} );
+	};
+}
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Import the necessary dependencies (`translate` and `successNotice`)
+2. Modify both success functions to return a thunk that:
+   - Dispatches a success notice with a translated message
+   - Dispatches the original action
+
+The green success banner will now be displayed after successfully creating or connecting a Stripe account.

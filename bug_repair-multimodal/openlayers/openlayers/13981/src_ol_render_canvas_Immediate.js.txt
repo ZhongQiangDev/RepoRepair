@@ -1,0 +1,105 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about inconsistent rendering of offset and rotated text between vector layers and vector context. According to the issue description:
+
+1. The vector layer renderer rotates offset text around the feature from which it is offset.
+2. The immediate renderer rotates text around its offset anchor point (as defined by textAlign and textBaseline settings).
+
+This inconsistency becomes apparent when both offset and rotation are applied to text.
+
+Looking at the code in `src/ol/render/canvas/Immediate.js`, I can see that in the `drawText_` method, when rotation is applied, the text is rotated around the offset point (x, y) rather than around the original feature point. This is inconsistent with how the vector layer renderer behaves.
+
+## Fix
+
+The fix should modify the `drawText_` method to rotate text around the original feature point rather than the offset point when rotation is applied.
+
+```javascript
+### src/ol/render/canvas/Immediate.js
+<<<<<<< SEARCH
+      const x = pixelCoordinates[offset] + this.textOffsetX_;
+      const y = pixelCoordinates[offset + 1] + this.textOffsetY_;
+      if (
+        rotation !== 0 ||
+        this.textScale_[0] != 1 ||
+        this.textScale_[1] != 1
+      ) {
+        const localTransform = composeTransform(
+          this.tmpLocalTransform_,
+          x,
+          y,
+          1,
+          1,
+          rotation,
+          -x,
+          -y
+        );
+        context.setTransform.apply(context, localTransform);
+        context.translate(x, y);
+        context.scale(this.textScale_[0], this.textScale_[1]);
+        if (this.textStrokeState_) {
+          context.strokeText(this.text_, 0, 0);
+        }
+        if (this.textFillState_) {
+          context.fillText(this.text_, 0, 0);
+        }
+        context.setTransform(1, 0, 0, 1, 0, 0);
+=======
+      const x = pixelCoordinates[offset];
+      const y = pixelCoordinates[offset + 1];
+      if (
+        rotation !== 0 ||
+        this.textScale_[0] != 1 ||
+        this.textScale_[1] != 1
+      ) {
+        const localTransform = composeTransform(
+          this.tmpLocalTransform_,
+          x,
+          y,
+          1,
+          1,
+          rotation,
+          -x,
+          -y
+        );
+        context.setTransform.apply(context, localTransform);
+        context.translate(x, y);
+        context.scale(this.textScale_[0], this.textScale_[1]);
+        if (this.textStrokeState_) {
+          context.strokeText(this.text_, this.textOffsetX_, this.textOffsetY_);
+        }
+        if (this.textFillState_) {
+          context.fillText(this.text_, this.textOffsetX_, this.textOffsetY_);
+        }
+        context.setTransform(1, 0, 0, 1, 0, 0);
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/render/canvas/Immediate.js
+<<<<<<< SEARCH
+      } else {
+        if (this.textStrokeState_) {
+          context.strokeText(this.text_, x, y);
+        }
+        if (this.textFillState_) {
+          context.fillText(this.text_, x, y);
+        }
+=======
+      } else {
+        if (this.textStrokeState_) {
+          context.strokeText(this.text_, x + this.textOffsetX_, y + this.textOffsetY_);
+        }
+        if (this.textFillState_) {
+          context.fillText(this.text_, x + this.textOffsetX_, y + this.textOffsetY_);
+        }
+>>>>>>> REPLACE
+```
+
+This fix changes how text offsets are applied:
+
+1. For the rotated case, we now apply the rotation around the original feature point (x, y) and then apply the offsets when drawing the text.
+2. For the non-rotated case, we simply add the offsets to the coordinates when drawing the text.
+
+This ensures that text rotation is consistent between vector layers and vector context, with rotation happening around the feature point rather than the offset point.

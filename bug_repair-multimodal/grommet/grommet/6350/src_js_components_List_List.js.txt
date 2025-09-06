@@ -1,0 +1,70 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when both `action` and `onOrder` properties are used together in the `List` component, the list items become unaligned. Looking at the screenshots:
+
+1. With `onOrder`: The action content is not properly aligned with the rest of the list
+2. Without `onOrder`: The action content is properly aligned
+
+The problem is in how the content is structured when both `action` and `onOrder` are present. When `onOrder` is used, the component wraps the content in a `<Box flex>` element, but when `action` is used, it creates a different structure with specific alignment. These two approaches conflict when used together.
+
+## Fix
+
+The issue is in the `List.js` file where the content structure is defined. We need to modify how the content is structured when both `action` and `onOrder` are present:
+
+```javascript
+### src/js/components/List/List.js
+<<<<<<< SEARCH
+                if (action) {
+                  content = [
+                    <Box align="start" key={`actionContainer${index}`}>
+                      {content}
+                    </Box>,
+                    action(item, index),
+                  ];
+                  boxProps = {
+                    direction: 'row',
+                    align: secondaryKey ? 'start' : 'center',
+                    justify: 'between',
+                    gap: 'medium',
+                  };
+                }
+
+                let adjustedBackground =
+=======
+                if (action) {
+                  // If onOrder is also present, we need to handle the content differently
+                  // to maintain proper alignment
+                  if (onOrder && !isPinned) {
+                    // When onOrder is present, content is already wrapped in a Box flex
+                    // so we need to structure the action differently
+                    content = [
+                      content,
+                      action(item, index),
+                    ];
+                    boxProps = {
+                      ...boxProps,
+                      justify: 'between',
+                    };
+                  } else {
+                    content = [
+                      <Box align="start" key={`actionContainer${index}`}>
+                        {content}
+                      </Box>,
+                      action(item, index),
+                    ];
+                    boxProps = {
+                      direction: 'row',
+                      align: secondaryKey ? 'start' : 'center',
+                      justify: 'between',
+                      gap: 'medium',
+                    };
+                  }
+                }
+
+                let adjustedBackground =
+>>>>>>> REPLACE
+```
+
+This fix ensures that when both `action` and `onOrder` are present, the content structure is properly handled to maintain alignment. The key change is detecting when both properties are used and adjusting the content structure accordingly.

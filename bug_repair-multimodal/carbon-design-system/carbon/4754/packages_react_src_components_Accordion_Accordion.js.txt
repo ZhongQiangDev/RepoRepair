@@ -1,0 +1,98 @@
+I'll analyze the issue and provide the necessary edits to fix it.
+
+## Issue Analysis
+
+The issue is about adding an `align` prop to the Accordion component that allows users to specify whether the chevron should be aligned at the start or end of the heading. Currently, Carbon's default is end alignment, but the IBM Security team wants to add this prop to make it configurable.
+
+## Solution
+
+We need to modify the Accordion component to:
+1. Add a new `align` prop with possible values "start" or "end"
+2. Pass this prop to the children (AccordionItem components) through context or props
+3. Keep the default as "end" to maintain backward compatibility
+
+Here's the edit:
+
+```javascript
+### packages/react/src/components/Accordion/Accordion.js
+<<<<<<< SEARCH
+import { settings } from 'carbon-components';
+import cx from 'classnames';
+import PropTypes from 'prop-types';
+import React from 'react';
+
+const { prefix } = settings;
+
+function Accordion({ children, className: customClassName, ...rest }) {
+  const className = cx(`${prefix}--accordion`, customClassName);
+  return (
+    <ul className={className} {...rest}>
+      {children}
+    </ul>
+  );
+}
+
+Accordion.propTypes = {
+  /**
+   * Pass in the children that will be rendered within the Accordion
+   */
+  children: PropTypes.node,
+
+  /**
+   * Specify an optional className to be applied to the container node
+   */
+  className: PropTypes.string,
+};
+=======
+import { settings } from 'carbon-components';
+import cx from 'classnames';
+import PropTypes from 'prop-types';
+import React from 'react';
+
+const { prefix } = settings;
+
+function Accordion({ 
+  align = 'end',
+  children, 
+  className: customClassName, 
+  ...rest 
+}) {
+  const className = cx(`${prefix}--accordion`, customClassName);
+  
+  // Clone children to pass align prop
+  const childrenWithProps = React.Children.map(children, child => {
+    if (React.isValidElement(child)) {
+      return React.cloneElement(child, { align });
+    }
+    return child;
+  });
+  
+  return (
+    <ul className={className} {...rest}>
+      {childrenWithProps}
+    </ul>
+  );
+}
+
+Accordion.propTypes = {
+  /**
+   * Specify the alignment of the accordion chevron
+   */
+  align: PropTypes.oneOf(['start', 'end']),
+  
+  /**
+   * Pass in the children that will be rendered within the Accordion
+   */
+  children: PropTypes.node,
+
+  /**
+   * Specify an optional className to be applied to the container node
+   */
+  className: PropTypes.string,
+};
+>>>>>>> REPLACE
+```
+
+This edit adds the `align` prop with a default value of 'end' to maintain backward compatibility with the current Carbon implementation. It also passes this prop to all child components by cloning them with the additional prop.
+
+Note: This is only part of the solution. The AccordionItem component would also need to be updated to use this prop for styling the chevron position. However, since that file wasn't provided in the code segments, I've focused on adding the prop to the Accordion component itself.

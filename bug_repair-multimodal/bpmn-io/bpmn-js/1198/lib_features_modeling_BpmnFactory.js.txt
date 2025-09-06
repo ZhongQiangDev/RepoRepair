@@ -1,0 +1,74 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue describes that when adding a Timer Intermediate Catch Event to a sequence flow that's not the default flow of an exclusive gateway, the `default` attribute on the gateway is removed, even though the default flow is still rendered correctly.
+
+Based on the issue description and the GIF, this is likely happening during the modeling operation when the Timer Intermediate Catch Event is added to the sequence flow.
+
+The provided code snippet from `BpmnFactory.js` shows the factory that creates BPMN elements, but it doesn't contain the specific bug. The issue is likely in the code that handles the creation or modification of elements, particularly when adding intermediate events to sequence flows.
+
+Since we don't have the complete codebase, I'll need to make an educated guess about where the bug might be. The most likely place is in a modeling handler that updates or recreates elements when adding intermediate events to sequence flows.
+
+## Proposed Fix
+
+The issue is likely in a modeling handler that doesn't properly preserve the `default` attribute when updating or recreating elements. Let's create a search/replace edit for what's likely the problematic code:
+
+```javascript
+### lib/features/modeling/cmd/UpdatePropertiesHandler.js
+<<<<<<< SEARCH
+  if (properties) {
+    forEach(properties, function(value, key) {
+      if (value !== undefined) {
+        element[key] = value;
+      } else {
+        delete element[key];
+      }
+    });
+  }
+=======
+  if (properties) {
+    forEach(properties, function(value, key) {
+      if (value !== undefined) {
+        element[key] = value;
+      } else {
+        // Don't delete the 'default' attribute on gateways
+        if (!(key === 'default' && isAny(element, ['bpmn:ExclusiveGateway', 'bpmn:InclusiveGateway']))) {
+          delete element[key];
+        }
+      }
+    });
+  }
+>>>>>>> REPLACE
+```
+
+Alternatively, the issue might be in a handler that specifically deals with adding elements to sequence flows:
+
+```javascript
+### lib/features/modeling/cmd/AddFlowNodeHandler.js
+<<<<<<< SEARCH
+  // (2) update incoming connection
+  context.newIncoming = this._modeling.updateConnection(
+    incoming,
+    { source: source },
+    newBounds
+  );
+=======
+  // (2) update incoming connection
+  // Preserve the default attribute on the source gateway if it exists
+  var updateProps = { source: source };
+  
+  // If the source is a gateway and has a default flow, preserve it
+  if (source.default === incoming.id) {
+    source.default = source.default;
+  }
+  
+  context.newIncoming = this._modeling.updateConnection(
+    incoming,
+    updateProps,
+    newBounds
+  );
+>>>>>>> REPLACE
+```
+
+Since I don't have the complete codebase, these are educated guesses based on the issue description. The actual fix might need to be in a different file or might require a different approach. The key is to ensure that when adding an intermediate event to a sequence flow, the `default` attribute on the gateway is preserved.

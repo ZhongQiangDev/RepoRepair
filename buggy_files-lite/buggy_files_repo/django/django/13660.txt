@@ -1,0 +1,16 @@
+Let me follow the steps:
+
+1. Wrong Behavior:
+When using `python -m django shell -c` with Python code containing functions, the code fails with a NameError indicating 'django' is not defined, even though the same code works fine with regular `python -c`.
+
+2. Cause Analysis:
+The issue stems from how Django's shell command executes code using the `exec()` function. Currently, it executes the command without providing a globals dictionary, which means imported modules aren't preserved in the function's scope. The `exec()` function needs a globals dictionary to maintain the imported modules' references.
+
+3. Most Related Files (ordered by importance):
+```
+django/core/management/commands/shell.py
+django/core/management/base.py
+django/views/debug.py
+```
+
+The `shell.py` is most important as it contains the direct implementation of the shell command and the `exec()` call that needs modification. `base.py` provides the foundation for command execution and may need adjustments for proper globals handling. `views/debug.py` could be relevant for error handling and reporting during command execution.

@@ -1,0 +1,70 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when using a WMS source with the `gutter` option and rendering it with `ol/layer/WebGLTile`, the gutter is not being clipped before creating textures. This results in misplacement and duplication in the rendered output.
+
+Looking at the code, I can see that in `src/ol/webgl/TileTexture.js`, when an image tile is uploaded to a texture in the `uploadTile_` method, it directly uploads the entire image without accounting for any gutter that might be present. For regular tile layers, this gutter is handled elsewhere, but for WebGLTile layers, we need to clip the gutter before creating the texture.
+
+## Fix
+
+We need to modify the `uploadTile_` method to handle the gutter when dealing with WMS tiles. The fix will involve checking if the tile has a gutter property and, if so, creating a canvas to clip the image before uploading it to the texture.
+
+```javascript
+### src/ol/webgl/TileTexture.js
+<<<<<<< SEARCH
+  uploadTile_() {
+    const helper = this.helper_;
+    const gl = helper.getGL();
+    const tile = this.tile;
+
+    if (tile instanceof ImageTile || tile instanceof ReprojTile) {
+      const texture = gl.createTexture();
+      this.textures.push(texture);
+      this.bandCount = 4;
+      uploadImageTexture(gl, texture, tile.getImage(), tile.interpolate);
+      return;
+    }
+=======
+  uploadTile_() {
+    const helper = this.helper_;
+    const gl = helper.getGL();
+    const tile = this.tile;
+
+    if (tile instanceof ImageTile || tile instanceof ReprojTile) {
+      const texture = gl.createTexture();
+      this.textures.push(texture);
+      this.bandCount = 4;
+      
+      const image = tile.getImage();
+      // Check if the tile source has a gutter
+      const tileGutter = tile.getGutter?.() || 0;
+      
+      if (tileGutter > 0) {
+        // Create a canvas to clip the gutter
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        const tileSize = this.size;
+        
+        canvas.width = tileSize[0];
+        canvas.height = tileSize[1];
+        
+        // Draw the image without the gutter
+        context.drawImage(
+          image,
+          tileGutter, tileGutter,
+          image.width - 2 * tileGutter, image.height - 2 * tileGutter,
+          0, 0,
+          tileSize[0], tileSize[1]
+        );
+        
+        uploadImageTexture(gl, texture, canvas, tile.interpolate);
+      } else {
+        uploadImageTexture(gl, texture, image, tile.interpolate);
+      }
+      return;
+    }
+>>>>>>> REPLACE
+```
+
+This fix checks if the tile has a `getGutter` method and if it returns a positive value. If so, it creates a canvas of the tile size and draws the image onto it, excluding the gutter area. Then it uploads this clipped canvas to the texture instead of the original image. If there's no gutter, it proceeds with the original behavior.

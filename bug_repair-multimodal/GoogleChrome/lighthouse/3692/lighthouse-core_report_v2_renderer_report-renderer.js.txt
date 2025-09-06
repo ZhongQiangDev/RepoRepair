@@ -1,0 +1,52 @@
+Based on the issue statement, the problem is that users need to be warned about performance numbers when the report was created using headless Chrome. The issue suggests adding a warning at the top of the report rather than just in the performance section.
+
+Looking at the code, I need to modify the `_renderReportHeader` method in the `ReportRenderer` class to add this warning when the report was generated using headless Chrome.
+
+Here's my solution:
+
+```javascript
+### lighthouse-core/report/v2/renderer/report-renderer.js
+<<<<<<< SEARCH
+  /**
+   * @param {!ReportRenderer.ReportJSON} report
+   * @return {!DocumentFragment}
+   */
+  _renderReportHeader(report) {
+    const header = this._dom.cloneTemplate('#tmpl-lh-heading', this._templateContext);
+    this._dom.find('.lh-config__timestamp', header).textContent =
+        Util.formatDateTime(report.generatedTime);
+    const url = this._dom.find('.lh-metadata__url', header);
+    url.href = report.url;
+    url.textContent = report.url;
+
+    this._dom.find('.lh-env__item__ua', header).textContent = report.userAgent;
+
+    const env = this._dom.find('.lh-env__items', header);
+=======
+  /**
+   * @param {!ReportRenderer.ReportJSON} report
+   * @return {!DocumentFragment}
+   */
+  _renderReportHeader(report) {
+    const header = this._dom.cloneTemplate('#tmpl-lh-heading', this._templateContext);
+    this._dom.find('.lh-config__timestamp', header).textContent =
+        Util.formatDateTime(report.generatedTime);
+    const url = this._dom.find('.lh-metadata__url', header);
+    url.href = report.url;
+    url.textContent = report.url;
+
+    this._dom.find('.lh-env__item__ua', header).textContent = report.userAgent;
+
+    // Show a warning that the performance numbers may be lower if using headless Chrome.
+    if (report.userAgent && report.userAgent.includes('HeadlessChrome')) {
+      const warning = this._dom.createElement('div', 'lh-warning');
+      warning.textContent = 'The performance numbers in this report are from a test using Headless Chrome. ' +
+          'Performance may be better in a real Chrome browser.';
+      header.appendChild(warning);
+    }
+
+    const env = this._dom.find('.lh-env__items', header);
+>>>>>>> REPLACE
+```
+
+This change adds a warning message at the top of the report when the user agent string contains "HeadlessChrome". The warning informs users that performance numbers may be better in a real Chrome browser compared to the headless version used for testing.

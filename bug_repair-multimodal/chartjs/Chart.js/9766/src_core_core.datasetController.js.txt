@@ -1,0 +1,44 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The problem is that stacked line charts don't properly consider the stack when calculating the minimum y-axis tick. When `beginAtZero` is set to `false`, the chart should start from the minimum data value, but for stacked lines, it's still starting at zero.
+
+Looking at the code, I need to identify where the stacking logic affects the scale calculations. The issue is likely in how the minimum values are determined for stacked datasets.
+
+The key function is `updateStacks`, which handles stacking values, but it doesn't properly track the minimum values when stacking is enabled. We need to ensure that when calculating the minimum value for the y-axis, the stacked values are properly considered.
+
+## Fix
+
+We need to modify the `getLastIndexInStack` function which is referenced in `updateStacks` but not shown in the provided code. Based on the issue, this function likely doesn't properly handle the minimum values for stacked line charts.
+
+Since we don't see the full implementation, I'll propose a fix to the `updateStacks` function to properly track the minimum values:
+
+```javascript
+### src/core/core.datasetController.js
+<<<<<<< SEARCH
+    stack[datasetIndex] = value;
+
+    stack._top = getLastIndexInStack(stack, vScale, true, meta.type);
+    stack._bottom = getLastIndexInStack(stack, vScale, false, meta.type);
+=======
+    stack[datasetIndex] = value;
+
+    // For stacked line charts, we need to properly track the minimum values
+    // to ensure beginAtZero: false works correctly
+    if (meta.type === 'line' && isStacked(vScale, meta)) {
+      // Track the actual minimum value in the stack
+      const stackedValue = applyStack(stack, value, datasetIndex, {mode: 'single'});
+      if (!defined(stack._min) || stackedValue < stack._min) {
+        stack._min = stackedValue;
+      }
+    }
+
+    stack._top = getLastIndexInStack(stack, vScale, true, meta.type);
+    stack._bottom = getLastIndexInStack(stack, vScale, false, meta.type);
+>>>>>>> REPLACE
+```
+
+This fix adds tracking for the minimum value in stacked line charts. When a line chart is stacked, we calculate the actual stacked value and keep track of the minimum value in the stack. This minimum value can then be used by the scale to determine the appropriate minimum tick value when `beginAtZero` is set to `false`.
+
+Note: This is a partial fix that addresses the immediate issue. A complete solution might require additional changes to how the scale uses these stack values to determine its range, but that would depend on code not shown in the provided segments.

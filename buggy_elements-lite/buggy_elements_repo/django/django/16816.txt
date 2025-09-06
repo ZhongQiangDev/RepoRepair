@@ -1,0 +1,37 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The issue occurs when using "choice" in list_display for QuestionAdmin, where "choice" is not a direct field of the Question model. While Django should ideally catch this invalid field configuration during validation checks, it instead allows the configuration but crashes when rendering the admin page with an AttributeError.
+
+2. Cause Analysis:
+The root cause appears to be insufficient validation in Django's admin system. Specifically, error E108 (which likely checks list_display fields) is not catching cases where a field name in list_display refers to a related model's field that isn't properly configured as a method or property on the model or admin class.
+
+3. Examining Files for Relevant Functions/Classes:
+
+```
+django/contrib/admin/checks.py
+class: ModelAdminChecks
+```
+This class is directly relevant as it handles validation of ModelAdmin configurations, including list_display fields.
+
+```
+django/contrib/admin/utils.py
+function: label_for_field
+function: lookup_field
+```
+These functions are involved in processing and resolving field names for display in the admin interface, which is where the error manifests.
+
+```
+django/core/exceptions.py
+class: FieldDoesNotExist
+class: AttributeError
+```
+These exception classes are directly involved in the error being raised.
+
+The remaining file contains no relevant functions/classes:
+```
+django/contrib/admin/helpers.py
+```
+This file primarily contains helper classes for rendering admin forms and doesn't relate to field validation or lookup.
+
+The issue could be fixed by enhancing the ModelAdminChecks class to validate that list_display fields either exist as model fields, are callable methods, or are properly defined properties on the model or admin class. This would catch the invalid configuration before it reaches the rendering stage where it currently fails.

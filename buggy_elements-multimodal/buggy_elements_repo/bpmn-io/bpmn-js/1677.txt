@@ -1,0 +1,48 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that when an element is deleted while direct editing is active, an `illegal invocation` exception occurs. This exception is triggered during the `<execute>` or `<revert>` phase of the `element.updateLabel` action. The editor crashes as a result.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from the fact that the label editing process is not properly terminated or cleaned up when the element is deleted. When the element is removed, the label editing context may still be active, leading to an attempt to execute or revert a label update on a non-existent element. This results in an `illegal invocation` error because the necessary context or references for the label update action are no longer valid.
+
+### 3. Examine Each File One by One and Determine Relevant Functions/Classes
+
+#### --- lib/features/label-editing/LabelEditingProvider.js ---
+```
+lib/features/label-editing/LabelEditingProvider.js
+function: function_12
+function: function_11
+class: LabelEditingProvider
+```
+- `function_12` handles updating the label and dimensions of a BPMN element. It calls `this._modeling.updateLabel`, which is likely where the error occurs if the element is deleted while editing.
+- `function_11` calculates the editing bounding box for a BPMN element. If the element is deleted, this function might still be called with invalid references.
+- The `LabelEditingProvider` class manages direct label editing. It listens to events like `shape.remove` and `connection.remove` to cancel direct editing if the element being edited is removed. However, it may not be properly handling the cleanup when the element is deleted during direct editing.
+
+#### --- lib/features/label-editing/cmd/UpdateLabelHandler.js ---
+```
+lib/features/label-editing/cmd/UpdateLabelHandler.js
+function: UpdateLabelHandler
+```
+- The `UpdateLabelHandler` class handles label updates. The `execute` and `revert` methods in this class might be invoked with invalid references if the element is deleted during editing.
+
+#### --- lib/features/modeling/Modeling.js ---
+```
+lib/features/modeling/Modeling.js
+function: function_3
+function: function_2
+```
+- `function_3` updates the label of an element. This function calls `_commandStack.execute` with the command `'element.updateLabel'`, which is the action that triggers the error.
+- `function_2` retrieves handlers for various modeling actions. It assigns the `UpdateLabelHandler` to the `element.updateLabel` event, which is relevant to the issue.
+
+#### --- lib/features/modeling/cmd/UpdatePropertiesHandler.js ---
+```
+This file contains no relevant functions/classes.
+```
+- This file deals with updating properties of elements but does not directly handle label updates or the deletion of elements during label editing.
+
+### Summary of Relevant Locations
+
+- `lib/features/label-editing/LabelEditingProvider.js`: `function_12`, `function_11`, `LabelEditingProvider`
+- `lib/features/label-editing/cmd/UpdateLabelHandler.js`: `UpdateLabelHandler`
+- `lib/features/modeling/Modeling.js`: `function_3`, `function_2`

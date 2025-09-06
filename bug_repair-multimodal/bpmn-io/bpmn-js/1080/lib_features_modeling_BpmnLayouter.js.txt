@@ -1,0 +1,53 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about connecting message flows to pool boundaries. When a pool has had more than one lane and then is reduced back to a single lane, it becomes difficult to connect message flows to the pool boundary. The user can only connect by dropping the connector at the header of the pool, not inside the single lane of the pool as they could before.
+
+Looking at the code, the problem appears to be in the `BpmnLayouter.js` file. The issue is likely related to how message flows are handled when connecting to pools, especially after the pool structure has changed.
+
+The key part of the code that handles message flows is:
+
+```javascript
+// manhattan layout sequence / message flows
+if (is(connection, 'bpmn:MessageFlow')) {
+  manhattanOptions = getMessageFlowManhattanOptions(source, target);
+}
+```
+
+However, I don't see the implementation of `getMessageFlowManhattanOptions()` in the provided code. This function is likely responsible for determining how message flows should be laid out, including how they connect to pools.
+
+The issue suggests that after a lane is added and then removed from a pool, the system doesn't properly recognize that the pool can be connected to directly in its body. This might be because the pool's internal structure is still being treated as if it has multiple lanes, even after they've been removed.
+
+## Fix
+
+Since the `getMessageFlowManhattanOptions()` function is not visible in the provided code, I'll need to make an educated guess about the fix. The most likely solution is to ensure that this function properly handles pools that have had lanes added and removed.
+
+```javascript
+### lib/features/modeling/BpmnLayouter.js
+<<<<<<< SEARCH
+// manhattan layout sequence / message flows
+if (is(connection, 'bpmn:MessageFlow')) {
+  manhattanOptions = getMessageFlowManhattanOptions(source, target);
+
+} else
+
+=======
+// manhattan layout sequence / message flows
+if (is(connection, 'bpmn:MessageFlow')) {
+  manhattanOptions = getMessageFlowManhattanOptions(source, target);
+  
+  // ensure connection points are properly set for pools
+  if (is(source, 'bpmn:Participant') || is(target, 'bpmn:Participant')) {
+    manhattanOptions = assign({
+      preferredLayouts: [ 'h:h', 'v:v' ]
+    }, manhattanOptions);
+  }
+} else
+
+>>>>>>> REPLACE
+```
+
+This fix adds additional handling for message flows when either the source or target is a pool (Participant). It ensures that horizontal-to-horizontal and vertical-to-vertical layouts are preferred, which should make it easier to connect to any part of the pool, not just the header.
+
+Note: Without seeing the full implementation of `getMessageFlowManhattanOptions()`, this is my best guess at a fix. The actual issue might require more specific changes to that function or to how the pool's connection points are determined after lane modifications.

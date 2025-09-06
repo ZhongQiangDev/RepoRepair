@@ -1,0 +1,32 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue with SQL tick marks not highlighting as strings.
+
+## Identifying the Wrong Behavior
+The problem is that in SQL syntax highlighting, backtick characters (`) used to surround identifiers (like table and column names) are not being highlighted as strings. As shown in the example, identifiers like `` `t`.`col1` `` should be highlighted as strings, but they're not.
+
+## Analyzing the Cause
+Looking at the problem description, the issue appears to be in the regular expression pattern used to match strings in SQL. The current pattern doesn't properly recognize backtick (`) as a valid string delimiter in SQL. 
+
+The fix suggested in the description is to modify the string pattern in the SQL language definition to include backticks as a valid string delimiter:
+`javascript
+Prism.languages.sql = {
+	'string': {
+		pattern: /(^|[^@\\])("|'|`)(?:\\[\s\S]|(?!\2)[^\\]|\2\2)*\2/,
+		greedy: true,
+		lookbehind: true
+	},
+}
+`
+The key change is adding the backtick character (``) to the list of string delimiters in the pattern.
+
+## Files Most Related to the Cause
+Based on the repository information, the most relevant files would be those related to SQL language definition in Prism.js:
+
+```
+components/prism-sql.js
+components/prism-mysql.js
+components/prism-plsql.js
+components/prism-core.js
+components/index.js
+```
+
+The primary file that needs to be edited is `components/prism-sql.js` as it would contain the base SQL language definition. The MySQL and PLSQL files might extend this definition. The core.js file is included as it might contain fundamental functionality that the SQL definition relies on, and index.js might be needed for understanding how components are loaded.

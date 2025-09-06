@@ -1,0 +1,71 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+Based on the issue description and the GIF, there's a problem with the `GeometryCollection` when using the modify interaction. When dragging a common vertex of two polygons in a `GeometryCollection`, the interaction doesn't work correctly. However, it works fine when the same geometries are in a `FeatureCollection`.
+
+Looking at the code, I notice that the `getGeometriesArray()` method returns the internal array of geometries directly, without cloning. This means that when the modify interaction gets this array and modifies the geometries, it's directly modifying the internal geometries of the `GeometryCollection`. However, the collection might not be properly notified of these changes.
+
+The issue is likely in the `getGeometriesArray()` method, which returns a direct reference to the internal geometries array. When the modify interaction modifies these geometries, the `GeometryCollection` needs to be notified of the changes.
+
+## Fix
+
+```javascript
+### src/ol/geom/GeometryCollection.js
+<<<<<<< SEARCH
+  /**
+   * @return {Array<Geometry>} Geometries.
+   */
+  getGeometriesArray() {
+    return this.geometries_;
+  }
+=======
+  /**
+   * @return {Array<Geometry>} Geometries.
+   */
+  getGeometriesArray() {
+    return this.geometries_;
+  }
+
+  /**
+   * @param {Array<Geometry>} geometries Geometries.
+   */
+  setGeometriesArray(geometries) {
+    this.unlistenGeometriesChange_();
+    this.geometries_ = geometries;
+    this.listenGeometriesChange_();
+    this.changed();
+  }
+>>>>>>> REPLACE
+```
+
+Wait, I see that the `setGeometriesArray` method already exists in the code. Let me look more carefully at the issue.
+
+The problem is likely that when the modify interaction changes a geometry within the collection, the collection isn't being notified of these changes. Let me check the event listening code.
+
+Looking at the code again, I see that the `GeometryCollection` does set up change listeners for its geometries in the `listenGeometriesChange_` method. However, there might be an issue with how the modify interaction is handling the geometries.
+
+Let's fix the issue by ensuring that when a geometry in the collection is modified, the collection is properly notified:
+
+```javascript
+### src/ol/geom/GeometryCollection.js
+<<<<<<< SEARCH
+  /**
+   * @return {Array<Geometry>} Geometries.
+   */
+  getGeometriesArray() {
+    return this.geometries_;
+  }
+=======
+  /**
+   * @return {Array<Geometry>} Geometries.
+   */
+  getGeometriesArray() {
+    // Return a clone of the geometries array to prevent direct modification
+    // without proper change notification
+    return this.geometries_ ? this.geometries_.slice() : [];
+  }
+>>>>>>> REPLACE
+```
+
+This change ensures that when the modify interaction gets the geometries array, it gets a copy rather than a direct reference to the internal array. This way, any modifications to the geometries will still trigger the change events, but the internal structure of the `GeometryCollection` is protected.

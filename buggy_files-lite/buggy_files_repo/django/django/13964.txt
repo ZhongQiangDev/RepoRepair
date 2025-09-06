@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When saving a parent object (Order) after setting a child object (Product) with a non-numeric primary key, the foreign key field (product_id) is set to an empty string instead of the child's primary key value.
+- This leads to a ForeignKeyViolation when the transaction commits since no product exists with an empty string as its primary key.
+
+2. Cause Analysis:
+- The issue appears to be in how Django handles foreign key assignment when the related object is unsaved and has a non-numeric primary key.
+- When the parent object tries to save after the child object is saved, Django isn't properly updating the foreign key reference with the newly saved child's primary key value.
+- This seems to be a transaction and model state management issue, specifically around how foreign key fields track changes to their related objects' primary keys.
+
+3. Most Related Files:
+The most relevant files from the repository would be:
+
+```
+django/db/models/base.py
+django/db/transaction.py
+django/db/models/fields/related.py
+django/db/backends/base/base.py
+django/db/models/manager.py
+```
+
+Reasoning:
+- `django/db/models/base.py` is most important as it contains the core Model class which handles saving and state management
+- `django/db/transaction.py` handles transaction management which is directly involved in this issue
+- `django/db/models/fields/related.py` contains ForeignKey field implementation which is central to the problem
+- `django/db/backends/base/base.py` handles database operations and transaction management at a lower level
+- `django/db/models/manager.py` manages model operations which could affect how related objects are handled

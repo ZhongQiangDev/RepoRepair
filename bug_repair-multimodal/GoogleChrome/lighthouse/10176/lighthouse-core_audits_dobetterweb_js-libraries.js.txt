@@ -1,0 +1,48 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+Based on the issue description, there are two problems:
+
+1. Duplicate stack packs are being shown for the same library (React in this case)
+2. Experimental "Fast Path" entries are being shown to users, which wasn't intended
+
+Looking at the code in `lighthouse-core/audits/dobetterweb/js-libraries.js`, the issue is that the audit is displaying all JavaScript libraries detected, including the experimental "Fast Path" versions, without any filtering.
+
+The problem occurs because the code is simply taking all stacks with detector "js" and displaying them, without checking if they're experimental or if there are duplicates due to different detection methods.
+
+## Solution
+
+We need to modify the `audit` method in `JsLibrariesAudit` class to filter out the experimental "Fast Path" entries. Since these entries have the same library name but with " (Fast Path)" appended, we can filter them out based on this pattern.
+
+Here's the fix:
+
+```javascript
+### lighthouse-core/audits/dobetterweb/js-libraries.js
+<<<<<<< SEARCH
+  static audit(artifacts) {
+    const libDetails = artifacts.Stacks
+      .filter(stack => stack.detector === 'js')
+      .map(stack => ({
+        name: stack.name,
+        version: stack.version,
+        npm: stack.npm,
+      }));
+=======
+  static audit(artifacts) {
+    // Filter out Fast Path entries to avoid duplicates
+    const libDetails = artifacts.Stacks
+      .filter(stack => stack.detector === 'js')
+      // Filter out entries with "(Fast Path)" in the name
+      .filter(stack => !stack.name.includes('(Fast Path)'))
+      .map(stack => ({
+        name: stack.name,
+        version: stack.version,
+        npm: stack.npm,
+      }));
+>>>>>>> REPLACE
+```
+
+This change filters out any JavaScript library entries that include "(Fast Path)" in their name, which will prevent the duplicate entries from appearing in the audit results while still keeping the main library entries.
+
+This addresses the immediate issue of duplicate stack packs being shown to users. For a more comprehensive solution, the issue also mentions adding real `id` properties to js-library-detector, but that would require changes to the external library and is beyond the scope of this specific file fix.

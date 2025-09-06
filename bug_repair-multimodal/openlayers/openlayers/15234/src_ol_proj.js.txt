@@ -1,0 +1,63 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that `WebGLPointsLayer` doesn't work correctly with `useGeographic()`. When `useGeographic()` is enabled, the WebGL points are rendered at incorrect locations (near Africa).
+
+Looking at the code, I can see that the problem is likely in how the WebGL layer handles coordinates when the user projection is set to geographic coordinates (EPSG:4326). The WebGL rendering pipeline might not be properly transforming the coordinates from the user projection to the view projection.
+
+The issue is in the `src/ol/proj.js` file. The `transform` function is used throughout the codebase to transform coordinates between projections, but it doesn't seem to be taking the user projection into account for WebGL layers.
+
+## Fix
+
+I need to modify the `transform` function to properly handle the user projection when transforming coordinates:
+
+```javascript
+### src/ol/proj.js
+<<<<<<< SEARCH
+/**
+ * Transforms a coordinate from source projection to destination projection.
+ * This returns a new coordinate (and does not modify the original).
+ *
+ * See {@link module:ol/proj.transformExtent} for extent transformation.
+ * See the transform method of {@link module:ol/geom/Geometry~Geometry} and its
+ * subclasses for geometry transforms.
+ *
+ * @param {import("./coordinate.js").Coordinate} coordinate Coordinate.
+ * @param {ProjectionLike} source Source projection-like.
+ * @param {ProjectionLike} destination Destination projection-like.
+ * @return {import("./coordinate.js").Coordinate} Coordinate.
+ * @api
+ */
+export function transform(coordinate, source, destination) {
+  const transformFunc = getTransform(source, destination);
+  return transformFunc(coordinate, undefined, coordinate.length);
+}
+=======
+/**
+ * Transforms a coordinate from source projection to destination projection.
+ * This returns a new coordinate (and does not modify the original).
+ *
+ * See {@link module:ol/proj.transformExtent} for extent transformation.
+ * See the transform method of {@link module:ol/geom/Geometry~Geometry} and its
+ * subclasses for geometry transforms.
+ *
+ * @param {import("./coordinate.js").Coordinate} coordinate Coordinate.
+ * @param {ProjectionLike} source Source projection-like.
+ * @param {ProjectionLike} destination Destination projection-like.
+ * @return {import("./coordinate.js").Coordinate} Coordinate.
+ * @api
+ */
+export function transform(coordinate, source, destination) {
+  // If a user projection is set, and source is not explicitly provided,
+  // assume the source is the user projection
+  if (userProjection && source === undefined) {
+    source = userProjection;
+  }
+  const transformFunc = getTransform(source, destination);
+  return transformFunc(coordinate, undefined, coordinate.length);
+}
+>>>>>>> REPLACE
+```
+
+This fix ensures that when a coordinate transformation is requested without an explicit source projection, and a user projection is set (via `useGeographic()` or `setUserProjection()`), the user projection will be used as the source projection. This should make WebGLPointsLayer correctly transform coordinates from the user projection (EPSG:4326) to the view projection (typically EPSG:3857).

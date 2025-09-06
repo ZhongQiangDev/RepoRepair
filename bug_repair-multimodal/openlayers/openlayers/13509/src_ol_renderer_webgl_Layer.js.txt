@@ -1,0 +1,122 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that a WebGlTile layer inside a layer group remains visible even when the group's visibility is set to false. This doesn't happen with regular Tile layers, which correctly hide when their parent group is hidden.
+
+Looking at the code, the problem is likely in the `WebGLLayerRenderer` class. When a layer group's visibility is set to false, this information needs to be properly respected by the WebGL renderer.
+
+The issue is in the `prepareFrame` method of the `WebGLLayerRenderer` class. This method determines whether the layer should be rendered, but it doesn't check if the layer or any of its parent groups are invisible.
+
+## Fix
+
+We need to modify the `prepareFrame` method to check if the layer is visible, which includes checking if any parent group is invisible.
+
+```javascript
+### src/ol/renderer/webgl/Layer.js
+<<<<<<< SEARCH
+  prepareFrame(frameState) {
+    if (this.getLayer().getRenderSource()) {
+      let incrementGroup = true;
+      let groupNumber = -1;
+      let className;
+      for (let i = 0, ii = frameState.layerStatesArray.length; i < ii; i++) {
+        const layer = frameState.layerStatesArray[i].layer;
+        const renderer = layer.getRenderer();
+        if (!(renderer instanceof WebGLLayerRenderer)) {
+          incrementGroup = true;
+          continue;
+        }
+        const layerClassName = layer.getClassName();
+        if (incrementGroup || layerClassName !== className) {
+          groupNumber += 1;
+          incrementGroup = false;
+        }
+        className = layerClassName;
+        if (renderer === this) {
+          break;
+        }
+      }
+
+      const canvasCacheKey =
+        'map/' + frameState.mapId + '/group/' + groupNumber;
+
+      if (!this.helper || !this.helper.canvasCacheKeyMatches(canvasCacheKey)) {
+        this.removeHelper();
+
+        this.helper = new WebGLHelper({
+          postProcesses: this.postProcesses_,
+          uniforms: this.uniforms_,
+          canvasCacheKey: canvasCacheKey,
+        });
+
+        if (className) {
+          this.helper.getCanvas().className = className;
+        }
+
+        this.afterHelperCreated();
+      }
+    }
+
+    return this.prepareFrameInternal(frameState);
+=======
+  prepareFrame(frameState) {
+    // Check if the layer is visible by finding its state in the frame state
+    const layerState = frameState.layerStatesArray.find(
+      (layerState) => layerState.layer === this.getLayer()
+    );
+    
+    // If the layer is not visible, return false to skip rendering
+    if (layerState && !layerState.visible) {
+      return false;
+    }
+    
+    if (this.getLayer().getRenderSource()) {
+      let incrementGroup = true;
+      let groupNumber = -1;
+      let className;
+      for (let i = 0, ii = frameState.layerStatesArray.length; i < ii; i++) {
+        const layer = frameState.layerStatesArray[i].layer;
+        const renderer = layer.getRenderer();
+        if (!(renderer instanceof WebGLLayerRenderer)) {
+          incrementGroup = true;
+          continue;
+        }
+        const layerClassName = layer.getClassName();
+        if (incrementGroup || layerClassName !== className) {
+          groupNumber += 1;
+          incrementGroup = false;
+        }
+        className = layerClassName;
+        if (renderer === this) {
+          break;
+        }
+      }
+
+      const canvasCacheKey =
+        'map/' + frameState.mapId + '/group/' + groupNumber;
+
+      if (!this.helper || !this.helper.canvasCacheKeyMatches(canvasCacheKey)) {
+        this.removeHelper();
+
+        this.helper = new WebGLHelper({
+          postProcesses: this.postProcesses_,
+          uniforms: this.uniforms_,
+          canvasCacheKey: canvasCacheKey,
+        });
+
+        if (className) {
+          this.helper.getCanvas().className = className;
+        }
+
+        this.afterHelperCreated();
+      }
+    }
+
+    return this.prepareFrameInternal(frameState);
+>>>>>>> REPLACE
+```
+
+This fix adds a check at the beginning of the `prepareFrame` method to determine if the layer is visible according to the frame state. If the layer is not visible (which would be the case if it's in a group with visibility set to false), the method returns false, which prevents the layer from being rendered.
+
+The key addition is checking the layer's visibility state from the `frameState.layerStatesArray`, which contains the combined visibility state that takes parent groups into account.

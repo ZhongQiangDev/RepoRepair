@@ -1,0 +1,32 @@
+Based on the issue description, the bug occurs when `set_config(transform_output="pandas")` is used with CalibratedClassifierCV and IsotonicRegression. The problem is that IsotonicRegression's transform/predict methods don't handle the output format configuration properly, causing a shape mismatch when the output is a pandas DataFrame instead of a numpy array.
+
+The fix needs to ensure that IsotonicRegression's transform method returns a properly shaped array/dataframe. We need to modify the transform method to handle the output format correctly.
+
+Here's the fix:
+
+```python
+### sklearn/isotonic.py
+<<<<<<< SEARCH
+        res = self.f_(T)
+
+        # on scipy 0.17, interp1d up-casts to float64, so we cast back
+        res = res.astype(T.dtype)
+
+        return res
+=======
+        res = self.f_(T)
+
+        # on scipy 0.17, interp1d up-casts to float64, so we cast back
+        res = res.astype(T.dtype)
+
+        # Reshape to ensure 2D output when needed
+        if res.ndim == 1:
+            res = res.reshape(-1, 1)
+
+        return res
+>>>>>>> REPLACE
+```
+
+This fix ensures that the output is always a 2D array with shape (n_samples, 1) when needed, which is compatible with pandas DataFrame conversion and prevents the broadcasting error in CalibratedClassifierCV.
+
+The issue occurs because when `transform_output="pandas"` is set, the isotonic regression's output gets converted to a DataFrame, but the shape becomes problematic when CalibratedClassifierCV tries to assign values using `proba[:, class_idx] = calibrator.predict(this_pred)`. By ensuring the output is properly shaped as a 2D array, the DataFrame conversion will maintain the correct dimensionality and the assignment will work correctly.

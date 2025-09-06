@@ -1,0 +1,80 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described involves two main issues:
+- **Hit Detection Failure**: When the icon scale is negative and the rotation is 0, the hit detection does not work as expected. This means that clicking on the icon does not register a hit.
+- **Rendering Issue**: The icon is not rendered correctly at the edge of the map. Instead of being partially visible, it disappears entirely.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issues likely stem from how transformations (scaling and rotation) are applied to the icon during rendering and how these transformations affect hit detection. Specifically:
+- **Scaling**: Negative scaling might cause the icon to be mirrored, which could interfere with the hit detection logic that assumes positive scaling.
+- **Clipping and Transformation**: The icon might not be clipped correctly at the map edge when scaled negatively, leading to it disappearing instead of being partially visible.
+- **Hit Detection Logic**: The hit detection mechanism might not account for negative scaling, causing it to fail to register hits on the icon.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### `src/ol/render.js`
+
+This file contains functions that handle rendering and transformations, which are directly related to the described issues.
+
+```
+src/ol/render.js
+function: getRenderPixel
+function: getVectorContext
+function: renderDeclutterItems
+function: toContext
+```
+
+- `getRenderPixel`: This function applies transformations to pixels, which could be relevant if the transformations are not correctly handling negative scales.
+- `getVectorContext`: This function sets up the rendering context, including transformations, which could be relevant if the transformations are not correctly applied for negative scales.
+- `renderDeclutterItems`: This function handles rendering of decluttered items, which could be relevant if the rendering logic does not handle negative scales correctly.
+- `toContext`: This function initializes the canvas context, including scaling transformations, which could be relevant if the scaling is not correctly applied for negative scales.
+
+#### `src/ol/render/canvas/ExecutorGroup.js`
+
+This file contains the `ExecutorGroup` class, which manages rendering and hit detection, and could be relevant to the issues.
+
+```
+src/ol/render/canvas/ExecutorGroup.js
+class: ExecutorGroup
+```
+
+- `ExecutorGroup`: This class manages clipping, rendering, and hit detection, which could be relevant if the clipping or hit detection logic does not handle negative scales correctly.
+
+#### `src/ol/render/canvas/hitdetect.js`
+
+This file contains functions specifically related to hit detection, which are directly relevant to the hit detection issue.
+
+```
+src/ol/render/canvas/hitdetect.js
+function: createHitDetectionImageData
+function: hitDetect
+```
+
+- `createHitDetectionImageData`: This function creates the image data used for hit detection, which could be relevant if the image data is not correctly generated for negative scales.
+- `hitDetect`: This function performs the actual hit detection, which could be relevant if the hit detection logic does not handle negative scales correctly.
+
+#### `src/ol/renderer/Map.js`
+
+This file contains functions and classes related to map rendering, but they do not seem directly relevant to the specific issues described.
+
+```
+This file contains no relevant functions/classes.
+```
+
+### Summary of Relevant Locations
+
+```
+src/ol/render.js
+function: getRenderPixel
+function: getVectorContext
+function: renderDeclutterItems
+function: toContext
+
+src/ol/render/canvas/ExecutorGroup.js
+class: ExecutorGroup
+
+src/ol/render/canvas/hitdetect.js
+function: createHitDetectionImageData
+function: hitDetect
+```

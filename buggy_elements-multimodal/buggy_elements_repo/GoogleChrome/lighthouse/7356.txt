@@ -1,0 +1,54 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior involves an increase in the error rate on the LR backend, specifically related to a 60-second timeout on PSI/LR. This is indicated by the red line in the first image, which shows a spike in the render error rate. The latency has also increased, as seen in the second image, where the `loadPage-defaultPass` timing shows a significant jump. The third image further confirms this issue by showing a heatmap of the `loadPage-defaultPass` timing, indicating that the problem is consistent across various percentiles.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause appears to be related to the `waitForFCP` change introduced in the pull request #6944. This change likely affects the timing of the First Contentful Paint (FCP) metric, causing more sites to hit the 35-second `maxWaitForLoad` timeout, which in turn leads to more 60-second render timeouts. The `NO_FCP` error being the most commonly seen LighthouseError supports this theory, as it suggests that the FCP metric is not being computed within the expected time frame.
+
+### 3. Examine Each File and Determine Relevant Functions or Classes
+
+#### `clients/lightrider-entry.js`
+```
+clients/lightrider-entry.js
+function: runLighthouseInLR
+```
+The `runLighthouseInLR` function is relevant because it configures and executes the Lighthouse analysis. It sets up the Lighthouse flags and uses the `LR_PRESETS` based on the device type. If the `maxWaitForLoad` timeout is being hit more frequently, this function might need to be adjusted to handle the increased latency or to modify the timeout settings.
+
+#### `lighthouse-core/audits/metrics/first-contentful-paint.js`
+```
+lighthouse-core/audits/metrics/first-contentful-paint.js
+class: FirstContentfulPaint
+```
+The `FirstContentfulPaint` class is relevant because it measures the FCP metric, which is at the core of the issue. The `audit` method computes the FCP metric using the provided artifacts and context. If the FCP metric is not being computed within the expected time frame, this class might need to be inspected for any inefficiencies or issues in the computation process.
+
+#### `lighthouse-core/computed/trace-of-tab.js`
+```
+lighthouse-core/computed/trace-of-tab.js
+class: TraceOfTab
+```
+The `TraceOfTab` class is relevant because it processes the trace data to extract key trace events and their timings. The `compute_` method checks for the presence of the `firstContentfulPaintEvt`, `firstContentfulPaintTiming`, and `firstContentfulPaintTs`. If any of these values are undefined, it throws an `LHError.errors.NO_FCP` error. This class might need to be inspected to ensure that the FCP event is being correctly identified and processed.
+
+#### `lighthouse-core/computed/metrics/first-contentful-paint.js`
+```
+lighthouse-core/computed/metrics/first-contentful-paint.js
+class: FirstContentfulPaint
+```
+The `FirstContentfulPaint` class is relevant because it computes the FCP metric in both simulated and observed environments. The `computeSimulatedMetric` and `computeObservedMetric` methods might need to be inspected to ensure that they are correctly computing the FCP metric within the expected time frame.
+
+#### `lighthouse-core/gather/gather-runner.js`
+```
+lighthouse-core/gather/gather-runner.js
+class: GatherRunner
+```
+The `GatherRunner` class is relevant because it orchestrates the collection of performance metrics and other artifacts during a Lighthouse audit. The `loadPage` method handles the main page navigation and might need to be inspected to ensure that it is not causing the page load to exceed the `maxWaitForLoad` timeout. The `runPass` and `run` methods coordinate the entire pass from setup to artifact collection and might need to be inspected to ensure that they are correctly handling any timeouts or errors.
+
+### Summary
+
+The following files contain relevant functions or classes that need to be inspected or edited to fix the problem:
+
+- `clients/lightrider-entry.js`: `runLighthouseInLR`
+- `lighthouse-core/audits/metrics/first-contentful-paint.js`: `FirstContentfulPaint`
+- `lighthouse-core/computed/trace-of-tab.js`: `TraceOfTab`
+- `lighthouse-core/computed/metrics/first-contentful-paint.js`: `FirstContentfulPaint`
+- `lighthouse-core/gather/gather-runner.js`: `GatherRunner`

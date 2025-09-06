@@ -1,0 +1,99 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about supporting async formatters in ESLint. Currently, ESLint's formatter API only supports synchronous formatters, but the user wants to use an async formatter (specifically Shiki for code highlighting).
+
+Looking at the code, the `loadFormatter` method in the `ESLint` class returns a formatter object with a synchronous `format` method. We need to modify this to support async formatters.
+
+## Solution
+
+We need to modify the `loadFormatter` method to handle both synchronous and asynchronous formatters. The key change is to make the `format` method of the returned formatter object async, and to properly await the result of the formatter function if it returns a Promise.
+
+Here's the fix:
+
+```javascript
+### lib/eslint/eslint.js
+<<<<<<< SEARCH
+    async loadFormatter(name = "stylish") {
+        if (typeof name !== "string") {
+            throw new Error("'name' must be a string");
+        }
+
+        const { cliEngine } = privateMembersMap.get(this);
+        const formatter = cliEngine.getFormatter(name);
+
+        if (typeof formatter !== "function") {
+            throw new Error(`Formatter must be a function, but got a ${typeof formatter}.`);
+        }
+
+        return {
+
+            /**
+             * The main formatter method.
+             * @param {LintResults[]} results The lint results to format.
+             * @returns {string} The formatted lint results.
+             */
+            format(results) {
+                let rulesMeta = null;
+
+                results.sort(compareResultsByFilePath);
+
+                return formatter(results, {
+                    get rulesMeta() {
+                        if (!rulesMeta) {
+                            rulesMeta = createRulesMeta(cliEngine.getRules());
+                        }
+
+                        return rulesMeta;
+                    }
+                });
+            }
+        };
+    }
+=======
+    async loadFormatter(name = "stylish") {
+        if (typeof name !== "string") {
+            throw new Error("'name' must be a string");
+        }
+
+        const { cliEngine } = privateMembersMap.get(this);
+        const formatter = cliEngine.getFormatter(name);
+
+        if (typeof formatter !== "function") {
+            throw new Error(`Formatter must be a function, but got a ${typeof formatter}.`);
+        }
+
+        return {
+
+            /**
+             * The main formatter method.
+             * @param {LintResults[]} results The lint results to format.
+             * @returns {Promise<string>|string} The formatted lint results.
+             */
+            async format(results) {
+                let rulesMeta = null;
+
+                results.sort(compareResultsByFilePath);
+
+                const formatterResult = formatter(results, {
+                    get rulesMeta() {
+                        if (!rulesMeta) {
+                            rulesMeta = createRulesMeta(cliEngine.getRules());
+                        }
+
+                        return rulesMeta;
+                    }
+                });
+
+                // Handle both synchronous and asynchronous formatters
+                return formatterResult instanceof Promise ? await formatterResult : formatterResult;
+            }
+        };
+    }
+>>>>>>> REPLACE
+```
+
+This change makes the `format` method async and adds logic to handle both synchronous formatters (which return a string directly) and asynchronous formatters (which return a Promise that resolves to a string). The method will await the Promise if the formatter returns one, or just return the result directly if it's already a string.
+
+I've also updated the JSDoc comment to indicate that the return type can be either a Promise or a string.

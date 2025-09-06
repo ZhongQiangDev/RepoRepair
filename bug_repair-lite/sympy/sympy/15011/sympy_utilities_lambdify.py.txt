@@ -1,0 +1,48 @@
+Based on the issue description, the bug occurs when trying to use `lambdify` with `MatrixSymbol` names containing curly braces, even when `dummify=True` is used. The issue appears to be in the `lambdify` function's handling of symbol names.
+
+Looking at the code, the problem is in the `sub_args` function within `lambdastr`, which is called by `lambdify`. The function doesn't properly handle special characters in symbol names when dummifying arguments.
+
+Here's the fix:
+
+```python
+### sympy/utilities/lambdify.py
+<<<<<<< SEARCH
+    def sub_args(args, dummies_dict):
+        if isinstance(args, str):
+            return args
+        elif isinstance(args, DeferredVector):
+            return str(args)
+        elif iterable(args):
+            dummies = flatten([sub_args(a, dummies_dict) for a in args])
+            return ",".join(str(a) for a in dummies)
+        else:
+            #Sub in dummy variables for functions or symbols
+            if isinstance(args, (Function, Symbol)):
+                dummies = Dummy()
+                dummies_dict.update({args : dummies})
+                return str(dummies)
+            else:
+                return str(args)
+=======
+    def sub_args(args, dummies_dict):
+        if isinstance(args, str):
+            return args
+        elif isinstance(args, DeferredVector):
+            return str(args)
+        elif iterable(args):
+            dummies = flatten([sub_args(a, dummies_dict) for a in args])
+            return ",".join(str(a) for a in dummies)
+        else:
+            #Sub in dummy variables for functions or symbols
+            if isinstance(args, (Function, Symbol)) or (hasattr(args, 'name') and not isinstance(args.name, int)):
+                dummies = Dummy()
+                dummies_dict.update({args : dummies})
+                return str(dummies)
+            else:
+                return str(args)
+>>>>>>> REPLACE
+```
+
+This fix modifies the condition for when to create dummy variables to also check for objects that have a `name` attribute (like `MatrixSymbol`) and ensures the name is not just an integer. This will allow `MatrixSymbol`s with special characters in their names to be properly dummified.
+
+The change ensures that any symbol-like object with a name (including `MatrixSymbol`) gets replaced with a dummy variable, regardless of what characters are in its name. This fixes the issue where curly braces in `MatrixSymbol` names were causing syntax errors.

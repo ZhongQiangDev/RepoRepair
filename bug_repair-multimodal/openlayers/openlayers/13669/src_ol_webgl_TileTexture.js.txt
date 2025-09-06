@@ -1,0 +1,82 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The problem is related to handling NaN (Not a Number) as a no-data value in GeoTIFF files. When a pixel has a NaN value, it should be treated as transparent (alpha=0), but currently, the alpha channel is set to 255 (fully opaque).
+
+Looking at the provided code, I don't see the specific function that handles the alpha channel for no-data values. The issue is likely in the code that processes the data before it's uploaded to the texture.
+
+Since the issue is about NaN values not being correctly recognized for the alpha band, we need to look at how the data is processed before being passed to the `uploadDataTexture` function. However, the provided code snippet doesn't include this part.
+
+Based on the issue description, I need to search for the code that handles no-data values and alpha band generation. Since this code isn't in the provided file, I'll need to make an educated guess about where the issue might be.
+
+The most likely place is in the GeoTIFF source code that processes the data before creating the texture. The issue is that when a pixel has NaN values, the alpha channel should be set to 0 (transparent), but it's currently set to 255 (opaque).
+
+Without seeing the exact code that handles this, I'll provide a general fix that would address this issue:
+
+```javascript
+### src/ol/source/GeoTIFF.js
+<<<<<<< SEARCH
+function processData(data, dataType, width, height, sourceBands, nodataValues) {
+  // ...
+  const nodataValue = nodataValues[0];
+  // ...
+  for (let i = 0; i < height; i++) {
+    for (let j = 0; j < width; j++) {
+      const pixelOffset = i * width + j;
+      const valueOffset = pixelOffset * sourceBands.length;
+      const alphaOffset = pixelOffset * 4 + 3;
+      
+      let isNoData = false;
+      for (let b = 0; b < sourceBands.length; b++) {
+        const value = data[valueOffset + b];
+        if (value === nodataValue) {
+          isNoData = true;
+          break;
+        }
+      }
+      
+      if (isNoData) {
+        result[alphaOffset] = 0;
+      } else {
+        result[alphaOffset] = 255;
+      }
+    }
+  }
+  // ...
+}
+=======
+function processData(data, dataType, width, height, sourceBands, nodataValues) {
+  // ...
+  const nodataValue = nodataValues[0];
+  // ...
+  for (let i = 0; i < height; i++) {
+    for (let j = 0; j < width; j++) {
+      const pixelOffset = i * width + j;
+      const valueOffset = pixelOffset * sourceBands.length;
+      const alphaOffset = pixelOffset * 4 + 3;
+      
+      let isNoData = false;
+      for (let b = 0; b < sourceBands.length; b++) {
+        const value = data[valueOffset + b];
+        if (value === nodataValue || (Number.isNaN(nodataValue) && Number.isNaN(value))) {
+          isNoData = true;
+          break;
+        }
+      }
+      
+      if (isNoData) {
+        result[alphaOffset] = 0;
+      } else {
+        result[alphaOffset] = 255;
+      }
+    }
+  }
+  // ...
+}
+>>>>>>> REPLACE
+```
+
+However, without seeing the actual code that handles this, this is just a guess. The key change is to use `Number.isNaN()` to properly check for NaN values, since `NaN === NaN` always returns false in JavaScript.
+
+If you could provide the relevant code that handles the alpha band generation based on no-data values, I could provide a more accurate fix.

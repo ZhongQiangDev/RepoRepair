@@ -1,0 +1,28 @@
+Let me analyze the problem and break down the wrong behaviors and their causes.
+
+### Answer 1
+**Wrong Behavior**: Negative avgRangeLength in LTTB algorithm calculation
+**Cause**: When the screen scaling is not 100% (like 250% in Screen 1), Windows DPI scaling affects how JavaScript calculates pixel values and element dimensions. This can lead to floating-point rounding errors when calculating bucket widths and ranges, potentially resulting in negative values for avgRangeLength.
+
+### Answer 2
+**Wrong Behavior**: rangeTo exceeding data.length
+**Cause**: The combination of odd width values and screen scaling creates inconsistencies in how bucket boundaries are calculated. When the width is odd and screen scaling is applied, the Math.floor() operations in the bucket calculations can result in index values that exceed the actual data array length.
+
+### Answer 3
+**Wrong Behavior**: Algorithm works correctly on Screen 2 but fails on Screen 1
+**Cause**: The difference in behavior between screens is due to:
+1. Different DPI scaling (250% vs 100%)
+2. Different physical resolutions
+3. How Windows handles fractional scaling and how browsers interpret these scaled dimensions
+
+### Answer 4
+**Wrong Behavior**: Inconsistent behavior with odd width values
+**Cause**: The LTTB (Largest-Triangle-Three-Buckets) algorithm's bucket width calculations become unreliable when dealing with odd width values combined with screen scaling. The mathematical operations (especially divisions and floor operations) don't properly account for fractional pixels created by DPI scaling.
+
+### Conclusion
+**Summary**: The core issue stems from the interaction between three factors:
+1. Windows DPI scaling (particularly non-100% values)
+2. Odd width values in the visualization
+3. The LTTB algorithm's bucket calculation logic
+
+These factors combine to create calculation errors in the data decimation process, resulting in invalid array indices and negative range lengths. The problem is particularly evident in high-DPI situations with non-standard scaling factors, suggesting that the algorithm needs to be modified to handle scaled dimensions and odd widths more robustly.

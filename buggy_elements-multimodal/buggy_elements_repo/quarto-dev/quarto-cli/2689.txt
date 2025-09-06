@@ -1,0 +1,104 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that the `crossref: false` setting in the `format` metadata is not being respected. Specifically, the cross-reference filter is still being applied even when `crossref: false` is specified, as indicated by the underlined `false` in the provided images.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how the `crossref: false` setting is being processed and applied within the rendering pipeline. The `crossrefFilterActive` function checks if the `crossref` property is explicitly set to `false` in the metadata. If it is not `false`, the function returns `true`, indicating that the cross-reference feature should be active. However, if the `crossref: false` setting is not being respected, it suggests that either:
+
+1. The `crossref: false` setting is not being correctly read or passed to the `crossrefFilterActive` function.
+2. The `crossrefFilterActive` function is not being called or its result is being ignored somewhere in the rendering process.
+3. There might be other parts of the codebase that override or ignore the `crossref: false` setting.
+
+### 3. Examine Each File One by One
+
+#### `src/command/render/crossref.ts`
+
+This file contains functions directly related to cross-referencing, so it is highly relevant to the issue.
+
+```
+src/command/render/crossref.ts
+function: crossrefFilterActive
+function: crossrefFilterParams
+```
+
+- `crossrefFilterActive`: This function checks if the `crossref` property is `false` in the metadata. If this function is not being called or its result is being ignored, it could explain why `crossref: false` is not respected.
+- `crossrefFilterParams`: This function processes and validates cross-reference related parameters. If it is not correctly handling the `crossref: false` setting, it could also contribute to the issue.
+
+#### `src/command/render/pandoc.ts`
+
+This file contains functions related to Pandoc rendering, which is likely where the cross-reference filter is applied.
+
+```
+src/command/render/pandoc.ts
+function: runPandoc
+function: resolveExtras
+```
+
+- `runPandoc`: This function is a comprehensive wrapper around the Pandoc document conversion tool. It handles various options and filters. If the `crossref: false` setting is not being respected, it could be due to how this function processes the options and filters.
+- `resolveExtras`: This function resolves additional dependencies and configurations. If it is not correctly handling the `crossref: false` setting, it could also contribute to the issue.
+
+#### `src/command/render/render-contexts.ts`
+
+This file contains functions related to rendering contexts, which might be relevant if the `crossref: false` setting is not being correctly passed to the rendering process.
+
+```
+src/command/render/render-contexts.ts
+function: renderContexts
+function: resolveFormats
+```
+
+- `renderContexts`: This function prepares render contexts for a given file. If it is not correctly handling the `crossref: false` setting, it could contribute to the issue.
+- `resolveFormats`: This function determines the appropriate formats for rendering a file. If it is not correctly handling the `crossref: false` setting, it could also contribute to the issue.
+
+#### `src/command/render/render-files.ts`
+
+This file contains functions related to rendering files, which might be relevant if the `crossref: false` setting is not being correctly applied during the rendering process.
+
+```
+src/command/render/render-files.ts
+function: renderFiles
+function: renderExecute
+```
+
+- `renderFiles`: This function is responsible for rendering a list of files into their respective output formats. If it is not correctly handling the `crossref: false` setting, it could contribute to the issue.
+- `renderExecute`: This function handles the execution of computations during the rendering process. If it is not correctly handling the `crossref: false` setting, it could also contribute to the issue.
+
+#### `src/config/format.ts`
+
+This file contains functions related to checking and validating output formats, which might be relevant if the `crossref: false` setting is not being correctly validated.
+
+```
+src/config/format.ts
+function: isHtmlCompatible
+function: isPresentationOutput
+```
+
+- `isHtmlCompatible`: This function checks if the provided format is compatible with HTML output. If it is not correctly handling the `crossref: false` setting, it could contribute to the issue.
+- `isPresentationOutput`: This function checks if the provided format represents a presentation output format. If it is not correctly handling the `crossref: false` setting, it could also contribute to the issue.
+
+### Summary
+
+The following files and functions are relevant to the issue:
+
+```
+src/command/render/crossref.ts
+function: crossrefFilterActive
+function: crossrefFilterParams
+
+src/command/render/pandoc.ts
+function: runPandoc
+function: resolveExtras
+
+src/command/render/render-contexts.ts
+function: renderContexts
+function: resolveFormats
+
+src/command/render/render-files.ts
+function: renderFiles
+function: renderExecute
+
+src/config/format.ts
+function: isHtmlCompatible
+function: isPresentationOutput
+```

@@ -1,0 +1,136 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is that message element names are not being rendered in BPMN diagrams. Looking at the provided screenshot, we can see message flows with message elements, but their names are not displayed.
+
+The `LabelBehavior.js` file is responsible for handling labels in the BPMN diagrams. The issue is that while the code handles labels for various elements, it doesn't specifically handle message elements.
+
+## Bug Localization
+
+The bug is in the `LabelBehavior.js` file. The issue is that the code doesn't create labels for message elements associated with message flows. 
+
+The `postExecute` handler for `'shape.create'` and `'connection.create'` needs to be extended to also create labels for message elements.
+
+## Solution
+
+We need to add code to create labels for message elements. This should be added in the existing post-execute handler for shape and connection creation.
+
+```javascript
+### lib/features/modeling/behavior/LabelBehavior.js
+<<<<<<< SEARCH
+  // create label shape after shape/connection was created
+  this.postExecute([ 'shape.create', 'connection.create' ], function(e) {
+    var context = e.context,
+        hints = context.hints || {};
+
+    if (hints.createElementsBehavior === false) {
+      return;
+    }
+
+    var element = context.shape || context.connection,
+        businessObject = element.businessObject;
+
+    if (isLabel(element) || !isLabelExternal(element)) {
+      return;
+    }
+
+    // only create label if attribute available
+    if (!getLabel(element)) {
+      return;
+    }
+
+    var labelCenter = getExternalLabelMid(element);
+
+    // we don't care about x and y
+    var labelDimensions = textRenderer.getExternalLabelBounds(
+      DEFAULT_LABEL_DIMENSIONS,
+      getLabel(element)
+    );
+
+    modeling.createLabel(element, labelCenter, {
+      id: businessObject.id + '_label',
+      businessObject: businessObject,
+      width: labelDimensions.width,
+      height: labelDimensions.height
+    });
+  });
+=======
+  // create label shape after shape/connection was created
+  this.postExecute([ 'shape.create', 'connection.create' ], function(e) {
+    var context = e.context,
+        hints = context.hints || {};
+
+    if (hints.createElementsBehavior === false) {
+      return;
+    }
+
+    var element = context.shape || context.connection,
+        businessObject = element.businessObject;
+
+    if (isLabel(element) || !isLabelExternal(element)) {
+      return;
+    }
+
+    // only create label if attribute available
+    if (!getLabel(element)) {
+      return;
+    }
+
+    var labelCenter = getExternalLabelMid(element);
+
+    // we don't care about x and y
+    var labelDimensions = textRenderer.getExternalLabelBounds(
+      DEFAULT_LABEL_DIMENSIONS,
+      getLabel(element)
+    );
+
+    modeling.createLabel(element, labelCenter, {
+      id: businessObject.id + '_label',
+      businessObject: businessObject,
+      width: labelDimensions.width,
+      height: labelDimensions.height
+    });
+  });
+
+  // create message label after message flow was created
+  this.postExecute([ 'connection.create' ], function(e) {
+    var context = e.context,
+        connection = context.connection,
+        hints = context.hints || {};
+
+    if (hints.createElementsBehavior === false) {
+      return;
+    }
+
+    if (!is(connection, 'bpmn:MessageFlow')) {
+      return;
+    }
+
+    var message = connection.businessObject.messageRef;
+    
+    if (!message || !message.name) {
+      return;
+    }
+
+    // Calculate position for message label
+    // Typically below the message flow and its label
+    var messageLabelCenter = getMid(connection);
+    messageLabelCenter.y += 20; // Offset to position below the message flow
+
+    var messageLabelDimensions = textRenderer.getExternalLabelBounds(
+      DEFAULT_LABEL_DIMENSIONS,
+      message.name
+    );
+
+    modeling.createLabel(connection, messageLabelCenter, {
+      id: message.id + '_label',
+      businessObject: message,
+      width: messageLabelDimensions.width,
+      height: messageLabelDimensions.height
+    });
+  });
+>>>>>>> REPLACE
+```
+
+This solution adds a new post-execute handler specifically for message flows. When a message flow is created, it checks if there's an associated message with a name. If so, it creates a label for that message, positioned below the message flow.

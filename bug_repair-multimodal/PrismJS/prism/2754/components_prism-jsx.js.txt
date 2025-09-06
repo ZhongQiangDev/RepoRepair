@@ -1,0 +1,41 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that when using the spread operator with an object literal in JSX props (like `{...{onClick, disabled}}`), the syntax highlighting breaks. Looking at the code, I can see that the current regex pattern for the `spread` token doesn't account for object literals inside the spread operator.
+
+The current pattern only matches patterns like `{...props}` or `{...this.props}`, but not `{...{onClick, disabled}}`. We need to modify the spread pattern to handle object literals inside the spread operator.
+
+Here's the fix:
+
+```javascript
+### components/prism-jsx.js
+<<<<<<< SEARCH
+Prism.languages.insertBefore('inside', 'attr-name', {
+	'spread': {
+		pattern: /\{\s*\.{3}\s*[a-z_$][\w$]*(?:\.[a-z_$][\w$]*)*\s*\}/,
+		inside: {
+			'punctuation': /\.{3}|[{}.]/,
+			'attr-value': /\w+/
+		}
+	}
+}, Prism.languages.jsx.tag);
+=======
+Prism.languages.insertBefore('inside', 'attr-name', {
+	'spread': {
+		pattern: /\{\s*\.{3}\s*(?:[a-z_$][\w$]*(?:\.[a-z_$][\w$]*)*|\{[^{}]*\})\s*\}/,
+		inside: {
+			'punctuation': /\.{3}|[{}.]/,
+			'attr-value': /\w+/,
+			rest: Prism.languages.jsx
+		}
+	}
+}, Prism.languages.jsx.tag);
+>>>>>>> REPLACE
+```
+
+This change modifies the spread pattern to match either:
+1. The original pattern: `{...identifier}` or `{...identifier.property}`
+2. A new pattern: `{...{objectLiteral}}` 
+
+By adding `|\{[^{}]*\}` to the pattern, we now match object literals inside the spread operator. I've also added `rest: Prism.languages.jsx` to the inside definition to ensure proper highlighting of the object literal contents.
+
+This should fix the syntax highlighting issue with spread props in JSX components.

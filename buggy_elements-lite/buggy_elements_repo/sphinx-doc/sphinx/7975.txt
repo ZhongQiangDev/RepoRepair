@@ -1,0 +1,40 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The index page is showing two separate "Symbols" sections in the HTML output:
+- First section: Contains '@' entries before normal words
+- Second section: Contains '£' and '←' entries after normal words
+Both sections have the same HTML anchor, causing navigation issues since both "Symbols" links at the top point to the first section.
+
+2. Cause Analysis:
+The issue appears to be in the index entry sorting and grouping logic. Special characters are being handled inconsistently, where '@' symbols are grouped separately from '£' and '←' symbols, creating two different "Symbols" sections instead of consolidating all special characters into a single section.
+
+3. File Analysis:
+
+sphinx/domains/index.py:
+```
+sphinx/domains/index.py
+class: IndexDomain
+```
+
+sphinx/environment/adapters/indexentries.py:
+```
+sphinx/environment/adapters/indexentries.py
+class: IndexEntries
+```
+
+sphinx/writers/html.py:
+```
+sphinx/writers/html.py
+class: HTMLTranslator
+```
+
+sphinx/writers/html5.py:
+```
+sphinx/writers/html5.py
+class: HTML5Translator
+```
+
+The issue is most likely centered in the IndexEntries class in indexentries.py, which handles the sorting and grouping of index entries. The HTMLTranslator and HTML5Translator classes are also relevant as they handle the final HTML rendering of these grouped entries.
+
+The core of the problem appears to be in the sorting and grouping logic within IndexEntries, where special characters are not being consistently categorized into a single "Symbols" section. The IndexDomain class is relevant as it manages the collection and organization of these entries before they're processed for display.

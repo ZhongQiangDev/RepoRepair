@@ -1,0 +1,134 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when removing a child lane from a parent lane in a BPMN diagram. After removal, the diagram becomes deformed and sometimes unusable. The issue is present in v5.x and v6.x but works correctly in v3.0.1 and v4.0.1.
+
+Looking at the provided code snippet from `ResizeLaneHandler.js`, I notice that the file is incomplete. Specifically, there are two method comments without their implementations:
+1. `Resize balanced, adjusting next / previous lane sizes`
+2. `Resize, making actual space and moving below / above elements`
+
+The issue is likely related to how lanes are resized after a child lane is removed. When a child lane is removed, the parent lane and sibling lanes need to be properly resized to maintain the diagram's structure.
+
+## Fix
+
+The problem appears to be that the `ResizeLaneHandler` is missing the implementation of the two documented methods. We need to implement these methods to properly handle lane resizing when a child lane is removed.
+
+```javascript
+### lib/features/modeling/cmd/ResizeLaneHandler.js
+<<<<<<< SEARCH
+/**
+ * Resize balanced, adjusting next / previous lane sizes.
+ *
+ * @param {djs.model.Shape} shape
+ * @param {Bounds} newBounds
+ */
+
+
+
+/**
+ * Resize, making actual space and moving below / above elements.
+ *
+ * @param {djs.model.Shape} shape
+ * @param {Bounds} newBounds
+ */
+=======
+/**
+ * Resize balanced, adjusting next / previous lane sizes.
+ *
+ * @param {djs.model.Shape} shape
+ * @param {Bounds} newBounds
+ */
+ResizeLaneHandler.prototype.resizeBalanced = function(shape, newBounds) {
+  var modeling = this._modeling;
+
+  var resizeNeeded = computeLanesResize(shape, newBounds);
+
+  // resize parent lane automatically, if needed
+  if (resizeNeeded.parent) {
+    modeling.resizeShape(
+      resizeNeeded.parent.shape,
+      resizeNeeded.parent.newBounds
+    );
+  }
+
+  // resize siblings
+  if (resizeNeeded.siblings) {
+    resizeNeeded.siblings.forEach(function(sibling) {
+      modeling.resizeShape(
+        sibling.shape,
+        sibling.newBounds
+      );
+    });
+  }
+
+  return modeling.resizeShape(shape, newBounds);
+};
+
+/**
+ * Resize, making actual space and moving below / above elements.
+ *
+ * @param {djs.model.Shape} shape
+ * @param {Bounds} newBounds
+ */
+ResizeLaneHandler.prototype.resizeSpace = function(shape, newBounds) {
+  var spaceTool = this._spaceTool;
+
+  var shapeTrbl = asTRBL(shape);
+  var newTrbl = asTRBL(newBounds);
+
+  var trblDiff = substractTRBL(newTrbl, shapeTrbl);
+
+  var lanesRoot = getLanesRoot(shape);
+
+  var isHorizontal = true;
+
+  var direction;
+
+  if (trblDiff.top) {
+    direction = 'n';
+  } else if (trblDiff.bottom) {
+    direction = 's';
+  } else if (trblDiff.left) {
+    direction = 'w';
+    isHorizontal = false;
+  } else if (trblDiff.right) {
+    direction = 'e';
+    isHorizontal = false;
+  }
+
+  var axis = isHorizontal ? 'y' : 'x';
+  var dimension = isHorizontal ? 'height' : 'width';
+  var resizeDelta = isHorizontal ? trblDiff.bottom || trblDiff.top : trblDiff.right || trblDiff.left;
+
+  var delta = {};
+  delta[axis] = resizeDelta;
+
+  var spaceElements = [];
+
+  eachElement(lanesRoot, function(element) {
+    if (!is(element, 'bpmn:Lane') && !is(element, 'bpmn:Participant')) {
+      spaceElements.push(element);
+    }
+
+    return element.children;
+  });
+
+  spaceTool.makeSpace(
+    spaceElements,
+    delta,
+    direction,
+    shape
+  );
+
+  return this._modeling.resizeShape(shape, newBounds);
+};
+>>>>>>> REPLACE
+```
+
+This implementation adds the missing methods to properly handle lane resizing:
+
+1. `resizeBalanced` - Adjusts the sizes of adjacent lanes when a lane is resized
+2. `resizeSpace` - Creates or removes space when a lane is resized, moving other elements accordingly
+
+These methods ensure that when a child lane is removed, the parent lane and sibling lanes are properly resized, preventing the diagram from becoming deformed.

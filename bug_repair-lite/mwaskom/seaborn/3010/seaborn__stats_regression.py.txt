@@ -1,0 +1,41 @@
+Based on the issue, the problem is that `PolyFit` fails when there are `None` values in the input data. The error occurs because `np.polyfit` cannot handle missing values. We need to filter out the `None`/`NaN` values before performing the polynomial fit.
+
+Here's the fix:
+
+```python
+### seaborn/_stats/regression.py
+<<<<<<< SEARCH
+        x = data["x"]
+        y = data["y"]
+        if x.nunique() <= self.order:
+            # TODO warn?
+            xx = yy = []
+        else:
+            p = np.polyfit(x, y, self.order)
+            xx = np.linspace(x.min(), x.max(), self.gridsize)
+            yy = np.polyval(p, xx)
+=======
+        x = data["x"]
+        y = data["y"]
+        
+        # Filter out missing values
+        mask = pd.notna(x) & pd.notna(y)
+        x_clean = x[mask]
+        y_clean = y[mask]
+        
+        if x_clean.nunique() <= self.order:
+            # TODO warn?
+            xx = yy = []
+        else:
+            p = np.polyfit(x_clean, y_clean, self.order)
+            xx = np.linspace(x_clean.min(), x_clean.max(), self.gridsize)
+            yy = np.polyval(p, xx)
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Creates a mask to identify non-missing values in both x and y
+2. Filters the data using this mask before performing the polynomial fit
+3. Uses the cleaned data for determining the fit range and performing the calculations
+
+The fix maintains proper indentation and handles the case where missing values would cause the polynomial fit to fail.

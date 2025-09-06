@@ -1,0 +1,21 @@
+Let me analyze the GitHub issue and break down the problems and causes.
+
+### Answer 1
+**Wrong Behavior**: The GeoTIFF source tiles are not being properly cropped to the tile grid extent when reprojection is applied
+**Cause**: The `wrapX` option's functionality is not being properly carried through when reprojection occurs, suggesting the cropping logic is being bypassed or not properly handled during the reprojection process
+
+### Answer 2
+**Wrong Behavior**: Confusion and misleading behavior due to the `wrapX` option name
+**Cause**: The `wrapX` parameter name is semantically incorrect as it:
+1. Actually controls cropping on both X and Y axes, not just X
+2. Has different meanings in different contexts (cropping for GeoTIFF vs. world repetition for reprojection)
+
+### Answer 3
+**Wrong Behavior**: Inability to simultaneously crop to local extent and repeat in global projection
+**Cause**: The current implementation forces a choice between two behaviors that should be independent:
+1. Cropping to the original local extent
+2. Repeating tiles in a global projection
+This is due to overloading the `wrapX` parameter to control both behaviors
+
+### Conclusion
+**Summary**: The core issues stem from poor parameter naming (`wrapX`) and functionality implementation that doesn't properly separate concerns. The `wrapX` option is overloaded to handle both cropping and world repetition, leading to confusion and incorrect behavior during reprojection. The cropping functionality is lost during reprojection operations, and users cannot achieve both cropping and global repetition simultaneously. A rename of the parameter and separation of these functionalities would resolve these issues.

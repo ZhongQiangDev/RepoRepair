@@ -1,0 +1,113 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is about making setting switches more colorblind-friendly. Currently, the active state of buttons is indicated only by color (colored in vs. grayed out), which is difficult for colorblind users to distinguish. 
+
+Looking at the code in `direction-picker.jsx`, I can see that the active state of buttons is controlled by the `[styles.active]` class being conditionally applied. However, the current implementation doesn't provide enough visual distinction for colorblind users.
+
+According to the issue description, we need to change the approach so that:
+1. Active buttons should have a colored background
+2. Inactive buttons should have a white background (not gray)
+
+## Solution
+
+I need to modify the CSS class application for the buttons to ensure they're colorblind-friendly. The fix will involve changing how the `active` class is applied to the buttons.
+
+```javascript
+### src/components/direction-picker/direction-picker.jsx
+<<<<<<< SEARCH
+                        <button
+                            className={classNames(styles.iconButton, {
+                                [styles.active]: props.rotationStyle === RotationStyles.ALL_AROUND
+                            })}
+                            title={props.intl.formatMessage(messages.allAround)}
+                            onClick={props.onClickAllAround}
+                        >
+                            <img
+                                draggable={false}
+                                src={allAroundIcon}
+                            />
+                        </button>
+                        <button
+                            className={classNames(styles.iconButton, {
+                                [styles.active]: props.rotationStyle === RotationStyles.LEFT_RIGHT
+                            })}
+                            title={props.intl.formatMessage(messages.leftRight)}
+                            onClick={props.onClickLeftRight}
+                        >
+                            <img
+                                draggable={false}
+                                src={leftRightIcon}
+                            />
+                        </button>
+                        <button
+                            className={classNames(styles.iconButton, {
+                                [styles.active]: props.rotationStyle === RotationStyles.DONT_ROTATE
+                            })}
+                            title={props.intl.formatMessage(messages.dontRotate)}
+                            onClick={props.onClickDontRotate}
+                        >
+                            <img
+                                draggable={false}
+                                src={dontRotateIcon}
+                            />
+                        </button>
+=======
+                        <button
+                            className={classNames(styles.iconButton, {
+                                [styles.active]: props.rotationStyle === RotationStyles.ALL_AROUND
+                            })}
+                            title={props.intl.formatMessage(messages.allAround)}
+                            onClick={props.onClickAllAround}
+                        >
+                            <img
+                                className={classNames({
+                                    [styles.activeImage]: props.rotationStyle === RotationStyles.ALL_AROUND
+                                })}
+                                draggable={false}
+                                src={allAroundIcon}
+                            />
+                        </button>
+                        <button
+                            className={classNames(styles.iconButton, {
+                                [styles.active]: props.rotationStyle === RotationStyles.LEFT_RIGHT
+                            })}
+                            title={props.intl.formatMessage(messages.leftRight)}
+                            onClick={props.onClickLeftRight}
+                        >
+                            <img
+                                className={classNames({
+                                    [styles.activeImage]: props.rotationStyle === RotationStyles.LEFT_RIGHT
+                                })}
+                                draggable={false}
+                                src={leftRightIcon}
+                            />
+                        </button>
+                        <button
+                            className={classNames(styles.iconButton, {
+                                [styles.active]: props.rotationStyle === RotationStyles.DONT_ROTATE
+                            })}
+                            title={props.intl.formatMessage(messages.dontRotate)}
+                            onClick={props.onClickDontRotate}
+                        >
+                            <img
+                                className={classNames({
+                                    [styles.activeImage]: props.rotationStyle === RotationStyles.DONT_ROTATE
+                                })}
+                                draggable={false}
+                                src={dontRotateIcon}
+                            />
+                        </button>
+>>>>>>> REPLACE
+```
+
+This change adds a new CSS class `activeImage` to the images inside the buttons when they are active. This will allow us to style both the button background (using the existing `active` class) and the image itself differently based on the active state.
+
+Note: For this fix to be complete, you would also need to update the corresponding CSS file (`direction-picker.css`) to define the `activeImage` class and modify the `active` class to have a colored background instead of just changing the image color. The CSS changes would include:
+
+1. Making the `active` class add a colored background to the button
+2. Making inactive buttons have a white background
+3. Using the `activeImage` class to ensure proper contrast between the image and its background
+
+Since the CSS file wasn't provided, I've focused on the React component changes needed to support the colorblind-friendly design.

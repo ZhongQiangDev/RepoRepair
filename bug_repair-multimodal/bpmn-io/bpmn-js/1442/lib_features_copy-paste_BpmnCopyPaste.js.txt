@@ -1,0 +1,40 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about pasting multiple shapes onto a connection (sequence flow) resulting in unexpected connections. Based on the GIF in the issue, when multiple shapes are copied and pasted onto a sequence flow, they're not properly connected in a logical sequence.
+
+The problem is in the `BpmnCopyPaste.js` file. When multiple elements are pasted onto a connection, the `DropOnFlowBehavior` doesn't handle this case correctly. The current implementation doesn't have any special handling for pasting multiple shapes onto a connection.
+
+The issue is that the `BpmnCopyPaste.js` file doesn't emit any event or provide information that multiple elements are being pasted onto a connection. The `DropOnFlowBehavior` needs to know that multiple elements are being pasted to handle them properly.
+
+## Fix
+
+We need to modify the `BpmnCopyPaste.js` file to add information about multiple elements being pasted. This will allow the `DropOnFlowBehavior` to handle this case correctly.
+
+```javascript
+### lib/features/copy-paste/BpmnCopyPaste.js
+<<<<<<< SEARCH
+  eventBus.on('copyPaste.pasteElements', function() {
+    references = {};
+  });
+=======
+  eventBus.on('copyPaste.pasteElements', function(context) {
+    references = {};
+    
+    // Add information about multiple elements being pasted
+    if (isArray(context.elements) && context.elements.length > 1) {
+      context.hints = context.hints || {};
+      context.hints.multipleElements = true;
+    }
+  });
+>>>>>>> REPLACE
+```
+
+This change adds a hint to the context when multiple elements are being pasted. The `DropOnFlowBehavior` can then check for this hint and handle multiple elements appropriately.
+
+However, this is only part of the solution. The `DropOnFlowBehavior.js` file also needs to be modified to handle this case. Since that file wasn't provided in the code segments, I'll describe what needs to be changed:
+
+In the `DropOnFlowBehavior.js` file, we need to add logic to check for the `multipleElements` hint and handle it by connecting the pasted elements in sequence. When multiple elements are pasted onto a flow, they should be connected in a logical sequence, with the first element connected to the source of the flow, the last element connected to the target of the flow, and all elements in between connected sequentially.
+
+The fix I've provided adds the necessary information to the context, which is the first step in solving this issue. The complete solution would require modifications to the `DropOnFlowBehavior.js` file as well.

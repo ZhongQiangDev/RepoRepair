@@ -1,0 +1,87 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is that the Button component doesn't communicate its "danger" state to screen reader users. When a button has `kind="danger"`, this visual cue indicates a potentially destructive action, but this information isn't conveyed to users relying on screen readers.
+
+The solution suggested in the issue is to add a visually hidden span with descriptive text that can be referenced via `aria-describedby` on the button.
+
+## Solution
+
+I need to:
+1. Add a visually hidden span when the button is of kind "danger"
+2. Add an aria-describedby attribute to the button that references this span
+3. Include appropriate text that warns about the destructive nature of the action
+
+Here's my fix:
+
+```javascript
+### packages/react/src/components/Button/Button.js
+<<<<<<< SEARCH
+  const assistiveText = hasIconOnly ? (
+    <div
+      ref={tooltipRef}
+      onMouseEnter={handleMouseEnter}
+      className={`${prefix}--assistive-text`}>
+      {iconDescription}
+    </div>
+  ) : null;
+=======
+  const dangerDescription = kind === 'danger' ? 'Danger: This action is destructive and cannot be undone.' : null;
+  const dangerText = kind === 'danger' ? (
+    <span className={`${prefix}--visually-hidden`} id={`danger-description-${Math.random().toString(36).substr(2, 9)}`}>
+      {dangerDescription}
+    </span>
+  ) : null;
+
+  const assistiveText = hasIconOnly ? (
+    <div
+      ref={tooltipRef}
+      onMouseEnter={handleMouseEnter}
+      className={`${prefix}--assistive-text`}>
+      {iconDescription}
+    </div>
+  ) : null;
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Button/Button.js
+<<<<<<< SEARCH
+  let otherProps = {
+    disabled,
+    type,
+    'aria-pressed': hasIconOnly && kind === 'ghost' ? isSelected : null,
+  };
+=======
+  const dangerId = kind === 'danger' ? `danger-description-${Math.random().toString(36).substr(2, 9)}` : null;
+  let otherProps = {
+    disabled,
+    type,
+    'aria-pressed': hasIconOnly && kind === 'ghost' ? isSelected : null,
+    'aria-describedby': kind === 'danger' ? dangerId : null,
+  };
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Button/Button.js
+<<<<<<< SEARCH
+    assistiveText,
+    children,
+    buttonImage
+=======
+    assistiveText,
+    dangerText,
+    children,
+    buttonImage
+>>>>>>> REPLACE
+```
+
+These changes:
+1. Create a unique ID for the danger description using a random string
+2. Add a visually hidden span with the danger description when the button is of kind "danger"
+3. Add an aria-describedby attribute to the button that references this span
+4. Include the danger text in the rendered output
+
+This solution ensures that screen reader users will be informed about the destructive nature of the action when interacting with danger buttons, while maintaining the existing visual design.

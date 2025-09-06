@@ -1,0 +1,74 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that there's a button inside a button in the multiselect component, which violates the W3C HTML5 spec that states "there must be no interactive content descendant" for a button element. This happens when a user selects one or more items in the multiselect component.
+
+Looking at the code, I can see that in `ListBoxSelection.js`, there are two main rendering paths:
+
+1. When `selectionCount` is truthy (multiple selections), it renders a tag with a close icon that has `role="button"` inside it
+2. When `selectionCount` is falsy (single selection), it renders a div with `role="button"`
+
+The problem is that when the component is used within another button element, this creates nested interactive elements, which is not allowed by the HTML5 spec and causes accessibility issues.
+
+## Fix
+
+The solution is to change the `role="button"` to something non-interactive when used for the inner elements. We should use a more appropriate role or no role at all, and handle the click and keyboard events without making it an interactive element.
+
+```javascript
+### packages/react/src/components/ListBox/ListBoxSelection.js
+<<<<<<< SEARCH
+      <div
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        className={`${prefix}--tag__close-icon`}
+        onClick={handleOnClick}
+        onKeyDown={handleOnKeyDown}
+        disabled={disabled}
+        aria-label={t('clear.all')}
+        title={description}>
+        <Close16 />
+      </div>
+=======
+      <div
+        className={`${prefix}--tag__close-icon`}
+        onClick={handleOnClick}
+        onKeyDown={handleOnKeyDown}
+        disabled={disabled}
+        aria-label={t('clear.all')}
+        title={description}>
+        <Close16 />
+      </div>
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/ListBox/ListBoxSelection.js
+<<<<<<< SEARCH
+    <div
+      role="button"
+      className={className}
+      tabIndex={disabled ? -1 : 0}
+      onClick={handleOnClick}
+      onKeyDown={handleOnKeyDown}
+      aria-label={description}
+      title={description}>
+      {selectionCount}
+      <Close16 />
+    </div>
+=======
+    <div
+      className={className}
+      onClick={handleOnClick}
+      onKeyDown={handleOnKeyDown}
+      aria-label={description}
+      title={description}>
+      {selectionCount}
+      <Close16 />
+    </div>
+>>>>>>> REPLACE
+```
+
+This change removes the `role="button"` and `tabIndex` attributes from both rendering paths, which will prevent the nested interactive content issue. The parent component that contains this `ListBoxSelection` should already be interactive (likely a button), so we don't need to make these inner elements interactive as well.
+
+Note: We're keeping the click and keyboard event handlers so the functionality still works, but we're removing the attributes that make these elements be treated as interactive controls by assistive technologies.

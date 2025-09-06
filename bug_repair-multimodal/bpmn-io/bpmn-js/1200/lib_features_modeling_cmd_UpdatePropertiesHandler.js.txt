@@ -1,0 +1,28 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a user drops an intermediate event on a sequence flow that has a condition expression, and then changes that event to a "Timer Intermediate Catch Event", the condition expression is removed from the sequence flow.
+
+Looking at the code, the problem is likely in the `UpdatePropertiesHandler.js` file. When updating properties, the handler doesn't properly preserve certain properties of the sequence flow when an intermediate event is placed on it.
+
+The issue is similar to #1197 mentioned in the bug report, which suggests this is a known pattern of behavior.
+
+The problem appears to be that when an intermediate event is placed on a sequence flow, the system doesn't properly preserve the conditionExpression property of the sequence flow.
+
+## Fix
+
+We need to modify the `UpdatePropertiesHandler.js` file to ensure that the conditionExpression property is preserved when updating properties. Let's add 'conditionExpression' to the list of reference property names:
+
+```javascript
+### lib/features/modeling/cmd/UpdatePropertiesHandler.js
+<<<<<<< SEARCH
+var referencePropertyNames = [ 'default' ];
+=======
+var referencePropertyNames = [ 'default', 'conditionExpression' ];
+>>>>>>> REPLACE
+```
+
+This change will ensure that the conditionExpression is treated as a reference property, which should prevent it from being removed when an intermediate event is placed on a sequence flow and then changed to a Timer Intermediate Catch Event.
+
+Note: The file is incomplete in the provided code segments, but this change should address the issue based on the pattern of the bug and the reference to a similar issue (#1197). The referencePropertyNames array is likely used somewhere in the code to determine which properties should be handled specially during updates.

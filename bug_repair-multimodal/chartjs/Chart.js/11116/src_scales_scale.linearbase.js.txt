@@ -1,0 +1,32 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when `includeBounds=false` and `min` and `max` axis limits are defined, sometimes a tick is rendered outside the defined axis limits. This happens especially with small axis limits.
+
+Looking at the code in `src/scales/scale.linearbase.js`, the problem appears to be in the `generateTicks` function. When `maxDefined` is true but `includeBounds` is false, the code still adds the `niceMax` value as a tick at the end of the function:
+
+```javascript
+else if (!maxDefined || niceMax === max) {
+  ticks.push({value: niceMax});
+}
+```
+
+This is incorrect because when `includeBounds` is false and `maxDefined` is true, we shouldn't add the `niceMax` value as a tick if it's equal to the max value.
+
+## Fix
+
+```javascript
+### src/scales/scale.linearbase.js
+<<<<<<< SEARCH
+  } else if (!maxDefined || niceMax === max) {
+    ticks.push({value: niceMax});
+=======
+  } else if (!maxDefined || (niceMax === max && includeBounds)) {
+    ticks.push({value: niceMax});
+>>>>>>> REPLACE
+```
+
+This fix ensures that when `includeBounds` is false and `niceMax` equals `max`, we don't add the `niceMax` value as a tick. This matches the proposed fix in the issue, which checks the `includeBounds` flag before adding the final tick.
+
+The fix is minimal and focused on the specific issue. It maintains the existing behavior for all other cases while fixing the edge case where `includeBounds=false` and the max value would be incorrectly included as a tick.

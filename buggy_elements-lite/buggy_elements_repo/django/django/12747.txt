@@ -1,0 +1,48 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The QuerySet.Delete() method returns inconsistent results when zero objects are deleted:
+- For models with foreign keys: returns (0, {})
+- For "simple" models without foreign key: returns (0, {'my_app.BlockLibrary': 0})
+
+2. Cause Analysis:
+The issue appears to be in how the deletion process handles empty results differently based on whether the model has foreign keys or not. When no objects are deleted:
+- Models with foreign keys return an empty dictionary for the model counters
+- Models without foreign keys include the model label in the dictionary with a zero count
+
+3. Examining Files:
+
+django/core/management/commands/sqlsequencereset.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/db/models/deletion.py:
+```
+django/db/models/deletion.py
+class: Collector
+```
+This class is relevant as it handles the deletion process and maintains counters of deleted objects per model.
+
+django/db/models/query.py:
+```
+django/db/models/query.py
+class: QuerySet
+```
+This class is relevant as it contains the delete() method that exhibits the inconsistent behavior.
+
+django/db/models/fields/related.py:
+```
+django/db/models/fields/related.py
+class: ForeignKey
+```
+This class is relevant as it defines the foreign key relationship that affects how deletions are handled.
+
+django/db/models/sql/subqueries.py:
+```
+django/db/models/sql/subqueries.py
+class: DeleteQuery
+```
+This class is relevant as it handles the actual SQL DELETE operations and may influence how deletion results are processed.
+
+The core issue likely lies in the interaction between the Collector class in deletion.py and the QuerySet's delete method, where the counting of deleted objects is handled differently based on the presence of foreign keys.

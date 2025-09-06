@@ -1,0 +1,94 @@
+I'll analyze the issue and provide a fix.
+
+The issue is about fixing image+label combinations when `declutterMode` is different than 'declutter'. Looking at the code and the issue description, the problem appears to be in the `DRAW_IMAGE` case of the `execute_` method in the `Executor` class.
+
+The current implementation doesn't properly handle the case when `declutterMode` is 'obstacle' and there's a text+image combination. When an image is marked as an obstacle, it should still be rendered, but the current code skips rendering it.
+
+Here's the fix:
+
+```javascript
+### src/ol/render/canvas/Executor.js
+<<<<<<< SEARCH
+              if (declutterTree) {
+                if (declutterMode === 'none') {
+                  // not rendered in declutter group
+                  continue;
+                } else if (declutterMode === 'obstacle') {
+                  // will always be drawn, thus no collision detection, but insert as obstacle
+                  declutterTree.insert(dimensions.declutterBox);
+                  continue;
+                } else {
+                  let imageArgs;
+                  let imageDeclutterBox;
+                  if (declutterImageWithText) {
+                    const index = dd - d;
+                    if (!declutterImageWithText[index]) {
+                      // We now have the image for an image+text combination.
+                      declutterImageWithText[index] = args;
+                      // Don't render anything for now, wait for the text.
+                      continue;
+                    }
+                    imageArgs = declutterImageWithText[index];
+                    delete declutterImageWithText[index];
+                    imageDeclutterBox = getDeclutterBox(imageArgs);
+                    if (declutterTree.collides(imageDeclutterBox)) {
+                      continue;
+                    }
+                  }
+                  if (declutterTree.collides(dimensions.declutterBox)) {
+                    continue;
+                  }
+                  if (imageArgs) {
+                    // We now have image and text for an image+text combination.
+                    declutterTree.insert(imageDeclutterBox);
+                    // Render the image before we render the text.
+                    this.replayImageOrLabel_.apply(this, imageArgs);
+                  }
+                  declutterTree.insert(dimensions.declutterBox);
+                }
+              }
+=======
+              if (declutterTree) {
+                if (declutterMode === 'none') {
+                  // not rendered in declutter group
+                  continue;
+                } else if (declutterMode === 'obstacle') {
+                  // will always be drawn, thus no collision detection, but insert as obstacle
+                  declutterTree.insert(dimensions.declutterBox);
+                  // For obstacle mode, we still need to render the image
+                  this.replayImageOrLabel_.apply(this, args);
+                  continue;
+                } else {
+                  let imageArgs;
+                  let imageDeclutterBox;
+                  if (declutterImageWithText) {
+                    const index = dd - d;
+                    if (!declutterImageWithText[index]) {
+                      // We now have the image for an image+text combination.
+                      declutterImageWithText[index] = args;
+                      // Don't render anything for now, wait for the text.
+                      continue;
+                    }
+                    imageArgs = declutterImageWithText[index];
+                    delete declutterImageWithText[index];
+                    imageDeclutterBox = getDeclutterBox(imageArgs);
+                    if (declutterTree.collides(imageDeclutterBox)) {
+                      continue;
+                    }
+                  }
+                  if (declutterTree.collides(dimensions.declutterBox)) {
+                    continue;
+                  }
+                  if (imageArgs) {
+                    // We now have image and text for an image+text combination.
+                    declutterTree.insert(imageDeclutterBox);
+                    // Render the image before we render the text.
+                    this.replayImageOrLabel_.apply(this, imageArgs);
+                  }
+                  declutterTree.insert(dimensions.declutterBox);
+                }
+              }
+>>>>>>> REPLACE
+```
+
+The key change is that for the 'obstacle' mode, we now call `this.replayImageOrLabel_.apply(this, args)` to actually render the image before continuing. This ensures that images marked as obstacles are still rendered, which fixes the issue reported in the ol-mapbox-style repository.

@@ -1,0 +1,51 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior is that Lighthouse flags a stylesheet loaded via `link[rel=preload]` as part of a "critical request chain," even though it loads asynchronously and does not block page rendering. This flagging seems to contradict the expected behavior since the stylesheet is loaded without impacting the initial page layout.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause behind this behavior likely stems from how Lighthouse determines the criticality of requests. Specifically, it seems that the `rel=preload` priority is being considered critical by default, regardless of whether the resource actually blocks rendering. This could be due to the way Lighthouse categorizes requests based on their priority or the way it constructs and evaluates critical request chains.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### lighthouse-core/audits/critical-request-chains.js
+```
+lighthouse-core/audits/critical-request-chains.js
+class: CriticalRequestChains
+```
+This file contains the `CriticalRequestChains` class, which is responsible for analyzing and identifying critical request chains. The `_getLongestChain` and `audit` methods are likely relevant as they determine the longest critical request chain and generate the audit results, respectively.
+
+#### lighthouse-core/gather/computed/critical-request-chains.js
+```
+lighthouse-core/gather/computed/critical-request-chains.js
+class: CriticalRequestChains
+```
+This file contains another `CriticalRequestChains` class that identifies critical request chains based on network records. The `isCritical` method is relevant as it determines whether a request is considered critical based on its priority. The `compute_` method is also relevant as it builds the tree of critical request chains.
+
+#### lighthouse-core/lib/network-recorder.js
+```
+This file contains no relevant functions/classes.
+```
+This file is primarily concerned with recording and managing network requests and does not directly relate to the determination of critical request chains.
+
+#### lighthouse-core/lib/dependency-graph/network-node.js
+```
+This file contains no relevant functions/classes.
+```
+This file encapsulates network request records and provides methods to analyze them. While it is part of the dependency graph, it does not directly influence the determination of critical request chains.
+
+#### lighthouse-core/lib/dependency-graph/simulator/network-analyzer.js
+```
+This file contains no relevant functions/classes.
+```
+This file provides utility methods for analyzing network request data and extracting performance metrics. It does not directly relate to the determination of critical request chains.
+
+### Summary of Relevant Locations
+
+```
+lighthouse-core/audits/critical-request-chains.js
+class: CriticalRequestChains
+
+lighthouse-core/gather/computed/critical-request-chains.js
+class: CriticalRequestChains
+```

@@ -1,0 +1,86 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when using `datePickerType="single"` with a DatePicker component. The error message indicates:
+
+```
+TypeError: start.addEventListener is not a function. (In 'start.addEventListener('keydown', handleArrowDown)', 'start.addEventListener' is undefined)
+```
+
+Looking at the code, the problem is in the `addKeyboardEvents` method. When initializing arrow down listeners, the code is trying to add event listeners to elements that might be null or undefined. Specifically, in the `initArrowDownListener` function, there's no check to ensure the element exists before trying to add event listeners to it.
+
+The issue happens with `datePickerType="single"` because in this case, the `toInputField` is likely undefined, but the code still tries to add event listeners to it.
+
+## Fix
+
+Here's the fix - we need to modify the `addKeyboardEvents` method to check if the element exists before trying to add event listeners:
+
+```javascript
+### packages/react/src/components/DatePicker/DatePicker.js
+<<<<<<< SEARCH
+  addKeyboardEvents = (cal) => {
+    const initArrowDownListener = (element) => {
+      if (element) {
+        element.addEventListener('keydown', (e) => {
+          if (match(e, keys.ArrowDown)) {
+            const {
+              calendarContainer,
+              selectedDateElem: fpSelectedDateElem,
+              todayDateElem: fptodayDateElem,
+            } = cal;
+            const selectedDateElem =
+              calendarContainer.querySelector('.selected') &&
+              fpSelectedDateElem;
+            const todayDateElem =
+              calendarContainer.querySelector('.today') && fptodayDateElem;
+            (
+              selectedDateElem ||
+              todayDateElem ||
+              calendarContainer.querySelector('.flatpickr-day[tabindex]') ||
+              calendarContainer
+            ).focus();
+          }
+        });
+        element.addEventListener('change', this.onChange);
+      }
+    };
+    initArrowDownListener(this.inputField);
+    initArrowDownListener(this.toInputField);
+=======
+  addKeyboardEvents = (cal) => {
+    const initArrowDownListener = (element) => {
+      if (element) {
+        element.addEventListener('keydown', (e) => {
+          if (match(e, keys.ArrowDown)) {
+            const {
+              calendarContainer,
+              selectedDateElem: fpSelectedDateElem,
+              todayDateElem: fptodayDateElem,
+            } = cal;
+            const selectedDateElem =
+              calendarContainer.querySelector('.selected') &&
+              fpSelectedDateElem;
+            const todayDateElem =
+              calendarContainer.querySelector('.today') && fptodayDateElem;
+            (
+              selectedDateElem ||
+              todayDateElem ||
+              calendarContainer.querySelector('.flatpickr-day[tabindex]') ||
+              calendarContainer
+            ).focus();
+          }
+        });
+        element.addEventListener('change', this.onChange);
+      }
+    };
+    if (this.inputField) {
+      initArrowDownListener(this.inputField);
+    }
+    if (this.toInputField) {
+      initArrowDownListener(this.toInputField);
+    }
+>>>>>>> REPLACE
+```
+
+This fix adds explicit checks to ensure that `this.inputField` and `this.toInputField` exist before trying to initialize event listeners on them. This will prevent the error when using `datePickerType="single"` where `toInputField` might not be defined.

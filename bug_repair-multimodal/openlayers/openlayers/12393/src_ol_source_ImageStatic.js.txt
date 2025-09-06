@@ -1,0 +1,88 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is in the `handleImageChange` method of the `Static` class in `src/ol/source/ImageStatic.js`. The problem occurs when scaling an image to fit a given extent.
+
+Currently, the code:
+1. Calculates the resolution based on the height of the image and extent
+2. Calculates the target width using `Math.ceil(getWidth(imageExtent) / resolution)`
+3. If the target width doesn't match the image width, it resizes the image
+
+The issue is that using `Math.ceil` can cause rounding errors, resulting in the image being stretched unnecessarily. According to the issue description, it would be better to scale up whichever dimension needs it instead of potentially losing detail.
+
+## Fix
+
+Here's the fix:
+
+```javascript
+### src/ol/source/ImageStatic.js
+<<<<<<< SEARCH
+      const resolution = getHeight(imageExtent) / imageHeight;
+      const targetWidth = Math.ceil(getWidth(imageExtent) / resolution);
+      if (targetWidth != imageWidth) {
+=======
+      const heightResolution = getHeight(imageExtent) / imageHeight;
+      const widthResolution = getWidth(imageExtent) / imageWidth;
+      let targetWidth = imageWidth;
+      let targetHeight = imageHeight;
+      
+      // Choose the smaller resolution to ensure we scale up rather than down
+      const resolution = Math.min(heightResolution, widthResolution);
+      
+      // Calculate the dimensions needed to maintain the resolution
+      targetWidth = Math.round(getWidth(imageExtent) / resolution);
+      targetHeight = Math.round(getHeight(imageExtent) / resolution);
+      
+      if (targetWidth != imageWidth || targetHeight != imageHeight) {
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Calculates both width and height resolutions
+2. Chooses the smaller resolution to ensure we scale up rather than down
+3. Calculates both target width and height using `Math.round` instead of `Math.ceil`
+4. Resizes the image only if either dimension needs to change
+
+Additionally, we need to update the canvas creation and drawing to use the new target height:
+
+```javascript
+### src/ol/source/ImageStatic.js
+<<<<<<< SEARCH
+        const context = createCanvasContext2D(targetWidth, imageHeight);
+        assign(context, this.getContextOptions());
+        const canvas = context.canvas;
+        context.drawImage(
+          image,
+          0,
+          0,
+          imageWidth,
+          imageHeight,
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+=======
+        const context = createCanvasContext2D(targetWidth, targetHeight);
+        assign(context, this.getContextOptions());
+        const canvas = context.canvas;
+        context.drawImage(
+          image,
+          0,
+          0,
+          imageWidth,
+          imageHeight,
+          0,
+          0,
+          targetWidth,
+          targetHeight
+        );
+>>>>>>> REPLACE
+```
+
+These changes ensure that:
+1. The image is scaled proportionally
+2. We always scale up rather than down to avoid losing detail
+3. We use `Math.round` instead of `Math.ceil` to get the closest pixel size
+4. Both dimensions are properly adjusted if needed

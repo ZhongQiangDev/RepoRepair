@@ -1,0 +1,41 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description and screenshots, there's a regression where inputs in the modal are not spanning the full width of the modal. Looking at the code, I need to identify what's causing this issue.
+
+The issue is likely related to the CSS classes applied to the modal content. The problem appears to be in the `contentClasses` definition, where the class for form content might not be properly applied.
+
+Here's my fix:
+
+```javascript
+### packages/react/src/components/Modal/Modal.js
+<<<<<<< SEARCH
+    const contentClasses = classNames(`${prefix}--modal-content`, {
+      [`${prefix}--modal-content--with-form`]: hasForm,
+      [`${prefix}--modal-scroll-content`]: hasScrollingContent,
+    });
+=======
+    const contentClasses = classNames(`${prefix}--modal-content`, {
+      [`${prefix}--modal-content--with-form`]: hasForm,
+      [`${prefix}--modal-scroll-content`]: hasScrollingContent,
+    });
+
+    const innerContentClasses = classNames({
+      [`${prefix}--modal-content__regular-content`]: hasForm,
+    });
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Modal/Modal.js
+<<<<<<< SEARCH
+          {this.props.children}
+=======
+          <div className={innerContentClasses}>
+            {this.props.children}
+          </div>
+>>>>>>> REPLACE
+```
+
+The fix adds a new CSS class variable `innerContentClasses` that applies the `bx--modal-content__regular-content` class when `hasForm` is true. Then it wraps the modal children in a div with this class.
+
+This ensures that when a form is present in the modal, the content is properly structured with the right CSS classes to make inputs span the full width of the modal, as shown in the "Should be" screenshot.

@@ -1,0 +1,54 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that users can select days from the previous month in the DateInput calendar, even when those days are outside the specified bounds. Looking at the screenshot, we can see that the user has set bounds for July 2020 (`['2020-07-01', '2020-07-31']`), but the calendar still allows selecting days from June 2020.
+
+The problem is in the `textToValue` function in `src/js/components/DateInput/utils.js`. This function converts text input into date values but doesn't validate if the resulting date is within the specified bounds.
+
+## Fix
+
+We need to modify the `textToValue` function to check if the generated date is within the specified bounds before adding it to the result. If the date is outside the bounds, we should not include it.
+
+```javascript
+### src/js/components/DateInput/utils.js
+<<<<<<< SEARCH
+    let date = new Date(parts.y, parts.m - 1, parts.d, ...time).toISOString();
+
+    if (date && outputFormat === 'no timezone') {
+      [date] = handleOffset(date).toISOString().split('T');
+    }
+
+    if (!range) {
+      if (!result) result = date;
+    } else {
+      if (!result) result = [];
+      result.push(date);
+    }
+=======
+    let date = new Date(parts.y, parts.m - 1, parts.d, ...time).toISOString();
+
+    if (date && outputFormat === 'no timezone') {
+      [date] = handleOffset(date).toISOString().split('T');
+    }
+
+    // Check if the date is within bounds if range is provided
+    const isWithinBounds = !range || !range.length || 
+      ((!range[0] || date >= range[0]) && (!range[1] || date <= range[1]));
+
+    if (isWithinBounds) {
+      if (!range) {
+        if (!result) result = date;
+      } else {
+        if (!result) result = [];
+        result.push(date);
+      }
+    }
+>>>>>>> REPLACE
+```
+
+This change adds a check to verify if the date is within the bounds before adding it to the result. The `isWithinBounds` variable will be true if:
+1. No range is provided, or
+2. The date is greater than or equal to the lower bound (if one exists) AND less than or equal to the upper bound (if one exists)
+
+Only dates that pass this check will be added to the result, preventing users from selecting dates outside the specified bounds.

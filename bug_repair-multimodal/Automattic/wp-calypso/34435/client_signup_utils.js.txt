@@ -1,0 +1,39 @@
+# Bug Analysis
+
+Based on the issue description, there's a problem in the signup flow for blogs. After completing the signup process, users briefly see an account details screen with a notice saying "Your account has already been created. You can change your email, username, and password later" before automatically progressing to the next screen.
+
+Looking at the provided code from `client/signup/utils.js`, I need to identify what might be causing this flash of the account screen. The issue is likely related to the flow steps configuration or how the next step is determined after account creation.
+
+The problem appears to be that the blog signup flow is incorrectly including the account step even though the account has already been created earlier in the flow. This causes the momentary display of the account screen before moving on.
+
+Let's examine the `getNextStepName` function, which determines the next step in a flow. This function doesn't appear to have any logic to skip the account step when it's not needed. We need to modify this function to check if the account step should be skipped in certain flows.
+
+Here's my proposed fix:
+
+```javascript
+### client/signup/utils.js
+<<<<<<< SEARCH
+export function getNextStepName( flowName, currentStepName ) {
+	const flow = flows.getFlow( flowName );
+	return flow.steps[ indexOf( flow.steps, currentStepName ) + 1 ];
+}
+=======
+export function getNextStepName( flowName, currentStepName ) {
+	const flow = flows.getFlow( flowName );
+	const currentStepIndex = indexOf( flow.steps, currentStepName );
+	const nextStepName = flow.steps[ currentStepIndex + 1 ];
+	
+	// Skip the 'account' step in the blog flow if the user is already logged in
+	// or if the account has already been created earlier in the flow
+	if ( nextStepName === 'account' && flowName === 'blog' && user.get() ) {
+		return flow.steps[ currentStepIndex + 2 ];
+	}
+	
+	return nextStepName;
+}
+>>>>>>> REPLACE
+```
+
+This fix modifies the `getNextStepName` function to check if the next step is the 'account' step in the 'blog' flow and if the user is already logged in. If both conditions are true, it skips the account step and returns the step after that instead.
+
+The issue occurs because the blog signup flow is showing the account step even though the user's account has already been created. This fix ensures that the account step is skipped in this specific scenario, preventing the flash of the account screen.

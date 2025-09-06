@@ -1,0 +1,36 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description and the screenshot, there's a problem with the DatePicker2 component when setting `timePanelProps.defaultValue`. It's showing "Invalid Date" when this prop is set.
+
+Looking at the code snippet provided, the issue is likely in the `setTime` function in `src/date-picker2/util.js`. This function is responsible for transferring time values from one date to another, but it doesn't properly handle the case when the source value is invalid or not a proper moment object.
+
+The function needs to check if `sourceVal` is a valid moment object before trying to use its time methods. Here's the fix:
+
+```javascript
+### src/date-picker2/util.js
+<<<<<<< SEARCH
+export function setTime(targetVal, sourceVal) {
+    if (sourceVal && targetVal) {
+        return targetVal
+            .hour(sourceVal.hour())
+            .minute(sourceVal.minute())
+            .second(sourceVal.second())
+            .millisecond(sourceVal.millisecond());
+    }
+    return targetVal;
+}
+=======
+export function setTime(targetVal, sourceVal) {
+    if (sourceVal && targetVal && sourceVal.isValid && sourceVal.isValid()) {
+        return targetVal
+            .hour(sourceVal.hour())
+            .minute(sourceVal.minute())
+            .second(sourceVal.second())
+            .millisecond(sourceVal.millisecond());
+    }
+    return targetVal;
+}
+>>>>>>> REPLACE
+```
+
+This fix adds a check to ensure that `sourceVal` is a valid moment object by using the `isValid` method before attempting to extract time components from it. This will prevent the "Invalid Date" error when `timePanelProps.defaultValue` is set to an invalid date.

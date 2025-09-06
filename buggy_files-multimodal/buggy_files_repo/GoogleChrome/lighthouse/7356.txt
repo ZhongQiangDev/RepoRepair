@@ -1,0 +1,31 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- Increased error rate on the LR backend
+- Higher latency in loadPage timing
+- The `lh:runner:auditing` timing remains flat while `loadPage-defaultPass` shows significant jumps
+- More sites hitting the 35s maxWaitForLoad timeout leading to 60s render timeout
+
+2. Cause Analysis:
+- The issue appears to be related to waiting for First Contentful Paint (FCP) during tracing
+- The PR #6944 "core(driver): waitForFCP when tracing" is identified as the likely cause
+- NO_FCP is the most commonly seen LighthouseError
+- The combination of waiting for FCP and the existing timeouts is causing more failures
+
+3. Most Related Files:
+Based on the cause, these files are most relevant to fixing the timeout and FCP waiting issues:
+
+```
+lighthouse-core/gather/gather-runner.js
+lighthouse-core/computed/metrics/first-contentful-paint.js
+lighthouse-core/audits/metrics/first-contentful-paint.js
+lighthouse-core/computed/trace-of-tab.js
+clients/lightrider-entry.js
+```
+
+These files are ordered by importance because:
+- gather-runner.js handles the core gathering process including timeouts and tracing
+- first-contentful-paint.js (computed) contains the core FCP computation logic
+- first-contentful-paint.js (audits) handles FCP auditing and scoring
+- trace-of-tab.js manages trace events and timing validation
+- lightrider-entry.js is the entry point for LightRider which is where the errors are being observed

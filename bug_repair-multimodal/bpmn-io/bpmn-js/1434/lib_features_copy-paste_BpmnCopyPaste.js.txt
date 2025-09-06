@@ -1,0 +1,69 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that typed start events can be pasted onto a subprocess, which shouldn't be allowed. According to BPMN rules, typed start events are not allowed within a subprocess.
+
+Looking at the code, I can see that the `BpmnCopyPaste.js` file handles the copy-paste functionality, but it doesn't have any validation to prevent pasting typed start events onto subprocesses.
+
+The bug is in the paste functionality - we need to add validation to check if the element being pasted is a typed start event and if the target is a subprocess, and prevent the paste operation in that case.
+
+## Fix
+
+We need to add validation in the `copyPaste.pasteElement` event handler to check if the element being pasted is a typed start event and if the target is a subprocess.
+
+```javascript
+### lib/features/copy-paste/BpmnCopyPaste.js
+<<<<<<< SEARCH
+  eventBus.on('copyPaste.pasteElement', function(context) {
+    var cache = context.cache,
+        descriptor = context.descriptor,
+        oldBusinessObject = descriptor.oldBusinessObject,
+        newBusinessObject;
+
+    // do NOT copy business object if external label
+    if (isLabel(descriptor)) {
+      descriptor.businessObject = getBusinessObject(cache[ descriptor.labelTarget ]);
+
+      return;
+    }
+=======
+  eventBus.on('copyPaste.pasteElement', function(context) {
+    var cache = context.cache,
+        descriptor = context.descriptor,
+        oldBusinessObject = descriptor.oldBusinessObject,
+        newBusinessObject,
+        target = context.target;
+
+    // do NOT copy business object if external label
+    if (isLabel(descriptor)) {
+      descriptor.businessObject = getBusinessObject(cache[ descriptor.labelTarget ]);
+
+      return;
+    }
+
+    // do NOT allow pasting typed start events onto subprocesses
+    if (descriptor.type === 'bpmn:StartEvent' && 
+        oldBusinessObject.eventDefinitions && 
+        oldBusinessObject.eventDefinitions.length > 0 && 
+        is(target, 'bpmn:SubProcess')) {
+      context.cancel = true;
+      return;
+    }
+
+    // do NOT allow pasting non-interrupting events out of event sub-processes
+    if (descriptor.type === 'bpmn:StartEvent' && 
+        oldBusinessObject.isInterrupting === false && 
+        !is(target, 'bpmn:SubProcess')) {
+      context.cancel = true;
+      return;
+    }
+>>>>>>> REPLACE
+```
+
+This fix adds two validation checks:
+
+1. It prevents pasting typed start events (start events with event definitions) onto subprocesses
+2. It also prevents pasting non-interrupting events out of event sub-processes, which was mentioned as a related issue in the comment
+
+The fix sets `context.cancel = true` to prevent the paste operation when these conditions are met.

@@ -1,0 +1,109 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a Timer Intermediate Catch Event (or other catch events) is added to a sequence flow, the "default" attribute is being removed from exclusive gateways. This happens even though the catch event is added to a non-default flow.
+
+Looking at the provided code, I don't see the direct cause of the bug in the `Modeling.js` file. However, I can infer that when a catch event is added to a sequence flow, it's likely modifying properties of the gateway or sequence flow incorrectly.
+
+The issue is likely in how intermediate events are handled when they're placed on sequence flows. When an intermediate event is added to a sequence flow, the system probably recreates or modifies the sequence flow connections, but fails to preserve the "default" attribute on the gateway.
+
+## Solution
+
+Since the complete implementation isn't visible in the provided code, I'll need to make an educated guess about where the bug might be. The most likely place is in the connection handling or in the event placement logic.
+
+Let's create a fix that ensures the "default" attribute is preserved when adding intermediate events to sequence flows:
+
+```javascript
+### lib/features/modeling/Modeling.js
+<<<<<<< SEARCH
+Modeling.prototype.connect = function(source, target, attrs, hints) {
+
+  var bpmnRules = this._bpmnRules;
+
+  if (!attrs) {
+    attrs = bpmnRules.canConnect(source, target);
+  }
+
+  if (!attrs) {
+    return;
+  }
+
+  return this.createConnection(source, target, attrs, source.parent, hints);
+};
+=======
+Modeling.prototype.connect = function(source, target, attrs, hints) {
+
+  var bpmnRules = this._bpmnRules;
+
+  if (!attrs) {
+    attrs = bpmnRules.canConnect(source, target);
+  }
+
+  if (!attrs) {
+    return;
+  }
+
+  return this.createConnection(source, target, attrs, source.parent, hints);
+};
+
+/**
+ * Create a connection between source and target, while preserving gateway default flows.
+ *
+ * @param {Object} source
+ * @param {Object} target
+ * @param {Object} attrs
+ * @param {Object} [parent]
+ * @param {Object} [hints]
+ *
+ * @return {djs.model.Connection} the created connection
+ */
+Modeling.prototype.createConnection = function(source, target, attrs, parent, hints) {
+  // Preserve default flow information when creating connections
+  if (hints && hints.createElementsBehavior === 'createElementsBehavior') {
+    var sourceBusinessObject = source.businessObject;
+    
+    // If source is a gateway with a default flow, preserve it
+    if (sourceBusinessObject && sourceBusinessObject.default) {
+      hints.defaultFlowId = sourceBusinessObject.default.id;
+    }
+  }
+  
+  var connection = BaseModeling.prototype.createConnection.call(this, source, target, attrs, parent, hints);
+  
+  // Restore default flow if it was saved in hints
+  if (hints && hints.defaultFlowId && source.businessObject) {
+    var flows = this._getFlows(source);
+    var defaultFlow = flows.find(function(flow) {
+      return flow.id === hints.defaultFlowId;
+    });
+    
+    if (defaultFlow) {
+      source.businessObject.default = defaultFlow;
+    }
+  }
+  
+  return connection;
+};
+
+/**
+ * Get all outgoing flows for a source element
+ *
+ * @param {Object} source
+ * @return {Array<Object>} outgoing flows
+ */
+Modeling.prototype._getFlows = function(source) {
+  if (!source || !source.outgoing) {
+    return [];
+  }
+  
+  return source.outgoing.map(function(flow) {
+    return flow.businessObject;
+  });
+};
+>>>>>>> REPLACE
+```
+
+This solution adds an enhanced version of the `createConnection` method that preserves the default flow information when creating connections. It stores the default flow ID in the hints object and restores it after the connection is created.
+
+Note: Since I don't have the complete codebase, this solution is based on my understanding of how BPMN.js likely works. The actual implementation might need adjustments based on the specific architecture and patterns used in the project.

@@ -1,0 +1,124 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that the `TableToolbarSearch` component has a `div` with `role="search"` but no `aria-label` attribute, which is important for accessibility. According to the issue, there's currently no way to add an `aria-label` to this search region.
+
+Looking at the code, I can see that the component accepts various props but doesn't have a way to pass an `aria-label` to the search container div. The component already passes accessibility attributes to the inner `Search` component, but the outer container with `role="search"` needs its own label.
+
+## Solution
+
+I'll modify the component to:
+1. Accept an `ariaLabel` prop
+2. Apply this prop to the div with `role="search"`
+3. Add proper documentation for this prop in the PropTypes
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/DataTable/TableToolbarSearch.js
+<<<<<<< SEARCH
+const TableToolbarSearch = ({
+  className,
+  searchContainerClass,
+  onChange: onChangeProp,
+  translateWithId: t,
+  placeHolderText,
+  labelText,
+  expanded: expandedProp,
+  defaultExpanded,
+  defaultValue,
+  onExpand,
+  persistent,
+  persistant,
+  id,
+  tabIndex,
+  ...rest
+}) => {
+=======
+const TableToolbarSearch = ({
+  className,
+  searchContainerClass,
+  onChange: onChangeProp,
+  translateWithId: t,
+  placeHolderText,
+  labelText,
+  expanded: expandedProp,
+  defaultExpanded,
+  defaultValue,
+  onExpand,
+  persistent,
+  persistant,
+  id,
+  tabIndex,
+  ariaLabel,
+  ...rest
+}) => {
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/DataTable/TableToolbarSearch.js
+<<<<<<< SEARCH
+      role="search"
+      ref={searchRef}
+      onClick={event => onClick(event)}
+      onFocus={event => handleExpand(event, true)}
+      onBlur={event => !value && handleExpand(event, false)}
+      className={searchContainerClasses}>
+=======
+      role="search"
+      ref={searchRef}
+      aria-label={ariaLabel || labelText || t('carbon.table.toolbar.search.label')}
+      onClick={event => onClick(event)}
+      onFocus={event => handleExpand(event, true)}
+      onBlur={event => !value && handleExpand(event, false)}
+      className={searchContainerClasses}>
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/DataTable/TableToolbarSearch.js
+<<<<<<< SEARCH
+  /**
+   * Optional prop to specify the tabIndex of the <Search> (in expanded state) or the container (in collapsed state)
+   */
+  tabIndex: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+
+  /**
+   * Whether the search should be allowed to expand
+   */
+  persistent: PropTypes.bool,
+  persistant: deprecate(
+    PropTypes.bool,
+    `\nThe prop \`persistant\` for TableToolbarSearch has been deprecated in favor of \`persistent\`. Please use \`persistent\` instead.`
+  ),
+=======
+  /**
+   * Optional prop to specify the tabIndex of the <Search> (in expanded state) or the container (in collapsed state)
+   */
+  tabIndex: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+
+  /**
+   * Provide an optional label for the search container to use as aria-label
+   */
+  ariaLabel: PropTypes.string,
+
+  /**
+   * Whether the search should be allowed to expand
+   */
+  persistent: PropTypes.bool,
+  persistant: deprecate(
+    PropTypes.bool,
+    `\nThe prop \`persistant\` for TableToolbarSearch has been deprecated in favor of \`persistent\`. Please use \`persistent\` instead.`
+  ),
+>>>>>>> REPLACE
+```
+
+This solution:
+1. Adds a new `ariaLabel` prop to the component
+2. Applies this prop to the search container div with `role="search"`
+3. Falls back to using `labelText` or the translation if `ariaLabel` is not provided
+4. Adds proper documentation for the new prop in PropTypes
+
+With this change, users can now add an `aria-label` attribute to the search region by passing the `ariaLabel` prop to the `TableToolbarSearch` component.

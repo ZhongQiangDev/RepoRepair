@@ -1,0 +1,38 @@
+Based on the issue description, the bug is in the MigrationExecutor's `apply_migration` method where it doesn't check the router's `allow_migrate` rules before recording migrations. The issue states that even when the router disallows migrations for a particular database, the migration recorder still tries to record the migration by creating tables.
+
+Here's the fix that checks the router's allow_migrate rules before recording migrations:
+
+```python
+### django/db/migrations/executor.py
+<<<<<<< SEARCH
+    def record_migration(self, migration):
+        # For replacement migrations, record individual statuses
+        if migration.replaces:
+            for app_label, name in migration.replaces:
+                self.recorder.record_applied(app_label, name)
+        else:
+            self.recorder.record_applied(migration.app_label, migration.name)
+=======
+    def record_migration(self, migration):
+        # Check if migrations are allowed on this database
+        if not router.allow_migrate(self.connection.alias, migration.app_label):
+            return
+            
+        # For replacement migrations, record individual statuses
+        if migration.replaces:
+            for app_label, name in migration.replaces:
+                self.recorder.record_applied(app_label, name)
+        else:
+            self.recorder.record_applied(migration.app_label, migration.name)
+>>>>>>> REPLACE
+```
+
+This change:
+
+1. Adds a check using the router's `allow_migrate` method before attempting to record any migrations
+2. If migrations are not allowed for this database/app combination, it returns early without recording anything
+3. Otherwise proceeds with the normal recording logic
+
+This ensures that migration history is only recorded in databases where migrations are actually allowed according to the router rules. This prevents the MigrationRecorder from trying to create its tables in databases where it shouldn't.
+
+The fix addresses the core issue where the MigrationRecorder was ignoring the router's `allow_migrate` rules and attempting to create tables in databases where it shouldn't.

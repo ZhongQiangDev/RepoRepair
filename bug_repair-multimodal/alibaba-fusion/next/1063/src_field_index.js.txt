@@ -1,0 +1,79 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that `Field` is modifying the input data. Looking at the screenshot and the code, I can see that the problem is in the `setValues` method. When using `parseName: true`, the method is directly modifying the input object by doing a shallow merge with `Object.assign({}, this.values, fieldsValue)`.
+
+This is problematic because it modifies the original `fieldsValue` object that was passed in, which violates the principle that functions shouldn't modify their input parameters.
+
+## Solution
+
+We need to modify the `setValues` method to create a deep copy of the input data instead of directly assigning it. This way, we won't modify the original object.
+
+```javascript
+### src/field/index.js
+<<<<<<< SEARCH
+    setValues(fieldsValue = {}, reRender = true) {
+        if (!this.options.parseName) {
+            Object.keys(fieldsValue).forEach(name => {
+                this.setValue(name, fieldsValue[name], false);
+            });
+        } else {
+            // NOTE: this is a shallow merge
+            // Ex. we have two values a.b.c=1 ; a.b.d=2, and use setValues({a:{b:{c:3}}}) , then because of shallow merge a.b.d will be lost, we will get only {a:{b:{c:3}}}
+            this.values = Object.assign({}, this.values, fieldsValue);
+            const fields = this.getNames();
+            fields.forEach(name => {
+                const value = getIn(this.values, name);
+                if (value !== undefined) {
+                    // copy over values that are in this.values
+                    this.fieldsMeta[name].value = value;
+                } else {
+                    // if no value then copy values from fieldsMeta to keep initialized component data
+                    this.values = setIn(
+                        this.values,
+                        name,
+                        this.fieldsMeta[name].value
+                    );
+                }
+            });
+        }
+        reRender && this._reRender();
+    }
+=======
+    setValues(fieldsValue = {}, reRender = true) {
+        // Create a deep copy of fieldsValue to avoid modifying the input
+        const fieldsValueCopy = JSON.parse(JSON.stringify(fieldsValue));
+        
+        if (!this.options.parseName) {
+            Object.keys(fieldsValueCopy).forEach(name => {
+                this.setValue(name, fieldsValueCopy[name], false);
+            });
+        } else {
+            // NOTE: this is a shallow merge
+            // Ex. we have two values a.b.c=1 ; a.b.d=2, and use setValues({a:{b:{c:3}}}) , then because of shallow merge a.b.d will be lost, we will get only {a:{b:{c:3}}}
+            this.values = Object.assign({}, this.values, fieldsValueCopy);
+            const fields = this.getNames();
+            fields.forEach(name => {
+                const value = getIn(this.values, name);
+                if (value !== undefined) {
+                    // copy over values that are in this.values
+                    this.fieldsMeta[name].value = value;
+                } else {
+                    // if no value then copy values from fieldsMeta to keep initialized component data
+                    this.values = setIn(
+                        this.values,
+                        name,
+                        this.fieldsMeta[name].value
+                    );
+                }
+            });
+        }
+        reRender && this._reRender();
+    }
+>>>>>>> REPLACE
+```
+
+This fix creates a deep copy of the `fieldsValue` object using `JSON.parse(JSON.stringify())` before using it. This ensures that we don't modify the original object that was passed to the function.
+
+Note: While `JSON.parse(JSON.stringify())` is a simple way to create a deep copy, it has limitations (doesn't handle functions, undefined values, circular references, etc.). However, for the typical use case of form values (which are usually simple data structures), this approach should work well. If more complex objects need to be handled, a more robust deep cloning solution might be needed.

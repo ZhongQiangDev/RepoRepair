@@ -1,0 +1,75 @@
+Based on the issue description, the bug is that `refine()` doesn't properly handle complex arguments like `arg(a)` and `abs(a)` when given assumptions about the variable being positive. The issue shows that even with `Q.positive(a)`, the `arg(a)` and `abs(a)` functions are not being simplified as they should be.
+
+Looking at the code, we can see that the `handlers_dict` contains mappings for various functions that can be refined, but it's missing handlers for `arg` and `Abs` functions. We need to add these handlers to properly handle complex arguments.
+
+Here's the fix:
+
+1. First, we need to add the missing imports and handler functions:
+
+```python
+### sympy/assumptions/refine.py
+<<<<<<< SEARCH
+from sympy.core import S, Add, Expr, Basic, Mul
+from sympy.logic.boolalg import Boolean
+
+from sympy.assumptions import ask, Q  # type: ignore
+=======
+from sympy.core import S, Add, Expr, Basic, Mul
+from sympy.logic.boolalg import Boolean
+from sympy.functions import arg, Abs
+from sympy.assumptions import ask, Q  # type: ignore
+
+def refine_arg(expr, assumptions):
+    """
+    Handler for arg function.
+    """
+    arg = expr.args[0]
+    if ask(Q.positive(arg), assumptions):
+        return S.Zero
+    return expr
+
+def refine_Abs(expr, assumptions):
+    """
+    Handler for Abs function.
+    """
+    arg = expr.args[0]
+    if ask(Q.positive(arg), assumptions):
+        return arg
+    return expr
+>>>>>>> REPLACE
+```
+
+2. Then update the handlers dictionary to include these new handlers:
+
+```python
+### sympy/assumptions/refine.py
+<<<<<<< SEARCH
+handlers_dict = {
+    'Abs': refine_abs,
+    'Pow': refine_Pow,
+    'atan2': refine_atan2,
+    're': refine_re,
+    'im': refine_im,
+    'sign': refine_sign,
+    'MatrixElement': refine_matrixelement
+}  # type: Dict[str, Callable[[Expr, Boolean], Expr]]
+=======
+handlers_dict = {
+    'Abs': refine_Abs,
+    'Pow': refine_Pow,
+    'atan2': refine_atan2,
+    're': refine_re,
+    'im': refine_im,
+    'sign': refine_sign,
+    'MatrixElement': refine_matrixelement,
+    'arg': refine_arg
+}  # type: Dict[str, Callable[[Expr, Boolean], Expr]]
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Add proper handling for the `arg` function, which will return 0 when the argument is known to be positive
+2. Add proper handling for the `Abs` function, which will return the argument itself when it's known to be positive
+3. Update the handlers dictionary to include these new handlers
+
+With these changes, `refine(arg(a), Q.positive(a))` will return 0 and `refine(abs(a), Q.positive(a))` will return `a` as expected.

@@ -1,0 +1,507 @@
+I'll analyze the issue and provide the necessary fixes.
+
+## Bug Analysis
+
+The issue is about implementing vertex-wise coloring for strokes in p5.js WebGL renderer. Currently, when using `beginShape()` and `endShape()`, the fill color can be interpolated between vertices, but stroke color cannot - it only uses the last stroke color set.
+
+The goal is to modify the WebGL renderer to:
+1. Store stroke color information for each vertex
+2. Pass this information to the vertex shader
+3. Interpolate between these colors in the fragment shader
+
+Looking at the provided code, we need to make several changes to the p5.RendererGL.js file to implement this feature.
+
+## Solution
+
+We need to add a new RenderBuffer for line vertex colors and modify the shaders to handle per-vertex stroke coloring. Here are the necessary changes:
+
+```javascript
+### src/webgl/p5.RendererGL.js
+<<<<<<< SEARCH
+p5.RendererGL.prototype._getRetainedStrokeShader =
+  p5.RendererGL.prototype._getImmediateStrokeShader;
+=======
+p5.RendererGL.prototype._getRetainedStrokeShader =
+  p5.RendererGL.prototype._getImmediateStrokeShader;
+
+// Add a new RenderBuffer for line vertex colors
+p5.RendererGL.prototype._initBufferDefaults = function(gId) {
+  this._freeBuffers(gId);
+
+  // initialize the gl buffers for our geom groups
+  this.gHash[gId] = {};
+  this.gHash[gId].vertexBuffer = this.GL.createBuffer();
+  this.gHash[gId].normalBuffer = this.GL.createBuffer();
+  this.gHash[gId].lineVertexBuffer = this.GL.createBuffer();
+  this.gHash[gId].lineNormalBuffer = this.GL.createBuffer();
+  this.gHash[gId].lineVertexColorBuffer = this.GL.createBuffer(); // New buffer for line vertex colors
+  this.gHash[gId].uvBuffer = this.GL.createBuffer();
+  this.gHash[gId].indexBuffer = this.GL.createBuffer();
+  this.gHash[gId].lineIndexBuffer = this.GL.createBuffer();
+};
+
+p5.RendererGL.prototype._freeBuffers = function(gId) {
+  const gl = this.GL;
+  if (this.gHash[gId]) {
+    if (this.gHash[gId].vertexBuffer) {
+      gl.deleteBuffer(this.gHash[gId].vertexBuffer);
+    }
+    if (this.gHash[gId].normalBuffer) {
+      gl.deleteBuffer(this.gHash[gId].normalBuffer);
+    }
+    if (this.gHash[gId].lineVertexBuffer) {
+      gl.deleteBuffer(this.gHash[gId].lineVertexBuffer);
+    }
+    if (this.gHash[gId].lineNormalBuffer) {
+      gl.deleteBuffer(this.gHash[gId].lineNormalBuffer);
+    }
+    if (this.gHash[gId].lineVertexColorBuffer) {
+      gl.deleteBuffer(this.gHash[gId].lineVertexColorBuffer);
+    }
+    if (this.gHash[gId].uvBuffer) {
+      gl.deleteBuffer(this.gHash[gId].uvBuffer);
+    }
+    if (this.gHash[gId].indexBuffer) {
+      gl.deleteBuffer(this.gHash[gId].indexBuffer);
+    }
+    if (this.gHash[gId].lineIndexBuffer) {
+      gl.deleteBuffer(this.gHash[gId].lineIndexBuffer);
+    }
+  }
+};
+>>>>>>> REPLACE
+```
+
+Now let's modify the stroke method to store the color for each vertex:
+
+```javascript
+### src/webgl/p5.RendererGL.js
+<<<<<<< SEARCH
+/**
+ * Basic stroke material for geometry with a given color
+ * @method  stroke
+ * @param  {Number|Number[]|String|p5.Color} v1  gray value,
+ * red or hue value (depending on the current color mode),
+ * or color Array, or CSS color string
+ * @param  {Number}            [v2] green or saturation value
+ * @param  {Number}            [v3] blue or brightness value
+ * @param  {Number}            [a]  opacity
+ * @example
+ * <div>
+ * <code>
+ * function setup() {
+ *   createCanvas(200, 200, WEBGL);
+ * }
+ *
+ * function draw() {
+ *   background(0);
+ *   stroke(240, 150, 150);
+ *   fill(100, 100, 240);
+ *   rotateX(frameCount * 0.01);
+ *   rotateY(frameCount * 0.01);
+ *   box(75, 75, 75);
+ * }
+ * </code>
+ * </div>
+ *
+ * @alt
+ * black canvas with purple cube with pink outline spinning
+ */
+=======
+/**
+ * Basic stroke material for geometry with a given color
+ * @method  stroke
+ * @param  {Number|Number[]|String|p5.Color} v1  gray value,
+ * red or hue value (depending on the current color mode),
+ * or color Array, or CSS color string
+ * @param  {Number}            [v2] green or saturation value
+ * @param  {Number}            [v3] blue or brightness value
+ * @param  {Number}            [a]  opacity
+ * @example
+ * <div>
+ * <code>
+ * function setup() {
+ *   createCanvas(200, 200, WEBGL);
+ * }
+ *
+ * function draw() {
+ *   background(0);
+ *   stroke(240, 150, 150);
+ *   fill(100, 100, 240);
+ *   rotateX(frameCount * 0.01);
+ *   rotateY(frameCount * 0.01);
+ *   box(75, 75, 75);
+ * }
+ * </code>
+ * </div>
+ *
+ * @alt
+ * black canvas with purple cube with pink outline spinning
+ */
+p5.RendererGL.prototype.stroke = function(r, g, b, a) {
+  // Call the parent stroke method
+  p5.Renderer.prototype.stroke.apply(this, arguments);
+  
+  // Store the current stroke color for vertex-wise coloring
+  if (this.immediateMode.geometry && this.immediateMode.geometry.vertices.length > 0) {
+    // If we're in immediate mode and have vertices, store the color for the last vertex
+    const lastIndex = this.immediateMode.geometry.vertices.length - 1;
+    const rgba = this._pInst.color(r, g, b, a).levels;
+    
+    // Make sure the lineVertexColors array exists and is the right size
+    if (!this.immediateMode.geometry.lineVertexColors) {
+      this.immediateMode.geometry.lineVertexColors = [];
+    }
+    
+    // Store the color for the current vertex
+    this.immediateMode.geometry.lineVertexColors[lastIndex * 4] = rgba[0] / 255;
+    this.immediateMode.geometry.lineVertexColors[lastIndex * 4 + 1] = rgba[1] / 255;
+    this.immediateMode.geometry.lineVertexColors[lastIndex * 4 + 2] = rgba[2] / 255;
+    this.immediateMode.geometry.lineVertexColors[lastIndex * 4 + 3] = rgba[3] / 255;
+  }
+  
+  return this;
+};
+>>>>>>> REPLACE
+```
+
+Now let's modify the line shader handling:
+
+```javascript
+### src/webgl/p5.RendererGL.js
+<<<<<<< SEARCH
+p5.RendererGL.prototype._getRetainedLineShader =
+  p5.RendererGL.prototype._getImmediateLineShader;
+=======
+p5.RendererGL.prototype._getImmediateLineShader = function() {
+  if (!this._defaultImmediateLine) {
+    const vertexShaderSrc = `
+      precision highp float;
+      precision highp int;
+      
+      attribute vec3 aPosition;
+      attribute vec4 aVertexColor;
+      
+      uniform mat4 uModelViewMatrix;
+      uniform mat4 uProjectionMatrix;
+      uniform float uStrokeWeight;
+      
+      varying vec4 vColor;
+      
+      void main() {
+        vec4 positionVec4 = vec4(aPosition, 1.0);
+        gl_Position = uProjectionMatrix * uModelViewMatrix * positionVec4;
+        vColor = aVertexColor;
+        gl_PointSize = uStrokeWeight;
+      }
+    `;
+    
+    const fragmentShaderSrc = `
+      precision highp float;
+      precision highp int;
+      
+      uniform vec4 uMaterialColor;
+      uniform bool uUseVertexColor;
+      
+      varying vec4 vColor;
+      
+      void main() {
+        if (uUseVertexColor) {
+          gl_FragColor = vColor;
+        } else {
+          gl_FragColor = uMaterialColor;
+        }
+      }
+    `;
+    
+    this._defaultImmediateLine = new p5.Shader(
+      this,
+      vertexShaderSrc,
+      fragmentShaderSrc
+    );
+  }
+  
+  return this._defaultImmediateLine;
+};
+
+p5.RendererGL.prototype._getRetainedLineShader = function() {
+  if (!this._defaultRetainedLine) {
+    const vertexShaderSrc = `
+      precision highp float;
+      precision highp int;
+      
+      attribute vec3 aPosition;
+      attribute vec4 aVertexColor;
+      
+      uniform mat4 uModelViewMatrix;
+      uniform mat4 uProjectionMatrix;
+      uniform float uStrokeWeight;
+      
+      varying vec4 vColor;
+      
+      void main() {
+        vec4 positionVec4 = vec4(aPosition, 1.0);
+        gl_Position = uProjectionMatrix * uModelViewMatrix * positionVec4;
+        vColor = aVertexColor;
+        gl_PointSize = uStrokeWeight;
+      }
+    `;
+    
+    const fragmentShaderSrc = `
+      precision highp float;
+      precision highp int;
+      
+      uniform vec4 uMaterialColor;
+      uniform bool uUseVertexColor;
+      
+      varying vec4 vColor;
+      
+      void main() {
+        if (uUseVertexColor) {
+          gl_FragColor = vColor;
+        } else {
+          gl_FragColor = uMaterialColor;
+        }
+      }
+    `;
+    
+    this._defaultRetainedLine = new p5.Shader(
+      this,
+      vertexShaderSrc,
+      fragmentShaderSrc
+    );
+  }
+  
+  return this._defaultRetainedLine;
+};
+>>>>>>> REPLACE
+```
+
+Now let's add the code to handle drawing lines with vertex colors:
+
+```javascript
+### src/webgl/p5.RendererGL.js
+<<<<<<< SEARCH
+/* Binds a buffer to the drawing context
+ * when passed more than two arguments it also updates or initializes
+ * the data associated with the buffer
+ */
+p5.RendererGL.prototype._bindBuffer = function(
+  buffer,
+  target,
+  values,
+  type,
+  usage
+) {
+  if (!target) target = this.GL.ARRAY_BUFFER;
+  this.GL.bindBuffer(target, buffer);
+  if (values !== undefined) {
+    const data = new (type || Float32Array)(values);
+    this.GL.bufferData(target, data, usage || this.GL.STATIC_DRAW);
+  }
+};
+=======
+/* Binds a buffer to the drawing context
+ * when passed more than two arguments it also updates or initializes
+ * the data associated with the buffer
+ */
+p5.RendererGL.prototype._bindBuffer = function(
+  buffer,
+  target,
+  values,
+  type,
+  usage
+) {
+  if (!target) target = this.GL.ARRAY_BUFFER;
+  this.GL.bindBuffer(target, buffer);
+  if (values !== undefined) {
+    const data = new (type || Float32Array)(values);
+    this.GL.bufferData(target, data, usage || this.GL.STATIC_DRAW);
+  }
+};
+
+// Draw retained line geometry with vertex colors
+p5.RendererGL.prototype._drawLines = function(vertices, vertexBuffer, indexBuffer, 
+                                             vertexColorBuffer, gId, mode, isCurve) {
+  const gl = this.GL;
+  const shader = this._getRetainedLineShader();
+  
+  shader.bindShader();
+  
+  // Set the uniform for whether to use vertex colors
+  const useVertexColor = vertexColorBuffer && vertices.lineVertexColors && 
+                         vertices.lineVertexColors.length > 0;
+  shader.setUniform('uUseVertexColor', useVertexColor);
+  
+  if (!useVertexColor) {
+    // If not using vertex colors, use the material color
+    shader.setUniform('uMaterialColor', this.curStrokeColor);
+  }
+  
+  // Set common uniforms
+  shader.setUniform('uStrokeWeight', this.curStrokeWeight);
+  
+  // Set matrices
+  this._setMatrixUniforms(shader);
+  
+  // Bind position buffer
+  this._bindBuffer(vertexBuffer, gl.ARRAY_BUFFER, vertices.lineVertices);
+  shader.enableAttrib('aPosition', 3, gl.FLOAT, false, 0, 0);
+  
+  // Bind vertex color buffer if available
+  if (useVertexColor) {
+    this._bindBuffer(vertexColorBuffer, gl.ARRAY_BUFFER, vertices.lineVertexColors);
+    shader.enableAttrib('aVertexColor', 4, gl.FLOAT, false, 0, 0);
+  } else {
+    // If not using vertex colors, set a default attribute value
+    shader.disableAttrib('aVertexColor');
+    gl.vertexAttrib4f('aVertexColor', 1.0, 1.0, 1.0, 1.0);
+  }
+  
+  // Draw the lines
+  this._bindBuffer(indexBuffer, gl.ELEMENT_ARRAY_BUFFER, vertices.lineIndices);
+  
+  gl.drawElements(
+    mode || gl.TRIANGLES,
+    vertices.lineIndices.length,
+    gl.UNSIGNED_SHORT,
+    0
+  );
+  
+  shader.unbindShader();
+};
+
+// Draw immediate mode line geometry with vertex colors
+p5.RendererGL.prototype._drawImmediateLines = function(mode, vertices, colors) {
+  const gl = this.GL;
+  const shader = this._getImmediateLineShader();
+  
+  shader.bindShader();
+  
+  // Set the uniform for whether to use vertex colors
+  const useVertexColor = colors && colors.length > 0;
+  shader.setUniform('uUseVertexColor', useVertexColor);
+  
+  if (!useVertexColor) {
+    // If not using vertex colors, use the material color
+    shader.setUniform('uMaterialColor', this.curStrokeColor);
+  }
+  
+  // Set common uniforms
+  shader.setUniform('uStrokeWeight', this.curStrokeWeight);
+  
+  // Set matrices
+  this._setMatrixUniforms(shader);
+  
+  // Bind position buffer
+  this._bindBuffer(this.immediateMode.lineVertexBuffer, gl.ARRAY_BUFFER, vertices);
+  shader.enableAttrib('aPosition', 3, gl.FLOAT, false, 0, 0);
+  
+  // Bind vertex color buffer if available
+  if (useVertexColor) {
+    this._bindBuffer(this.immediateMode.lineVertexColorBuffer, gl.ARRAY_BUFFER, colors);
+    shader.enableAttrib('aVertexColor', 4, gl.FLOAT, false, 0, 0);
+  } else {
+    // If not using vertex colors, set a default attribute value
+    shader.disableAttrib('aVertexColor');
+    gl.vertexAttrib4f('aVertexColor', 1.0, 1.0, 1.0, 1.0);
+  }
+  
+  // Draw the lines
+  gl.drawArrays(mode, 0, vertices.length / 3);
+  
+  shader.unbindShader();
+};
+>>>>>>> REPLACE
+```
+
+Finally, let's add the code to handle the geometry's line vertex colors:
+
+```javascript
+### src/webgl/p5.RendererGL.js
+<<<<<<< SEARCH
+/**
+ * turn a two dimensional array into one dimensional array
+ * @private
+ * @param  {Array} arr 2-dimensional array
+ * @return {Array}     1-dimensional array
+ * [[1, 2, 3],[4, 5, 6]] -> [1, 2, 3, 4, 5, 6]
+ */
+=======
+/**
+ * turn a two dimensional array into one dimensional array
+ * @private
+ * @param  {Array} arr 2-dimensional array
+ * @return {Array}     1-dimensional array
+ * [[1, 2, 3],[4, 5, 6]] -> [1, 2, 3, 4, 5, 6]
+ */
+
+// Add method to p5.Geometry to handle line vertex colors
+p5.Geometry.prototype._edgesToVertices = function() {
+  const data = this.lineVertexColors ? this.lineVertexColors.slice() : [];
+  if (this.lineVertexColors) {
+    this.lineVertexColors.length = 0;
+  } else {
+    this.lineVertexColors = [];
+  }
+  
+  this.lineVertices = [];
+  this.lineNormals = [];
+  this.lineIndices = [];
+  
+  for (let i = 0; i < this.edges.length; i++) {
+    const e0 = this.edges[i][0];
+    const e1 = this.edges[i][1];
+    
+    // Calculate vertices for the line
+    const start = this.vertices[e0];
+    const end = this.vertices[e1];
+    
+    // Add vertices to the line vertices array
+    this.lineVertices.push(
+      start.x, start.y, start.z,
+      start.x, start.y, start.z,
+      end.x, end.y, end.z,
+      end.x, end.y, end.z,
+      start.x, start.y, start.z,
+      end.x, end.y, end.z
+    );
+    
+    // Handle vertex colors if available
+    if (data.length > 0) {
+      const beginColor = [data[4*e0], data[4*e0+1], data[4*e0+2], data[4*e0+3]];
+      const endColor = [data[4*e1], data[4*e1+1], data[4*e1+2], data[4*e1+3]];
+      
+      // Add colors for each vertex in the same order as vertices
+      this.lineVertexColors.push(
+        beginColor[0], beginColor[1], beginColor[2], beginColor[3],
+        beginColor[0], beginColor[1], beginColor[2], beginColor[3],
+        endColor[0], endColor[1], endColor[2], endColor[3],
+        endColor[0], endColor[1], endColor[2], endColor[3],
+        beginColor[0], beginColor[1], beginColor[2], beginColor[3],
+        endColor[0], endColor[1], endColor[2], endColor[3]
+      );
+    }
+    
+    // Add indices for the line
+    const index = i * 6;
+    this.lineIndices.push(
+      index, index + 1, index + 2,
+      index + 3, index + 4, index + 5
+    );
+  }
+  
+  return this;
+};
+>>>>>>> REPLACE
+```
+
+These changes implement the vertex-wise coloring for strokes in p5.js WebGL renderer. The implementation:
+
+1. Adds a new buffer for line vertex colors
+2. Modifies the stroke method to store colors per vertex
+3. Updates the line shaders to support vertex colors
+4. Adds drawing methods that handle vertex colors
+5. Implements the _edgesToVertices method to properly handle line vertex colors
+
+With these changes, users will be able to set different stroke colors for each vertex in a shape, and the colors will be interpolated between vertices, just like with fill colors.

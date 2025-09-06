@@ -1,0 +1,34 @@
+### 1. Identify the Wrong Behavior Involved in GitHub Problem Description
+
+The wrong behavior described in the GitHub issue is that the Camunda Modeler disallows connecting a message flow to an intermediate message catch boundary event, even though this is allowed according to the BPMN 2.0 specification. The modeler should permit this connection as per the BPMN 2.0 specification.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior likely lies in the rules that govern the creation and validation of connections within the BPMN modeler. Specifically, the rules that determine whether a message flow can be connected to a particular type of element (in this case, an intermediate message catch boundary event) are too restrictive. The BPMN 2.0 specification allows for such connections, but the modeler's rules do not reflect this.
+
+### 3. Examine Each File One by One
+
+#### --- lib/features/modeling/BpmnFactory.js ---
+This file contains no relevant functions/classes.
+
+#### --- lib/features/modeling/behavior/ReplaceConnectionBehavior.js ---
+This file contains no relevant functions/classes.
+
+#### --- lib/features/modeling/cmd/UpdatePropertiesHandler.js ---
+This file contains no relevant functions/classes.
+
+#### --- lib/features/rules/BpmnRules.js ---
+```
+lib/features/rules/BpmnRules.js
+function: canConnect
+function: isMessageFlowTarget
+function: isBoundaryCandidate
+function: isBoundaryEvent
+function: hasCommonBoundaryIntermediateEventDefinition
+```
+
+The `canConnect` function is responsible for determining whether a connection can be established between two elements. It calls `isMessageFlowTarget` to check if the target element is a valid target for a message flow. The `isBoundaryCandidate` and `isBoundaryEvent` functions are used to determine if an element is a boundary event, and `hasCommonBoundaryIntermediateEventDefinition` checks if an element has a common boundary intermediate event definition. These functions are relevant because they determine whether an intermediate message catch boundary event can be a valid target for a message flow.
+
+### Summary
+
+The issue lies in the `canConnect` function and its related functions (`isMessageFlowTarget`, `isBoundaryCandidate`, `isBoundaryEvent`, and `hasCommonBoundaryIntermediateEventDefinition`) within `lib/features/rules/BpmnRules.js`. These functions need to be updated to correctly allow message flows to target intermediate message catch boundary events as per the BPMN 2.0 specification.

@@ -1,0 +1,70 @@
+Based on the issue description and traceback, the problem is that the ASGIStaticFilesHandler is missing the `get_response_async` method, which is required for ASGI handlers. The error occurs because the base StaticFilesHandlerMixin doesn't implement this async method, causing a NoneType error when trying to call it.
+
+We need to add the ASGIStaticFilesHandler class with proper async handling. Here's the fix:
+
+```python
+### django/contrib/staticfiles/handlers.py
+<<<<<<< SEARCH
+class StaticFilesHandler(StaticFilesHandlerMixin, WSGIHandler):
+    """
+    WSGI middleware that intercepts calls to the static files directory, as
+    defined by the STATIC_URL setting, and serves those files.
+    """
+    def __init__(self, application):
+        self.application = application
+        self.base_url = urlparse(self.get_base_url())
+        super().__init__()
+
+    def __call__(self, environ, start_response):
+        if not self._should_handle(get_path_info(environ)):
+            return self.application(environ, start_response)
+        return super().__call__(environ, start_response)
+
+=======
+class StaticFilesHandler(StaticFilesHandlerMixin, WSGIHandler):
+    """
+    WSGI middleware that intercepts calls to the static files directory, as
+    defined by the STATIC_URL setting, and serves those files.
+    """
+    def __init__(self, application):
+        self.application = application
+        self.base_url = urlparse(self.get_base_url())
+        super().__init__()
+
+    def __call__(self, environ, start_response):
+        if not self._should_handle(get_path_info(environ)):
+            return self.application(environ, start_response)
+        return super().__call__(environ, start_response)
+
+
+class ASGIStaticFilesHandler(StaticFilesHandlerMixin, ASGIHandler):
+    """
+    ASGI middleware that intercepts calls to the static files directory, as
+    defined by the STATIC_URL setting, and serves those files.
+    """
+    def __init__(self, application):
+        self.application = application
+        self.base_url = urlparse(self.get_base_url())
+        super().__init__()
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or not self._should_handle(scope["path"]):
+            return await self.application(scope, receive, send)
+        return await super().__call__(scope, receive, send)
+
+    async def get_response_async(self, request):
+        try:
+            return serve(request, request.path, insecure=True)
+        except Http404 as e:
+            return response_for_exception(request, e)
+
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Adds the new ASGIStaticFilesHandler class that inherits from StaticFilesHandlerMixin and ASGIHandler
+2. Implements the required async methods `__call__` and `get_response_async`
+3. Handles static file serving in an async context
+4. Maintains proper error handling for 404s and other exceptions
+
+The `get_response_async` method is the key addition that was missing, which caused the NoneType error in the traceback. This method handles the actual serving of static files in an async context.

@@ -1,0 +1,39 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that in the Nav component, when `iconOnly` mode is enabled and an item doesn't have an icon configured, it's showing an empty placeholder. According to the issue description and the screenshot, this creates an undesirable empty space in the navigation.
+
+Looking at the code, in the `Item` component's `render` method, there's a condition that adds a placeholder element when `iconOnly` is true but no icon is provided:
+
+```javascript
+if (iconOnly && !iconEl) {
+    iconEl = <span className={`${prefix}nav-icon-placeholder`} />;
+}
+```
+
+This is causing the empty space to appear. Since items without icons shouldn't be displayed in `iconOnly` mode, we should modify this behavior.
+
+Here's the fix:
+
+```javascript
+### src/nav/item.jsx
+<<<<<<< SEARCH
+        let iconEl =
+            typeof icon === 'string' ? (
+                <Icon className={`${prefix}nav-icon`} type={icon} />
+            ) : (
+                icon
+            );
+        if (iconOnly && !iconEl) {
+            iconEl = <span className={`${prefix}nav-icon-placeholder`} />;
+        }
+=======
+        let iconEl =
+            typeof icon === 'string' ? (
+                <Icon className={`${prefix}nav-icon`} type={icon} />
+            ) : (
+                icon
+            );
+>>>>>>> REPLACE
+```
+
+This change removes the placeholder element when no icon is provided in `iconOnly` mode. This way, navigation items without icons won't show up as empty spaces in the UI when `iconOnly` is enabled.

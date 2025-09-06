@@ -1,0 +1,30 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is in the `_parse_other_parameters_section` method of the `NumpyDocstring` class. According to the issue description, the `napoleon_use_param` configuration option is not being respected for the "Other Parameters" section, while it is for the regular "Parameters" section.
+
+Looking at the code, we can see that in `_parse_parameters_section`, there's a check for `self._config.napoleon_use_param` that determines whether to use docutils params format or field format. However, in `_parse_other_parameters_section`, this check is missing, and it always uses the field format.
+
+## Fix
+
+We need to modify the `_parse_other_parameters_section` method to respect the `napoleon_use_param` configuration option, similar to how it's done in `_parse_parameters_section`.
+
+```python
+### sphinx/ext/napoleon/docstring.py
+<<<<<<< SEARCH
+    def _parse_other_parameters_section(self, section: str) -> List[str]:
+        return self._format_fields(_('Other Parameters'), self._consume_fields())
+=======
+    def _parse_other_parameters_section(self, section: str) -> List[str]:
+        if self._config.napoleon_use_param:
+            # Allow to declare multiple parameters at once (ex: x, y: int)
+            fields = self._consume_fields(multiple=True)
+            return self._format_docutils_params(fields)
+        else:
+            fields = self._consume_fields()
+            return self._format_fields(_('Other Parameters'), fields)
+>>>>>>> REPLACE
+```
+
+This change makes the `_parse_other_parameters_section` method check the `napoleon_use_param` configuration option, just like the `_parse_parameters_section` method does. If `napoleon_use_param` is True, it will use the docutils params format, otherwise it will use the field format.

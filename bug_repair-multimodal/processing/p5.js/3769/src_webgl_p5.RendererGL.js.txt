@@ -1,0 +1,33 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is in the WebGL renderer's retained mode geometry creation. When creating a retained-mode geometry, the code is checking the current fill and stroke shaders to determine which buffers to create and which attributes to enable. This means if a shader without certain attributes is active when the geometry is created, those buffers won't be created.
+
+Later, when switching to a shader that does require those attributes, rendering fails because the necessary buffers don't exist.
+
+In the example provided, a custom shader without all standard attributes is used when creating a sphere. Later, when trying to render that sphere with the standard shader, it fails because the necessary buffers weren't created.
+
+The fix should ensure that all necessary buffers are created regardless of the current shader's attributes.
+
+## Fix
+
+Looking at the issue, we need to modify the code in `p5.RendererGL.Retained.js` which isn't included in the provided file. However, the issue mentions lines 171-172 in that file. The fix should ensure that when creating geometry, we check for all possible attributes that might be needed by any shader, not just the current one.
+
+Since we don't have direct access to the `p5.RendererGL.Retained.js` file, I'll provide a conceptual fix based on the issue description:
+
+```javascript
+### src/webgl/p5.RendererGL.Retained.js
+<<<<<<< SEARCH
+  var fillShader = this._renderer._getRetainedFillShader();
+  var strokeShader = this._renderer._getRetainedStrokeShader();
+=======
+  // Always use the most complete shaders to ensure all possible attributes are created
+  var fillShader = this._renderer._getLightShader();
+  var strokeShader = this._renderer._getLineShader();
+>>>>>>> REPLACE
+```
+
+This change ensures that when creating geometry buffers, we always use the most complete shaders (the light shader for fill and line shader for stroke) which have all the attributes that might be needed by any shader later.
+
+The light shader includes all attributes needed for texturing, lighting, and color, so using it as the reference for buffer creation will ensure all possible attributes are available regardless of which shader is active at creation time.

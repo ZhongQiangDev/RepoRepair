@@ -1,0 +1,59 @@
+Based on the issue description, the bug is related to Django raising translation.E004 error when a sublanguage code (like "de-at") is specified in LANGUAGE_CODE but only the base language ("de") is available in LANGUAGES setting.
+
+Looking at the code, we need to modify the check to handle sublanguages by checking if the base language is available when the exact sublanguage is not found in LANGUAGES. This check should be added in the translation.py file.
+
+Here's the fix:
+
+```python
+### django/core/checks/translation.py
+<<<<<<< SEARCH
+@register(Tags.translation)
+def check_setting_language_code(app_configs, **kwargs):
+    """Error if LANGUAGE_CODE setting is invalid."""
+    tag = settings.LANGUAGE_CODE
+    if not isinstance(tag, str) or not language_code_re.match(tag):
+        return [Error(E001.msg.format(tag), id=E001.id)]
+    return []
+
+
+@register(Tags.translation)
+=======
+@register(Tags.translation)
+def check_setting_language_code(app_configs, **kwargs):
+    """Error if LANGUAGE_CODE setting is invalid."""
+    tag = settings.LANGUAGE_CODE
+    if not isinstance(tag, str) or not language_code_re.match(tag):
+        return [Error(E001.msg.format(tag), id=E001.id)]
+    return []
+
+
+@register(Tags.translation)
+def check_language_code_in_languages(app_configs, **kwargs):
+    """Error if language code is not in LANGUAGES setting."""
+    if not settings.USE_I18N:
+        return []
+    tag = settings.LANGUAGE_CODE
+    # Check if exact language code exists in LANGUAGES
+    if any(tag == code for code, name in settings.LANGUAGES):
+        return []
+    # If not found, check if base language exists for sublanguages (e.g. 'de' for 'de-at')
+    if '-' in tag:
+        base_lang = tag.split('-')[0]
+        if any(base_lang == code.split('-')[0] for code, name in settings.LANGUAGES):
+            return []
+    return [E004]
+
+
+@register(Tags.translation)
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Adds a new check function `check_language_code_in_languages` that properly handles sublanguages
+2. First checks if the exact language code exists in LANGUAGES
+3. If not found and if the language code contains a hyphen (indicating a sublanguage), it checks if the base language exists in LANGUAGES
+4. Only raises E004 if neither the exact language nor the base language is found
+5. Also checks settings.USE_I18N to avoid unnecessary errors when i18n is disabled
+
+This change will prevent the E004 error from being raised when a sublanguage is specified but its base language is available in the LANGUAGES setting, which matches Django's documented behavior.

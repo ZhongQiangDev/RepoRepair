@@ -1,0 +1,37 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The ModelChoiceField does not show the invalid choice value in its validation error message, while other choice fields like ChoiceField do show the invalid value. This makes error messages less informative for users.
+
+2. Cause Analysis:
+The issue stems from the default error message template in ModelChoiceField not including the %(value)s placeholder, while other choice fields like ModelMultipleChoiceField do include it. This means when a ValidationError is raised, the invalid value is not displayed in the error message.
+
+3. Relevant Files/Functions Analysis:
+
+django/core/exceptions.py:
+```
+django/core/exceptions.py
+class: ValidationError
+```
+This class is relevant as it handles the error messages and their formatting for validation errors.
+
+django/forms/fields.py:
+```
+django/forms/fields.py
+class: ChoiceField
+class: ModelChoiceField
+class: ModelMultipleChoiceField
+```
+These classes are directly relevant as they define the error message templates and validation logic for choice fields.
+
+django/forms/models.py:
+```
+django/forms/models.py
+class: ModelChoiceField
+```
+This class is relevant as it's the main class that needs modification to include the invalid value in its error messages.
+
+django/forms/widgets.py:
+This file contains no relevant functions/classes.
+
+The core issue lies in the ModelChoiceField class where the default_error_messages dictionary needs to be updated to include the %(value)s placeholder in its 'invalid_choice' message, similar to how it's done in ModelMultipleChoiceField.

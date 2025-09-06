@@ -1,0 +1,62 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about performance degradation when upgrading from OpenLayers 4.4.2 to 4.6.2, specifically with the drawing interaction when using `renderMode: 'image'`. The user mentions that the `ol.source.ImageVector` was deprecated in 4.6.0, and the new approach using `renderMode: 'image'` is much slower.
+
+Looking at the code, the problem is likely in the `composeFrame` method of the `ol.renderer.canvas.VectorLayer` class. When rendering vector layers in image mode, the performance is significantly worse compared to the previous implementation.
+
+The issue appears to be related to how the canvas is being redrawn and managed during vector rendering operations. In particular, the canvas size management and drawing operations in the `composeFrame` method need optimization.
+
+## Fix
+
+```javascript
+### src/ol/renderer/canvas/vectorlayer.js
+<<<<<<< SEARCH
+    var drawOffsetX = 0;
+    var drawOffsetY = 0;
+    var replayContext;
+    var transparentLayer = layerState.opacity !== 1;
+    var hasRenderListeners = layer.hasListener(ol.render.EventType.RENDER);
+    if (transparentLayer || hasRenderListeners) {
+      var drawWidth = context.canvas.width;
+      var drawHeight = context.canvas.height;
+      if (rotation) {
+        var drawSize = Math.round(Math.sqrt(drawWidth * drawWidth + drawHeight * drawHeight));
+        drawOffsetX = (drawSize - drawWidth) / 2;
+        drawOffsetY = (drawSize - drawHeight) / 2;
+        drawWidth = drawHeight = drawSize;
+      }
+      // resize and clear
+      this.context.canvas.width = drawWidth;
+      this.context.canvas.height = drawHeight;
+      replayContext = this.context;
+=======
+    var drawOffsetX = 0;
+    var drawOffsetY = 0;
+    var replayContext;
+    var transparentLayer = layerState.opacity !== 1;
+    var hasRenderListeners = layer.hasListener(ol.render.EventType.RENDER);
+    if (transparentLayer || hasRenderListeners) {
+      var drawWidth = context.canvas.width;
+      var drawHeight = context.canvas.height;
+      if (rotation) {
+        var drawSize = Math.round(Math.sqrt(drawWidth * drawWidth + drawHeight * drawHeight));
+        drawOffsetX = (drawSize - drawWidth) / 2;
+        drawOffsetY = (drawSize - drawHeight) / 2;
+        drawWidth = drawHeight = drawSize;
+      }
+      // Only resize the canvas if it's too small, to avoid unnecessary clearing and performance issues
+      if (this.context.canvas.width < drawWidth || this.context.canvas.height < drawHeight) {
+        this.context.canvas.width = drawWidth;
+        this.context.canvas.height = drawHeight;
+      } else {
+        this.context.clearRect(0, 0, drawWidth, drawHeight);
+      }
+      replayContext = this.context;
+>>>>>>> REPLACE
+```
+
+This fix optimizes the canvas management in the `composeFrame` method. Instead of always resizing the canvas (which is an expensive operation that causes the canvas to be cleared and reallocated), we now only resize it when necessary - when the current canvas is too small for the required dimensions. 
+
+For cases where the canvas is already large enough, we simply clear the required area using `clearRect()`, which is much more efficient than resizing the canvas. This should significantly improve the performance of vector layer rendering in image mode, addressing the performance regression reported in the issue.

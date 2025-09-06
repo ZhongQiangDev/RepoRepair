@@ -1,0 +1,61 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when the "From Name" field is cleared in the email settings of a site with an encodable character in its Site Title (e.g., "Allendav's Store Test"), an undecoded entity (e.g., `&#039;`) appears in the "From Name" field instead of the expected decoded character (e.g., `'`).
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely arises because the Site Title is being used as the default value for the "From Name" field, and this value is not being properly decoded before being displayed. The presence of the undecoded entity suggests that the HTML entity is being inserted into the field without being converted to its corresponding character.
+
+### 3. Examine Each File One by One
+
+#### --- client/extensions/woocommerce/app/settings/email/index.js ---
+```
+client/extensions/woocommerce/app/settings/email/index.js
+function: mapStateToProps
+class: SettingsEmail
+```
+The `mapStateToProps` function retrieves the site information, which includes the Site Title. The `SettingsEmail` class renders the "From Name" field, so it is relevant to the issue.
+
+#### --- client/extensions/woocommerce/app/settings/email/email-settings/index.js ---
+```
+client/extensions/woocommerce/app/settings/email/email-settings/index.js
+function: mapStateToProps
+class: Settings
+```
+The `mapStateToProps` function retrieves the email settings, which may include the "From Name" field. The `Settings` class manages the email settings, so it is relevant to the issue.
+
+#### --- client/extensions/woocommerce/state/sites/settings/email/reducer.js ---
+```
+client/extensions/woocommerce/state/sites/settings/email/reducer.js
+function: function_1
+```
+The `function_1` function processes the email settings data, including the "From Name" field, and decodes HTML entities. This function is relevant to the issue.
+
+#### --- client/extensions/woocommerce/state/sites/settings/email/selectors.js ---
+```
+This file contains no relevant functions/classes.
+```
+This file contains selectors that retrieve email settings from the state, but it does not directly handle the display or decoding of the "From Name" field.
+
+#### --- client/lib/formatting/index.js ---
+```
+client/lib/formatting/index.js
+function: decodeEntities
+```
+The `decodeEntities` function is responsible for decoding HTML entities, which is relevant to the issue.
+
+### Summary of Relevant Locations
+
+1. `client/extensions/woocommerce/app/settings/email/index.js`
+   - `function: mapStateToProps`
+   - `class: SettingsEmail`
+
+2. `client/extensions/woocommerce/app/settings/email/email-settings/index.js`
+   - `function: mapStateToProps`
+   - `class: Settings`
+
+3. `client/extensions/woocommerce/state/sites/settings/email/reducer.js`
+   - `function: function_1`
+
+4. `client/lib/formatting/index.js`
+   - `function: decodeEntities`

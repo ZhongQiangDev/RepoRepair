@@ -1,0 +1,32 @@
+Based on the issue description, the bug is in the LaTeX printer's handling of indexed matrix expressions. The current output produces invalid LaTeX with double underscores (`_i_1`) which causes compilation errors.
+
+Looking at the code, we need to modify how subscripts are printed for matrix elements. The fix should properly format the indices without introducing double underscores.
+
+Here's the fix:
+
+```python
+### sympy/printing/latex.py
+<<<<<<< SEARCH
+    def _print_Indexed(self, expr):
+        tex_base = self._print(expr.base)
+        tex = '{'+tex_base+'}'+'_{%s}' % ','.join(
+            map(self._print, expr.indices))
+        return tex
+=======
+    def _print_Indexed(self, expr):
+        tex_base = self._print(expr.base)
+        tex = '{'+tex_base+'}'+'_{%s}' % ','.join(
+            map(lambda i: str(i).replace('_', ''), expr.indices))
+        return tex
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Adds a lambda function to strip underscores from the indices before printing them
+2. Ensures proper LaTeX formatting by removing problematic underscores that would cause double subscripts
+3. Maintains the overall structure of the indexed expression printing
+
+The fix will convert expressions like `M[i,_i1]` to proper LaTeX without double subscripts, making it compilable in LaTeX and renderable in MathJax.
+
+For example, `(M*N)[i,j]` will now produce LaTeX that properly shows the matrix multiplication summation without invalid subscript formatting.

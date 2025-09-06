@@ -1,0 +1,100 @@
+I'll analyze the issue and provide the necessary fixes.
+
+## Issue Analysis
+
+The issue has two parts:
+1. `focusable="false"` is being used on a `span` element, but `span` doesn't support the `focusable` attribute
+2. `tabindex="0"` is being set on a button element, which is redundant since buttons are already focusable and in the tab order by default
+
+Looking at the code, I can see:
+1. In the `iconProps` object, there's a `focusable: 'false'` property being set for the SVG icon
+2. In the button element, `tabIndex={tabIndex}` is being used, where `tabIndex` has a default value of `0` in the component's defaultProps
+
+Let's fix both issues:
+
+```javascript
+### packages/react/src/components/OverflowMenu/OverflowMenu.js
+<<<<<<< SEARCH
+  static defaultProps = {
+    ariaLabel: 'Menu',
+    iconDescription: 'open and close list of options',
+    open: false,
+    direction: DIRECTION_BOTTOM,
+    flipped: false,
+    renderIcon: OverflowMenuVertical16,
+    onClick: () => {},
+    onKeyDown: () => {},
+    onClose: () => {},
+    onOpen: () => {},
+    tabIndex: 0,
+    menuOffset: getMenuOffset,
+    menuOffsetFlip: getMenuOffset,
+    light: false,
+    selectorPrimaryFocus: '[data-overflow-menu-primary-focus]',
+  };
+=======
+  static defaultProps = {
+    ariaLabel: 'Menu',
+    iconDescription: 'open and close list of options',
+    open: false,
+    direction: DIRECTION_BOTTOM,
+    flipped: false,
+    renderIcon: OverflowMenuVertical16,
+    onClick: () => {},
+    onKeyDown: () => {},
+    onClose: () => {},
+    onOpen: () => {},
+    menuOffset: getMenuOffset,
+    menuOffsetFlip: getMenuOffset,
+    light: false,
+    selectorPrimaryFocus: '[data-overflow-menu-primary-focus]',
+  };
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/OverflowMenu/OverflowMenu.js
+<<<<<<< SEARCH
+    const iconProps = {
+      onClick: this.handleClick,
+      onKeyDown: this.handleKeyDown,
+      className: overflowMenuIconClasses,
+      'aria-label': iconDescription,
+      focusable: 'false', // Prevent `<svg>` in trigger icon from getting focus for IE11
+    };
+=======
+    const iconProps = {
+      onClick: this.handleClick,
+      onKeyDown: this.handleKeyDown,
+      className: overflowMenuIconClasses,
+      'aria-label': iconDescription,
+      // SVG elements should use aria-hidden instead of focusable attribute
+      'aria-hidden': 'true',
+    };
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/OverflowMenu/OverflowMenu.js
+<<<<<<< SEARCH
+          onClick={this.handleClick}
+          aria-label={ariaLabel}
+          id={id}
+          tabIndex={tabIndex}
+          ref={mergeRefs(this._triggerRef, ref)}>
+=======
+          onClick={this.handleClick}
+          aria-label={ariaLabel}
+          id={id}
+          {...(tabIndex !== undefined && tabIndex !== 0 ? { tabIndex } : {})}
+          ref={mergeRefs(this._triggerRef, ref)}>
+>>>>>>> REPLACE
+```
+
+## Explanation of Changes
+
+1. Removed the default `tabIndex: 0` from defaultProps since it's redundant for buttons
+2. Replaced `focusable: 'false'` with `aria-hidden: 'true'` for the SVG icon, which is the proper accessibility attribute for hiding decorative elements from screen readers
+3. Modified the button element to only include the tabIndex attribute if it's explicitly set to a non-default value (not 0)
+
+These changes address both accessibility issues while maintaining the component's functionality.

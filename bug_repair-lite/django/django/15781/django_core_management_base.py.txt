@@ -1,0 +1,79 @@
+Based on the issue description, the bug appears to be in how the help text formatting is handled. The issue shows that multi-line help text with indentation is being collapsed into a single line, losing the intended formatting.
+
+Looking at the code, this is happening because the `CommandParser` class (which inherits from `ArgumentParser`) doesn't preserve the text formatting in the help description. We need to modify the `DjangoHelpFormatter` class to properly handle indented multi-line help text.
+
+Here's the fix:
+
+```python
+### django/core/management/base.py
+<<<<<<< SEARCH
+class DjangoHelpFormatter(HelpFormatter):
+    """
+    Customized formatter so that command-specific arguments appear in the
+    --help output before arguments common to all commands.
+    """
+
+    show_last = {
+        "--version",
+        "--verbosity",
+        "--traceback",
+        "--settings",
+        "--pythonpath",
+        "--no-color",
+        "--force-color",
+        "--skip-checks",
+    }
+
+    def _reordered_actions(self, actions):
+        return sorted(
+            actions, key=lambda a: set(a.option_strings) & self.show_last != set()
+        )
+
+    def add_usage(self, usage, actions, *args, **kwargs):
+        super().add_usage(usage, self._reordered_actions(actions), *args, **kwargs)
+
+    def add_arguments(self, actions):
+        super().add_arguments(self._reordered_actions(actions))
+=======
+class DjangoHelpFormatter(HelpFormatter):
+    """
+    Customized formatter so that command-specific arguments appear in the
+    --help output before arguments common to all commands.
+    """
+
+    show_last = {
+        "--version",
+        "--verbosity",
+        "--traceback",
+        "--settings",
+        "--pythonpath",
+        "--no-color",
+        "--force-color",
+        "--skip-checks",
+    }
+
+    def _reordered_actions(self, actions):
+        return sorted(
+            actions, key=lambda a: set(a.option_strings) & self.show_last != set()
+        )
+
+    def add_usage(self, usage, actions, *args, **kwargs):
+        super().add_usage(usage, self._reordered_actions(actions), *args, **kwargs)
+
+    def add_arguments(self, actions):
+        super().add_arguments(self._reordered_actions(actions))
+
+    def _split_lines(self, text, width):
+        if text.startswith('\n'):
+            text = text[1:]
+        return text.splitlines()
+>>>>>>> REPLACE
+```
+
+This fix adds a `_split_lines` method to the `DjangoHelpFormatter` class that:
+1. Removes the initial newline if present (to avoid extra blank lines)
+2. Preserves the line breaks and indentation by splitting on actual line breaks instead of trying to wrap the text
+
+This will make the help text respect the original formatting of multi-line help strings, showing them as intended with proper line breaks and indentation.
+
+The fix works because ArgumentParser uses the formatter's `_split_lines` method when formatting help text. By overriding this method, we can control exactly how multi-line text is handled, preserving the original formatting instead of letting ArgumentParser try to rewrap everything into a single paragraph.

@@ -1,0 +1,48 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is related to floating point precision in JavaScript. When adding 0.01 to 4.02, JavaScript returns 4.029999999999999 instead of 4.03 due to how floating point numbers are represented in binary. This causes display issues in the NumberPicker component.
+
+Looking at the code, the problem is in the `upStep` method. When adding the step value to the current value, it doesn't properly handle the floating point precision issues. The `downStep` method already has a fix for this issue (it uses `Number.toFixed()`), but the same fix is missing in the `upStep` method.
+
+## Fix
+
+I'll add the same precision handling to the `upStep` method that's already present in the `downStep` method:
+
+```javascript
+### src/number-picker/index.jsx
+<<<<<<< SEARCH
+    upStep(val) {
+        const {step, min} = this.props;
+        const precisionFactor = this.getPrecisionFactor();
+        let result;
+        if (typeof val === 'number') {
+            result = (precisionFactor * val + precisionFactor * step) / precisionFactor;
+        } else {
+            result = min === -Infinity ? step : min;
+        }
+        return result;
+    }
+=======
+    upStep(val) {
+        const {step, min} = this.props;
+        const precisionFactor = this.getPrecisionFactor();
+        let result;
+        if (typeof val === 'number') {
+            result = (precisionFactor * val + precisionFactor * step) / precisionFactor;
+            
+            // Fix floating point precision issues, similar to downStep
+            const precision = this.getPrecision();
+            if (precision > 0) {
+                result = Number(Number(result).toFixed(precision));
+            }
+        } else {
+            result = min === -Infinity ? step : min;
+        }
+        return result;
+    }
+>>>>>>> REPLACE
+```
+
+This fix adds the same precision handling to the `upStep` method that's already present in the `downStep` method. It ensures that when adding the step value to the current value, the result is properly rounded to the specified precision, avoiding floating point precision issues.

@@ -1,0 +1,158 @@
+I'll analyze the issue and provide the necessary edits to fix it.
+
+## Issue Analysis
+
+The issue is requesting to add a `size` prop to the icon-only Tabs variant, allowing for two sizes:
+- Default: 40px
+- Large: 48px
+
+This needs to be implemented for both Line Tabs and ContainedTabs.
+
+Looking at the code, I need to:
+1. Add a `size` prop to the `TabList` component
+2. Update the component to apply the appropriate CSS classes based on the size prop
+3. Add PropTypes validation for the new prop
+
+Here are the necessary edits:
+
+```javascript
+### packages/react/src/components/Tabs/next/Tabs.js
+<<<<<<< SEARCH
+function TabList({
+  activation = 'automatic',
+  'aria-label': label,
+  children,
+  className: customClassName,
+  light,
+  scrollIntoView,
+  contained = false,
+  ...rest
+}) {
+  const {
+    activeIndex,
+    selectedIndex,
+    setSelectedIndex,
+    setActiveIndex,
+  } = React.useContext(TabsContext);
+  const prefix = usePrefix();
+  const ref = useRef(null);
+  const className = cx(`${prefix}--tabs`, customClassName, {
+    [`${prefix}--tabs--contained`]: contained,
+    [`${prefix}--tabs--light`]: light,
+  });
+=======
+function TabList({
+  activation = 'automatic',
+  'aria-label': label,
+  children,
+  className: customClassName,
+  light,
+  scrollIntoView,
+  contained = false,
+  size,
+  ...rest
+}) {
+  const {
+    activeIndex,
+    selectedIndex,
+    setSelectedIndex,
+    setActiveIndex,
+  } = React.useContext(TabsContext);
+  const prefix = usePrefix();
+  const ref = useRef(null);
+  const className = cx(`${prefix}--tabs`, customClassName, {
+    [`${prefix}--tabs--contained`]: contained,
+    [`${prefix}--tabs--light`]: light,
+    [`${prefix}--tabs--lg`]: size === 'lg',
+  });
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Tabs/next/Tabs.js
+<<<<<<< SEARCH
+TabList.propTypes = {
+  /**
+   * Specify whether the content tab should be activated automatically or
+   * manually
+   */
+  activation: PropTypes.oneOf(['automatic', 'manual']),
+
+  /**
+   * Provide an accessible label to be read when a user interacts with this
+   * component
+   */
+  'aria-label': PropTypes.string.isRequired,
+
+  /**
+   * Provide child elements to be rendered inside of `ContentTabs`.
+   * These elements should render a `ContentTab`
+   */
+  children: PropTypes.node,
+
+  /**
+   * Specify an optional className to be added to the container node
+   */
+  className: PropTypes.string,
+  /**
+   * Specify whether component is contained type
+   */
+
+  contained: PropTypes.bool,
+  /**
+   * Specify whether or not to use the light component variant
+   */
+  light: PropTypes.bool,
+  /**
+   * Choose whether or not to automatically scroll to newly selected tabs
+   * on component rerender
+   */
+  scrollIntoView: PropTypes.bool,
+};
+=======
+TabList.propTypes = {
+  /**
+   * Specify whether the content tab should be activated automatically or
+   * manually
+   */
+  activation: PropTypes.oneOf(['automatic', 'manual']),
+
+  /**
+   * Provide an accessible label to be read when a user interacts with this
+   * component
+   */
+  'aria-label': PropTypes.string.isRequired,
+
+  /**
+   * Provide child elements to be rendered inside of `ContentTabs`.
+   * These elements should render a `ContentTab`
+   */
+  children: PropTypes.node,
+
+  /**
+   * Specify an optional className to be added to the container node
+   */
+  className: PropTypes.string,
+  /**
+   * Specify whether component is contained type
+   */
+
+  contained: PropTypes.bool,
+  /**
+   * Specify whether or not to use the light component variant
+   */
+  light: PropTypes.bool,
+  /**
+   * Choose whether or not to automatically scroll to newly selected tabs
+   * on component rerender
+   */
+  scrollIntoView: PropTypes.bool,
+  /**
+   * Specify the size of the Tab. Default is 40px, 'lg' is 48px
+   */
+  size: PropTypes.oneOf(['lg']),
+};
+>>>>>>> REPLACE
+```
+
+These changes add a new `size` prop to the `TabList` component that accepts the value 'lg' for the large size (48px). When this prop is set, it adds the CSS class `cds--tabs--lg` (assuming the prefix is 'cds') to the component. The default size (40px) is used when no size prop is provided.

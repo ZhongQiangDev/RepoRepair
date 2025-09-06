@@ -1,0 +1,60 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is related to layer opacity stacking in OpenGL 6.8.1 and later versions. When multiple layers have the same opacity value (e.g., 0.5), the top-most layer becomes opaque relative to other OpenGL layers, though it still allows basemaps to show through.
+
+Looking at the `CanvasImageLayerRenderer` class, the problem appears to be in the `renderFrame` method. When rendering layers with opacity, the code is setting the global alpha on the canvas context but not properly restoring it between layer renders.
+
+The issue is in how opacity is handled in the `renderFrame` method. The code sets `context.globalAlpha` to the layer's opacity value, but it only restores the previous alpha value if the opacity is not 1. This means that when multiple layers with the same opacity are rendered, the global alpha state isn't properly reset between layer renders.
+
+## Fix
+
+```javascript
+### src/ol/renderer/canvas/ImageLayer.js
+<<<<<<< SEARCH
+      const opacity = layerState.opacity;
+      let previousAlpha;
+      if (opacity !== 1) {
+        previousAlpha = context.globalAlpha;
+        context.globalAlpha = opacity;
+      }
+      context.drawImage(
+        img,
+        0,
+        0,
+        +img.width,
+        +img.height,
+        Math.round(dx),
+        Math.round(dy),
+        Math.round(dw),
+        Math.round(dh)
+      );
+      if (opacity !== 1) {
+        context.globalAlpha = previousAlpha;
+      }
+=======
+      const opacity = layerState.opacity;
+      const previousAlpha = context.globalAlpha;
+      context.globalAlpha = opacity;
+      context.drawImage(
+        img,
+        0,
+        0,
+        +img.width,
+        +img.height,
+        Math.round(dx),
+        Math.round(dy),
+        Math.round(dw),
+        Math.round(dh)
+      );
+      context.globalAlpha = previousAlpha;
+>>>>>>> REPLACE
+```
+
+This fix ensures that:
+1. We always save the previous alpha value, regardless of the current layer's opacity
+2. We always set the global alpha to the layer's opacity value
+3. We always restore the previous alpha value after drawing the image
+
+This way, each layer's opacity is properly applied independently, and the alpha state is correctly reset between layer renders, preventing the stacking issue where layers with the same opacity value don't properly show through each other.

@@ -1,0 +1,134 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is related to the `RasterSource` component in OpenLayers. The user is trying to implement a region growing algorithm using a GeoTIFF file. They're experiencing two problems:
+
+1. When they increase the level on the slider, pixels below the level become white, but when they decrease the level, the pixels don't change back.
+2. When trying to print the R value of a pixel, the value is incorrect.
+
+Looking at the code, I can see that the issue is in the `getImageData` function in `src/ol/source/Raster.js`. When the WebGLTile layer is rendered, the function is trying to get image data from the rendered canvas, but it's not correctly handling WebGL layers.
+
+The problem is that the `getImageData` function doesn't properly extract pixel data from WebGL-rendered layers. When using WebGLTile layers, the pixel data needs to be obtained differently than from regular Canvas-rendered layers.
+
+## Fix
+
+```javascript
+### src/ol/source/Raster.js
+<<<<<<< SEARCH
+/**
+ * Get image data from a layer.
+ * @param {import("../layer/Layer.js").default} layer Layer to render.
+ * @param {import("../Map.js").FrameState} frameState The frame state.
+ * @return {ImageData} The image data.
+ */
+function getImageData(layer, frameState) {
+  const renderer = layer.getRenderer();
+  if (!renderer) {
+    throw new Error('Unsupported layer type: ' + layer);
+  }
+
+  if (!renderer.prepareFrame(frameState)) {
+    return null;
+  }
+  const width = frameState.size[0];
+  const height = frameState.size[1];
+  if (width === 0 || height === 0) {
+    return null;
+  }
+  const container = renderer.renderFrame(frameState, null);
+  let element;
+  if (container instanceof HTMLCanvasElement) {
+    element = container;
+  } else {
+    if (container) {
+      element = container.firstElementChild;
+    }
+    if (!(element instanceof HTMLCanvasElement)) {
+      throw new Error('Unsupported rendered element: ' + element);
+    }
+    if (element.width === width && element.height === height) {
+      const context = element.getContext('2d');
+      return context.getImageData(0, 0, width, height);
+    }
+  }
+
+  if (!sharedContext) {
+    sharedContext = createCanvasContext2D(width, height, undefined, {
+      willReadFrequently: true,
+    });
+  } else {
+    const canvas = sharedContext.canvas;
+    if (canvas.width !== width || canvas.height !== height) {
+      sharedContext = createCanvasContext2D(width, height, undefined, {
+        willReadFrequently: true,
+      });
+    } else {
+      sharedContext.clearRect(0, 0, width, height);
+    }
+  }
+  sharedContext.drawImage(element, 0, 0, width, height);
+  return sharedContext.getImageData(0, 0, width, height);
+}
+=======
+/**
+ * Get image data from a layer.
+ * @param {import("../layer/Layer.js").default} layer Layer to render.
+ * @param {import("../Map.js").FrameState} frameState The frame state.
+ * @return {ImageData} The image data.
+ */
+function getImageData(layer, frameState) {
+  const renderer = layer.getRenderer();
+  if (!renderer) {
+    throw new Error('Unsupported layer type: ' + layer);
+  }
+
+  if (!renderer.prepareFrame(frameState)) {
+    return null;
+  }
+  const width = frameState.size[0];
+  const height = frameState.size[1];
+  if (width === 0 || height === 0) {
+    return null;
+  }
+  const container = renderer.renderFrame(frameState, null);
+  let element;
+  if (container instanceof HTMLCanvasElement) {
+    element = container;
+  } else {
+    if (container) {
+      element = container.firstElementChild;
+    }
+    if (!(element instanceof HTMLCanvasElement)) {
+      throw new Error('Unsupported rendered element: ' + element);
+    }
+  }
+
+  if (!sharedContext) {
+    sharedContext = createCanvasContext2D(width, height, undefined, {
+      willReadFrequently: true,
+    });
+  } else {
+    const canvas = sharedContext.canvas;
+    if (canvas.width !== width || canvas.height !== height) {
+      sharedContext = createCanvasContext2D(width, height, undefined, {
+        willReadFrequently: true,
+      });
+    } else {
+      sharedContext.clearRect(0, 0, width, height);
+    }
+  }
+  sharedContext.drawImage(element, 0, 0, width, height);
+  return sharedContext.getImageData(0, 0, width, height);
+}
+>>>>>>> REPLACE
+```
+
+The key change in this fix is removing the optimization that tries to directly get image data from the element if its dimensions match the frame state. This optimization was causing issues with WebGLTile layers because it was bypassing the necessary step of drawing the WebGL content to a 2D canvas first.
+
+By always drawing the element to the shared context before getting the image data, we ensure that WebGL-rendered content is properly captured. This allows the raster operations to work correctly with WebGLTile layers, fixing both issues the user was experiencing:
+
+1. The slider will now work correctly in both directions (increasing and decreasing)
+2. The pixel values will be correctly read and displayed
+
+This change ensures that the WebGLTile layer's content is always properly transferred to a 2D canvas context before attempting to read the pixel data, which is necessary for WebGL-rendered content.

@@ -1,0 +1,51 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The bug is that typed start events can be pasted onto a subprocess, which shouldn't be allowed according to BPMN rules. The issue also mentions that non-interrupting events copied out of an event sub-process have the same problem.
+
+Looking at the code, I notice that the `ReplaceElementBehaviour` class handles element replacements when elements are moved, but there's no handling for when elements are pasted. The issue occurs during the paste operation, where the validation rules that would normally prevent a typed start event from being created in a subprocess aren't being applied.
+
+## Solution
+
+We need to add a handler for the paste operation that checks if the elements being pasted are valid in their new context. This should be similar to the existing handler for the move operation.
+
+Here's the fix:
+
+```javascript
+### lib/features/modeling/behavior/ReplaceElementBehaviour.js
+<<<<<<< SEARCH
+  injector.invoke(CommandInterceptor, this);
+
+  this._bpmnReplace = bpmnReplace;
+  this._elementRegistry = elementRegistry;
+  this._selection = selection;
+
+  // replace elements on move
+=======
+  injector.invoke(CommandInterceptor, this);
+
+  this._bpmnReplace = bpmnReplace;
+  this._elementRegistry = elementRegistry;
+  this._selection = selection;
+
+  // replace elements on paste
+  this.postExecuted([ 'elements.paste' ], 500, function(event) {
+    var context = event.context,
+        target = context.parent,
+        elements = context.elements;
+
+    var canReplace = bpmnRules.canReplace(elements, target);
+
+    if (canReplace) {
+      this.replaceElements(elements, canReplace.replacements);
+    }
+  }, this);
+
+  // replace elements on move
+>>>>>>> REPLACE
+```
+
+This fix adds a new handler for the `elements.paste` command that checks if the elements being pasted are valid in their new parent context. If they're not valid, the handler will replace them with appropriate elements based on the rules defined in `bpmnRules.canReplace()`. This is similar to how the existing move handler works.
+
+The handler is executed after the paste operation completes (using `postExecuted`), and it gets the parent and elements from the paste context. It then checks if the elements can be replaced in the new parent context, and if so, it replaces them accordingly.

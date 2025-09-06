@@ -1,0 +1,60 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when transforming a Call Activity into an Expanded SubProcess, the shape doesn't resize properly. The expanded subprocess should be larger than a regular task, but it's keeping the same size as the original task, making it look like a regular task. This is confusing for users because:
+
+1. The element visually looks like a task but is actually an expanded subprocess
+2. The wrench menu options are limited, creating a "dead end" where users can't easily convert it back
+
+Looking at the code, the issue is in the `ReplaceMenuProvider.prototype.getEntries` function. When replacing elements, there's no configuration to ensure proper resizing when converting a Call Activity to an Expanded SubProcess.
+
+## Fix
+
+The fix needs to add the `autoResize: true` option when replacing elements, similar to how it's done in the `_getAdHocEntry` method but with autoResize enabled. This will ensure the shape is properly resized when converting to an expanded subprocess.
+
+```javascript
+### lib/features/popup-menu/ReplaceMenuProvider.js
+<<<<<<< SEARCH
+/**
+ * Creates an array of menu entry objects for a given element and filters the replaceOptions
+ * according to a filter function.
+ *
+ * @param  {djs.model.Base} element
+ * @param  {Object} replaceOptions
+ *
+ * @return {Array<Object>} a list of menu items
+ */
+
+=======
+/**
+ * Creates an array of menu entry objects for a given element and filters the replaceOptions
+ * according to a filter function.
+ *
+ * @param  {djs.model.Base} element
+ * @param  {Object} replaceOptions
+ *
+ * @return {Array<Object>} a list of menu items
+ */
+ReplaceMenuProvider.prototype._createEntries = function(element, replaceOptions) {
+  var menuEntries = [];
+
+  var self = this;
+
+  forEach(replaceOptions, function(definition) {
+    var entry = self._createMenuEntry(definition, element, function() {
+      return self._bpmnReplace.replaceElement(element, definition.target, {
+        autoResize: definition.target.isExpanded
+      });
+    });
+
+    menuEntries.push(entry);
+  });
+
+  return menuEntries;
+};
+
+>>>>>>> REPLACE
+```
+
+This fix adds the missing `_createEntries` method implementation that was not shown in the original code. The key change is adding `autoResize: definition.target.isExpanded` to the options passed to `replaceElement`. This ensures that when converting to an expanded subprocess (where `isExpanded` is true), the shape will be automatically resized to the appropriate dimensions.

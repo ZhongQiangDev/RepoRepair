@@ -1,0 +1,136 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that the ByteEfficiency audit reports no savings (score of 100) for animated GIF->video conversions, even though there are significant byte savings (almost 5MB). 
+
+The problem is in the `computeWasteWithTTIGraph` method, which currently only calculates savings based on the impact on the last long task (TTI - Time To Interactive). However, for large media files like GIFs, the impact might not be on TTI but rather on the overall load time.
+
+As mentioned in the issue, one option is to calculate the impact on the end of the graph (total simulation time) rather than just the impact on TTI. This would better capture the savings from large media files that don't necessarily affect TTI but do affect overall page load time.
+
+## Fix
+
+```javascript
+### lighthouse-core/audits/byte-efficiency/byte-efficiency-audit.js
+<<<<<<< SEARCH
+  /**
+   * Computes the estimated effect of all the byte savings on the last long task
+   * in the provided graph.
+   *
+   * @param {Array<LH.Audit.ByteEfficiencyResult>} results The array of byte savings results per resource
+   * @param {Node} graph
+   * @param {Simulator} simulator
+   * @return {number}
+   */
+  static computeWasteWithTTIGraph(results, graph, simulator) {
+    const simulationBeforeChanges = simulator.simulate(graph);
+    /** @type {Map<LH.Audit.ByteEfficiencyResult['url'], LH.Audit.ByteEfficiencyResult>} */
+    const resultsByUrl = new Map();
+    for (const result of results) {
+      resultsByUrl.set(result.url, result);
+    }
+
+    // Update all the transfer sizes to reflect implementing our recommendations
+    /** @type {Map<string, number>} */
+    const originalTransferSizes = new Map();
+    graph.traverse(node => {
+      if (node.type !== 'network') return;
+      const networkNode = /** @type {NetworkNode} */ (node);
+      const result = resultsByUrl.get(networkNode.record.url);
+      if (!result) return;
+      const original = networkNode.record.transferSize;
+      // cloning NetworkRequest objects is difficult, so just stash the original transfer size
+      originalTransferSizes.set(networkNode.record.requestId, original);
+
+      const wastedBytes = result.wastedBytes;
+      networkNode.record._transferSize = Math.max(original - wastedBytes, 0);
+    });
+
+    const simulationAfterChanges = simulator.simulate(graph);
+
+    // Restore the original transfer size after we've done our simulation
+    graph.traverse(node => {
+      if (node.type !== 'network') return;
+      const networkNode = /** @type {NetworkNode} */ (node);
+      const originalTransferSize = originalTransferSizes.get(networkNode.record.requestId);
+      if (originalTransferSize === undefined) return;
+      networkNode.record._transferSize = originalTransferSize;
+    });
+
+    const savingsOnTTI = Math.max(
+      Interactive.getLastLongTaskEndTime(simulationBeforeChanges.nodeTimings) -
+        Interactive.getLastLongTaskEndTime(simulationAfterChanges.nodeTimings),
+      0
+    );
+
+    // Round waste to nearest 10ms
+    return Math.round(savingsOnTTI / 10) * 10;
+  }
+=======
+  /**
+   * Computes the estimated effect of all the byte savings on the overall load time
+   * and the last long task in the provided graph.
+   *
+   * @param {Array<LH.Audit.ByteEfficiencyResult>} results The array of byte savings results per resource
+   * @param {Node} graph
+   * @param {Simulator} simulator
+   * @return {number}
+   */
+  static computeWasteWithTTIGraph(results, graph, simulator) {
+    const simulationBeforeChanges = simulator.simulate(graph);
+    /** @type {Map<LH.Audit.ByteEfficiencyResult['url'], LH.Audit.ByteEfficiencyResult>} */
+    const resultsByUrl = new Map();
+    for (const result of results) {
+      resultsByUrl.set(result.url, result);
+    }
+
+    // Update all the transfer sizes to reflect implementing our recommendations
+    /** @type {Map<string, number>} */
+    const originalTransferSizes = new Map();
+    graph.traverse(node => {
+      if (node.type !== 'network') return;
+      const networkNode = /** @type {NetworkNode} */ (node);
+      const result = resultsByUrl.get(networkNode.record.url);
+      if (!result) return;
+      const original = networkNode.record.transferSize;
+      // cloning NetworkRequest objects is difficult, so just stash the original transfer size
+      originalTransferSizes.set(networkNode.record.requestId, original);
+
+      const wastedBytes = result.wastedBytes;
+      networkNode.record._transferSize = Math.max(original - wastedBytes, 0);
+    });
+
+    const simulationAfterChanges = simulator.simulate(graph);
+
+    // Restore the original transfer size after we've done our simulation
+    graph.traverse(node => {
+      if (node.type !== 'network') return;
+      const networkNode = /** @type {NetworkNode} */ (node);
+      const originalTransferSize = originalTransferSizes.get(networkNode.record.requestId);
+      if (originalTransferSize === undefined) return;
+      networkNode.record._transferSize = originalTransferSize;
+    });
+
+    // Calculate savings on TTI (Time to Interactive)
+    const savingsOnTTI = Math.max(
+      Interactive.getLastLongTaskEndTime(simulationBeforeChanges.nodeTimings) -
+        Interactive.getLastLongTaskEndTime(simulationAfterChanges.nodeTimings),
+      0
+    );
+
+    // Calculate savings on overall load time (end of graph)
+    const savingsOnOverallLoad = Math.max(
+      simulationBeforeChanges.timeInMs - simulationAfterChanges.timeInMs,
+      0
+    );
+
+    // Use the maximum of TTI savings and overall load time savings
+    const totalSavings = Math.max(savingsOnTTI, savingsOnOverallLoad);
+
+    // Round waste to nearest 10ms
+    return Math.round(totalSavings / 10) * 10;
+  }
+>>>>>>> REPLACE
+```
+
+This fix modifies the `computeWasteWithTTIGraph` method to consider both the impact on TTI and the impact on overall load time (end of simulation graph). It then uses the maximum of these two values as the total savings. This ensures that even if a large media file doesn't affect TTI, its impact on overall load time will still be captured, addressing the issue with animated GIF->video conversions.

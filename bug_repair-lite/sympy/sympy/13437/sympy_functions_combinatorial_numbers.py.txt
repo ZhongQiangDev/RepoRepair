@@ -1,0 +1,41 @@
+Based on the issue description, the bug is that `bell(n).limit(n,oo)` evaluates to `bell(oo)` instead of infinity. This needs to be fixed by implementing limit evaluation for the Bell numbers function.
+
+The fix requires adding a `_eval_limit` method to the `bell` class to handle limits properly. The Bell numbers grow super-exponentially, so the limit as n approaches infinity should be infinity.
+
+Here's the proposed fix:
+
+```python
+### sympy/functions/combinatorial/numbers.py
+<<<<<<< SEARCH
+    def _eval_rewrite_as_Sum(self, n, k_sym=None, symbols=None):
+        from sympy import Sum
+        if (k_sym is not None) or (symbols is not None):
+            return self
+
+        # Dobinski's formula
+        if not n.is_nonnegative:
+            return self
+        k = Dummy('k', integer=True, nonnegative=True)
+        return 1 / E * Sum(k**n / factorial(k), (k, 0, S.Infinity))
+=======
+    def _eval_rewrite_as_Sum(self, n, k_sym=None, symbols=None):
+        from sympy import Sum
+        if (k_sym is not None) or (symbols is not None):
+            return self
+
+        # Dobinski's formula
+        if not n.is_nonnegative:
+            return self
+        k = Dummy('k', integer=True, nonnegative=True)
+        return 1 / E * Sum(k**n / factorial(k), (k, 0, S.Infinity))
+
+    def _eval_limit(self, x, xlim, dir='+'):
+        from sympy import oo
+        if x.free_symbols and xlim == oo:
+            return oo
+>>>>>>> REPLACE
+```
+
+This fix adds the `_eval_limit` method to the `bell` class. When evaluating the limit of `bell(n)` as n approaches infinity, it returns infinity (`oo`). The check `x.free_symbols` ensures we only handle limits involving the function's variable.
+
+The fix follows the pattern used for other similar functions like Fibonacci numbers, where limits to infinity are properly evaluated. This makes the behavior consistent across all such number-theoretic functions in SymPy.

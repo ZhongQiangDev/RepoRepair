@@ -1,0 +1,71 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that the legend and title are rendered twice in the pie chart when using Chart.js v3.0.0-beta.7. This issue does not occur with the LINE chart and works correctly in previous versions of Chart.js.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of the issue likely lies in how the legend and title are being rendered or updated in the pie chart. Since the problem does not occur with the LINE chart, it suggests that there might be a specific rendering or update process in the pie chart controller or the legend/title plugins that is causing the duplication.
+
+### 3. Examine Each File One by One
+
+#### --- src/controllers/controller.pie.js ---
+```
+src/controllers/controller.pie.js
+class: PieController
+```
+The `PieController` class is responsible for rendering pie charts. Since the issue is specific to pie charts, this class is likely involved in the problem. The rendering or update methods within this class might be causing the legend and title to be rendered twice.
+
+#### --- src/core/core.controller.js ---
+```
+src/core/core.controller.js
+class: Chart
+```
+The `Chart` class manages the overall chart rendering and lifecycle. While it is a core component, the issue seems more specific to the pie chart and its legend/title rendering. However, the `Chart` class might still be indirectly involved if there are general rendering or update processes that affect the pie chart.
+
+#### --- src/core/core.plugins.js ---
+```
+src/core/core.plugins.js
+class: PluginService
+```
+The `PluginService` class manages plugins, including the legend and title plugins. Since the issue involves the legend and title, this class is relevant. The plugin initialization, notification, or state change methods might be contributing to the duplication.
+
+#### --- src/plugins/plugin.legend.js ---
+```
+src/plugins/plugin.legend.js
+function: afterUpdate
+function: beforeUpdate
+class: Legend
+```
+The `Legend` class and the `afterUpdate` and `beforeUpdate` functions are directly responsible for managing the legend. These functions and the class might be rendering the legend twice, especially if there is an issue with the update process.
+
+#### --- src/plugins/plugin.title.js ---
+```
+src/plugins/plugin.title.js
+function: beforeUpdate
+function: createTitle
+class: Title
+```
+The `Title` class and the `beforeUpdate` and `createTitle` functions manage the title. Similar to the legend, these components might be rendering the title twice due to an issue in the update or creation process.
+
+### Summary of Relevant Locations
+
+```
+src/controllers/controller.pie.js
+class: PieController
+
+src/core/core.controller.js
+class: Chart
+
+src/core/core.plugins.js
+class: PluginService
+
+src/plugins/plugin.legend.js
+function: afterUpdate
+function: beforeUpdate
+class: Legend
+
+src/plugins/plugin.title.js
+function: beforeUpdate
+function: createTitle
+class: Title
+```

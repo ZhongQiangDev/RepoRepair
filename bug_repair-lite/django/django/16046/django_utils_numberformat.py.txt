@@ -1,0 +1,25 @@
+Based on the issue description, the bug occurs when `str_number[0]` is accessed but `str_number` is empty/null. This happens in the `format()` function when checking for a negative sign. We need to add a check to handle empty/null values before accessing the first character.
+
+Here's the fix:
+
+```python
+### django/utils/numberformat.py
+<<<<<<< SEARCH
+    if str_number[0] == "-":
+        sign = "-"
+        str_number = str_number[1:]
+=======
+    if str_number and str_number[0] == "-":
+        sign = "-"
+        str_number = str_number[1:]
+    elif not str_number:
+        return str_number
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Adds a check for `str_number` being truthy before accessing index 0
+2. Adds an early return if `str_number` is empty/null to prevent further processing
+3. Maintains the original indentation of 4 spaces
+
+The change ensures that empty or null values are handled gracefully without causing an IndexError. When a null value is passed to the function, it will simply return that value rather than trying to format it.

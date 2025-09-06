@@ -1,0 +1,46 @@
+Based on the issue description, the bug is in the `distinct()` method of the QuerySet class. When using `distinct()` with field names after a `union()` operation, the distinct fields are not being properly applied to the combined query.
+
+The fix needs to ensure that distinct fields are applied to the combined query rather than just the base query. Here's the proposed fix:
+
+```python
+### django/db/models/query.py
+<<<<<<< SEARCH
+    def distinct(self, *field_names):
+        """
+        Return a new QuerySet instance that will select only distinct results.
+        """
+        assert not self.query.is_sliced, \
+            "Cannot create distinct fields once a slice has been taken."
+        obj = self._chain()
+        obj.query.add_distinct_fields(*field_names)
+        return obj
+=======
+    def distinct(self, *field_names):
+        """
+        Return a new QuerySet instance that will select only distinct results.
+        """
+        assert not self.query.is_sliced, \
+            "Cannot create distinct fields once a slice has been taken."
+        obj = self._chain()
+        if obj.query.combinator:
+            # For combined queries (union, intersection, difference), 
+            # distinct fields need to be applied to the outer query
+            if field_names:
+                raise NotSupportedError(
+                    'distinct(*fields) is not supported with combined queries. '
+                    'Use distinct() without field names instead.'
+                )
+        obj.query.add_distinct_fields(*field_names)
+        return obj
+>>>>>>> REPLACE
+```
+
+This change:
+
+1. Checks if the query is a combined query (has a combinator)
+2. If it is a combined query and field names are provided, raises a NotSupportedError since distinct with field names is not supported for combined queries
+3. Otherwise proceeds with adding distinct fields as before
+
+The fix prevents users from attempting to use `distinct()` with field names on combined queries, which is not supported by SQL. Instead, they should use `distinct()` without arguments which will apply DISTINCT to the entire combined query.
+
+This matches the behavior of most SQL databases where DISTINCT ON cannot be applied to combined queries (UNION, INTERSECT, DIFFERENCE). The error message guides users to use the supported form instead.

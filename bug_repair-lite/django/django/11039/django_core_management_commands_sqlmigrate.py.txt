@@ -1,0 +1,31 @@
+Based on the issue description, the bug is in the `handle` method where `self.output_transaction` is only set based on `migration.atomic` without considering whether the database connection supports transactional DDL (`connection.features.can_rollback_ddl`).
+
+Here's the fix:
+
+```python
+### django/core/management/commands/sqlmigrate.py
+<<<<<<< SEARCH
+        # Show begin/end around output only for atomic migrations
+        self.output_transaction = migration.atomic
+
+        # Make a plan that represents just the requested migrations and show SQL
+=======
+        # Show begin/end around output only for atomic migrations and if the
+        # database supports transactional DDL
+        self.output_transaction = migration.atomic and connection.features.can_rollback_ddl
+
+        # Make a plan that represents just the requested migrations and show SQL
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Adds a check for `connection.features.can_rollback_ddl` in conjunction with `migration.atomic`
+2. Only sets `self.output_transaction` to True if both conditions are met
+3. Maintains proper indentation (8 spaces before each line)
+4. Adds a more descriptive comment explaining both conditions
+
+This change ensures that BEGIN/COMMIT statements are only added when both:
+- The migration is marked as atomic
+- The database actually supports transactional DDL
+
+This addresses the issue where sqlmigrate was incorrectly wrapping migrations in transactions for databases that don't support transactional DDL.

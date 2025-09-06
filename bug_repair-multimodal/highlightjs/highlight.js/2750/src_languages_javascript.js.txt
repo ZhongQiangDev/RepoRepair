@@ -1,0 +1,185 @@
+I'll analyze the issue and provide a fix.
+
+The issue is about right curly braces inside template literal expressions causing the highlighter to incorrectly think the expression has ended. This happens because the SUBST rule in the JavaScript language definition has a simple `begin: '\\$\\{', end: '\\}'` pattern, which doesn't account for nested curly braces within the expression.
+
+Looking at the code, I can see that the SUBST object in the JavaScript language definition needs to be modified to handle nested curly braces properly.
+
+Here's my fix:
+
+```javascript
+### src/languages/javascript.js
+<<<<<<< SEARCH
+  const SUBST = {
+    className: 'subst',
+    begin: '\\$\\{',
+    end: '\\}',
+    keywords: KEYWORDS,
+    contains: [] // defined later
+  };
+=======
+  const SUBST = {
+    className: 'subst',
+    begin: '\\$\\{',
+    end: /\}/,
+    keywords: KEYWORDS,
+    contains: [] // defined later
+  };
+>>>>>>> REPLACE
+```
+
+Wait, this simple change won't be enough. The issue is more complex because we need to handle nested curly braces. Let me provide a more comprehensive fix:
+
+```javascript
+### src/languages/javascript.js
+<<<<<<< SEARCH
+  const SUBST = {
+    className: 'subst',
+    begin: '\\$\\{',
+    end: '\\}',
+    keywords: KEYWORDS,
+    contains: [] // defined later
+  };
+=======
+  const SUBST = {
+    className: 'subst',
+    begin: '\\$\\{',
+    end: /\}/,
+    keywords: KEYWORDS,
+    contains: [], // defined later
+    illegal: /\}/
+  };
+>>>>>>> REPLACE
+```
+
+Actually, this approach still won't work correctly. Let me try a different approach:
+
+```javascript
+### src/languages/javascript.js
+<<<<<<< SEARCH
+  const SUBST = {
+    className: 'subst',
+    begin: '\\$\\{',
+    end: '\\}',
+    keywords: KEYWORDS,
+    contains: [] // defined later
+  };
+=======
+  const SUBST = {
+    className: 'subst',
+    begin: '\\$\\{',
+    end: /\}/,
+    keywords: KEYWORDS,
+    contains: [], // defined later
+    beforeMatch: function(match, response) {
+      // Count opening and closing braces to handle nesting
+      let openBraces = 0;
+      let startIndex = match.index + 2; // Skip the initial ${ 
+      let endIndex = -1;
+      
+      for (let i = startIndex; i < match.input.length; i++) {
+        if (match.input[i] === '{') openBraces++;
+        else if (match.input[i] === '}') {
+          if (openBraces === 0) {
+            endIndex = i;
+            break;
+          }
+          openBraces--;
+        }
+      }
+      
+      if (endIndex !== -1) {
+        response.data.end = endIndex + 1;
+      }
+    }
+  };
+>>>>>>> REPLACE
+```
+
+I'm still not satisfied with this approach as it's quite complex and might not work with the way Highlight.js processes matches. Let me try a simpler approach:
+
+```javascript
+### src/languages/javascript.js
+<<<<<<< SEARCH
+  SUBST.contains = [
+    hljs.APOS_STRING_MODE,
+    hljs.QUOTE_STRING_MODE,
+    HTML_TEMPLATE,
+    CSS_TEMPLATE,
+    TEMPLATE_STRING,
+    NUMBER,
+    hljs.REGEXP_MODE
+  ];
+=======
+  SUBST.contains = [
+    hljs.APOS_STRING_MODE,
+    hljs.QUOTE_STRING_MODE,
+    HTML_TEMPLATE,
+    CSS_TEMPLATE,
+    TEMPLATE_STRING,
+    NUMBER,
+    hljs.REGEXP_MODE,
+    // Add support for objects with curly braces
+    {
+      begin: /\{/,
+      end: /\}/,
+      contains: ["self"].concat(SUBST.contains || [])
+    }
+  ];
+>>>>>>> REPLACE
+```
+
+After further analysis, I believe the issue is that we need to add support for nested curly braces within the SUBST rule. Here's my final solution:
+
+```javascript
+### src/languages/javascript.js
+<<<<<<< SEARCH
+  const SUBST = {
+    className: 'subst',
+    begin: '\\$\\{',
+    end: '\\}',
+    keywords: KEYWORDS,
+    contains: [] // defined later
+  };
+=======
+  const SUBST = {
+    className: 'subst',
+    begin: '\\$\\{',
+    end: '\\}',
+    keywords: KEYWORDS,
+    contains: [] // defined later
+  };
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/languages/javascript.js
+<<<<<<< SEARCH
+  SUBST.contains = [
+    hljs.APOS_STRING_MODE,
+    hljs.QUOTE_STRING_MODE,
+    HTML_TEMPLATE,
+    CSS_TEMPLATE,
+    TEMPLATE_STRING,
+    NUMBER,
+    hljs.REGEXP_MODE
+  ];
+=======
+  SUBST.contains = [
+    hljs.APOS_STRING_MODE,
+    hljs.QUOTE_STRING_MODE,
+    HTML_TEMPLATE,
+    CSS_TEMPLATE,
+    TEMPLATE_STRING,
+    NUMBER,
+    hljs.REGEXP_MODE,
+    // Add support for objects with curly braces
+    {
+      begin: /\{/,
+      end: /\}/,
+      contains: ["self"]
+    }
+  ];
+>>>>>>> REPLACE
+```
+
+This solution adds a new rule to handle nested curly braces within template literal expressions. The "self" reference allows for recursive nesting of curly braces, which should fix the issue with object literals and other constructs that use curly braces inside template literal expressions.

@@ -1,0 +1,99 @@
+I'll analyze the issue and provide the necessary fixes for the DAP (Digital Accessibility Platform) violations in the NumberInput component.
+
+Based on the screenshots in the issue, there are two main accessibility violations:
+1. When the component is disabled, it's missing proper ARIA attributes
+2. When form validation is enabled, there are issues with the error state
+
+Let's fix these issues:
+
+```javascript
+### packages/react/src/components/NumberInput/NumberInput.js
+<<<<<<< SEARCH
+                  <input
+                    data-invalid={invalid || null}
+                    aria-invalid={invalid || null}
+                    aria-describedby={errorId}
+                    type="number"
+                    pattern="[0-9]*"
+                    {...other}
+                    {...props}
+                    ref={mergeRefs(ref, this._handleInputRef)}
+                  />
+=======
+                  <input
+                    data-invalid={invalid || null}
+                    aria-invalid={invalid || null}
+                    aria-describedby={errorId}
+                    aria-disabled={disabled}
+                    type="number"
+                    pattern="[0-9]*"
+                    {...other}
+                    {...props}
+                    ref={mergeRefs(ref, this._handleInputRef)}
+                  />
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/NumberInput/NumberInput.js
+<<<<<<< SEARCH
+                    <input
+                      type="number"
+                      pattern="[0-9]*"
+                      {...other}
+                      {...props}
+                      ref={mergeRefs(ref, this._handleInputRef)}
+                    />
+=======
+                    <input
+                      type="number"
+                      pattern="[0-9]*"
+                      data-invalid={invalid || null}
+                      aria-invalid={invalid || null}
+                      aria-describedby={errorId}
+                      aria-disabled={disabled}
+                      {...other}
+                      {...props}
+                      ref={mergeRefs(ref, this._handleInputRef)}
+                    />
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/NumberInput/NumberInput.js
+<<<<<<< SEARCH
+    let errorId = null;
+    let error = null;
+    if (invalid || (!allowEmpty && this.state.value === '')) {
+      inputWrapperProps['data-invalid'] = true;
+      errorId = `${id}-error-id`;
+      error = (
+        <div className={`${prefix}--form-requirement`} id={errorId}>
+          {invalidText}
+        </div>
+      );
+    }
+=======
+    let errorId = null;
+    let error = null;
+    const isInvalid = invalid || (!allowEmpty && this.state.value === '');
+    if (isInvalid) {
+      inputWrapperProps['data-invalid'] = true;
+      errorId = `${id}-error-id`;
+      error = (
+        <div className={`${prefix}--form-requirement`} id={errorId} role="alert">
+          {invalidText}
+        </div>
+      );
+    }
+>>>>>>> REPLACE
+```
+
+These changes address the accessibility issues by:
+
+1. Adding `aria-disabled` attribute to both input elements to properly communicate the disabled state to screen readers
+2. Adding proper ARIA attributes to the mobile version of the input that were missing
+3. Adding `role="alert"` to the error message so screen readers will announce it when validation fails
+4. Creating a variable `isInvalid` to make the code more readable and consistent
+
+These changes should resolve the DAP violations shown in the screenshots.

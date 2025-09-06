@@ -1,0 +1,36 @@
+I'll analyze the issue and provide a fix. The problem is that LaTeX code inside braces (`{...}`) is being treated as string literals rather than being properly parsed and highlighted as LaTeX code.
+
+Looking at the code, I can see that in the `COMMAND` definition, when a LaTeX command is encountered, it creates a structure where the content inside braces is treated as a string (with className: 'string'). This is incorrect behavior since the content inside braces should be parsed as regular LaTeX code.
+
+Here's my fix:
+
+```javascript
+### src/languages/latex.js
+<<<<<<< SEARCH
+            {
+              className: 'string', // because it looks like attributes in HTML tags
+              variants: [
+                {begin: /\[/, end: /\]/},
+                {begin: /\{/, end: /\}/}
+              ]
+            },
+=======
+            {
+              className: 'string', // because it looks like attributes in HTML tags
+              variants: [
+                {begin: /\[/, end: /\]/}
+              ]
+            },
+            {
+              begin: /\{/, end: /\}/,
+              contains: ['self']
+            },
+=======
+>>>>>>> REPLACE
+```
+
+This change:
+1. Removes the `{begin: /\{/, end: /\}/}` variant from the 'string' class
+2. Creates a new block for braces that contains 'self', which allows recursive parsing of the content inside braces as regular LaTeX code
+
+The 'self' reference allows the parser to recursively apply the same language rules to the content inside braces, which will properly highlight commands, formulas, and other LaTeX elements inside braces.

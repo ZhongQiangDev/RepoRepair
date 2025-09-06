@@ -1,0 +1,134 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is requesting an `onMenuChange` event for the MultiSelect component that would be triggered when the dropdown menu visibility changes. Currently, there's only an `onChange` event that fires when selections change, but users need a way to know when the menu opens or closes.
+
+Looking at the code, I can see that the component already tracks the menu's open state with `isOpen` and updates it in the `onStateChange` function when certain events occur. However, there's no way for consumers of the component to be notified of these changes.
+
+## Solution
+
+We need to:
+1. Add an `onMenuChange` prop to the component's PropTypes
+2. Call this prop whenever the menu visibility changes
+3. Update the default props
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+    onChange,
+    direction,
+  },
+  ref
+) {
+=======
+    onChange,
+    onMenuChange,
+    direction,
+  },
+  ref
+) {
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+  if (prevOpenProp !== open) {
+    setIsOpen(open);
+    setPrevOpenProp(open);
+  }
+=======
+  if (prevOpenProp !== open) {
+    setIsOpen(open);
+    setPrevOpenProp(open);
+    if (onMenuChange) {
+      onMenuChange({ isOpen: open });
+    }
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+      case MenuBlur:
+      case MenuKeyDownEscape:
+        setIsOpen(false);
+        setHighlightedIndex(changes.highlightedIndex);
+        break;
+      case ToggleButtonClick:
+        setIsOpen(changes.isOpen || false);
+        setHighlightedIndex(changes.highlightedIndex);
+        break;
+=======
+      case MenuBlur:
+      case MenuKeyDownEscape:
+        setIsOpen(false);
+        setHighlightedIndex(changes.highlightedIndex);
+        if (onMenuChange) {
+          onMenuChange({ isOpen: false });
+        }
+        break;
+      case ToggleButtonClick:
+        const newIsOpen = changes.isOpen || false;
+        setIsOpen(newIsOpen);
+        setHighlightedIndex(changes.highlightedIndex);
+        if (onMenuChange) {
+          onMenuChange({ isOpen: newIsOpen });
+        }
+        break;
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+  onChange: PropTypes.func,
+
+  /**
+   * Initialize the component with an open(`true`)/closed(`false`) menu.
+   */
+  open: PropTypes.bool,
+=======
+  onChange: PropTypes.func,
+
+  /**
+   * `onMenuChange` is a function that is invoked when the menu
+   * is opened or closed.
+   */
+  onMenuChange: PropTypes.func,
+
+  /**
+   * Initialize the component with an open(`true`)/closed(`false`) menu.
+   */
+  open: PropTypes.bool,
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+  open: false,
+  selectionFeedback: 'top-after-reopen',
+  direction: 'bottom',
+=======
+  open: false,
+  selectionFeedback: 'top-after-reopen',
+  direction: 'bottom',
+  onMenuChange: null,
+>>>>>>> REPLACE
+```
+
+These changes:
+1. Add the `onMenuChange` prop to the component's parameters
+2. Add the `onMenuChange` prop to PropTypes with appropriate documentation
+3. Set a default value of `null` for `onMenuChange`
+4. Call `onMenuChange` whenever the menu visibility changes:
+   - When the `open` prop changes
+   - When the menu closes due to blur or escape key
+   - When the toggle button is clicked to open or close the menu
+
+This implementation will allow consumers of the component to be notified when the menu opens or closes, which addresses the issue described.

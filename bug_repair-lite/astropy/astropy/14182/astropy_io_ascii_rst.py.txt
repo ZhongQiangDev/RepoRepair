@@ -1,0 +1,86 @@
+Based on the issue description, the bug is that the RST writer class doesn't support the `header_rows` parameter that allows specifying additional header rows like units, which is supported in other formats like `ascii.fixed_width`.
+
+To fix this, we need to:
+1. Make RST class inherit from header_rows functionality from FixedWidth
+2. Add the missing SimpleRSTHeader class definition
+3. Update the write method to handle header rows properly
+
+Here are the necessary edits:
+
+```python
+### astropy/io/ascii/rst.py
+<<<<<<< SEARCH
+class SimpleRSTData(FixedWidthData):
+    start_line = 3
+    end_line = -1
+    splitter_class = FixedWidthTwoLineDataSplitter
+
+
+class RST(FixedWidth):
+=======
+class SimpleRSTHeader(FixedWidthHeader):
+    start_line = 0
+    splitter_class = DefaultSplitter
+
+
+class SimpleRSTData(FixedWidthData):
+    start_line = 3
+    end_line = -1
+    splitter_class = FixedWidthTwoLineDataSplitter
+
+
+class RST(FixedWidth):
+>>>>>>> REPLACE
+```
+
+```python
+### astropy/io/ascii/rst.py
+<<<<<<< SEARCH
+    def write(self, lines):
+        lines = super().write(lines)
+        lines = [lines[1]] + lines + [lines[1]]
+        return lines
+=======
+    def write(self, lines):
+        lines = super().write(lines)
+        
+        # Get the separator line (the one with ===)
+        separator = lines[1]
+        
+        # For standard table without header_rows
+        if not hasattr(self, 'header_rows') or not self.header_rows:
+            return [separator] + lines + [separator]
+            
+        # For table with header_rows, add separator after each header row
+        header_end = len(self.header_rows)
+        result = []
+        for i, line in enumerate(lines):
+            result.append(line)
+            if i < header_end:
+                result.append(separator)
+        result.append(separator)
+        return result
+>>>>>>> REPLACE
+```
+
+These changes:
+
+1. Add the missing `SimpleRSTHeader` class definition that was referenced but not defined
+2. Update the `write` method to handle header rows by:
+   - Preserving the original behavior when no header_rows are specified
+   - Adding separator lines after each header row when header_rows are specified
+   - Still maintaining the RST table format requirements
+
+The RST class will now inherit the header_rows functionality from FixedWidth and properly format tables with additional header rows like units.
+
+Example output will look like:
+```
+===== ========
+ wave response
+===== ========
+   nm       ct
+===== ========
+350.0      0.7
+950.0      1.2
+===== ========
+```

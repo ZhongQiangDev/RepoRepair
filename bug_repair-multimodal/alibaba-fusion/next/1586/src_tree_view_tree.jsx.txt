@@ -1,0 +1,80 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is with the Tree component's node selection functionality. According to the issue description:
+
+1. When a node is clicked for the first time, the `selected` property in the `extra` parameter changes to `false`
+2. However, subsequent clicks don't toggle this value back to `true` - it remains `false`
+3. The CSS styles also don't change to reflect the selection state
+
+Looking at the code, the problem appears to be in the `handleSelect` method. When a node is selected, the method correctly updates the `selectedKeys` array and calls the `onSelect` callback with the appropriate parameters. However, there's an issue with how the `selected` parameter is passed to the callback.
+
+## Fix
+
+The issue is in the `handleSelect` method. The `selected` parameter being passed to the `onSelect` callback is always the value that was passed into the method, not the actual current selection state after processing. This means that when a node is clicked a second time, the `selected` value doesn't reflect the actual selection state.
+
+Here's the fix:
+
+```javascript
+### src/tree/view/tree.jsx
+<<<<<<< SEARCH
+    handleSelect(select, key, node, e) {
+        const { multiple, onSelect } = this.props;
+        let selectedKeys = [...this.state.selectedKeys];
+        if (multiple) {
+            this.processKey(selectedKeys, key, select);
+        } else {
+            selectedKeys = [key];
+        }
+
+        if (!('selectedKeys' in this.props)) {
+            this.setState({ selectedKeys });
+        }
+        onSelect(selectedKeys, {
+            selectedNodes: this.getNodes(selectedKeys),
+            node,
+            selected: select,
+            event: e,
+        });
+    }
+=======
+    handleSelect(select, key, node, e) {
+        const { multiple, onSelect } = this.props;
+        let selectedKeys = [...this.state.selectedKeys];
+        let actualSelected = select;
+        
+        if (multiple) {
+            this.processKey(selectedKeys, key, select);
+        } else {
+            // For single selection mode, if the clicked node is already selected
+            // and we're trying to select it again, we should deselect it
+            if (selectedKeys.length === 1 && selectedKeys[0] === key && select) {
+                selectedKeys = [];
+                actualSelected = false;
+            } else {
+                selectedKeys = [key];
+                actualSelected = true;
+            }
+        }
+
+        if (!('selectedKeys' in this.props)) {
+            this.setState({ selectedKeys });
+        }
+        onSelect(selectedKeys, {
+            selectedNodes: this.getNodes(selectedKeys),
+            node,
+            selected: actualSelected,
+            event: e,
+        });
+    }
+>>>>>>> REPLACE
+```
+
+This fix addresses the issue by:
+
+1. Adding a new variable `actualSelected` to track the actual selection state
+2. For single selection mode, if the clicked node is already selected and we're trying to select it again, we deselect it
+3. Passing the `actualSelected` value to the `onSelect` callback instead of the original `select` parameter
+
+This ensures that the `selected` property in the `extra` parameter correctly toggles between `true` and `false` when a node is clicked multiple times, and the CSS styles will update accordingly.

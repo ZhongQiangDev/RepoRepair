@@ -1,0 +1,58 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that WebGLTileLayer doesn't render data loaded with DataTileSource using a custom tile grid. The error message indicates a texture upload problem:
+
+```
+WebGL warning: texImage: Desired upload requires more data than is available: (767 rows plus 770 pixels needed, 767 rows plus 258 pixels available)
+```
+
+This suggests that the WebGL renderer is trying to upload more data than is actually available in the tile. The issue is likely related to how the tile size is being handled in the WebGLTileLayer.
+
+Looking at the code, I notice that the `WebGLTileLayer` class doesn't properly handle the tile size information from the source. The issue is that the renderer is expecting tiles of a certain size, but the actual tiles have different dimensions.
+
+## Fix
+
+The fix involves modifying the `WebGLTileLayer.js` file to properly pass the tile size information to the renderer. We need to ensure that the renderer knows the actual dimensions of the tiles it's working with.
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+  createRenderer() {
+    const source = this.getSource();
+    const parsedStyle = parseStyle(
+      this.style_,
+      'bandCount' in source ? source.bandCount : 4
+    );
+
+    return new WebGLTileLayerRenderer(this, {
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      cacheSize: this.cacheSize_,
+    });
+  }
+=======
+  createRenderer() {
+    const source = this.getSource();
+    const parsedStyle = parseStyle(
+      this.style_,
+      'bandCount' in source ? source.bandCount : 4
+    );
+
+    return new WebGLTileLayerRenderer(this, {
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      cacheSize: this.cacheSize_,
+      // Pass the tile grid to the renderer to ensure correct tile dimensions
+      tileGrid: source.getTileGrid(),
+    });
+  }
+>>>>>>> REPLACE
+```
+
+This change passes the tile grid from the source to the renderer, which will allow the WebGLTileLayerRenderer to correctly determine the dimensions of each tile. The renderer can then use this information to properly allocate texture memory and avoid the "more data than is available" error.
+
+The issue was likely introduced in one of the PRs mentioned in the issue description (either #11532 or #12024), where changes to the WebGL rendering pipeline might have made assumptions about tile sizes that don't hold for custom tile grids.

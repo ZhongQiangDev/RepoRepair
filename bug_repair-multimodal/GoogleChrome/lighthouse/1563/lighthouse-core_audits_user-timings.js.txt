@@ -1,0 +1,56 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about filtering out irrelevant user timing marks that are being injected by third-party scripts like Google Ads. The screenshot shows many timing marks that are likely not relevant to the developer's own instrumentation.
+
+Looking at the code, the `filterTrace` method already has some filtering logic to reject certain user timing events, but it needs to be extended to filter out more irrelevant marks, particularly those from ad services.
+
+## Solution
+
+We need to enhance the filtering logic in the `filterTrace` method. Based on the screenshot, we can see timing marks with prefixes like "gpt" (Google Publisher Tags) and other ad-related prefixes. We should add filtering for common ad-related and third-party prefixes.
+
+Here's my proposed fix:
+
+```javascript
+### lighthouse-core/audits/user-timings.js
+<<<<<<< SEARCH
+      // reject these "userTiming" events that aren't really UserTiming, by nuking ones with frame data (or requestStart)
+      // https://cs.chromium.org/search/?q=trace_event.*?user_timing&sq=package:chromium&type=cs
+      return evt.name !== 'requestStart' &&
+          evt.name !== 'navigationStart' &&
+          evt.name !== 'paintNonDefaultBackgroundColor' &&
+          evt.args.frame === undefined;
+=======
+      // reject these "userTiming" events that aren't really UserTiming, by nuking ones with frame data (or requestStart)
+      // https://cs.chromium.org/search/?q=trace_event.*?user_timing&sq=package:chromium&type=cs
+      // Also filter out common third-party/ad-related user timing marks
+      const name = evt.name;
+      const isNotChromeEvent = name !== 'requestStart' &&
+          name !== 'navigationStart' &&
+          name !== 'paintNonDefaultBackgroundColor' &&
+          evt.args.frame === undefined;
+      
+      // Filter out known ad/third-party related timing marks
+      const knownThirdPartyPrefixes = [
+        'gpt', 'google_ads', 'ga_', 'adsense', 
+        'facebook', 'fbevents', 'twitter', 
+        'doubleclick', 'ampanalytics'
+      ];
+      
+      const isFromThirdParty = knownThirdPartyPrefixes.some(prefix => 
+        name.startsWith(prefix) || name.toLowerCase().startsWith(prefix)
+      );
+      
+      return isNotChromeEvent && !isFromThirdParty;
+>>>>>>> REPLACE
+```
+
+This change:
+
+1. Maintains the existing filtering logic for Chrome's internal events
+2. Adds a new filter for common third-party and ad-related timing marks based on name prefixes
+3. Checks both case-sensitive and case-insensitive matches to catch variations
+4. Uses a clear, maintainable list of prefixes that can be extended in the future
+
+The solution is flexible and can be easily updated if more third-party prefixes need to be filtered out in the future.

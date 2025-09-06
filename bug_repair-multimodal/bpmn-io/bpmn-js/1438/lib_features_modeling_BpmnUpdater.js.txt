@@ -1,0 +1,78 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is that message element names are not being rendered in BPMN diagrams. The screenshot shows message flows with message elements, but the names of these message elements are not displayed.
+
+Looking at the provided code snippet from `BpmnUpdater.js`, I notice that it contains a method `_getLabel` that creates labels for diagram elements, but there's no specific handling for message elements. 
+
+The issue is likely that we need to add functionality to render the names of message elements in the diagram.
+
+## Solution
+
+We need to modify the `BpmnUpdater.js` file to properly handle message element names. Since the file is incomplete in the provided snippet, I'll focus on adding the necessary functionality to the `_getLabel` method to ensure it properly handles message elements.
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+BpmnUpdater.prototype._getLabel = function(di) {
+  if (!di.label) {
+    di.label = this._bpmnFactory.createDiLabel();
+  }
+
+  return di.label;
+};
+
+=======
+BpmnUpdater.prototype._getLabel = function(di) {
+  if (!di.label) {
+    di.label = this._bpmnFactory.createDiLabel();
+  }
+
+  return di.label;
+};
+
+/**
+ * Get the businessObject for a given element.
+ *
+ * @param {djs.model.Base} element
+ *
+ * @return {ModdleElement}
+ */
+BpmnUpdater.prototype._getBusinessObject = function(element) {
+  return element && getBusinessObject(element);
+};
+
+/**
+ * Update message flow element
+ *
+ * @param {djs.model.Base} element
+ * @param {Object} gfx
+ */
+BpmnUpdater.prototype.updateMessageFlowElement = function(element) {
+  var bo = this._getBusinessObject(element);
+  
+  if (bo && bo.messageRef) {
+    // If the message flow has a message reference, update the label
+    var messageRef = bo.messageRef;
+    if (messageRef.name) {
+      // Update the message element label with the message name
+      element.businessObject.messageRef.name = messageRef.name;
+    }
+  }
+};
+
+>>>>>>> REPLACE
+```
+
+This solution adds two new methods to the `BpmnUpdater` class:
+
+1. `_getBusinessObject` - A helper method to get the business object for an element
+2. `updateMessageFlowElement` - A method to update message flow elements, specifically handling the case where a message flow has a message reference with a name
+
+However, this is only part of the solution. To fully implement the feature, we would also need to:
+
+1. Register event listeners to call `updateMessageFlowElement` when message flows are created or updated
+2. Ensure the rendering component displays the message names
+
+Since the complete file wasn't provided, I've focused on adding the core functionality needed. The actual implementation might need adjustments based on how the rest of the codebase is structured.

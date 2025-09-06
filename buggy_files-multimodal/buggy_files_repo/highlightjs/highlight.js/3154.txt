@@ -1,0 +1,34 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue with Ruby heredoc highlighting.
+
+## 1. Identifying the Wrong Behavior
+
+The issue is that Ruby heredocs without interpolation (those with quotes around the delimiter, like `<<-'MESSAGE'`) aren't being highlighted correctly. Specifically:
+- The ending delimiter isn't properly recognized
+- The highlighting doesn't continue to the end of the heredoc
+- Code after the heredoc is incorrectly treated as part of the string
+
+In the screenshot, we can see that the second heredoc (without interpolation) doesn't have its ending properly detected, and the subsequent function definition is still highlighted as if it were part of the string.
+
+## 2. Analyzing the Cause
+
+The issue is likely in the Ruby language definition for Highlight.js. Ruby heredocs have two forms:
+- Standard heredocs: `<<-DELIMITER` ... `DELIMITER`
+- Heredocs without interpolation: `<<-'DELIMITER'` ... `DELIMITER`
+
+The current implementation probably recognizes the opening of standard heredocs correctly but doesn't properly handle the quoted delimiter variant for heredocs without interpolation.
+
+## 3. Files Most Related to the Cause
+
+Based on the repository information provided, these are the most relevant files that would need to be edited:
+
+```
+src/languages/ruby.js
+src/lib/modes.js
+src/lib/utils.js
+```
+
+The `ruby.js` file is the most important as it contains the language definition for Ruby, including how heredocs are recognized and highlighted. This is where the fix would primarily need to be implemented.
+
+The `modes.js` file might be relevant if the heredoc highlighting uses any of the utility functions for creating highlighting modes, especially if there's a need to modify how the beginning and ending of blocks are matched.
+
+The `utils.js` file contains utility functions that might be used in the implementation of heredoc highlighting, particularly if there's string manipulation involved in detecting the heredoc delimiters.

@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When viewing/editing a model with a ForeignKey field in a custom Admin Site
+- The URL generated for readonly fields uses "/admin/..." instead of "/custom-admin/..."
+- This is incorrect because it should use the custom admin site's URL prefix
+
+2. Cause Analysis:
+- The issue occurs in the `get_admin_url` method
+- The current implementation uses `reverse()` without specifying the current admin site
+- Other parts of admin use `current_app` parameter to identify the correct admin site name
+- The fix proposed adds `current_app=self.model_admin.admin_site.name` to the reverse call
+
+3. Most Related Files (ordered by importance):
+```
+django/contrib/admin/helpers.py
+django/contrib/admin/sites.py
+django/urls/base.py
+django/contrib/admin/options.py
+django/contrib/admin/models.py
+```
+
+Reasoning:
+- `helpers.py` contains the `get_admin_url` method that needs modification
+- `sites.py` defines the AdminSite class and URL handling for admin sites
+- `base.py` contains the core reverse() function used for URL generation
+- `options.py` contains ModelAdmin class that interacts with admin URLs
+- `models.py` contains admin-related models that may use these URLs

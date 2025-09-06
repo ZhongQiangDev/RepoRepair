@@ -1,0 +1,87 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when a tile layer's source is replaced using `setSource()` or when the view projection is changed, the cached tile textures are not properly invalidated. This causes incorrect tiles to be displayed when panning or zooming.
+
+Looking at the code, I can see that in the `WebGLTileLayerRenderer` class, the `tileTextureCache_` is used to store tile textures. When checking if a tile texture exists in the cache, it uses a cache key generated from the source key and tile coordinate. However, when retrieving a cached tile texture, it doesn't properly check if the source has changed.
+
+The bug is in the `enqueueTiles` method. When a tile texture is found in the cache, it checks if the tile's key matches the source's key, but it doesn't update the tile texture if they don't match. Instead, it should remove the old texture from the cache and create a new one.
+
+## Fix
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+          if (!tileTexture || tileTexture.tile.key !== tileSource.getKey()) {
+            tile = tileSource.getTile(
+              z,
+              x,
+              y,
+              frameState.pixelRatio,
+              viewState.projection
+            );
+            if (!tileTexture) {
+              tileTexture = new TileTexture({
+                tile: tile,
+                grid: tileGrid,
+                helper: this.helper,
+                gutter: gutter,
+              });
+              tileTextureCache.set(cacheKey, tileTexture);
+            } else {
+              if (this.isDrawableTile_(tile)) {
+                tileTexture.setTile(tile);
+              } else {
+                const interimTile =
+                  /** @type {import("../../webgl/TileTexture").TileType} */ (
+                    tile.getInterimTile()
+                  );
+                tileTexture.setTile(interimTile);
+              }
+            }
+          }
+=======
+          tile = tileSource.getTile(
+            z,
+            x,
+            y,
+            frameState.pixelRatio,
+            viewState.projection
+          );
+          
+          if (!tileTexture) {
+            tileTexture = new TileTexture({
+              tile: tile,
+              grid: tileGrid,
+              helper: this.helper,
+              gutter: gutter,
+            });
+            tileTextureCache.set(cacheKey, tileTexture);
+          } else if (tileTexture.tile.key !== tileSource.getKey()) {
+            // Source has changed, remove old texture and create a new one
+            tileTextureCache.remove(cacheKey);
+            tileTexture = new TileTexture({
+              tile: tile,
+              grid: tileGrid,
+              helper: this.helper,
+              gutter: gutter,
+            });
+            tileTextureCache.set(cacheKey, tileTexture);
+          } else {
+            if (this.isDrawableTile_(tile)) {
+              tileTexture.setTile(tile);
+            } else {
+              const interimTile =
+                /** @type {import("../../webgl/TileTexture").TileType} */ (
+                  tile.getInterimTile()
+                );
+              tileTexture.setTile(interimTile);
+            }
+          }
+>>>>>>> REPLACE
+```
+
+This fix ensures that when a tile's source has changed (indicated by different keys), we properly remove the old texture from the cache and create a new one with the updated source. This prevents the renderer from using incorrect cached textures when the source is replaced or when the view projection changes.
+
+The key change is that we now always get the tile from the source first, and then check if we need to create a new texture or update an existing one, rather than only getting the tile if the texture doesn't exist or the keys don't match.

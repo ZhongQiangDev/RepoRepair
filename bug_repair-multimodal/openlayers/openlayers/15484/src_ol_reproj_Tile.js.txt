@@ -1,0 +1,46 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about the `wrapX` option in GeoTIFF not being respected when reprojection is involved. According to the issue description:
+
+1. The `wrapX` option is misleadingly named - it's actually used to crop the output to the tile grid extent on both X and Y axes.
+2. This behavior is unrelated to what reprojection expects `wrapX` to mean (which is about repeating output on adjacent worlds on the X axis).
+3. The issue suggests renaming this option to something more appropriate.
+
+Looking at the code in `src/ol/reproj/Tile.js`, I can see that when reprojection happens, the source extent is calculated and then limited by the max source extent. However, the code only applies proper cropping on the Y axis when `sourceProj.canWrapX()` is true, but doesn't properly respect the cropping on both axes as expected.
+
+## Fix
+
+The issue is in the `constructor` method of the `ReprojTile` class. The problem is in how the source extent is handled when `maxSourceExtent` is defined. Let's modify the code to properly respect the cropping on both axes:
+
+```javascript
+### src/ol/reproj/Tile.js
+<<<<<<< SEARCH
+    if (maxSourceExtent) {
+      if (sourceProj.canWrapX()) {
+        sourceExtent[1] = clamp(
+          sourceExtent[1],
+          maxSourceExtent[1],
+          maxSourceExtent[3],
+        );
+        sourceExtent[3] = clamp(
+          sourceExtent[3],
+          maxSourceExtent[1],
+          maxSourceExtent[3],
+        );
+      } else {
+        sourceExtent = getIntersection(sourceExtent, maxSourceExtent);
+      }
+    }
+=======
+    if (maxSourceExtent) {
+      // Always crop to the max source extent
+      sourceExtent = getIntersection(sourceExtent, maxSourceExtent);
+    }
+>>>>>>> REPLACE
+```
+
+This change ensures that the source extent is always properly cropped to the max source extent, regardless of whether the source projection can wrap on the X axis. This will respect the cropping behavior on both X and Y axes as expected, even when reprojection is involved.
+
+The issue mentioned renaming the option, but that would be a separate change that would need to be made in the GeoTIFF source code, not in the reprojection tile code shown here. This fix addresses the immediate issue of ensuring the cropping behavior is respected during reprojection.

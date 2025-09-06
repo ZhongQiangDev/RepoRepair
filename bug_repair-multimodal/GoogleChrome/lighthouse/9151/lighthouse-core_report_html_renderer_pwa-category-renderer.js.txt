@@ -1,0 +1,32 @@
+I'll analyze the issue and provide a fix.
+
+Looking at the issue, there's a style problem with the PWA header gauge as shown in the screenshot. The gauge appears to have some visual issues.
+
+After examining the code, I can see that the problem is in the `renderScoreGauge` method of the `PwaCategoryRenderer` class. The issue is likely related to how the gauge is being styled when all groups are passing.
+
+The bug appears to be in the class name that's being added when all groups are passing. It's currently using `lh-badged--all` but based on the CSS structure, it should probably be using just `lh-badged` to be consistent with how individual groups are badged.
+
+Here's the fix:
+
+```javascript
+### lighthouse-core/report/html/renderer/pwa-category-renderer.js
+<<<<<<< SEARCH
+    if (passingGroupIds.size === allGroups.size) {
+      wrapper.classList.add('lh-badged--all');
+    } else {
+      for (const passingGroupId of passingGroupIds) {
+        wrapper.classList.add(`lh-badged--${passingGroupId}`);
+      }
+    }
+=======
+    if (passingGroupIds.size === allGroups.size) {
+      wrapper.classList.add('lh-badged');
+    } else {
+      for (const passingGroupId of passingGroupIds) {
+        wrapper.classList.add(`lh-badged--${passingGroupId}`);
+      }
+    }
+>>>>>>> REPLACE
+```
+
+This change replaces the `lh-badged--all` class with `lh-badged` when all groups are passing, which should fix the styling issue with the PWA header gauge. This makes it consistent with how the individual audit groups are badged when all their audits pass (they get the `lh-badged` class as seen in the `_renderAudits` method).

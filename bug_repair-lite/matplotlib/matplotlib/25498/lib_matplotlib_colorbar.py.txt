@@ -1,0 +1,85 @@
+Based on the issue description, the bug occurs when trying to update a colorbar after changing the norm of the mappable. The issue shows that `update_normal()` has no effect and `update_bruteforce()` throws a ZeroDivisionError.
+
+Looking at the code, the issue appears to be in the `update_normal()` method of the Colorbar class. The method needs to properly handle the case where the norm is changed by resetting the locator and formatter.
+
+Here's the fix:
+
+```python
+### lib/matplotlib/colorbar.py
+<<<<<<< SEARCH
+    def update_normal(self, mappable):
+        """
+        Update solid patches, lines, etc.
+
+        This is meant to be called when the norm of the image or contour plot
+        to which this colorbar belongs changes.
+
+        If the norm on the mappable is different than before, this resets the
+        locator and formatter for the axis, so if these have been customized,
+        they will need to be customized again.  However, if the norm only
+        changes values of *vmin*, *vmax* or *cmap* then the old formatter
+        and locator will be preserved.
+        """
+        _log.debug('colorbar update normal %r %r', mappable.norm, self.norm)
+        self.mappable = mappable
+        self.set_alpha(mappable.get_alpha())
+        self.cmap = mappable.cmap
+        if mappable.norm != self.norm:
+            self.norm = mappable.norm
+            self._reset_locator_formatter_scale()
+
+        self._draw_all()
+        if isinstance(self.mappable, contour.ContourSet):
+            CS = self.mappable
+            if not CS.filled:
+                self.add_lines(CS)
+        self.stale = True
+=======
+    def update_normal(self, mappable):
+        """
+        Update solid patches, lines, etc.
+
+        This is meant to be called when the norm of the image or contour plot
+        to which this colorbar belongs changes.
+
+        If the norm on the mappable is different than before, this resets the
+        locator and formatter for the axis, so if these have been customized,
+        they will need to be customized again.  However, if the norm only
+        changes values of *vmin*, *vmax* or *cmap* then the old formatter
+        and locator will be preserved.
+        """
+        _log.debug('colorbar update normal %r %r', mappable.norm, self.norm)
+        self.mappable = mappable
+        self.set_alpha(mappable.get_alpha())
+        self.cmap = mappable.cmap
+        
+        # Always reset norm and scales when updating
+        old_norm = self.norm
+        self.norm = mappable.norm
+        if old_norm != self.norm:
+            self._reset_locator_formatter_scale()
+        
+        # Process values before drawing
+        self._process_values()
+        self._draw_all()
+        
+        if isinstance(self.mappable, contour.ContourSet):
+            CS = self.mappable
+            if not CS.filled:
+                self.add_lines(CS)
+        self.stale = True
+>>>>>>> REPLACE
+```
+
+The key changes are:
+
+1. Always store the old norm for comparison
+2. Update the norm from the mappable 
+3. Call `_process_values()` before `_draw_all()` to ensure boundaries and values are properly recalculated
+4. Reset locator/formatter/scale if norm changed
+
+This ensures that when the norm changes (e.g. from linear to log), the colorbar properly updates its internal state and display. The `_process_values()` call is crucial as it recalculates the boundaries and values based on the new norm before drawing.
+
+This should fix both issues:
+1. `update_normal()` will now properly update when the norm changes
+2. The ZeroDivisionError in `update_bruteforce()` will be prevented since the values are properly processed before drawing

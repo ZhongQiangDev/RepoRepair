@@ -1,0 +1,29 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- The auto-reloader is not detecting changes made to manage.py file in Django 2.2.1
+- This worked in Django 2.1.8 and prior versions
+- The auto-reloader (StatReloader) never sees manage.py file changes
+
+2. Cause Analysis:
+- The issue appears to be related to the file watching mechanism in Django's autoreload functionality
+- The StatReloader class is responsible for monitoring file changes but seems to be missing manage.py from its watched files
+- The problem likely stems from how files are registered for watching in the autoreload system
+- Since this worked in prior versions but broke in 2.2.1, there was likely a change in how files are registered for monitoring
+
+3. Most Related Files:
+```
+django/utils/autoreload.py
+django/core/management/commands/runserver.py
+django/core/management/base.py
+django/core/servers/basehttp.py
+django/core/wsgi.py
+```
+
+The files are ordered by importance because:
+- `autoreload.py` contains the core auto-reloading functionality including StatReloader
+- `runserver.py` is the command that initializes the development server and auto-reloader
+- `base.py` contains base command functionality that might affect how manage.py is handled
+- `basehttp.py` and `wsgi.py` are related to server implementation which could affect reloading behavior
+
+The primary fix would likely need to be made in `autoreload.py` to ensure manage.py is properly included in the watched files list.

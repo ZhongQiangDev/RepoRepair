@@ -1,0 +1,85 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that it is possible to select a day from the last month outside the `DateInput` calendarProps bounds. Specifically, the screenshot shows that June 30, 2020, is selectable even though the bounds are set to `['2020-07-01', '2020-07-31']`.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from how the calendar handles the display and selection of days from adjacent months. The `showAdjacentDays` prop might be set to `true` or `'trim'`, which allows days from the previous and next months to be displayed. However, the logic for disabling or preventing selection of these adjacent days outside the specified bounds is not functioning correctly.
+
+### 3. Examine Each File One by One
+
+#### `src/js/components/Calendar/Calendar.js`
+
+This file contains several functions that are relevant to the calendar's behavior, including date selection and bounds handling.
+
+```
+src/js/components/Calendar/Calendar.js
+function: function_13
+function: function_14
+function: function_16
+```
+
+- `function_13`: This function manages the calendar's main logic, including date selection and bounds. It likely needs to ensure that dates outside the bounds are not selectable.
+- `function_14`: This function represents a single day in the calendar. It should handle the `otherMonth` prop to ensure that days from adjacent months are not selectable if they are outside the bounds.
+- `function_16`: Similar to `function_14`, this function also represents a single day and should ensure that days outside the bounds are not selectable.
+
+#### `src/js/components/Calendar/StyledCalendar.js`
+
+This file contains styling functions and does not directly handle date selection or bounds logic.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `src/js/components/Calendar/stories/ShowAdjacentDays.js`
+
+This file contains a test component that demonstrates the `showAdjacentDays` prop. It is relevant for understanding how the prop affects the display of adjacent days.
+
+```
+src/js/components/Calendar/stories/ShowAdjacentDays.js
+function: function_2
+```
+
+- `function_2`: This function renders three calendars with different `showAdjacentDays` settings. It can be used to test and verify the behavior of adjacent days.
+
+#### `src/js/components/DateInput/DateInput.js`
+
+This file contains the `DateInput` component, which integrates the calendar and handles date input.
+
+```
+src/js/components/DateInput/DateInput.js
+function: function_3
+```
+
+- `function_3`: This function is the main `DateInput` component. It manages the calendarProps and should ensure that the calendar respects the bounds when selecting dates.
+
+#### `src/js/components/DateInput/utils.js`
+
+This file contains utility functions for date formatting and validation. While these functions are important for date handling, they do not directly manage the calendar's bounds or selection logic.
+
+```
+src/js/components/DateInput/utils.js
+function: function_8
+```
+
+- `function_8`: This function converts text to a date value and might be relevant for ensuring that dates outside the bounds are not processed.
+
+### Summary
+
+The primary locations that need inspection or editing to fix the problem are:
+
+```
+src/js/components/Calendar/Calendar.js
+function: function_13
+function: function_14
+function: function_16
+
+src/js/components/Calendar/stories/ShowAdjacentDays.js
+function: function_2
+
+src/js/components/DateInput/DateInput.js
+function: function_3
+
+src/js/components/DateInput/utils.js
+function: function_8
+```

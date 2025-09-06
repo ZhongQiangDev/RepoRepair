@@ -1,0 +1,131 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The problem is related to circle animation jitter in OpenLayers after upgrading from version 4.6.5 to 6.5. In the older version, setting `snapToPixel: false` for circle styles prevented jitter during animations. However, this parameter was removed in version 5.2.0 with the claim that it's no longer needed because the renderer should automatically handle this (not snapping during animations).
+
+Despite this claim, the user is still experiencing jitter in the animations after upgrading. Based on the issue description and the video comparison, the jitter is most noticeable at the end of animations when the circle's diameter is largest.
+
+## Solution
+
+Looking at the `Circle.js` file, we need to modify the `CircleStyle` class to address this jitter issue. Since the `snapToPixel` option was removed, we need to implement a different approach to ensure smooth animations.
+
+The solution is to add a property that can force the renderer to always use the "accurate" (non-snapped) rendering mode for circles. We'll add a `snapToPixel` property that defaults to `false` for backward compatibility and smooth animations.
+
+```javascript
+### src/ol/style/Circle.js
+<<<<<<< SEARCH
+/**
+ * @typedef {Object} Options
+ * @property {import("./Fill.js").default} [fill] Fill style.
+ * @property {number} radius Circle radius.
+ * @property {import("./Stroke.js").default} [stroke] Stroke style.
+ * @property {Array<number>} [displacement=[0,0]] displacement
+ * @property {number|import("../size.js").Size} [scale=1] Scale. A two dimensional scale will produce an ellipse.
+ * Unless two dimensional scaling is required a better result may be obtained with an appropriate setting for `radius`.
+ * @property {number} [rotation=0] Rotation in radians
+ * (positive rotation clockwise, meaningful only when used in conjunction with a two dimensional scale).
+ * @property {boolean} [rotateWithView=false] Whether to rotate the shape with the view
+ * (meaningful only when used in conjunction with a two dimensional scale).
+ */
+=======
+/**
+ * @typedef {Object} Options
+ * @property {import("./Fill.js").default} [fill] Fill style.
+ * @property {number} radius Circle radius.
+ * @property {import("./Stroke.js").default} [stroke] Stroke style.
+ * @property {Array<number>} [displacement=[0,0]] displacement
+ * @property {number|import("../size.js").Size} [scale=1] Scale. A two dimensional scale will produce an ellipse.
+ * Unless two dimensional scaling is required a better result may be obtained with an appropriate setting for `radius`.
+ * @property {number} [rotation=0] Rotation in radians
+ * (positive rotation clockwise, meaningful only when used in conjunction with a two dimensional scale).
+ * @property {boolean} [rotateWithView=false] Whether to rotate the shape with the view
+ * (meaningful only when used in conjunction with a two dimensional scale).
+ * @property {boolean} [snapToPixel=false] Whether to snap the shape to pixel boundaries during rendering.
+ * Setting to false can improve rendering quality during animations.
+ */
+>>>>>>> REPLACE
+```
+
+Now let's update the constructor to use this property:
+
+```javascript
+### src/ol/style/Circle.js
+<<<<<<< SEARCH
+  constructor(opt_options) {
+    const options = opt_options ? opt_options : {};
+
+    super({
+      points: Infinity,
+      fill: options.fill,
+      radius: options.radius,
+      stroke: options.stroke,
+      scale: options.scale !== undefined ? options.scale : 1,
+      rotation: options.rotation !== undefined ? options.rotation : 0,
+      rotateWithView:
+        options.rotateWithView !== undefined ? options.rotateWithView : false,
+      displacement:
+        options.displacement !== undefined ? options.displacement : [0, 0],
+    });
+  }
+=======
+  constructor(opt_options) {
+    const options = opt_options ? opt_options : {};
+
+    super({
+      points: Infinity,
+      fill: options.fill,
+      radius: options.radius,
+      stroke: options.stroke,
+      scale: options.scale !== undefined ? options.scale : 1,
+      rotation: options.rotation !== undefined ? options.rotation : 0,
+      rotateWithView:
+        options.rotateWithView !== undefined ? options.rotateWithView : false,
+      displacement:
+        options.displacement !== undefined ? options.displacement : [0, 0],
+      snapToPixel:
+        options.snapToPixel !== undefined ? options.snapToPixel : false,
+    });
+  }
+>>>>>>> REPLACE
+```
+
+Finally, let's update the clone method to preserve this property:
+
+```javascript
+### src/ol/style/Circle.js
+<<<<<<< SEARCH
+  clone() {
+    const scale = this.getScale();
+    const style = new CircleStyle({
+      fill: this.getFill() ? this.getFill().clone() : undefined,
+      stroke: this.getStroke() ? this.getStroke().clone() : undefined,
+      radius: this.getRadius(),
+      scale: Array.isArray(scale) ? scale.slice() : scale,
+      rotation: this.getRotation(),
+      rotateWithView: this.getRotateWithView(),
+      displacement: this.getDisplacement().slice(),
+    });
+    style.setOpacity(this.getOpacity());
+    return style;
+  }
+=======
+  clone() {
+    const scale = this.getScale();
+    const style = new CircleStyle({
+      fill: this.getFill() ? this.getFill().clone() : undefined,
+      stroke: this.getStroke() ? this.getStroke().clone() : undefined,
+      radius: this.getRadius(),
+      scale: Array.isArray(scale) ? scale.slice() : scale,
+      rotation: this.getRotation(),
+      rotateWithView: this.getRotateWithView(),
+      displacement: this.getDisplacement().slice(),
+      snapToPixel: this.getSnapToPixel(),
+    });
+    style.setOpacity(this.getOpacity());
+    return style;
+  }
+>>>>>>> REPLACE
+```
+
+These changes reintroduce the `snapToPixel` option that was removed in OpenLayers 5.2.0, defaulting it to `false` to maintain smooth animations. This should help prevent the jitter issue described in the ticket, especially during animations when the circle's size is changing.

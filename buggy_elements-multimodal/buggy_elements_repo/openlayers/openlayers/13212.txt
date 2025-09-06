@@ -1,0 +1,72 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that the WebGL context is lost when dealing with larger pyramids of WebGLTileLayers. This results in not-rendered tiles and poor performance (2-5 FPS instead of the expected 30 FPS). The issue is attributed to the limitations of WebGL contexts when handling a large number of layers.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of the issue is likely due to the current implementation's inefficiency in managing WebGL contexts for a large number of tile layers. Each WebGLTileLayer creates its own WebGL context, leading to a rapid depletion of available WebGL contexts, especially in environments with limited resources. This results in context loss and poor rendering performance.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### examples/cog-pyramid.js
+```
+examples/cog-pyramid.js
+function: function_1
+function: function_2
+function: useLayer
+```
+- `function_1` constructs URLs for GeoTIFF images and creates `GeoTIFF` objects, which are relevant for the proposed solution of using a GeoTIFF pyramid.
+- `function_2` manages the map's 'moveend' event and iterates over tile coordinates, which is relevant for handling tile layers.
+- `useLayer` creates WebGLTileLayers for specific tile coordinates, which is directly related to the issue of managing WebGL contexts.
+
+#### src/ol/layer/WebGLTile.js
+```
+src/ol/layer/WebGLTile.js
+class: WebGLTileLayer
+```
+- The `WebGLTileLayer` class is directly involved in creating and managing WebGLTileLayers, which is central to the problem of context management.
+
+#### src/ol/renderer/webgl/TileLayer.js
+```
+src/ol/renderer/webgl/TileLayer.js
+class: WebGLTileLayerRenderer
+```
+- The `WebGLTileLayerRenderer` class handles the rendering of tile layers using WebGL, which is relevant to the issue of rendering performance and context management.
+
+#### src/ol/source/GeoTIFF.js
+```
+src/ol/source/GeoTIFF.js
+class: GeoTIFFSource
+```
+- The `GeoTIFFSource` class manages GeoTIFF data sources, which is relevant for implementing the proposed solution of using a GeoTIFF pyramid.
+
+#### src/ol/source/XYZ.js
+```
+This file contains no relevant functions/classes.
+```
+- The XYZ class is related to a specific tile format and does not directly address the WebGL context management issue.
+
+#### src/ol/tilegrid/TileGrid.js
+```
+This file contains no relevant functions/classes.
+```
+- The TileGrid class manages tile grids but does not directly address the WebGL context management issue.
+
+#### src/ol/tilegrid/WMTS.js
+```
+This file contains no relevant functions/classes.
+```
+- The WMTSTileGrid class is specific to WMTS tile grids and does not directly address the WebGL context management issue.
+
+#### src/ol/webgl/Helper.js
+```
+This file contains no relevant functions/classes.
+```
+- The WebGLHelper class, while related to WebGL operations, does not directly address the specific issue of managing WebGL contexts for tile layers.
+
+#### src/ol/webgl/TileTexture.js
+```
+src/ol/webgl/TileTexture.js
+class: TileTexture
+```
+- The `TileTexture` class manages WebGL textures for tiles, which is relevant for the proposed solution of optimizing texture management in a GeoTIFF pyramid.

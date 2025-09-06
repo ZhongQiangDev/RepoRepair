@@ -1,0 +1,104 @@
+I'll analyze the issue and provide a solution.
+
+Based on the issue description, the user wants to add a secondary style option to the Tabs component. The screenshot shows a different visual style for tabs that they'd like to implement.
+
+Looking at the code, I notice that the `Tabs` component doesn't currently have a prop to specify different styles. We need to add a `type` prop that would allow users to choose between the default style and a secondary style.
+
+Here's my solution:
+
+```javascript
+### packages/react/src/components/Tabs/Tabs.js
+<<<<<<< SEARCH
+    /**
+     * Provide a className that is applied to the <TabContent> components
+     */
+    tabContentClassName: PropTypes.string,
+  };
+
+  static defaultProps = {
+    iconDescription: 'show menu options',
+    role: 'navigation',
+    triggerHref: '#',
+    selected: 0,
+    ariaLabel: 'listbox',
+  };
+=======
+    /**
+     * Provide a className that is applied to the <TabContent> components
+     */
+    tabContentClassName: PropTypes.string,
+
+    /**
+     * Specify the type of tabs, from 'default' to 'container' etc.
+     */
+    type: PropTypes.oneOf(['default', 'container']),
+  };
+
+  static defaultProps = {
+    iconDescription: 'show menu options',
+    role: 'navigation',
+    triggerHref: '#',
+    selected: 0,
+    ariaLabel: 'listbox',
+    type: 'default',
+  };
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Tabs/Tabs.js
+<<<<<<< SEARCH
+    const {
+      ariaLabel,
+      iconDescription,
+      className,
+      triggerHref,
+      role,
+      onSelectionChange,
+      tabContentClassName,
+      ...other
+    } = this.props;
+=======
+    const {
+      ariaLabel,
+      iconDescription,
+      className,
+      triggerHref,
+      role,
+      onSelectionChange,
+      tabContentClassName,
+      type,
+      ...other
+    } = this.props;
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Tabs/Tabs.js
+<<<<<<< SEARCH
+    const classes = {
+      tabs: classNames(`${prefix}--tabs`, className),
+      tablist: classNames(`${prefix}--tabs__nav`, {
+        [`${prefix}--tabs__nav--hidden`]: this.state.dropdownHidden,
+      }),
+    };
+=======
+    const classes = {
+      tabs: classNames(`${prefix}--tabs`, className, {
+        [`${prefix}--tabs--container`]: type === 'container',
+      }),
+      tablist: classNames(`${prefix}--tabs__nav`, {
+        [`${prefix}--tabs__nav--hidden`]: this.state.dropdownHidden,
+      }),
+    };
+>>>>>>> REPLACE
+```
+
+These changes:
+
+1. Add a new `type` prop to the component with possible values 'default' and 'container'
+2. Set the default value of the `type` prop to 'default'
+3. Extract the `type` prop from the component props
+4. Add a conditional class `${prefix}--tabs--container` when the type is 'container'
+
+This implementation allows users to specify a secondary style for tabs by using `<Tabs type="container">` which will apply the container style shown in the screenshot. The CSS for this style would need to be implemented in the corresponding SCSS files, but this change provides the React component support for the new style.

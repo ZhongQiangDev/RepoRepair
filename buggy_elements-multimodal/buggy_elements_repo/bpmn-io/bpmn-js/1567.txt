@@ -1,0 +1,55 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that after wrapping a process with a pool and moving into a sub-process, attempting to drill out results in an error: `Uncaught Error: rootElement required`. This indicates that the drilldown overlay is not aware of the root element changes, preventing the user from moving back up to the parent process.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The error message `Uncaught Error: rootElement required` suggests that the `Canvas` module is expecting a `rootElement` to be set, but it is not being properly updated or recognized when the user tries to drill out. This likely occurs because the `rootElement` is not being correctly propagated or updated when the user navigates between different levels of the BPMN diagram hierarchy.
+
+### 3. Examine Each File One by One
+
+#### --- lib/BaseViewer.js ---
+This file contains no relevant functions/classes.
+
+#### --- lib/features/drilldown/DrilldownBreadcrumbs.js ---
+```
+lib/features/drilldown/DrilldownBreadcrumbs.js
+function: DrilldownBreadcrumbs
+function: getParentChain
+```
+The `DrilldownBreadcrumbs` function is responsible for creating and updating the breadcrumb navigation bar. The `getParentChain` function retrieves the parent chain for the current root element. Both functions are relevant because they manage the navigation hierarchy, which is crucial for ensuring that the `rootElement` is correctly updated when drilling in and out.
+
+#### --- lib/features/drilldown/DrilldownCentering.js ---
+```
+lib/features/drilldown/DrilldownCentering.js
+function: DrilldownCentering
+```
+The `DrilldownCentering` function listens to events like `root.set` and adjusts the canvas view accordingly. This function is relevant because it ensures that the canvas is properly centered when the root element changes, which is related to the issue of updating the `rootElement`.
+
+#### --- lib/features/drilldown/DrilldownOverlayBehavior.js ---
+```
+lib/features/drilldown/DrilldownOverlayBehavior.js
+function: DrilldownOverlayBehavior
+function: function_10
+function: function_12
+```
+The `DrilldownOverlayBehavior` function manages the addition and removal of overlays based on the ability to drill down. The `function_10` (`canDrillDown`) checks if an element can be drilled into, and `function_12` (`addOverlay`) adds the drilldown button overlay. These functions are relevant because they control the visibility and functionality of the drilldown overlay, which is directly related to the issue.
+
+#### --- lib/features/modeling/BpmnUpdater.js ---
+This file contains no relevant functions/classes.
+
+### Summary of Relevant Locations
+
+```
+lib/features/drilldown/DrilldownBreadcrumbs.js
+function: DrilldownBreadcrumbs
+function: getParentChain
+
+lib/features/drilldown/DrilldownCentering.js
+function: DrilldownCentering
+
+lib/features/drilldown/DrilldownOverlayBehavior.js
+function: DrilldownOverlayBehavior
+function: function_10
+function: function_12
+```

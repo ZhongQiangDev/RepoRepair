@@ -1,0 +1,80 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the DataChart component cannot render bars when data includes negative values. Looking at the screenshots, it appears that the chart is not displaying anything when negative values are present.
+
+The problem is likely in the `calcBounds` function in `src/js/components/Chart/calcs.js`. When examining the code, I notice that while there's logic to handle negative values when calculating bounds, there might be an issue with how the bounds are calculated or used when rendering bars.
+
+Let's fix the issue:
+
+```javascript
+### src/js/components/Chart/calcs.js
+<<<<<<< SEARCH
+export const calcBounds = (values, options = {}) => {
+  // coarseness influences the rounding of the bounds, the smaller the
+  // number, the more the bounds will be rounded. e.g. 111 -> 110 -> 100
+  // Normalize to an array. Backwards compatible has no coarseness for x-axis
+  const coarseness = (Array.isArray(options.coarseness) &&
+    options.coarseness) ||
+    (options.coarseness && [undefined, options.coarseness]) || [undefined, 5];
+  // the number of steps is one less than the number of labels
+  const steps = options.steps || [1, 1];
+  const calcValues = normalizeValues(values || []);
+
+  // min and max values
+  let minX;
+  let maxX;
+  let minY;
+  let maxY;
+=======
+export const calcBounds = (values, options = {}) => {
+  // coarseness influences the rounding of the bounds, the smaller the
+  // number, the more the bounds will be rounded. e.g. 111 -> 110 -> 100
+  // Normalize to an array. Backwards compatible has no coarseness for x-axis
+  const coarseness = (Array.isArray(options.coarseness) &&
+    options.coarseness) ||
+    (options.coarseness && [undefined, options.coarseness]) || [undefined, 5];
+  // the number of steps is one less than the number of labels
+  const steps = options.steps || [1, 1];
+  const calcValues = normalizeValues(values || []);
+
+  // min and max values
+  let minX;
+  let maxX;
+  let minY = 0; // Initialize minY to 0 to ensure we include the zero line
+  let maxY = 0; // Initialize maxY to 0 to ensure we include the zero line
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/js/components/Chart/calcs.js
+<<<<<<< SEARCH
+  let bounds;
+  if (calcValues.length)
+    bounds = [
+      [minX, maxX],
+      [minY, maxY],
+    ];
+  else bounds = [[], []];
+  return bounds;
+=======
+  let bounds;
+  if (calcValues.length) {
+    // Ensure minY is at most 0 and maxY is at least 0 to always include the zero line
+    minY = Math.min(minY, 0);
+    maxY = Math.max(maxY, 0);
+    
+    bounds = [
+      [minX, maxX],
+      [minY, maxY],
+    ];
+  } else bounds = [[], []];
+  return bounds;
+>>>>>>> REPLACE
+```
+
+These changes ensure that:
+
+1. The Y-axis bounds always include zero by initializing minY and maxY to 0
+2. After calculating the actual min and max values, we ensure that minY is at most 0 and maxY is at least 0
+
+This will guarantee that the zero line is always included in the chart, which is necessary for properly rendering bars with negative values. The chart will now be able to display both positive and negative values correctly.

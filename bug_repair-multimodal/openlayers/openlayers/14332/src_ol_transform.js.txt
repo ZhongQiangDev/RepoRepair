@@ -1,0 +1,94 @@
+Looking at the issue description, the problem is with incorrect rendering in vector context of rotated tile layers, specifically affecting stroke width, text scale, and precision of geometry at rotations close to 90 and 270 degrees.
+
+The issue appears to be in the transform calculations. Looking at the `compose` function in the transform.js file, I can see a potential problem with the mathematical precision when dealing with rotations near 90° and 270°.
+
+At these angles:
+- 90° (π/2 radians): cos ≈ 0, sin ≈ 1
+- 270° (3π/2 radians): cos ≈ 0, sin ≈ -1
+
+The issue is likely in the `compose` function where the transform matrix is calculated. The current implementation has a mathematical error in the calculation of the transform components, particularly in how the final translation is applied with the rotation and scale.
+
+Let me examine the `compose` function more carefully:
+
+```javascript
+export function compose(transform, dx1, dy1, sx, sy, angle, dx2, dy2) {
+  const sin = Math.sin(angle);
+  const cos = Math.cos(angle);
+  transform[0] = sx * cos;
+  transform[1] = sy * sin;
+  transform[2] = -sx * sin;
+  transform[3] = sy * cos;
+  transform[4] = dx2 * sx * cos - dy2 * sx * sin + dx1;
+  transform[5] = dx2 * sy * sin + dy2 * sy * cos + dy1;
+  return transform;
+}
+```
+
+The issue is in the calculation of `transform[4]` and `transform[5]`. The final translation (dx2, dy2) should be applied after the rotation and scaling, but the current formula incorrectly applies the scaling factors to the final translation components.
+
+The correct transformation matrix for the sequence: translate(dx1, dy1) → scale(sx, sy) → rotate(angle) → translate(dx2, dy2) should be:
+
+```javascript
+### src/ol/transform.js
+<<<<<<< SEARCH
+export function compose(transform, dx1, dy1, sx, sy, angle, dx2, dy2) {
+  const sin = Math.sin(angle);
+  const cos = Math.cos(angle);
+  transform[0] = sx * cos;
+  transform[1] = sy * sin;
+  transform[2] = -sx * sin;
+  transform[3] = sy * cos;
+  transform[4] = dx2 * sx * cos - dy2 * sx * sin + dx1;
+  transform[5] = dx2 * sy * sin + dy2 * sy * cos + dy1;
+  return transform;
+}
+=======
+export function compose(transform, dx1, dy1, sx, sy, angle, dx2, dy2) {
+  const sin = Math.sin(angle);
+  const cos = Math.cos(angle);
+  transform[0] = sx * cos;
+  transform[1] = sy * sin;
+  transform[2] = -sx * sin;
+  transform[3] = sy * cos;
+  transform[4] = dx2 + dx1 * sx * cos - dy1 * sx * sin;
+  transform[5] = dy2 + dx1 * sy * sin + dy1 * sy * cos;
+  return transform;
+}
+>>>>>>> REPLACE
+```
+
+Wait, let me reconsider this. Looking at the transformation sequence more carefully, the compose function is meant to create a composite transform for: translate(dx1, dy1) → scale(sx, sy) → rotate(angle) → translate(dx2, dy2).
+
+The matrix multiplication should be:
+1. T(dx2, dy2) * R(angle) * S(sx, sy) * T(dx1, dy1)
+
+Let me recalculate this properly:
+
+```javascript
+### src/ol/transform.js
+<<<<<<< SEARCH
+export function compose(transform, dx1, dy1, sx, sy, angle, dx2, dy2) {
+  const sin = Math.sin(angle);
+  const cos = Math.cos(angle);
+  transform[0] = sx * cos;
+  transform[1] = sy * sin;
+  transform[2] = -sx * sin;
+  transform[3] = sy * cos;
+  transform[4] = dx2 * sx * cos - dy2 * sx * sin + dx1;
+  transform[5] = dx2 * sy * sin + dy2 * sy * cos + dy1;
+  return transform;
+}
+=======
+export function compose(transform, dx1, dy1, sx, sy, angle, dx2, dy2) {
+  const sin = Math.sin(angle);
+  const cos = Math.cos(angle);
+  transform[0] = sx * cos;
+  transform[1] = sy * sin;
+  transform[2] = -sx * sin;
+  transform[3] = sy * cos;
+  transform[4] = dx1 * sx * cos - dy1 * sx * sin + dx2;
+  transform[5] = dx1 * sy * sin + dy1 * sy * cos + dy2;
+  return transform;
+}
+>>>>>>> REPLACE
+```

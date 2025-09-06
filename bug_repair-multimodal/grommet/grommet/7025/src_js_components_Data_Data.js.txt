@@ -1,0 +1,101 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the "Clear Filters" button is missing when users interact with Data Toolbar components. According to the expected behavior, this button should appear whenever the user interacts with a Data Toolbar component (Filter, Search, etc.).
+
+Looking at the code, I can see that the `clearFilters` function is defined in the context value, but there's no UI component that renders this button when filters are applied. The issue is that we need to add a "Clear Filters" button to the toolbar when filters are active.
+
+Here's my fix:
+
+```javascript
+### src/js/components/Data/Data.js
+<<<<<<< SEARCH
+  let toolbarContent;
+  if (toolbar) {
+    toolbarContent = [
+      <Toolbar key="toolbar">
+        {(toolbar === true || toolbar === 'search') && <DataSearch />}
+        {(toolbar === true || toolbar === 'view') && <DataView />}
+        {(toolbar === true || toolbar === 'filters') && <DataFilters drop />}
+      </Toolbar>,
+      <DataSummary key="summary" />,
+    ];
+  }
+=======
+  let toolbarContent;
+  if (toolbar) {
+    // Check if any filters are applied by comparing view with defaultView
+    const hasFilters = Object.keys(view).some(
+      (key) => JSON.stringify(view[key]) !== JSON.stringify(defaultView[key] || '')
+    );
+
+    toolbarContent = [
+      <Toolbar key="toolbar">
+        {(toolbar === true || toolbar === 'search') && <DataSearch />}
+        {(toolbar === true || toolbar === 'view') && <DataView />}
+        {(toolbar === true || toolbar === 'filters') && <DataFilters drop />}
+        {hasFilters && (
+          <Box flex={false}>
+            <Button
+              label="Clear Filters"
+              onClick={contextValue.clearFilters}
+              secondary
+            />
+          </Box>
+        )}
+      </Toolbar>,
+      <DataSummary key="summary" />,
+    ];
+  }
+>>>>>>> REPLACE
+```
+
+Wait, I need to add the Button import. Let me fix that:
+
+```javascript
+### src/js/components/Data/Data.js
+<<<<<<< SEARCH
+import React, { useContext, useEffect, useMemo, useState } from 'react';
+import { AnnounceContext } from '../../contexts';
+import { Box } from '../Box';
+import { DataFilters } from '../DataFilters';
+import { DataSearch } from '../DataSearch';
+import { DataSummary } from '../DataSummary';
+import { DataView } from '../DataView';
+import { Toolbar } from '../Toolbar';
+=======
+import React, { useContext, useEffect, useMemo, useState } from 'react';
+import { AnnounceContext } from '../../contexts';
+import { Box } from '../Box';
+import { Button } from '../Button';
+import { DataFilters } from '../DataFilters';
+import { DataSearch } from '../DataSearch';
+import { DataSummary } from '../DataSummary';
+import { DataView } from '../DataView';
+import { Toolbar } from '../Toolbar';
+>>>>>>> REPLACE
+```
+
+And I need to add the missing `normalizeView` function that's used in the code but not defined in the provided snippet:
+
+```javascript
+### src/js/components/Data/Data.js
+<<<<<<< SEARCH
+const defaultDefaultView = { search: '' };
+
+
+=======
+const defaultDefaultView = { search: '' };
+
+const normalizeView = (view, views) => {
+  if (views && views[view]) return views[view];
+  return view;
+};
+
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Add the missing Button import
+2. Add the missing normalizeView function
+3. Add logic to detect when filters are applied by comparing the current view with the default view
+4. Add a "Clear Filters" button to the toolbar when filters are active, which calls the clearFilters function when clicked

@@ -1,0 +1,34 @@
+Based on the issue description, the bug is in the `send_robust()` method of the Signal class. The issue states that exceptions caught in `send_robust()` should be logged, but currently there's no logging of these exceptions.
+
+Here's the fix to add logging for caught exceptions:
+
+```python
+### django/dispatch/dispatcher.py
+<<<<<<< SEARCH
+            try:
+                response = receiver(signal=self, sender=sender, **named)
+            except Exception as err:
+                responses.append((receiver, err))
+            else:
+                responses.append((receiver, response))
+=======
+            try:
+                response = receiver(signal=self, sender=sender, **named)
+            except Exception as err:
+                import logging
+                logger = logging.getLogger('django.dispatch')
+                logger.exception('Error calling signal receiver %r', receiver)
+                responses.append((receiver, err))
+            else:
+                responses.append((receiver, response))
+>>>>>>> REPLACE
+```
+
+This change:
+1. Adds proper exception logging using Django's logging system
+2. Uses the 'django.dispatch' logger namespace which is consistent with Django's logging practices
+3. Includes the receiver information in the log message for debugging purposes
+4. Uses logger.exception() which automatically includes the full traceback
+5. Maintains the original behavior of returning the error in the responses list
+
+The indentation is preserved to match the existing code structure. The logging will help developers track down issues with signal receivers while maintaining the robust nature of `send_robust()`.

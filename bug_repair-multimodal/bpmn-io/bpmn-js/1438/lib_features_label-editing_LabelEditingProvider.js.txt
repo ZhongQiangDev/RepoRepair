@@ -1,0 +1,71 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is that message element names are not being rendered in BPMN diagrams. Looking at the provided screenshot, we can see message elements (envelope icons) on message flows, but their names are not displayed.
+
+The problem is in the `LabelEditingProvider.js` file, which handles how labels are displayed for different BPMN elements. Currently, there's no specific handling for message elements.
+
+## Solution
+
+We need to add support for message elements in the `LabelEditingProvider.prototype.getEditingBBox` method. Specifically, we need to handle elements of type 'bpmn:Message' to display their names properly.
+
+Here's the fix:
+
+```javascript
+### lib/features/label-editing/LabelEditingProvider.js
+<<<<<<< SEARCH
+  // external labels for events, data elements, gateways, groups and connections
+  if (target.labelTarget) {
+    assign(bounds, {
+      width: width,
+      height: bbox.height + paddingTop + paddingBottom,
+      x: mid.x - width / 2,
+      y: bbox.y - paddingTop
+    });
+
+    assign(style, {
+      fontSize: externalFontSize + 'px',
+      lineHeight: externalLineHeight,
+      paddingTop: paddingTop + 'px',
+      paddingBottom: paddingBottom + 'px'
+    });
+  }
+=======
+  // external labels for events, data elements, gateways, groups, messages and connections
+  if (target.labelTarget) {
+    assign(bounds, {
+      width: width,
+      height: bbox.height + paddingTop + paddingBottom,
+      x: mid.x - width / 2,
+      y: bbox.y - paddingTop
+    });
+
+    assign(style, {
+      fontSize: externalFontSize + 'px',
+      lineHeight: externalLineHeight,
+      paddingTop: paddingTop + 'px',
+      paddingBottom: paddingBottom + 'px'
+    });
+  }
+
+  // message elements
+  if (is(element, 'bpmn:Message')) {
+    assign(bounds, {
+      width: width,
+      height: bbox.height + paddingTop + paddingBottom,
+      x: mid.x - width / 2,
+      y: bbox.y + bbox.height + 5
+    });
+
+    assign(style, {
+      fontSize: externalFontSize + 'px',
+      lineHeight: externalLineHeight,
+      paddingTop: paddingTop + 'px',
+      paddingBottom: paddingBottom + 'px'
+    });
+  }
+>>>>>>> REPLACE
+```
+
+This change adds a specific case for 'bpmn:Message' elements. When a message element is encountered, it positions the label below the message icon (by adding the bbox.height + 5 to the y-coordinate) and applies the same styling as external labels. This will ensure that message names are displayed properly in the diagram.

@@ -1,0 +1,30 @@
+Based on the issue description, the bug is in the `pytest_runtest_makereport` hook within `src/_pytest/skipping.py`. The issue occurs when `--runxfail` is used, causing skip location reporting to point to the internal pytest implementation rather than the actual test location.
+
+The problem is in the condition that checks whether to update the skip location. Currently, it checks `skipped_by_mark_key` which is always True by default, but it should only update the location if we're not using `--runxfail`.
+
+Here's the fix:
+
+```python
+### src/_pytest/skipping.py
+<<<<<<< SEARCH
+    elif (
+        item._store.get(skipped_by_mark_key, True)
+        and rep.skipped
+        and type(rep.longrepr) is tuple
+    ):
+=======
+    elif (
+        not item.config.option.runxfail
+        and item._store.get(skipped_by_mark_key, True)
+        and rep.skipped
+        and type(rep.longrepr) is tuple
+    ):
+>>>>>>> REPLACE
+```
+
+This fix adds a check for `not item.config.option.runxfail` to ensure we only modify the skip location when `--runxfail` is not being used. This preserves the original skip location reporting behavior when running normally, while preventing interference when `--runxfail` is active.
+
+The change ensures that:
+1. When running without `--runxfail`, skip locations will point to the test definition
+2. When running with `--runxfail`, the skip location reporting remains unmodified
+3. The fix maintains backward compatibility with existing behavior for all other cases

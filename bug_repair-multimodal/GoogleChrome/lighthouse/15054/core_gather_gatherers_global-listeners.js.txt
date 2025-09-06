@@ -1,0 +1,103 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that the `GlobalListeners` gatherer is only checking for event listeners in the main execution context, but extensions like LastPass can inject unload listeners in isolated execution contexts that won't be detected by the current implementation. This causes a discrepancy where the bfcache audit fails (which checks actual browser behavior) but the no-unload-listeners audit passes (which only checks what's visible in the main context).
+
+The fix needs to check for event listeners in all execution contexts, not just the main one.
+
+## Solution
+
+We need to modify the `getArtifact` method to:
+1. Get all execution contexts
+2. Check for event listeners in each context
+3. Combine and deduplicate the results
+
+Here's the fix:
+
+```javascript
+### core/gather/gatherers/global-listeners.js
+<<<<<<< SEARCH
+  /**
+   * @param {LH.Gatherer.FRTransitionalContext} passContext
+   * @return {Promise<LH.Artifacts['GlobalListeners']>}
+   */
+  async getArtifact(passContext) {
+    const session = passContext.driver.defaultSession;
+
+    // Get a RemoteObject handle to `window`.
+    const {result: {objectId}} = await session.sendCommand('Runtime.evaluate', {
+      expression: 'window',
+      returnByValue: false,
+    });
+    if (!objectId) {
+      throw new Error('Error fetching information about the global object');
+    }
+
+    // And get all its listeners of interest.
+    const {listeners} = await session.sendCommand('DOMDebugger.getEventListeners', {objectId});
+    const filteredListeners = listeners.filter(GlobalListeners._filterForAllowlistedTypes)
+    .map(listener => {
+      const {type, scriptId, lineNumber, columnNumber} = listener;
+      return {
+        type,
+        scriptId,
+        lineNumber,
+        columnNumber,
+      };
+    });
+
+    // Dedupe listeners with same underlying data.
+    return this.dedupeListeners(filteredListeners);
+=======
+  /**
+   * @param {LH.Gatherer.FRTransitionalContext} passContext
+   * @return {Promise<LH.Artifacts['GlobalListeners']>}
+   */
+  async getArtifact(passContext) {
+    const session = passContext.driver.defaultSession;
+    
+    // Get all execution contexts
+    const {contexts} = await session.sendCommand('Runtime.queryContexts');
+    
+    let allListeners = [];
+    
+    // Check each execution context for listeners
+    for (const context of contexts) {
+      try {
+        // Get a RemoteObject handle to `window` in this context
+        const {result: {objectId}} = await session.sendCommand('Runtime.evaluate', {
+          expression: 'window',
+          returnByValue: false,
+          contextId: context.id,
+        });
+        
+        if (!objectId) continue;
+        
+        // Get all listeners of interest in this context
+        const {listeners} = await session.sendCommand('DOMDebugger.getEventListeners', {objectId});
+        
+        const filteredListeners = listeners.filter(GlobalListeners._filterForAllowlistedTypes)
+          .map(listener => {
+            const {type, scriptId, lineNumber, columnNumber} = listener;
+            return {
+              type,
+              scriptId,
+              lineNumber,
+              columnNumber,
+            };
+          });
+          
+        allListeners = allListeners.concat(filteredListeners);
+      } catch (err) {
+        // Skip contexts that throw errors (like ones that have been destroyed)
+        continue;
+      }
+    }
+
+    // Dedupe listeners with same underlying data
+    return this.dedupeListeners(allListeners);
+>>>>>>> REPLACE
+```
+
+This solution iterates through all execution contexts in the browser, including those created by extensions, and checks for event listeners in each one. It handles potential errors that might occur when trying to access contexts that have been destroyed or are otherwise inaccessible. The results from all contexts are combined and then deduplicated to provide a comprehensive list of global event listeners.

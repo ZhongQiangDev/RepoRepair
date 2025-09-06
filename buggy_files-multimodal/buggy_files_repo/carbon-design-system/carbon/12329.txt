@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- The `DatePicker` component in v11 does not properly handle refs passed to it
+- Specifically, the ref is not being forwarded to the underlying input element as it did in v10
+- Users have to resort to querySelector to find the date picker input element that was previously accessible via ref
+
+2. Cause Analysis:
+- The root cause appears to be that the v11 DatePicker component is not using React.forwardRef
+- forwardRef is needed to properly pass refs through component boundaries
+- Without forwardRef, refs cannot be passed down to child/inner components
+- This is a regression from v10 where ref forwarding was working correctly
+
+3. Most Related Files:
+```
+packages/react/src/components/DatePicker/DatePicker.js
+packages/react/src/components/DatePicker/DatePicker-test.js
+packages/react/src/internal/ComponentToggle.js
+packages/react/src/components/DatePickerInput/DatePickerInput.js
+packages/react/src/internal/useControllableState.js
+```
+
+The files are ordered by importance because:
+1. DatePicker.js is the main component that needs to implement forwardRef
+2. DatePicker-test.js would need updated tests to verify ref forwarding
+3. ComponentToggle.js handles feature toggling between v10/v11 components
+4. DatePickerInput.js is the inner input component that should receive the forwarded ref
+5. useControllableState.js manages controlled/uncontrolled state which interacts with refs

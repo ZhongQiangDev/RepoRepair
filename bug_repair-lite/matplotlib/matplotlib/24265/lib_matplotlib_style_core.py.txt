@@ -1,0 +1,23 @@
+Based on the issue description, the bug occurs when trying to access the "seaborn-colorblind" style in matplotlib 3.6.1, which was working in version 3.4.3. Looking at the code, I can see that in the `use()` function, there's a style alias mapping that renames seaborn styles to include a version suffix "seaborn-v0_8-" due to deprecation.
+
+The fix needs to update the style name to match the new versioned format. Here's the *SEARCH/REPLACE* edit:
+
+```python
+### lib/matplotlib/style/core.py
+<<<<<<< SEARCH
+import matplotlib.pyplot as plt
+the_rc = plt.style.library["seaborn-colorblind"]
+=======
+import matplotlib.pyplot as plt
+the_rc = plt.style.library["seaborn-v0_8-colorblind"]
+>>>>>>> REPLACE
+```
+
+This fix aligns with the deprecation warning message in the code:
+```python
+"they will remain available as 'seaborn-v0_8-<style>'"
+```
+
+The change is necessary because matplotlib 3.6.1 renamed all seaborn styles to include the version suffix "seaborn-v0_8-" to indicate these are the old seaborn 0.8 compatible styles, as the styles no longer correspond to current seaborn styles. This was done as part of the deprecation process mentioned in the warning message.
+
+The fix updates the style name to use the new versioned format that's compatible with matplotlib 3.6.1 while maintaining the same visual style as before.

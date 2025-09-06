@@ -1,0 +1,48 @@
+From the issue, the bug appears to be in the `_print_MatAdd` method where it's trying to use `sympify` to check if the coefficient is negative, which is causing errors when handling matrix symbols with special characters like '*'.
+
+The fix is to use `_coeff_isneg` helper function instead of trying to sympify the coefficient. Here's the edit:
+
+```python
+### sympy/printing/pretty/pretty.py
+<<<<<<< SEARCH
+    def _print_MatAdd(self, expr):
+        s = None
+        for item in expr.args:
+            pform = self._print(item)
+            if s is None:
+                s = pform     # First element
+            else:
+                if S(item.args[0]).is_negative:
+                    s = prettyForm(*stringPict.next(s, ' '))
+                    pform = self._print(item)
+                else:
+                    s = prettyForm(*stringPict.next(s, ' + '))
+                s = prettyForm(*stringPict.next(s, pform))
+
+        return s
+=======
+    def _print_MatAdd(self, expr):
+        s = None
+        for item in expr.args:
+            pform = self._print(item)
+            if s is None:
+                s = pform     # First element
+            else:
+                if _coeff_isneg(item):
+                    s = prettyForm(*stringPict.next(s, ' '))
+                    pform = self._print(item)
+                else:
+                    s = prettyForm(*stringPict.next(s, ' + '))
+                s = prettyForm(*stringPict.next(s, pform))
+
+        return s
+>>>>>>> REPLACE
+```
+
+This change:
+
+1. Removes the problematic `S(item.args[0]).is_negative` check that was trying to sympify the coefficient
+2. Replaces it with `_coeff_isneg(item)` which is a helper function already imported and used elsewhere in the file
+3. Maintains the same logic flow but avoids the sympify error when handling matrix symbols with special characters
+
+The `_coeff_isneg` function is designed to safely check if a term has a negative coefficient without needing to sympify strings, making it more robust for handling matrix symbols.

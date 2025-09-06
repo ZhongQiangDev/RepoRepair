@@ -1,0 +1,74 @@
+I'll analyze the issue and provide a solution.
+
+The issue is about disabling body scrolling when a modal is open. Currently, when a modal is open, the background content can still be scrolled, which is not the desired behavior. The user wants to disable scrolling of the background content when the modal is open, similar to how Bootstrap adds a `modal-open` class to the body element.
+
+Looking at the Modal component code, I can see that it doesn't currently handle disabling body scrolling. We need to add functionality to add/remove a class to the body element when the modal opens/closes.
+
+Here's my solution:
+
+```javascript
+### packages/react/src/components/Modal/Modal.js
+<<<<<<< SEARCH
+  componentDidUpdate(prevProps) {
+    if (!prevProps.open && this.props.open) {
+      this.beingOpen = true;
+    } else if (prevProps.open && !this.props.open) {
+      this.beingOpen = false;
+    }
+  }
+=======
+  componentDidUpdate(prevProps) {
+    if (!prevProps.open && this.props.open) {
+      this.beingOpen = true;
+      document.body.classList.add(`${prefix}--modal-open`);
+    } else if (prevProps.open && !this.props.open) {
+      this.beingOpen = false;
+      document.body.classList.remove(`${prefix}--modal-open`);
+    }
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Modal/Modal.js
+<<<<<<< SEARCH
+  componentDidMount() {
+    if (!this.props.open) {
+      return;
+    }
+    if (!this.props.focusTrap) {
+      this.focusButton(this.innerModal.current);
+    }
+  }
+=======
+  componentDidMount() {
+    if (!this.props.open) {
+      return;
+    }
+    if (!this.props.focusTrap) {
+      this.focusButton(this.innerModal.current);
+    }
+    document.body.classList.add(`${prefix}--modal-open`);
+  }
+
+  componentWillUnmount() {
+    if (this.props.open) {
+      document.body.classList.remove(`${prefix}--modal-open`);
+    }
+  }
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Add a CSS class `${prefix}--modal-open` to the body element when the modal opens
+2. Remove the class when the modal closes
+3. Handle the case when the component unmounts while the modal is still open
+
+The CSS class can then be styled in the Carbon styles to prevent scrolling, typically with something like:
+```css
+.bx--modal-open {
+  overflow: hidden;
+}
+```
+
+This solution follows the pattern mentioned in the issue where Bootstrap adds a class to the body element when a modal is open.

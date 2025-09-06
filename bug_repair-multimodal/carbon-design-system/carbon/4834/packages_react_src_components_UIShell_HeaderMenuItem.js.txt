@@ -1,0 +1,60 @@
+I'll analyze the issue and provide a fix for the DAP violations in the UIShell Header component.
+
+## Bug Analysis
+
+Based on the issue description, there are accessibility violations in the Header component. One specific issue mentioned is that the parent of the menu items needs a proper role attribute. The issue states:
+
+> Add a role to the parent of the menuitems. Use role="menu" or "menubar" or "group" to fix the issue.
+
+Looking at the `HeaderMenuItem.js` file, I can see that each menu item has a `role="menuitem"` on the Link component, but the parent `<li>` element doesn't have a consistent role. The issue occurs when the page size is reduced and the links don't display across the top of the page.
+
+## Fix
+
+The fix is to ensure that the parent element of the menu items has the appropriate role. In the `HeaderMenuItem.js` file, we need to modify the component to properly handle roles.
+
+```javascript
+### packages/react/src/components/UIShell/HeaderMenuItem.js
+<<<<<<< SEARCH
+const HeaderMenuItem = React.forwardRef(function HeaderMenuItem(
+  { className, children, role, ...rest },
+  ref
+) {
+  return (
+    <li className={className} role={role}>
+      <Link
+        {...rest}
+        className={`${prefix}--header__menu-item`}
+        ref={ref}
+        role="menuitem"
+        tabIndex={0}>
+        <span className={`${prefix}--text-truncate--end`}>{children}</span>
+      </Link>
+    </li>
+  );
+});
+=======
+const HeaderMenuItem = React.forwardRef(function HeaderMenuItem(
+  { className, children, role = 'none', ...rest },
+  ref
+) {
+  return (
+    <li className={className} role={role}>
+      <Link
+        {...rest}
+        className={`${prefix}--header__menu-item`}
+        ref={ref}
+        role="menuitem"
+        tabIndex={0}>
+        <span className={`${prefix}--text-truncate--end`}>{children}</span>
+      </Link>
+    </li>
+  );
+});
+>>>>>>> REPLACE
+```
+
+This change sets a default role of 'none' for the `<li>` element, which is the appropriate role for list items that are direct children of a menu (where the parent `<ul>` would have role="menu" or "menubar"). 
+
+The role="none" (equivalent to role="presentation") removes the list semantics from the `<li>` element while preserving the menuitem role on the actual interactive element (the Link), which is the correct accessibility pattern for menus.
+
+Note: This is only part of the solution. The parent component that contains the `<ul>` would also need to have the appropriate role="menu" or role="menubar" set, but that would be in a different file that wasn't provided in the code segments.

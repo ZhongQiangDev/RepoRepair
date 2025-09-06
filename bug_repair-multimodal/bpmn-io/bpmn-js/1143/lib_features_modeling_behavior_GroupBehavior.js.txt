@@ -1,0 +1,166 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description and error screenshots, the problem occurs when adding a group to an empty diagram and then trying to add other elements. The error seems to happen because when a group is added to an empty diagram, there's no proper root element with a parent that has the necessary structure for categories.
+
+Looking at the `GroupBehavior.js` file, the issue is in the `getDefinitions()` function. When the diagram is empty and a group is added, `rootElement.businessObject.$parent` might be undefined, causing subsequent operations to fail.
+
+Here's the fix:
+
+```javascript
+### lib/features/modeling/behavior/GroupBehavior.js
+<<<<<<< SEARCH
+  /**
+   * Gets process definitions
+   *
+   * @return {ModdleElement} definitions
+   */
+  function getDefinitions() {
+    var rootElement = canvas.getRootElement(),
+        businessObject = getBusinessObject(rootElement);
+
+    return businessObject.$parent;
+  }
+=======
+  /**
+   * Gets process definitions
+   *
+   * @return {ModdleElement} definitions
+   */
+  function getDefinitions() {
+    var rootElement = canvas.getRootElement(),
+        businessObject = getBusinessObject(rootElement);
+
+    return businessObject && businessObject.$parent;
+  }
+>>>>>>> REPLACE
+```
+
+This change alone isn't sufficient, as we need to handle the case where definitions are not available. Let's also update the `execute` handler for 'shape.create':
+
+```javascript
+### lib/features/modeling/behavior/GroupBehavior.js
+<<<<<<< SEARCH
+  /**
+   * create new category + value when group was created
+   */
+  this.execute('shape.create', function(event) {
+
+    var context = event.context,
+        shape = context.shape,
+        businessObject = getBusinessObject(shape),
+        oldBusinessObject = shape.oldBusinessObject;
+
+    if (is(businessObject, 'bpmn:Group') && !businessObject.categoryValueRef) {
+
+      var definitions = getDefinitions(),
+          categoryValue = createCategoryValue(definitions, bpmnFactory);
+
+      // set name from copied group if existing
+      if (oldBusinessObject && oldBusinessObject.categoryValueRef) {
+        categoryValue.value = oldBusinessObject.categoryValueRef.value;
+      }
+
+      // link the reference to the Group
+      businessObject.categoryValueRef = categoryValue;
+
+    }
+
+  });
+=======
+  /**
+   * create new category + value when group was created
+   */
+  this.execute('shape.create', function(event) {
+
+    var context = event.context,
+        shape = context.shape,
+        businessObject = getBusinessObject(shape),
+        oldBusinessObject = shape.oldBusinessObject;
+
+    if (is(businessObject, 'bpmn:Group') && !businessObject.categoryValueRef) {
+
+      var definitions = getDefinitions();
+      
+      // Skip if no definitions are available yet
+      if (!definitions) {
+        return;
+      }
+      
+      var categoryValue = createCategoryValue(definitions, bpmnFactory);
+
+      // set name from copied group if existing
+      if (oldBusinessObject && oldBusinessObject.categoryValueRef) {
+        categoryValue.value = oldBusinessObject.categoryValueRef.value;
+      }
+
+      // link the reference to the Group
+      businessObject.categoryValueRef = categoryValue;
+
+    }
+
+  });
+>>>>>>> REPLACE
+```
+
+And similarly, we need to update the `reverted` handler for 'shape.delete':
+
+```javascript
+### lib/features/modeling/behavior/GroupBehavior.js
+<<<<<<< SEARCH
+  /**
+   * re-attach removed category
+   */
+  this.reverted('shape.delete', function(event) {
+
+    var context = event.context,
+        shape = context.shape;
+
+    if (is(shape, 'bpmn:Group')) {
+
+      var businessObject = getBusinessObject(shape),
+          categoryValueRef = businessObject.categoryValueRef,
+          definitions = getDefinitions(),
+          category = categoryValueRef ? categoryValueRef.$parent : null;
+
+      collectionAdd(category.get('categoryValue'), categoryValueRef);
+      collectionAdd(definitions.get('rootElements'), category);
+    }
+  });
+=======
+  /**
+   * re-attach removed category
+   */
+  this.reverted('shape.delete', function(event) {
+
+    var context = event.context,
+        shape = context.shape;
+
+    if (is(shape, 'bpmn:Group')) {
+
+      var businessObject = getBusinessObject(shape),
+          categoryValueRef = businessObject.categoryValueRef;
+          
+      if (!categoryValueRef) {
+        return;
+      }
+      
+      var definitions = getDefinitions();
+      
+      if (!definitions) {
+        return;
+      }
+      
+      var category = categoryValueRef.$parent;
+      
+      if (!category) {
+        return;
+      }
+
+      collectionAdd(category.get('categoryValue'), categoryValueRef);
+      collectionAdd(definitions.get('rootElements'), category);
+    }
+  });
+>>>>>>> REPLACE
+```
+
+These changes add proper null checks to prevent errors when working with groups in an empty diagram, addressing the issue described in the bug report.

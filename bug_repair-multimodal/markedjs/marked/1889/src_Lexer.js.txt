@@ -1,0 +1,29 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that lines with only spaces are being removed in code blocks, which is problematic for certain programming languages and real-time editing scenarios. This happens because of the line:
+
+```javascript
+src = src.replace(/^ +$/gm, '');
+```
+
+at the beginning of the `blockTokens` method in `src/Lexer.js`. This regex is removing lines that contain only spaces.
+
+The fix is to modify this line to only apply this replacement when not inside code blocks. However, since the `blockTokens` method is also used recursively for processing nested elements, we need to be careful.
+
+Looking at the issue, the best approach is to remove this line entirely from the `blockTokens` method, as it's causing the undesired behavior and doesn't seem to be necessary for proper markdown parsing (as evidenced by CommonMark's behavior).
+
+Here's the fix:
+
+```javascript
+### src/Lexer.js
+<<<<<<< SEARCH
+  blockTokens(src, tokens = [], top = true) {
+    src = src.replace(/^ +$/gm, '');
+    let token, i, l, lastToken;
+=======
+  blockTokens(src, tokens = [], top = true) {
+    let token, i, l, lastToken;
+>>>>>>> REPLACE
+```
+
+This change removes the problematic line that was stripping out lines containing only spaces, which will preserve those spaces in code blocks and other contexts.

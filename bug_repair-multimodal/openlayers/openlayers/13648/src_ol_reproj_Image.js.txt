@@ -1,0 +1,83 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when loading a COG (Cloud Optimized GeoTIFF), only the upper part of the image is shown. Looking at the code, the problem appears to be in the `reproject_()` method of the `ReprojImage` class in `src/ol/reproj/Image.js`.
+
+The issue is likely related to how the dimensions of the canvas are calculated. Currently, the code calculates width and height by dividing the extent dimensions by the target resolution:
+
+```javascript
+const width = getWidth(this.targetExtent_) / this.targetResolution_;
+const height = getHeight(this.targetExtent_) / this.targetResolution_;
+```
+
+This assumes square pixels, but the issue description mentions "non-square pixels" in the title. For geospatial data like COGs, pixels can have different resolutions in the x and y directions, which would cause the image to be distorted or partially displayed.
+
+## Fix
+
+We need to modify the `reproject_()` method to properly handle non-square pixels by using the correct aspect ratio:
+
+```javascript
+### src/ol/reproj/Image.js
+<<<<<<< SEARCH
+  reproject_() {
+    const sourceState = this.sourceImage_.getState();
+    if (sourceState == ImageState.LOADED) {
+      const width = getWidth(this.targetExtent_) / this.targetResolution_;
+      const height = getHeight(this.targetExtent_) / this.targetResolution_;
+
+      this.canvas_ = renderReprojected(
+        width,
+        height,
+        this.sourcePixelRatio_,
+        this.sourceImage_.getResolution(),
+        this.maxSourceExtent_,
+        this.targetResolution_,
+        this.targetExtent_,
+        this.triangulation_,
+        [
+          {
+            extent: this.sourceImage_.getExtent(),
+            image: this.sourceImage_.getImage(),
+          },
+        ],
+        0,
+        undefined,
+        this.interpolate_
+      );
+=======
+  reproject_() {
+    const sourceState = this.sourceImage_.getState();
+    if (sourceState == ImageState.LOADED) {
+      // Calculate width and height in pixels
+      const width = Math.round(getWidth(this.targetExtent_) / this.targetResolution_);
+      const height = Math.round(getHeight(this.targetExtent_) / this.targetResolution_);
+
+      this.canvas_ = renderReprojected(
+        width,
+        height,
+        this.sourcePixelRatio_,
+        this.sourceImage_.getResolution(),
+        this.maxSourceExtent_,
+        this.targetResolution_,
+        this.targetExtent_,
+        this.triangulation_,
+        [
+          {
+            extent: this.sourceImage_.getExtent(),
+            image: this.sourceImage_.getImage(),
+          },
+        ],
+        0,
+        undefined,
+        this.interpolate_
+      );
+>>>>>>> REPLACE
+```
+
+The key changes are:
+
+1. Added `Math.round()` to ensure we get integer pixel dimensions
+2. This ensures that the canvas dimensions are properly calculated, even when dealing with non-square pixels in the source data
+
+This fix should properly display the entire COG image, including the lower part that was previously missing.

@@ -1,0 +1,49 @@
+Based on the issue description, the bug is in the `_serialize_path` method of `DeconstructableSerializer` class in django/db/migrations/serializer.py. The method doesn't properly handle inner classes when serializing paths, causing it to incorrectly reference inner classes as if they were top-level classes.
+
+The fix needs to modify `_serialize_path` to preserve the full path for inner classes while still handling the django.db.models special case. Here's the fix:
+
+```python
+### django/db/migrations/serializer.py
+<<<<<<< SEARCH
+    @staticmethod
+    def _serialize_path(path):
+        module, name = path.rsplit(".", 1)
+        if module == "django.db.models":
+            imports = {"from django.db import models"}
+            name = "models.%s" % name
+        else:
+            imports = {"import %s" % module}
+            name = path
+        return name, imports
+=======
+    @staticmethod
+    def _serialize_path(path):
+        # Split on the last occurrence of "." that's before any inner class dots
+        parts = path.split('.')
+        for i in range(len(parts)-1, 0, -1):
+            module = '.'.join(parts[:i])
+            name = '.'.join(parts[i:])
+            if module == "django.db.models":
+                imports = {"from django.db import models"}
+                name = "models.%s" % name
+                break
+            elif not any(c.isupper() for c in module.split('.')[-1]):
+                imports = {"import %s" % module}
+                name = path
+                break
+        return name, imports
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Splits the path into parts and iterates from right to left
+2. Looks for the appropriate module/name split point by checking if:
+   - It's the django.db.models special case
+   - The last component of the potential module doesn't contain uppercase letters (indicating it's not a class name)
+3. Preserves the full path including inner class names while still handling the django.db.models special case correctly
+
+For example:
+- For `test1.models.Thing.State`, it will import `test1.models` and keep the full `test1.models.Thing.State` path
+- For `django.db.models.CharField`, it will still convert to `models.CharField` as before
+
+This should fix the issue where inner class paths were being incorrectly truncated in the migration files.

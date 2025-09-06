@@ -1,0 +1,59 @@
+Based on the issue description, the bug is in the LaTeX printer where it does not maintain the same order of monomials as the str and pretty printers. Looking at the example, we can see that the LaTeX output reorders the terms compared to the str/pretty output.
+
+The fix needs to ensure the LaTeX printer respects the same ordering as the other printers. The key is to modify the `_print_Add` method in the LatexPrinter class to use the same ordering logic.
+
+Here's the fix:
+
+```python
+### sympy/printing/latex.py
+<<<<<<< SEARCH
+    def _print_Add(self, expr, order=None):
+        if self.order == 'none':
+            terms = list(expr.args)
+        else:
+            terms = self._as_ordered_terms(expr, order=order)
+
+        tex = ""
+        for i, term in enumerate(terms):
+            if i == 0:
+                pass
+            elif _coeff_isneg(term):
+                tex += " - "
+                term = -term
+            else:
+                tex += " + "
+            term_tex = self._print(term)
+            if self._needs_add_brackets(term):
+                term_tex = r"\left(%s\right)" % term_tex
+            tex += term_tex
+
+        return tex
+=======
+    def _print_Add(self, expr, order=None):
+        terms = self._as_ordered_terms(expr, order=order)
+        tex = ""
+        for i, term in enumerate(terms):
+            if i == 0:
+                pass
+            elif _coeff_isneg(term):
+                tex += " - "
+                term = -term
+            else:
+                tex += " + "
+            term_tex = self._print(term)
+            if self._needs_add_brackets(term):
+                term_tex = r"\left(%s\right)" % term_tex
+            tex += term_tex
+
+        return tex
+>>>>>>> REPLACE
+```
+
+This change:
+
+1. Removes the conditional check for `self.order == 'none'` to ensure we always use `_as_ordered_terms`
+2. Always maintains the same term ordering as used by str/pretty printers
+
+The fix ensures that the LaTeX printer will output terms in the same order as the other printers, fixing the inconsistency shown in the issue example where terms like `x^4` and `2x^2` were reordered in the LaTeX output.
+
+This matches the behavior of the str and pretty printers which maintain a consistent ordering from highest to lowest degree terms.

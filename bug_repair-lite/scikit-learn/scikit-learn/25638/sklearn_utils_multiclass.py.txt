@@ -1,0 +1,35 @@
+Based on the issue description, the bug is related to handling nullable pandas dtypes ("Int64", "Float64", "boolean") in the `unique_labels` function. The issue occurs because these dtypes become `object` dtype when converted to numpy arrays.
+
+Looking at the code, we need to modify the `type_of_target` function to properly handle these nullable pandas dtypes. The key is to recognize these dtypes and treat them the same way as their non-nullable counterparts.
+
+Here's the fix:
+
+```python
+### sklearn/utils/multiclass.py
+<<<<<<< SEARCH
+    # Check float and contains non-integer float values
+    if y.dtype.kind == "f":
+        # [.1, .2, 3] or [[.1, .2, 3]] or [[1., .2]] and not [1., 2., 3.]
+        data = y.data if issparse(y) else y
+        if xp.any(data != data.astype(int)):
+            _assert_all_finite(data, input_name=input_name)
+            return "continuous" + suffix
+=======
+    # Check float and contains non-integer float values
+    if y.dtype.kind == "f" or str(y.dtype) in ["Float64", "Int64", "boolean"]:
+        # Handle both standard float and nullable pandas dtypes
+        data = y.data if issparse(y) else y
+        if y.dtype.kind == "f" and xp.any(data != data.astype(int)):
+            _assert_all_finite(data, input_name=input_name)
+            return "continuous" + suffix
+>>>>>>> REPLACE
+```
+
+This change:
+1. Adds a check for nullable pandas dtypes ("Float64", "Int64", "boolean")
+2. Only performs the float value check for actual float dtypes (y.dtype.kind == "f")
+3. Allows nullable pandas dtypes to be processed similarly to their non-nullable counterparts
+
+This modification will allow nullable pandas dtypes to be properly handled in `unique_labels` without raising the "Mix type of y not allowed" error, while maintaining the existing behavior for standard numeric types.
+
+The fix ensures that nullable pandas dtypes are recognized and processed appropriately, treating them as their corresponding non-nullable types rather than as object dtypes, which was causing the original issue.

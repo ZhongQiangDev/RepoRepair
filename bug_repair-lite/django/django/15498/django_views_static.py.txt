@@ -1,0 +1,40 @@
+Based on the issue description, the bug is in the `was_modified_since` function where it fails to properly handle empty strings in the If-Modified-Since header. The current code tries to parse any non-None header value, which causes an exception when the header is an empty string.
+
+To fix this, we should check if the header is empty before trying to parse it. Here's the fix:
+
+```python
+### django/views/static.py
+<<<<<<< SEARCH
+    try:
+        if header is None:
+            raise ValueError
+        matches = re.match(r"^([^;]+)(; length=([0-9]+))?$", header, re.IGNORECASE)
+        header_mtime = parse_http_date(matches[1])
+        header_len = matches[3]
+        if header_len and int(header_len) != size:
+            raise ValueError
+        if int(mtime) > header_mtime:
+            raise ValueError
+    except (AttributeError, ValueError, OverflowError):
+        return True
+    return False
+=======
+    try:
+        if not header:  # Handles None and empty string
+            raise ValueError
+        matches = re.match(r"^([^;]+)(; length=([0-9]+))?$", header, re.IGNORECASE)
+        header_mtime = parse_http_date(matches[1])
+        header_len = matches[3]
+        if header_len and int(header_len) != size:
+            raise ValueError
+        if int(mtime) > header_mtime:
+            raise ValueError
+    except (AttributeError, ValueError, OverflowError):
+        return True
+    return False
+>>>>>>> REPLACE
+```
+
+The change replaces `if header is None:` with `if not header:`, which will evaluate to True for both None and empty strings. This restores the previous behavior where empty strings were ignored for the If-Modified-Since header.
+
+The fix maintains proper error handling while ensuring that empty strings are treated the same way as None values, causing the function to return True (indicating the content was modified) rather than raising an exception.

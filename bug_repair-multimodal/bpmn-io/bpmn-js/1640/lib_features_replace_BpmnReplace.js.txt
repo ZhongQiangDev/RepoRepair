@@ -1,0 +1,64 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when changing a task from parallel multi-instance to sequential multi-instance (or vice versa), the multi-instance properties like loop cardinality are lost. This happens because the code doesn't properly preserve the loop characteristics when replacing elements.
+
+Looking at the code, I can see that in the `replaceElement` function, there's a filter for properties to copy, and it includes a condition for `loopCharacteristics`:
+
+```javascript
+if (propertyName === 'loopCharacteristics') {
+  return !isEventSubProcess(newBusinessObject);
+}
+```
+
+This only checks if the new element is an event sub-process, but doesn't properly handle the case when switching between different types of multi-instance activities. The loop characteristics are being lost during the replacement.
+
+## Fix
+
+We need to modify the code to ensure that loop characteristics are preserved when switching between different types of multi-instance activities. Here's the fix:
+
+```javascript
+### lib/features/replace/BpmnReplace.js
+<<<<<<< SEARCH
+    var properties = filter(copyProps, function(propertyName) {
+
+      // copying event definitions, unless we replace
+      if (propertyName === 'eventDefinitions') {
+        return hasEventDefinition(element, target.eventDefinitionType);
+      }
+
+      // retain loop characteristics if the target element
+      // is not an event sub process
+      if (propertyName === 'loopCharacteristics') {
+        return !isEventSubProcess(newBusinessObject);
+      }
+
+      // so the applied properties from 'target' don't get lost
+      if (has(newBusinessObject, propertyName)) {
+        return false;
+      }
+=======
+    var properties = filter(copyProps, function(propertyName) {
+
+      // copying event definitions, unless we replace
+      if (propertyName === 'eventDefinitions') {
+        return hasEventDefinition(element, target.eventDefinitionType);
+      }
+
+      // retain loop characteristics if the target element
+      // is not an event sub process and is an activity
+      if (propertyName === 'loopCharacteristics') {
+        return !isEventSubProcess(newBusinessObject) && is(newBusinessObject, 'bpmn:Activity');
+      }
+
+      // so the applied properties from 'target' don't get lost
+      if (has(newBusinessObject, propertyName)) {
+        return false;
+      }
+>>>>>>> REPLACE
+```
+
+This change ensures that loop characteristics are preserved when replacing one activity with another, which will fix the issue of losing multi-instance properties when switching between parallel and sequential multi-instance.
+
+Additionally, I noticed that there are some missing helper functions in the provided code snippet. The issue might also be related to how the `moddleCopy.copyElement` function handles the loop characteristics. However, without seeing the implementation of that function, I've focused on the most likely cause of the issue based on the provided code.

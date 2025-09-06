@@ -1,0 +1,55 @@
+Based on the issue description, the bug is in the Intersection class implementation where it's not properly handling duplicates in the input arguments. The issue shows that `Intersection({1},{1},{x})` incorrectly returns `EmptySet()` when it should return `Piecewise(({1}, Eq(x, 1)), (S.EmptySet, True))` or remain unevaluated.
+
+The fix needs to be in the `__new__` method of the Intersection class to remove duplicates at instantiation. Here's the edit:
+
+```python
+### sympy/sets/sets.py
+<<<<<<< SEARCH
+    def __new__(cls, *args, **kwargs):
+        evaluate = kwargs.get('evaluate', global_evaluate[0])
+
+        # flatten inputs to merge intersections and iterables
+        args = _sympify(args)
+
+        # Reduce sets using known rules
+        if evaluate:
+            args = list(cls._new_args_filter(args))
+            return simplify_intersection(args)
+
+        args = list(ordered(args, Set._infimum_key))
+
+        obj = Basic.__new__(cls, *args)
+        obj._argset = frozenset(args)
+        return obj
+=======
+    def __new__(cls, *args, **kwargs):
+        evaluate = kwargs.get('evaluate', global_evaluate[0])
+
+        # flatten inputs to merge intersections and iterables
+        args = _sympify(args)
+
+        # Remove duplicates while preserving order
+        args = list(dict.fromkeys(args))
+
+        # Reduce sets using known rules
+        if evaluate:
+            args = list(cls._new_args_filter(args))
+            return simplify_intersection(args)
+
+        args = list(ordered(args, Set._infimum_key))
+
+        obj = Basic.__new__(cls, *args)
+        obj._argset = frozenset(args)
+        return obj
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Adds `args = list(dict.fromkeys(args))` to remove duplicates while preserving order before evaluation
+2. Keeps the original ordering and evaluation logic intact
+3. Ensures that duplicate sets are removed at instantiation time
+
+This will prevent the incorrect evaluation of `Intersection({1},{1},{x})` to `EmptySet()` since the duplicate `{1}` will be removed before evaluation, leaving only `Intersection({1},{x})` to be evaluated properly.
+
+The use of `dict.fromkeys()` is a clean and efficient way to remove duplicates while preserving order in Python 3.7+. This approach is better than using a set since sets don't preserve order and we want to maintain the original ordering as much as possible before the final ordering is applied.

@@ -1,0 +1,38 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue with cshtml code highlighting.
+
+## Identifying the Wrong Behavior
+The problem is that Prism.js is incorrectly highlighting various parts of Razor/cshtml code. Specifically:
+- Helper syntax (`@helper TrialHelper(string name)`) is not properly highlighted
+- C# attributes and expressions within HTML attributes (like `@Localize.GetLabelHtml("PLACEHOLDER")`) are highlighted incorrectly
+- The syntax highlighting doesn't match what Visual Studio shows for the same code
+
+## Analyzing the Cause
+Looking at the screenshots, I can see that:
+1. The C# code blocks and expressions are not being properly recognized
+2. The `@helper` directive is not being highlighted as a keyword
+3. The C# expressions inside HTML attributes are not being parsed correctly
+4. The nested structure of Razor/cshtml (mixing HTML and C#) is causing issues with the tokenizer
+
+This suggests problems with the cshtml language definition in Prism.js, particularly how it handles:
+- Razor syntax (`@` expressions)
+- Helper directives
+- Nested C# code within HTML attributes
+- The overall tokenization of mixed HTML/C# content
+
+## Files Most Related to the Cause
+
+```
+components/prism-cshtml.js
+components/prism-markup.js
+components/prism-csharp.js
+components/prism-core.js
+components/prism-markup-templating.js
+```
+
+The `components/prism-cshtml.js` file is the primary file that needs to be modified as it contains the specific language definition for cshtml/Razor. The issue is likely in how it defines patterns for Razor syntax elements.
+
+The `components/prism-markup.js` and `components/prism-csharp.js` files are also important as cshtml combines HTML markup with C# code, and the interaction between these language definitions might be causing issues.
+
+The `components/prism-core.js` contains the core tokenization logic that might need adjustments to properly handle the mixed language nature of cshtml.
+
+Finally, `components/prism-markup-templating.js` is relevant because Razor is essentially a templating language that embeds C# within HTML, and this file handles how templating languages are processed.

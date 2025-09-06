@@ -1,0 +1,34 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when creating a group inside a collapsed sub-process. When saving and re-importing the diagram, a warning appears: "unresolved reference <CategoryValue_01k5toe>".
+
+Looking at the code in `CategoryUtil.js`, I can see the problem. When creating a category value, the code adds the category to the root elements of the definitions, but it doesn't properly set the parent relationships. Specifically, the issue is that the code is trying to get the business object of the category itself, which doesn't work because the category is already a business object.
+
+The bug is in these lines:
+```javascript
+getBusinessObject(category).$parent = definitions;
+getBusinessObject(categoryValue).$parent = category;
+```
+
+Since `category` and `categoryValue` are already business objects created by `bpmnFactory.create()`, we shouldn't be calling `getBusinessObject()` on them.
+
+## Fix
+
+```javascript
+### lib/features/modeling/behavior/util/CategoryUtil.js
+<<<<<<< SEARCH
+  // add to correct place
+  collectionAdd(definitions.get('rootElements'), category);
+  getBusinessObject(category).$parent = definitions;
+  getBusinessObject(categoryValue).$parent = category;
+=======
+  // add to correct place
+  collectionAdd(definitions.get('rootElements'), category);
+  category.$parent = definitions;
+  categoryValue.$parent = category;
+>>>>>>> REPLACE
+```
+
+This fix removes the unnecessary calls to `getBusinessObject()` since `category` and `categoryValue` are already business objects. By directly setting the `$parent` property on these objects, we ensure the proper parent-child relationships are established, which should resolve the "unresolved reference" warning when re-importing the diagram.

@@ -1,0 +1,106 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is related to the Tree component in version 1.20.23, where it's adding a key to immutable data. Based on the screenshots, it appears that the component is modifying immutable data by adding a key property to it, which is causing problems.
+
+Looking at the code, the issue is in the `preHandleData` function. This function processes the data source and adds properties like `pos`, `level`, `isLeaf`, `isLastChild`, and potentially `key` to each item. The problem is that it's directly modifying the original item objects instead of creating new objects.
+
+## Solution
+
+We need to modify the `preHandleData` function to create a new object for each item instead of modifying the original one. This way, we won't mutate the immutable data.
+
+```javascript
+### src/tree/view/tree.jsx
+<<<<<<< SEARCH
+const preHandleData = (dataSource, props) => {
+    const k2n = {};
+    const p2n = {};
+
+    const drill = (data = [], level = 1, prefix = '0', parent) =>
+        data.map((item, index) => {
+            // 为了兼容之前的实现 保留非法节点
+            if (item.illegalFlag) {
+                return item;
+            }
+
+            const { children } = item;
+            const pos = `${prefix}-${index}`;
+            let { key } = item;
+
+            item.pos = pos;
+            item.level = level;
+
+            // 判断为叶子节点
+            // - 指定isLeaf属性
+            // - loadData模式下 没有指定isLeaf为true
+            // - 存在children元素
+            if (!('isLeaf' in item)) {
+                item.isLeaf = !((children && children.length) || props.loadData);
+            }
+            item.isLastChild = parent ? [].concat(parent.isLastChild || [], index === data.length - 1) : [];
+
+            if (key === undefined || key === null) {
+                item.key = key = pos;
+            }
+
+            !item.isLeaf && drill(children, level + 1, pos, item);
+
+            k2n[key] = p2n[pos] = { ...item };
+
+            return item;
+        });
+
+    return { dataSource: drill(dataSource), k2n, p2n };
+};
+=======
+const preHandleData = (dataSource, props) => {
+    const k2n = {};
+    const p2n = {};
+
+    const drill = (data = [], level = 1, prefix = '0', parent) =>
+        data.map((item, index) => {
+            // 为了兼容之前的实现 保留非法节点
+            if (item.illegalFlag) {
+                return item;
+            }
+
+            const { children } = item;
+            const pos = `${prefix}-${index}`;
+            let { key } = item;
+
+            // Create a new object instead of modifying the original
+            const newItem = { ...item };
+            
+            newItem.pos = pos;
+            newItem.level = level;
+
+            // 判断为叶子节点
+            // - 指定isLeaf属性
+            // - loadData模式下 没有指定isLeaf为true
+            // - 存在children元素
+            if (!('isLeaf' in newItem)) {
+                newItem.isLeaf = !((children && children.length) || props.loadData);
+            }
+            newItem.isLastChild = parent ? [].concat(parent.isLastChild || [], index === data.length - 1) : [];
+
+            if (key === undefined || key === null) {
+                key = pos;
+                newItem.key = key;
+            }
+
+            if (!newItem.isLeaf && children) {
+                newItem.children = drill(children, level + 1, pos, newItem);
+            }
+
+            k2n[key] = p2n[pos] = { ...newItem };
+
+            return newItem;
+        });
+
+    return { dataSource: drill(dataSource), k2n, p2n };
+};
+>>>>>>> REPLACE
+```
+
+This fix creates a new object for each item instead of modifying the original one, which prevents mutation of immutable data. It also properly handles the recursive drilling of children by assigning the result back to the new item's children property.

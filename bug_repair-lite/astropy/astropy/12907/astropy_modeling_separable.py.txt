@@ -1,0 +1,26 @@
+Based on the issue description, the bug appears to be in the `_cstack` function within `astropy/modeling/separable.py`. The issue occurs when handling nested CompoundModels, where the separability matrix incorrectly shows dependencies between outputs and inputs that should be independent.
+
+The problem is in the `_cstack` function where it handles the right side matrix. The current code always sets the right side to 1s, which is incorrect when dealing with nested compound models. Instead, it should preserve the actual separability values from the right model.
+
+Here's the fix:
+
+```python
+### astropy/modeling/separable.py
+<<<<<<< SEARCH
+    if isinstance(right, Model):
+        cright = _coord_matrix(right, 'right', noutp)
+    else:
+        cright = np.zeros((noutp, right.shape[1]))
+        cright[-right.shape[0]:, -right.shape[1]:] = 1
+=======
+    if isinstance(right, Model):
+        cright = _coord_matrix(right, 'right', noutp)
+    else:
+        cright = np.zeros((noutp, right.shape[1]))
+        cright[-right.shape[0]:, -right.shape[1]:] = right
+>>>>>>> REPLACE
+```
+
+This change ensures that when stacking models side by side (using the & operator), the separability information from the right model is preserved rather than being overwritten with 1s. This fixes the issue with nested CompoundModels by maintaining the correct separability relationships between inputs and outputs.
+
+The original code was setting all elements in the right portion of the matrix to 1, which indicated full dependency between inputs and outputs. The fix preserves the actual separability values from the right model, allowing proper handling of nested compound models where some outputs should remain independent of certain inputs.

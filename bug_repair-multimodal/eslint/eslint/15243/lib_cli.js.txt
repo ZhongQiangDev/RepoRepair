@@ -1,0 +1,22 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about supporting async formatters in ESLint. Currently, the formatter's `format` method is expected to be synchronous, but the user wants to use an async formatter (specifically Shiki for code highlighting).
+
+Looking at the code in `lib/cli.js`, the problem is in the `printResults` function. The function loads the formatter asynchronously with `await engine.loadFormatter(format)`, but then calls `formatter.format(results)` synchronously, without awaiting it. This means that if `format` is an async function, the result won't be properly handled.
+
+## Fix
+
+We need to modify the `printResults` function to await the formatter's `format` method call:
+
+```javascript
+### lib/cli.js
+<<<<<<< SEARCH
+    const output = formatter.format(results);
+=======
+    const output = await formatter.format(results);
+>>>>>>> REPLACE
+```
+
+This change allows the formatter's `format` method to be asynchronous. When a formatter returns a Promise, the `await` will wait for it to resolve before continuing, enabling support for async formatters like Shiki.

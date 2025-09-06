@@ -1,0 +1,121 @@
+I'll analyze the issue and provide a fix for the border rendering problem with rounded views.
+
+## Bug Analysis
+
+The issue occurs when trying to draw borders around a rounded `<View>` component. As the `borderRadius` increases, the border rendering becomes distorted and doesn't properly follow the rounded corners.
+
+Looking at the code in `src/mixins/borders.js`, I can see that the problem is in how the border paths are drawn. The current implementation uses quadratic curves for the corners, but it doesn't properly account for larger border radius values.
+
+The key issue is that the current implementation:
+1. Doesn't properly adjust the starting and ending points of the border segments when there are rounded corners
+2. Uses quadratic curves that don't accurately follow the circular path needed for rounded corners
+
+## Fix
+
+I'll modify the border drawing functions to properly handle rounded corners with any border radius value:
+
+```javascript
+### src/mixins/borders.js
+<<<<<<< SEARCH
+  drawHorizontalBorder(p1, p2, r1, r2, width, color, style) {
+    if (width <= 0) return;
+
+    this.root.instance
+      .lineWidth(width)
+      .moveTo(p1[0], p1[1] + r1)
+      .quadraticCurveTo(p1[0], p1[1], p1[0] + r1, p1[1])
+      .lineTo(p2[0] - r2, p2[1])
+      .quadraticCurveTo(p2[0], p2[1], p2[0], p2[1] + r2)
+      .strokeColor(color);
+
+    this.traceBorder(style, width);
+  },
+  drawVerticalBorder(p1, p2, r1, r2, width, color, style) {
+    if (width <= 0) return;
+
+    this.root.instance
+      .lineWidth(width)
+      .moveTo(p1[0] + r1, p1[1])
+      .quadraticCurveTo(p1[0], p1[1], p1[0], p1[1] - r1)
+      .lineTo(p2[0], p2[1] + r2)
+      .quadraticCurveTo(p2[0], p2[1], p2[0] + r2, p2[1])
+      .strokeColor(color);
+
+    this.traceBorder(style, width);
+  },
+=======
+  drawHorizontalBorder(p1, p2, r1, r2, width, color, style) {
+    if (width <= 0) return;
+
+    // For rounded corners, we need to use arcs instead of quadratic curves
+    // to properly follow the circular path
+    const instance = this.root.instance;
+    instance.lineWidth(width).strokeColor(color);
+
+    if (r1 > 0 || r2 > 0) {
+      // Start a new path
+      instance.moveTo(p1[0] + Math.max(r1, 0), p1[1]);
+      
+      // Draw line to the start of the right corner
+      instance.lineTo(p2[0] - Math.max(r2, 0), p2[1]);
+      
+      // If we have rounded corners, we need to close the path properly
+      if (r1 > 0) {
+        // Draw the left corner arc
+        instance.arcTo(p1[0], p1[1], p1[0], p1[1] + r1, Math.abs(r1));
+      }
+      
+      if (r2 > 0) {
+        // Draw the right corner arc
+        instance.arcTo(p2[0], p2[1], p2[0], p2[1] + r2, Math.abs(r2));
+      }
+    } else {
+      // For straight borders, just draw a line
+      instance.moveTo(p1[0], p1[1]).lineTo(p2[0], p2[1]);
+    }
+
+    this.traceBorder(style, width);
+  },
+  drawVerticalBorder(p1, p2, r1, r2, width, color, style) {
+    if (width <= 0) return;
+
+    // For rounded corners, we need to use arcs instead of quadratic curves
+    // to properly follow the circular path
+    const instance = this.root.instance;
+    instance.lineWidth(width).strokeColor(color);
+
+    if (r1 > 0 || r2 > 0) {
+      // Start a new path
+      instance.moveTo(p1[0], p1[1] - Math.max(r1, 0));
+      
+      // Draw line to the start of the bottom corner
+      instance.lineTo(p2[0], p2[1] + Math.max(r2, 0));
+      
+      // If we have rounded corners, we need to close the path properly
+      if (r1 > 0) {
+        // Draw the top corner arc
+        instance.arcTo(p1[0], p1[1], p1[0] + r1, p1[1], Math.abs(r1));
+      }
+      
+      if (r2 > 0) {
+        // Draw the bottom corner arc
+        instance.arcTo(p2[0], p2[1], p2[0] + r2, p2[1], Math.abs(r2));
+      }
+    } else {
+      // For straight borders, just draw a line
+      instance.moveTo(p1[0], p1[1]).lineTo(p2[0], p2[1]);
+    }
+
+    this.traceBorder(style, width);
+  },
+>>>>>>> REPLACE
+```
+
+This fix replaces the quadratic curves with proper arc drawing using the `arcTo` method, which is better suited for drawing circular corners. The implementation:
+
+1. Uses `arcTo` to properly draw the rounded corners
+2. Handles both positive and negative radius values correctly
+3. Properly positions the start and end points of the border segments
+4. Falls back to simple lines for non-rounded corners
+
+This should fix the issue with borders on rounded views, allowing for proper circular borders regardless of the border radius value.

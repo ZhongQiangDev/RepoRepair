@@ -1,0 +1,131 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when users extract participant contents into a process diagram (by copying and pasting), the labels get lost. This happens during the pool extraction process.
+
+Looking at the code, I notice that the `LabelBehavior.js` file handles label creation and updates, but there's no specific handling for copy/paste operations. The issue mentions that this is probably due to "quirky label handling during copy/paste".
+
+The problem is likely that when elements are copied and pasted, the labels aren't being properly recreated or maintained. The `LabelBehavior` class has event handlers for creating labels after shape/connection creation, but it doesn't have specific handling for the copy/paste scenario.
+
+## Solution
+
+We need to add a handler for the copy/paste operation to ensure labels are properly recreated. The issue is that when elements are copied and pasted, the system treats them as new elements, but doesn't properly handle their associated labels.
+
+Here's the fix:
+
+```javascript
+### lib/features/modeling/behavior/LabelBehavior.js
+<<<<<<< SEARCH
+  // update di information on label creation
+  this.postExecute([ 'label.create' ], function(event) {
+
+    var context = event.context,
+        element = context.shape,
+        businessObject,
+        di;
+
+    // we want to trigger on real labels only
+    if (!element.labelTarget) {
+      return;
+    }
+
+    // we want to trigger on BPMN elements only
+    if (!is(element.labelTarget || element, 'bpmn:BaseElement')) {
+      return;
+    }
+
+    businessObject = element.businessObject,
+    di = businessObject.di;
+
+
+    if (!di.label) {
+      di.label = bpmnFactory.create('bpmndi:BPMNLabel', {
+        bounds: bpmnFactory.create('dc:Bounds')
+      });
+    }
+
+    assign(di.label.bounds, {
+      x: element.x,
+      y: element.y,
+      width: element.width,
+      height: element.height
+    });
+  });
+=======
+  // update di information on label creation
+  this.postExecute([ 'label.create' ], function(event) {
+
+    var context = event.context,
+        element = context.shape,
+        businessObject,
+        di;
+
+    // we want to trigger on real labels only
+    if (!element.labelTarget) {
+      return;
+    }
+
+    // we want to trigger on BPMN elements only
+    if (!is(element.labelTarget || element, 'bpmn:BaseElement')) {
+      return;
+    }
+
+    businessObject = element.businessObject,
+    di = businessObject.di;
+
+
+    if (!di.label) {
+      di.label = bpmnFactory.create('bpmndi:BPMNLabel', {
+        bounds: bpmnFactory.create('dc:Bounds')
+      });
+    }
+
+    assign(di.label.bounds, {
+      x: element.x,
+      y: element.y,
+      width: element.width,
+      height: element.height
+    });
+  });
+
+  // create labels for elements created during copy/paste
+  this.postExecute([ 'elements.create' ], function(event) {
+    var context = event.context,
+        elements = context.elements;
+
+    elements.forEach(function(element) {
+      if (!element.host && !isLabelExternal(element)) {
+        return;
+      }
+
+      var businessObject = element.businessObject;
+      
+      // only create label if name exists
+      var name = getLabel(element);
+      if (!name) {
+        return;
+      }
+
+      var labelCenter = getExternalLabelMid(element);
+
+      // we don't care about x and y
+      var labelDimensions = textRenderer.getExternalLabelBounds(
+        DEFAULT_LABEL_DIMENSIONS,
+        name
+      );
+
+      modeling.createLabel(element, labelCenter, {
+        id: businessObject.id + '_label',
+        businessObject: businessObject,
+        width: labelDimensions.width,
+        height: labelDimensions.height
+      });
+    });
+  });
+>>>>>>> REPLACE
+```
+
+This fix adds a new event handler for the `elements.create` event, which is triggered during copy/paste operations. The handler iterates through all created elements, checks if they should have external labels with content, and creates those labels if needed.
+
+The solution ensures that when elements are pasted after being copied, their labels are properly recreated with the correct content and positioning.

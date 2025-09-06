@@ -1,0 +1,94 @@
+I'll analyze the issue and provide a fix.
+
+The issue is about Markdown's italic, bold, and strike formatting being too greedy with punctuation. Specifically, when using nested formatting like `*__foo__*` or `_**bar**_`, the parser is incorrectly handling the punctuation.
+
+Looking at the code, the problem is in the regular expressions for 'bold', 'italic', and 'strike' patterns. The current patterns don't properly handle nested formatting markers. The issue suggests using a solution similar to what was proposed in issue #1679, which involves modifying the regex patterns to better handle the punctuation.
+
+Here's my fix:
+
+```javascript
+### components/prism-markdown.js
+<<<<<<< SEARCH
+	'bold': {
+		// **strong**
+		// __strong__
+
+		// Allow only one line break
+		pattern: /(^|[^\\])(\*\*|__)(?:(?:\r?\n|\r)(?!\r?\n|\r)|.)+?\2/,
+		lookbehind: true,
+		greedy: true,
+		inside: {
+			'punctuation': /^\*\*|^__|\*\*$|__$/
+		}
+	},
+	'italic': {
+		// *em*
+		// _em_
+
+		// Allow only one line break
+		pattern: /(^|[^\\])([*_])(?:(?:\r?\n|\r)(?!\r?\n|\r)|.)+?\2/,
+		lookbehind: true,
+		greedy: true,
+		inside: {
+			'punctuation': /^[*_]|[*_]$/
+		}
+	},
+	'strike': {
+		// ~~strike through~~
+		// ~strike~
+
+		// Allow only one line break
+		pattern: /(^|[^\\])(~~?)(?:(?:\r?\n|\r)(?!\r?\n|\r)|.)+?\2/,
+		lookbehind: true,
+		greedy: true,
+		inside: {
+			'punctuation': /^~~?|~~?$/
+		}
+	},
+=======
+	'bold': {
+		// **strong**
+		// __strong__
+
+		// Allow only one line break
+		pattern: /(^|[^\\])(\*\*|__)(?:(?:\r?\n|\r)(?!\r?\n|\r)|.)+?(\2)/,
+		lookbehind: true,
+		greedy: true,
+		inside: {
+			'punctuation': /^\*\*|^__|[\r\n]?\*\*$|[\r\n]?__$/
+		}
+	},
+	'italic': {
+		// *em*
+		// _em_
+
+		// Allow only one line break
+		pattern: /(^|[^\\])([*_])(?:(?:\r?\n|\r)(?!\r?\n|\r)|.)+?(\2)/,
+		lookbehind: true,
+		greedy: true,
+		inside: {
+			'punctuation': /^[*_]|[\r\n]?[*_]$/
+		}
+	},
+	'strike': {
+		// ~~strike through~~
+		// ~strike~
+
+		// Allow only one line break
+		pattern: /(^|[^\\])(~~?)(?:(?:\r?\n|\r)(?!\r?\n|\r)|.)+?(\2)/,
+		lookbehind: true,
+		greedy: true,
+		inside: {
+			'punctuation': /^~~?|[\r\n]?~~?$/
+		}
+	},
+>>>>>>> REPLACE
+```
+
+The key changes I made:
+
+1. Changed the backreference in the pattern from `\2` to a capturing group `(\2)` for all three styles (bold, italic, and strike). This ensures that the closing punctuation is properly captured.
+
+2. Updated the punctuation regex patterns to account for possible line breaks before the closing punctuation.
+
+These changes will fix the issue where nested formatting like `*__foo__*` or `_**bar**_` was being incorrectly handled by making the punctuation matching less greedy and more precise.

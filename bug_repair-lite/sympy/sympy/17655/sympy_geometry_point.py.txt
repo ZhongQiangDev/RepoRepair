@@ -1,0 +1,32 @@
+Based on the issue description, the bug occurs when trying to multiply a number with a Point object in the reverse order (number * point). The issue is that the Point class implements `__mul__` for point * number, but not `__rmul__` for number * point.
+
+The fix is to add the `__rmul__` method to the Point class that delegates to `__mul__`. Here's the edit:
+
+```python
+### sympy/geometry/point.py
+<<<<<<< SEARCH
+    def __neg__(self):
+        """Negate the point."""
+        coords = [-x for x in self.args]
+        return Point(coords, evaluate=False)
+
+    def __sub__(self, other):
+=======
+    def __neg__(self):
+        """Negate the point."""
+        coords = [-x for x in self.args]
+        return Point(coords, evaluate=False)
+
+    def __rmul__(self, factor):
+        """Called for number * point to delegate to point * number"""
+        return self.__mul__(factor)
+
+    def __sub__(self, other):
+>>>>>>> REPLACE
+```
+
+This fix adds the `__rmul__` method to handle cases where a number multiplies a Point from the left side. The method simply delegates to the existing `__mul__` implementation, which already correctly handles the multiplication logic.
+
+This will make both `point * number` and `number * point` work consistently, fixing the issue shown in the example where `point1 + point2 * sympy.sympify(2.0)` works but `point1 + sympy.sympify(2.0) * point2` raises an exception.
+
+The fix maintains proper indentation and is inserted in a logical location between `__neg__` and `__sub__` methods, following the pattern of special method definitions in the class.

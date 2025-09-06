@@ -1,0 +1,48 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a user adds a featured image to a new post and then removes it, the post is incorrectly marked as "dirty" (having unsaved changes), causing the "Are You Sure?" dialog to appear when navigating away.
+
+Looking at the code, I found the problem in the `set()` function. There's a special case to handle featured images, but it has a logic flaw:
+
+```javascript
+// This prevents an unsaved changes dialogue from appearing
+// on a new post when only the featured image is added then removed.
+// See #17701 for context.
+if ( updatedPost.featured_image === '' && ! _savedPost.featured_image && _post.featured_image ) {
+    updatedPost = omit( updatedPost, 'featured_image' );
+}
+```
+
+The issue is that this condition only handles the case where:
+1. The updated post has an empty featured image string (`''`)
+2. The saved post doesn't have a featured image
+3. The current post has a featured image
+
+However, when a user adds a featured image to a new post and then removes it, the `featured_image` property is set to `null` rather than an empty string `''`. This means the condition never triggers, and the post is incorrectly marked as dirty.
+
+## Fix
+
+```javascript
+### client/lib/posts/post-edit-store.js
+<<<<<<< SEARCH
+	// This prevents an unsaved changes dialogue from appearing
+	// on a new post when only the featured image is added then removed.
+	// See #17701 for context.
+	if ( updatedPost.featured_image === '' && ! _savedPost.featured_image && _post.featured_image ) {
+		updatedPost = omit( updatedPost, 'featured_image' );
+	}
+=======
+	// This prevents an unsaved changes dialogue from appearing
+	// on a new post when only the featured image is added then removed.
+	// See #17701 for context.
+	if ( ( updatedPost.featured_image === '' || updatedPost.featured_image === null ) && 
+		! _savedPost.featured_image && 
+		_post.featured_image ) {
+		updatedPost = omit( updatedPost, 'featured_image' );
+	}
+>>>>>>> REPLACE
+```
+
+This fix modifies the condition to also check for `null` values in `updatedPost.featured_image`, which handles the case where a featured image is removed from a new post. This will prevent the post from being marked as dirty when a user adds and then removes a featured image on a new post, resolving the issue described in the ticket.

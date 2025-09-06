@@ -1,0 +1,44 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+When using QuerySet.none() with combined queries (using union()), selecting no publications in the form results in ALL objects being added instead of NO objects being added.
+
+2. Cause Analysis:
+The issue appears to be in how Django handles empty selections in ModelMultipleChoiceField when the queryset is created using union(). When no items are selected, it seems the empty selection validation is not properly handled for union() querysets compared to OR (|) operator querysets.
+
+3. Examining Files:
+
+django/db/models/lookups.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/db/models/manager.py:
+```
+django/db/models/manager.py
+class: EmptyManager
+```
+
+django/db/models/query.py:
+```
+django/db/models/query.py
+class: EmptyQuerySet
+class: QuerySet
+```
+
+django/db/models/sql/query.py:
+```
+django/db/models/sql/query.py
+class: Query
+```
+
+django/forms/models.py:
+```
+django/forms/models.py
+class: ModelMultipleChoiceField
+class: ModelChoiceField
+```
+
+The issue likely stems from the interaction between ModelMultipleChoiceField's handling of empty selections and how QuerySet.none() behaves with union() operations. The ModelMultipleChoiceField class is responsible for handling the form field validation and data cleaning, while QuerySet and EmptyQuerySet handle the database query operations. The Query class provides the low-level query building functionality that might be treating union() differently from OR operations when dealing with empty sets.
+
+The EmptyManager class might also be relevant as it could affect how empty querysets are handled, though it's likely secondary to the main issue in ModelMultipleChoiceField and QuerySet interaction.

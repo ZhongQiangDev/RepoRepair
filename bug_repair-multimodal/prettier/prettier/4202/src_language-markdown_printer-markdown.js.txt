@@ -1,0 +1,151 @@
+I'll analyze the issue and provide a solution.
+
+The issue is about limiting excessive line lengths when formatting markdown tables. Currently, when Prettier formats markdown tables with HTML content (like all-contributors tables), it creates very long lines in the separator row (the row with dashes). The issue suggests that for tables with very long content, Prettier should fall back to using simple three-dash separators (`:---:`) instead of trying to match the width of the content.
+
+Looking at the code, the problem is in the `printTable` function in `src/language-markdown/printer-markdown.js`. The function calculates the maximum width of each column and then creates separator lines with dashes that match those widths. For tables with HTML content, this can result in extremely long lines.
+
+Here's my solution:
+
+```javascript
+### src/language-markdown/printer-markdown.js
+<<<<<<< SEARCH
+function printTable(path, options, print) {
+  const node = path.getValue();
+  const contents = []; // { [rowIndex: number]: { [columnIndex: number]: string } }
+
+  path.map(rowPath => {
+    const rowContents = [];
+
+    rowPath.map(cellPath => {
+      rowContents.push(
+        printDocToString(cellPath.call(print), options).formatted
+      );
+    }, "children");
+
+    contents.push(rowContents);
+  }, "children");
+
+  const columnMaxWidths = contents.reduce(
+    (currentWidths, rowContents) =>
+      currentWidths.map((width, columnIndex) =>
+        Math.max(width, privateUtil.getStringWidth(rowContents[columnIndex]))
+      ),
+    contents[0].map(() => 3) // minimum width = 3 (---, :--, :-:, --:)
+  );
+
+  return join(hardline, [
+    printRow(contents[0]),
+    printSeparator(),
+    join(hardline, contents.slice(1).map(printRow))
+  ]);
+
+  function printSeparator() {
+    return concat([
+      "| ",
+      join(
+        " | ",
+        columnMaxWidths.map((width, index) => {
+          switch (node.align[index]) {
+            case "left":
+              return ":" + "-".repeat(width - 1);
+            case "right":
+              return "-".repeat(width - 1) + ":";
+            case "center":
+              return ":" + "-".repeat(width - 2) + ":";
+            default:
+              return "-".repeat(width);
+          }
+        })
+      ),
+      " |"
+    ]);
+  }
+=======
+function printTable(path, options, print) {
+  const node = path.getValue();
+  const contents = []; // { [rowIndex: number]: { [columnIndex: number]: string } }
+
+  path.map(rowPath => {
+    const rowContents = [];
+
+    rowPath.map(cellPath => {
+      rowContents.push(
+        printDocToString(cellPath.call(print), options).formatted
+      );
+    }, "children");
+
+    contents.push(rowContents);
+  }, "children");
+
+  // Check if any cell content is excessively long (more than 60 characters)
+  const hasLongContent = contents.some(row => 
+    row.some(cell => privateUtil.getStringWidth(cell) > 60)
+  );
+
+  const columnMaxWidths = contents.reduce(
+    (currentWidths, rowContents) =>
+      currentWidths.map((width, columnIndex) =>
+        Math.max(width, privateUtil.getStringWidth(rowContents[columnIndex]))
+      ),
+    contents[0].map(() => 3) // minimum width = 3 (---, :--, :-:, --:)
+  );
+
+  return join(hardline, [
+    printRow(contents[0]),
+    printSeparator(hasLongContent),
+    join(hardline, contents.slice(1).map(printRow))
+  ]);
+
+  function printSeparator(isSimpleSeparator) {
+    if (isSimpleSeparator) {
+      return concat([
+        "| ",
+        join(
+          " | ",
+          node.align.map(align => {
+            switch (align) {
+              case "left":
+                return ":---";
+              case "right":
+                return "---:";
+              case "center":
+                return ":---:";
+              default:
+                return "---";
+            }
+          })
+        ),
+        " |"
+      ]);
+    }
+    
+    return concat([
+      "| ",
+      join(
+        " | ",
+        columnMaxWidths.map((width, index) => {
+          switch (node.align[index]) {
+            case "left":
+              return ":" + "-".repeat(width - 1);
+            case "right":
+              return "-".repeat(width - 1) + ":";
+            case "center":
+              return ":" + "-".repeat(width - 2) + ":";
+            default:
+              return "-".repeat(width);
+          }
+        })
+      ),
+      " |"
+    ]);
+  }
+>>>>>>> REPLACE
+```
+
+This solution:
+
+1. Adds a check to detect if any cell content is excessively long (more than 60 characters)
+2. If long content is detected, it uses a simplified separator with just three dashes (`:---`, `---:`, `:---:`, or `---`) instead of trying to match the width of the content
+3. Otherwise, it keeps the original behavior of matching the width of the content
+
+The threshold of 60 characters is a reasonable limit that will prevent extremely long lines while still allowing normal tables to be formatted with the full-width separators.

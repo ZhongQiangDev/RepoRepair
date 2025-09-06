@@ -1,0 +1,74 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## 1. Identifying the Wrong Behavior
+
+The problem involves WebGLTiles / GeoTIFF source pyramids. When using a pyramid of WebGLTileLayers, WebGL contexts are being lost when there are too many layers, resulting in:
+- Not-rendered tiles
+- Poor performance (2-5 FPS instead of 30 FPS)
+- WebGL context loss errors in the console
+
+## 2. Analyzing the Cause
+
+The root cause is that the current implementation creates a separate WebGL context (canvas/renderer) for each layer in the pyramid. When there are many layers in a pyramid, this leads to too many WebGL contexts being created, which browsers have limits on. The solution proposed is to create a new source type that represents a pyramid of GeoTIFFs, similar to WMTS source, which would use a single WebGL context per layer/renderer instead of one per tile.
+
+## 3. Files Most Related to the Cause
+
+Based on the repository information, these are the most relevant files that would need to be modified:
+
+```
+src/ol/source/GeoTIFF.js
+src/ol/layer/WebGLTile.js
+examples/cog-pyramid.js
+src/ol/source/DataTile.js
+src/ol/renderer/webgl/TileLayer.js
+```
+
+The primary files that need modification are:
+
+1. `src/ol/source/GeoTIFF.js` - This is the main file that needs to be extended to support a pyramid of GeoTIFFs with a template string and tile grid object.
+
+2. `src/ol/layer/WebGLTile.js` - This file handles WebGL tile layers and would need modifications to work with the new pyramid source.
+
+3. `examples/cog-pyramid.js` - This is the example file mentioned in the issue that demonstrates the current approach with multiple WebGLTileLayers.
+
+4. `src/ol/source/DataTile.js` - The GeoTIFF source extends DataTile, so changes might be needed here to support the pyramid functionality.
+
+5. `src/ol/renderer/webgl/TileLayer.js` - This handles the WebGL rendering of tile layers and would need to be updated to properly handle the pyramid source with a single WebGL context.
+I'll analyze the GitHub problem description and identify the files most related to the issue.
+
+## 1. Identifying the Wrong Behavior
+The problem involves WebGLTileLayers and GeoTIFF pyramids. When using larger pyramids with more layers, WebGL contexts are being lost, resulting in:
+- Unrendered tiles
+- Poor performance (2-5 FPS instead of 30 FPS)
+- WebGL context loss errors in the console
+
+## 2. Analyzing the Cause
+The root cause appears to be related to how WebGL contexts are managed when dealing with multiple layers in a pyramid of GeoTIFF files. Currently, each layer likely creates its own WebGL context, and browsers have limits on how many WebGL contexts can be active simultaneously. When this limit is exceeded, contexts are lost.
+
+The proposed solution is to create a specialized source for GeoTIFF pyramids that would:
+- Use a template string and tile grid object (similar to WMTS source)
+- Compose requested tiles from overlapping tiles in the GeoTIFF pyramid
+- Use a single canvas/WebGL context per layer/renderer instead of multiple contexts
+
+## 3. Files Most Related to the Cause
+Based on the repository information provided, these are the most relevant files:
+
+```
+src/ol/webgl/Helper.js
+src/ol/webgl/TileTexture.js
+src/ol/tilegrid/TileGrid.js
+src/ol/source/XYZ.js
+src/ol/tilegrid/WMTS.js
+```
+
+These files are most relevant because:
+
+1. `src/ol/webgl/Helper.js` - Manages WebGL contexts and canvas elements, including context loss handling. This is central to the issue of WebGL context management.
+
+2. `src/ol/webgl/TileTexture.js` - Handles WebGL textures for tiles, which is directly related to rendering GeoTIFF tiles in WebGL.
+
+3. `src/ol/tilegrid/TileGrid.js` - Provides the core functionality for tile grid management, which would be needed for the proposed solution using a tile grid object.
+
+4. `src/ol/source/XYZ.js` - Serves as a model for the type of source that needs to be created (similar to how XYZ handles tile sources).
+
+5. `src/ol/tilegrid/WMTS.js` - Provides functionality similar to what's needed for the proposed solution, as it handles template strings and tile grid objects for WMTS sources.

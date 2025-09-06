@@ -1,0 +1,65 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about icon distortion in the `WebGLPoints` layer when using `icon-rotate-with-view: true` with a non-square viewport. 
+
+Looking at the provided code, I notice that the `WebGLPointsLayer` class is responsible for creating a renderer for the points layer. The renderer is created in the `createRenderer()` method, which passes various parameters to the `WebGLPointsLayerRenderer` constructor.
+
+The bug is likely in how the icons are rendered when the viewport is not square. When `icon-rotate-with-view` is true, the renderer should maintain the aspect ratio of the icons regardless of the viewport's dimensions.
+
+However, the current implementation in the provided file doesn't seem to handle this case correctly. The issue is not directly in this file, but rather in how the renderer is configured.
+
+Since we don't have the renderer implementation in the provided code, I'll need to make an educated guess about what needs to be fixed. Based on the issue description, we need to ensure that the renderer is aware of the viewport's aspect ratio when `icon-rotate-with-view` is true.
+
+Let's modify the `createRenderer()` method to pass this information to the renderer:
+
+```javascript
+### src/ol/layer/WebGLPoints.js
+<<<<<<< SEARCH
+  createRenderer() {
+    const attributes = Object.keys(this.parseResult_.attributes).map(
+      (name) => ({
+        name,
+        ...this.parseResult_.attributes[name],
+      })
+    );
+    return new WebGLPointsLayerRenderer(this, {
+      vertexShader: this.parseResult_.builder.getSymbolVertexShader(),
+      fragmentShader: this.parseResult_.builder.getSymbolFragmentShader(),
+      hitDetectionEnabled: !this.hitDetectionDisabled_,
+      uniforms: this.parseResult_.uniforms,
+      attributes:
+        /** @type {Array<import('../renderer/webgl/PointsLayer.js').CustomAttribute>} */ (
+          attributes
+        ),
+    });
+  }
+=======
+  createRenderer() {
+    const attributes = Object.keys(this.parseResult_.attributes).map(
+      (name) => ({
+        name,
+        ...this.parseResult_.attributes[name],
+      })
+    );
+    return new WebGLPointsLayerRenderer(this, {
+      vertexShader: this.parseResult_.builder.getSymbolVertexShader(),
+      fragmentShader: this.parseResult_.builder.getSymbolFragmentShader(),
+      hitDetectionEnabled: !this.hitDetectionDisabled_,
+      uniforms: this.parseResult_.uniforms,
+      attributes:
+        /** @type {Array<import('../renderer/webgl/PointsLayer.js').CustomAttribute>} */ (
+          attributes
+        ),
+      // Pass information about whether icons should maintain aspect ratio
+      // when rotated with view, to prevent distortion in non-square viewports
+      preserveIconAspectRatio: this.parseResult_.style['icon-rotate-with-view'] === true,
+    });
+  }
+>>>>>>> REPLACE
+```
+
+This change adds a new property `preserveIconAspectRatio` to the options passed to the renderer. This property is set to `true` when `icon-rotate-with-view` is true in the style, indicating that the renderer should maintain the aspect ratio of the icons when rotating them with the view.
+
+Note: This fix assumes that the `WebGLPointsLayerRenderer` will handle this new property correctly. The actual implementation of the fix would require changes to the renderer code as well, which is not provided in the current context.

@@ -1,0 +1,110 @@
+# Bug Analysis
+
+Based on the issue description, the problem is that when the JSON API is turned off for a Jetpack site, the comments endpoint returns a 403 error. This causes the system to repeatedly show error notices instead of gracefully handling the failure.
+
+The issue is in the error handling for comment requests. Currently, when a comment request fails, the system displays an error notice but doesn't prevent further retries. This leads to multiple error notices being displayed to the user.
+
+# Solution
+
+We need to modify the `announceFailure` function to:
+1. Limit retries by not dispatching further comment requests when a 403 error is encountered
+2. Show the error message in the comments section rather than as a notification
+
+Here's the fix:
+
+```javascript
+### client/state/data-layer/wpcom/comments/index.js
+<<<<<<< SEARCH
+export const announceFailure = ( { siteId, postId } ) => ( dispatch, getState ) => {
+	const post = getSitePost( getState(), siteId, postId );
+	const postTitle =
+		post &&
+		post.title &&
+		post.title
+			.trim()
+			.slice( 0, 20 )
+			.trim()
+			.concat( '…' );
+	const error = postTitle
+		? translate( 'Could not retrieve comments for "%(postTitle)s"', { args: { postTitle } } )
+		: translate( 'Could not retrieve comments for requested post' );
+
+	dispatch( errorNotice( error ) );
+};
+=======
+export const announceFailure = ( { siteId, postId }, error ) => ( dispatch, getState ) => {
+	// If we received a 403 error, it likely means the JSON API is disabled
+	// In this case, we should not retry and not show an error notice
+	if ( error && error.statusCode === 403 ) {
+		// Instead of showing an error notice, we'll handle this silently
+		// and update the comments state to indicate comments are disabled
+		dispatch( {
+			type: COMMENTS_RECEIVE,
+			siteId,
+			postId,
+			comments: [],
+			commentById: {},
+		} );
+		
+		dispatch( {
+			type: COMMENTS_COUNT_RECEIVE,
+			siteId,
+			postId,
+			totalCommentsCount: 0,
+		} );
+		
+		return;
+	}
+	
+	const post = getSitePost( getState(), siteId, postId );
+	const postTitle =
+		post &&
+		post.title &&
+		post.title
+			.trim()
+			.slice( 0, 20 )
+			.trim()
+			.concat( '…' );
+	const errorMessage = postTitle
+		? translate( 'Could not retrieve comments for "%(postTitle)s"', { args: { postTitle } } )
+		: translate( 'Could not retrieve comments for requested post' );
+
+	dispatch( errorNotice( errorMessage ) );
+};
+>>>>>>> REPLACE
+```
+
+This change:
+1. Accepts the error object as a parameter to check the status code
+2. For 403 errors (JSON API disabled), it:
+   - Doesn't show an error notice
+   - Updates the comments state with empty data to prevent further retries
+   - Sets the comments count to 0
+3. For other errors, it shows the error notice as before
+
+We also need to update the `dispatchRequestEx` call to pass the error to the `announceFailure` function:
+
+```javascript
+### client/state/data-layer/wpcom/comments/index.js
+<<<<<<< SEARCH
+export default {
+	[ COMMENTS_REQUEST ]: [
+		dispatchRequestEx( {
+			fetch: fetchPostComments,
+			onSuccess: addComments,
+			onError: announceFailure,
+		} ),
+	],
+=======
+export default {
+	[ COMMENTS_REQUEST ]: [
+		dispatchRequestEx( {
+			fetch: fetchPostComments,
+			onSuccess: addComments,
+			onError: ( action, error ) => announceFailure( action, error ),
+		} ),
+	],
+>>>>>>> REPLACE
+```
+
+These changes will prevent the system from showing multiple error notices when the JSON API is disabled, and will instead silently handle the error by marking the post as having no comments.

@@ -1,0 +1,31 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The issue is that in pytest 6.0.0rc0, dynamically adding an xfail marker to a test using `request.node.add_marker(mark)` no longer treats the failing test as expected. In pytest 5.x, this would mark the test as xfailed, but in 6.0.0rc0 it raises a failure instead.
+
+2. Cause Analysis:
+The problem appears to be in how pytest 6.0.0rc0 handles dynamically added markers during test execution. When a marker is added using `request.node.add_marker()`, the marker is successfully added but the test execution engine is not properly recognizing or respecting the xfail marker when it's added dynamically during the test run.
+
+3. Relevant Files/Functions Analysis:
+
+testing/python/collect.py:
+```
+class TestFunction:
+```
+This class is relevant as it handles test function execution and marker handling.
+
+testing/python/fixtures.py:
+```
+class TestRequestMarking:
+```
+This class is directly relevant as it tests the behavior of request.node.add_marker() functionality.
+
+testing/python/metafunc.py:
+```
+class TestMarkersWithParametrization:
+```
+This class is relevant as it deals with marker application and behavior, including xfail markers.
+
+The other files do not contain directly relevant functions/classes for this specific issue. The problem is primarily related to marker handling during test execution, and these three classes are the most pertinent to that functionality.
+
+The issue likely needs to be fixed in the implementation of how pytest processes dynamically added markers during test execution, particularly in the TestFunction class where the actual test execution and marker evaluation occurs.

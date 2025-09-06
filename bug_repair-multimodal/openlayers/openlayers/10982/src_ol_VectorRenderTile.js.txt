@@ -1,0 +1,42 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when the browser is zoomed (e.g., at 150%) and vector tiles are rendered with `renderMode: 'image'`. The problem manifests as visible clipping between adjacent tiles, as shown in the GIF.
+
+Looking at the `VectorRenderTile.js` file, I can see that when creating canvas contexts for rendering tiles, the code is using a fixed size of 1x1 pixels:
+
+```javascript
+this.context_[key] = createCanvasContext2D(1, 1, canvasPool);
+```
+
+This is likely the source of the problem. When the browser is zoomed, the canvas needs to account for the device pixel ratio to ensure proper rendering without clipping artifacts.
+
+## Solution
+
+We need to modify the canvas creation to account for the device pixel ratio. This will ensure that the canvas has enough resolution when the browser is zoomed.
+
+```javascript
+### src/ol/VectorRenderTile.js
+<<<<<<< SEARCH
+  getContext(layer) {
+    const key = getUid(layer);
+    if (!(key in this.context_)) {
+      this.context_[key] = createCanvasContext2D(1, 1, canvasPool);
+    }
+    return this.context_[key];
+  }
+=======
+  getContext(layer) {
+    const key = getUid(layer);
+    if (!(key in this.context_)) {
+      // Use device pixel ratio to ensure proper rendering when browser is zoomed
+      const pixelRatio = window.devicePixelRatio || 1;
+      this.context_[key] = createCanvasContext2D(pixelRatio, pixelRatio, canvasPool);
+    }
+    return this.context_[key];
+  }
+>>>>>>> REPLACE
+```
+
+This change ensures that when creating a new canvas context, we account for the device pixel ratio, which is higher when the browser is zoomed (e.g., 1.5 for 150% zoom). This should prevent the clipping issues between tiles by ensuring the canvas has sufficient resolution.

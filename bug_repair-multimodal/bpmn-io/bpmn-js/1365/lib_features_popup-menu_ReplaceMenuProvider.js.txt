@@ -1,0 +1,146 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about implementing the ability to toggle `isCollection = true` on data objects, inputs, and outputs in BPMN diagrams. This should work similarly to the multiple/ad-hoc modifiers on user tasks, which are implemented through the popup menu.
+
+Looking at the provided code, I can see that `ReplaceMenuProvider.js` is responsible for creating menu entries for various BPMN elements. The issue mentions that this functionality should be similar to the multiple/ad-hoc modifiers, which would be part of the header items in the popup menu.
+
+The file has a method called `getHeaderEntries` that's not fully shown in the provided code, but it's likely responsible for creating header menu items for elements, including the multi-instance markers mentioned in the issue.
+
+## Solution
+
+We need to add support for the `isCollection` marker for data objects, data inputs, and data outputs. This requires adding a new header entry to the popup menu when these elements are selected.
+
+Here's my fix:
+
+```javascript
+### lib/features/popup-menu/ReplaceMenuProvider.js
+<<<<<<< SEARCH
+/**
+ * Get a list of header items for the given element. This includes buttons
+ * for multi instance markers and for the ad hoc marker.
+ *
+ * @param {djs.model.Base} element
+ *
+ * @return {Array<Object>} a list of menu entry items
+ */
+
+=======
+/**
+ * Get a list of header items for the given element. This includes buttons
+ * for multi instance markers and for the ad hoc marker.
+ *
+ * @param {djs.model.Base} element
+ *
+ * @return {Array<Object>} a list of menu entry items
+ */
+ReplaceMenuProvider.prototype.getHeaderEntries = function(element) {
+
+  var headerEntries = [];
+
+  if (is(element, 'bpmn:Activity') && !isEventSubProcess(element)) {
+    headerEntries = headerEntries.concat(this._getLoopEntries(element));
+  }
+
+  if (is(element, 'bpmn:DataObjectReference') ||
+      is(element, 'bpmn:DataStoreReference') ||
+      is(element, 'bpmn:DataInput') ||
+      is(element, 'bpmn:DataOutput')) {
+    headerEntries = headerEntries.concat(this._getDataObjectIsCollectionEntries(element));
+  }
+
+  if (is(element, 'bpmn:SubProcess') &&
+      !is(element, 'bpmn:Transaction') &&
+      !isEventSubProcess(element)) {
+    headerEntries.push(this._getAdHocEntry(element));
+  }
+
+  return headerEntries;
+};
+
+>>>>>>> REPLACE
+```
+
+Now I need to add the `_getDataObjectIsCollectionEntries` method:
+
+```javascript
+### lib/features/popup-menu/ReplaceMenuProvider.js
+<<<<<<< SEARCH
+/**
+ * Get the menu items containing a button for the ad hoc marker
+ *
+ * @param  {djs.model.Base} element
+ *
+ * @return {Object} a menu item
+ */
+
+=======
+/**
+ * Get the menu items containing a button for the ad hoc marker
+ *
+ * @param  {djs.model.Base} element
+ *
+ * @return {Object} a menu item
+ */
+ReplaceMenuProvider.prototype._getAdHocEntry = function(element) {
+  var translate = this._translate;
+  var businessObject = getBusinessObject(element);
+
+  var isAdHoc = is(businessObject, 'bpmn:AdHocSubProcess');
+
+  var entry = {
+    id: 'toggle-adhoc',
+    className: 'bpmn-icon-ad-hoc-marker',
+    title: translate('Ad-hoc'),
+    active: isAdHoc,
+    action: function(event, entry) {
+      this._modeling.updateModdleProperties(
+        element,
+        businessObject,
+        {
+          isAdHoc: !isAdHoc
+        }
+      );
+    }
+  };
+
+  return entry;
+};
+
+/**
+ * Get the menu items containing a button for the collection marker
+ *
+ * @param  {djs.model.Base} element
+ *
+ * @return {Array<Object>} a list of menu items
+ */
+ReplaceMenuProvider.prototype._getDataObjectIsCollectionEntries = function(element) {
+  var translate = this._translate;
+  var businessObject = getBusinessObject(element);
+
+  var isCollection = businessObject.isCollection || false;
+
+  var entry = {
+    id: 'toggle-is-collection',
+    className: 'bpmn-icon-parallel-mi-marker',
+    title: translate('Collection'),
+    active: isCollection,
+    action: function(event, entry) {
+      this._modeling.updateModdleProperties(
+        element,
+        businessObject,
+        {
+          isCollection: !isCollection
+        }
+      );
+    }
+  };
+
+  return [ entry ];
+};
+
+>>>>>>> REPLACE
+```
+
+These changes add support for the `isCollection` marker on data objects, data inputs, and data outputs. The implementation follows the same pattern as the existing ad-hoc marker functionality, creating a toggle button in the popup menu that updates the model property when clicked.

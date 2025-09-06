@@ -1,0 +1,49 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the IconButton component has incorrect right padding. The issue is that the IconButton is using a regular Button component without any special styling to adjust the padding for an icon-only button.
+
+Looking at the code, the IconButton component is simply wrapping a Button component with a Tooltip, but it's not applying any specific CSS class to adjust the padding for an icon-only button. This is causing the visual issue where the right padding appears off.
+
+Here's my fix:
+
+```javascript
+### packages/react/src/components/IconButton/index.js
+<<<<<<< SEARCH
+  return (
+    <Tooltip
+      align={align}
+      className={`${prefix}--icon-tooltip`}
+      defaultOpen={defaultOpen}
+      enterDelayMs={enterDelayMs}
+      label={label}
+      leaveDelayMs={leaveDelayMs}>
+      <Button {...rest} kind={kind} ref={ref} size={size}>
+        {children}
+      </Button>
+    </Tooltip>
+  );
+=======
+  return (
+    <Tooltip
+      align={align}
+      className={`${prefix}--icon-tooltip`}
+      defaultOpen={defaultOpen}
+      enterDelayMs={enterDelayMs}
+      label={label}
+      leaveDelayMs={leaveDelayMs}>
+      <Button 
+        {...rest} 
+        kind={kind} 
+        ref={ref} 
+        size={size}
+        className={`${prefix}--icon-button ${rest.className || ''}`}>
+        {children}
+      </Button>
+    </Tooltip>
+  );
+>>>>>>> REPLACE
+```
+
+This fix adds a specific CSS class `${prefix}--icon-button` to the Button component, which can be targeted in the CSS to adjust the padding specifically for icon buttons. It also preserves any existing className that might be passed through the rest props by appending it to the new class.
+
+The CSS for this class would need to be defined elsewhere in the codebase to properly adjust the right padding to match the left padding, creating a balanced appearance for the icon button.

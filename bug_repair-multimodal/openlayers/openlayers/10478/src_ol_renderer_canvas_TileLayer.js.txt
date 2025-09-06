@@ -1,0 +1,39 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about white areas appearing in a map when zooming in and out on a reprojected Tile layer. This happens because some tiles are being disposed and excluded from the stitching process during reprojection.
+
+Looking at the code, the problem is likely in the `isDrawableTile` method in `src/ol/renderer/canvas/TileLayer.js`. This method determines which tiles are considered drawable, and it currently only considers tiles in the LOADED, EMPTY, or ERROR states (with a condition) as drawable.
+
+The issue description mentions that tiles in the ABORT state are being excluded from the stitching process. When a tile is aborted but still contains valid data, it should still be considered drawable to prevent white areas from appearing.
+
+## Fix
+
+```javascript
+### src/ol/renderer/canvas/TileLayer.js
+<<<<<<< SEARCH
+  isDrawableTile(tile) {
+    const tileLayer = this.getLayer();
+    const tileState = tile.getState();
+    const useInterimTilesOnError = tileLayer.getUseInterimTilesOnError();
+    return tileState == TileState.LOADED ||
+        tileState == TileState.EMPTY ||
+        tileState == TileState.ERROR && !useInterimTilesOnError;
+  }
+=======
+  isDrawableTile(tile) {
+    const tileLayer = this.getLayer();
+    const tileState = tile.getState();
+    const useInterimTilesOnError = tileLayer.getUseInterimTilesOnError();
+    return tileState == TileState.LOADED ||
+        tileState == TileState.EMPTY ||
+        tileState == TileState.ERROR && !useInterimTilesOnError ||
+        tileState == TileState.ABORT && !!tile.getImage();
+  }
+>>>>>>> REPLACE
+```
+
+This fix modifies the `isDrawableTile` method to also consider tiles in the ABORT state as drawable, but only if they have a valid image (using `!!tile.getImage()`). This ensures that aborted tiles that still have valid image data are included in the rendering process, which should prevent the white areas from appearing during zooming and panning.
+
+The key insight is that we only want to include aborted tiles if they actually have image data to display. This way, we don't try to render tiles that have been aborted before they could load any data, while still using tiles that were aborted but managed to load some data first.

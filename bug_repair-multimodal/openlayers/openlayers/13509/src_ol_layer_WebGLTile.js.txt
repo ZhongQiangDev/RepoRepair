@@ -1,0 +1,37 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when a WebGLTile layer is placed inside a Group layer, changing the visibility of the Group to false doesn't hide the WebGLTile layer. This works correctly for regular Tile layers, but not for WebGLTile layers.
+
+Looking at the code, I notice that the `WebGLTileLayer` class doesn't properly respect the visibility property of its parent group when rendering. The `render` method doesn't check if the layer or any of its parent groups are visible before rendering.
+
+## Fix
+
+The issue is in the `render` method of the `WebGLTileLayer` class. We need to check the layer's visibility state before proceeding with rendering. The `frameState` parameter contains information about the layer's state, including visibility.
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+  render(frameState, target) {
+    this.rendered = true;
+    const viewState = frameState.viewState;
+    const sources = this.getSources(frameState.extent, viewState.resolution);
+    let ready = true;
+=======
+  render(frameState, target) {
+    this.rendered = true;
+    
+    // Check if the layer is visible before rendering
+    const layerState = frameState.layerStatesArray[frameState.layerIndex];
+    if (!layerState.visible) {
+      return null;
+    }
+    
+    const viewState = frameState.viewState;
+    const sources = this.getSources(frameState.extent, viewState.resolution);
+    let ready = true;
+>>>>>>> REPLACE
+```
+
+This fix ensures that the WebGLTile layer checks its visibility state (which includes the visibility of any parent groups) before rendering. If the layer is not visible, it returns null, which effectively makes the layer invisible.

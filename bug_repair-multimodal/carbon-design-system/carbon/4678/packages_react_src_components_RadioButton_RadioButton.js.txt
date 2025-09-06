@@ -1,0 +1,27 @@
+I've analyzed the issue and found the bug. The problem is that the React version of the RadioButton component is adding an `aria-label` attribute to the label element, which is causing screen readers to ignore the actual label text.
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/RadioButton/RadioButton.js
+<<<<<<< SEARCH
+        <label
+          htmlFor={this.uid}
+          className={`${prefix}--radio-button__label`}
+          aria-label={labelText}>
+          <span className={`${prefix}--radio-button__appearance`} />
+          <span className={innerLabelClasses}>{labelText}</span>
+        </label>
+=======
+        <label
+          htmlFor={this.uid}
+          className={`${prefix}--radio-button__label`}>
+          <span className={`${prefix}--radio-button__appearance`} />
+          <span className={innerLabelClasses}>{labelText}</span>
+        </label>
+>>>>>>> REPLACE
+```
+
+The issue is that adding `aria-label` to a label element that already contains visible text creates a conflict for screen readers. When `aria-label` is present, it overrides the visible text content for screen reader announcements. By removing the `aria-label` attribute, screen readers will properly announce the label text that's already visible in the DOM, which is what users expect.
+
+This matches the behavior of the vanilla HTML version where the label text is properly read by screen readers.

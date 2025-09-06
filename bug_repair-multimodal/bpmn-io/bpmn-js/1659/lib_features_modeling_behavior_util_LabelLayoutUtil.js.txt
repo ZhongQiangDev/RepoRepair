@@ -1,0 +1,56 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a connected shape is resized, the sequence flow (connection) is re-laid out, but labels and associations attached to that connection don't move with it. From the GIF, we can see that when the subprocess is resized, the connection adjusts but the label stays in its original position.
+
+Looking at the `LabelLayoutUtil.js` file, I can see that the `getLabelAdjustment` function is responsible for calculating how much a label should move when its connection's waypoints change. The function gets the label position and then calls `getAnchorPointAdjustment` to calculate the delta (how much the label should move).
+
+The issue is that while this function calculates the adjustment, it's not being applied to associations connected to the sequence flow. The function only handles direct labels, not associations that might be connected to the sequence flow.
+
+## Fix
+
+We need to modify the `getLabelAdjustment` function to properly handle both labels and associations. The function should return the complete adjustment object from `getAnchorPointAdjustment`, not just the delta property.
+
+```javascript
+### lib/features/modeling/behavior/util/LabelLayoutUtil.js
+<<<<<<< SEARCH
+/**
+ * Calculate the required adjustment (move delta) for the given label
+ * after the connection waypoints got updated.
+ *
+ * @param {djs.model.Label} label
+ * @param {Array<Point>} newWaypoints
+ * @param {Array<Point>} oldWaypoints
+ * @param {Object} hints
+ *
+ * @return {Point} delta
+ */
+export function getLabelAdjustment(label, newWaypoints, oldWaypoints, hints) {
+  var labelPosition = getLabelMid(label);
+
+  return getAnchorPointAdjustment(labelPosition, newWaypoints, oldWaypoints, hints).delta;
+}
+=======
+/**
+ * Calculate the required adjustment (move delta) for the given label
+ * after the connection waypoints got updated.
+ *
+ * @param {djs.model.Label} label
+ * @param {Array<Point>} newWaypoints
+ * @param {Array<Point>} oldWaypoints
+ * @param {Object} hints
+ *
+ * @return {Object} adjustment with delta and newPosition
+ */
+export function getLabelAdjustment(label, newWaypoints, oldWaypoints, hints) {
+  var labelPosition = getLabelMid(label);
+
+  return getAnchorPointAdjustment(labelPosition, newWaypoints, oldWaypoints, hints);
+}
+>>>>>>> REPLACE
+```
+
+This change ensures that the full adjustment object is returned, which includes both the delta (how much to move) and the new position. This will allow the calling code to properly update both labels and associations connected to the sequence flow when it's re-laid out after a resize operation.
+
+Note: This fix assumes that the code that calls `getLabelAdjustment` is expecting the full adjustment object and not just the delta. If that's not the case, additional changes might be needed in the code that consumes this function.

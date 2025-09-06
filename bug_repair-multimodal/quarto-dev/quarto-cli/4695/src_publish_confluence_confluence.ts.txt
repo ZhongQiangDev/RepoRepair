@@ -1,0 +1,102 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that links in `index.qmd` files aren't being resolved properly when published to Confluence. Looking at the example, links like `[January](2022-01.qmd)` work fine in local preview but don't appear on Confluence.
+
+After examining the code, I found that the issue is in the link updating process. The problem appears to be in the `flattenIndexes` function which is called during the site publishing process. This function is responsible for handling index files, but it's not properly updating the links in these files.
+
+## Fix
+
+The issue is in the `updateLinks` function which is called in the `publishSite` function. The function needs to properly handle links in index files. Let's modify the code:
+
+```typescript
+### src/publish/confluence/confluence.ts
+<<<<<<< SEARCH
+    changeList = flattenIndexes(changeList, metadataByFilename);
+
+    const { pass1Changes, pass2Changes } = updateLinks(
+      metadataByFilename,
+      changeList,
+      server,
+      siteParent
+    );
+=======
+    changeList = flattenIndexes(changeList, metadataByFilename);
+
+    // Update links in all files, including index files
+    const { pass1Changes, pass2Changes } = updateLinks(
+      metadataByFilename,
+      changeList,
+      server,
+      siteParent
+    );
+>>>>>>> REPLACE
+```
+
+This doesn't actually fix the issue directly, as the problem is likely in the implementation of the `updateLinks` or `flattenIndexes` functions. Since those functions aren't included in the provided code, I'll need to make an educated guess about what might be wrong.
+
+Let's add a more specific fix that addresses the issue with index files:
+
+```typescript
+### src/publish/confluence/confluence-helper.ts
+<<<<<<< SEARCH
+export function updateLinks(
+  metadataByFilename: Record<string, SitePage>,
+  changeList: ConfluenceSpaceChange[],
+  server: string,
+  parent: ConfluenceParent
+): { pass1Changes: ConfluenceSpaceChange[]; pass2Changes: ConfluenceSpaceChange[] } {
+=======
+export function updateLinks(
+  metadataByFilename: Record<string, SitePage>,
+  changeList: ConfluenceSpaceChange[],
+  server: string,
+  parent: ConfluenceParent
+): { pass1Changes: ConfluenceSpaceChange[]; pass2Changes: ConfluenceSpaceChange[] } {
+  // Ensure we process index files properly
+  const processIndexFiles = (changes: ConfluenceSpaceChange[]) => {
+    return changes.map(change => {
+      if (isContentCreate(change) || isContentUpdate(change)) {
+        const fileName = change.fileName || '';
+        if (fileName.endsWith('index.qmd') || fileName.endsWith('index.md')) {
+          // Make sure links in index files are properly processed
+          if (change.body && change.body.storage && change.body.storage.value) {
+            // Process relative links in index files
+            const content = change.body.storage.value;
+            // Replace markdown links like [text](file.qmd) with proper Confluence links
+            change.body.storage.value = content.replace(
+              /\[([^\]]+)\]\(([^)]+\.qmd|[^)]+\.md)\)/g,
+              (match, text, link) => {
+                // Check if the link target exists in our metadata
+                const dirName = fileName.substring(0, fileName.lastIndexOf('/') + 1);
+                const fullPath = dirName + link;
+                const normalizedPath = fullPath.replace(/\/index\.(qmd|md)$/, '');
+                
+                const targetPage = metadataByFilename[normalizedPath] || 
+                                  metadataByFilename[fullPath] || 
+                                  metadataByFilename[link];
+                
+                if (targetPage && targetPage.id) {
+                  // Create a Confluence link
+                  return `<ac:link><ri:page ri:content-title="${targetPage.title}" ri:space-key="${parent.space}"/><ac:plain-text-link-body><![CDATA[${text}]]></ac:plain-text-link-body></ac:link>`;
+                }
+                // Keep original if target not found
+                return match;
+              }
+            );
+          }
+        }
+      }
+      return change;
+    });
+  };
+  
+  // Apply the index file processing to our changes
+  changeList = processIndexFiles(changeList);
+>>>>>>> REPLACE
+```
+
+This fix adds a function to specifically handle links in index files by converting Markdown links to Confluence's link format. Since I don't have the full implementation of the `updateLinks` function, this is a best guess at where the issue might be.
+
+If the `confluence-helper.ts` file isn't accessible or if the structure is different, you might need to integrate this logic into the existing `updateLinks` function wherever it's defined.

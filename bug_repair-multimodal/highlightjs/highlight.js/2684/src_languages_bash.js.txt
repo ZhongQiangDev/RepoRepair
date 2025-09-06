@@ -1,0 +1,150 @@
+I'll analyze the issue and provide a fix for the bash language highlighting problem.
+
+Based on the issue description, the bash language highlighter is not properly highlighting several important bash syntax elements:
+1. Pipes (`|`)
+2. Line continuation backslashes (`\`)
+3. Stream redirections (`>`, `<`)
+4. Heredocs (`<<`, `<<<`)
+5. Subshell expressions (`$(...)`)
+
+Looking at the code, I can see that while there is a SUBST rule for `$(...)`, it's not being properly applied to the main language definition. Additionally, there are no rules for highlighting pipes, redirections, or heredocs.
+
+Here's my fix:
+
+```javascript
+### src/languages/bash.js
+<<<<<<< SEARCH
+  const SUBST = {
+    className: 'subst',
+    begin: /\$\(/, end: /\)/,
+    contains: [hljs.BACKSLASH_ESCAPE]
+  };
+=======
+  const SUBST = {
+    className: 'subst',
+    begin: /\$\(/, end: /\)/,
+    contains: [hljs.BACKSLASH_ESCAPE]
+  };
+  
+  const HERE_DOC = {
+    className: 'string',
+    begin: /<<-?\s*(?=\w+)/,
+    starts: {
+      end: /[\w]+/,
+    }
+  };
+  
+  const HERE_STRING = {
+    className: 'string',
+    begin: /<<<\s*(?=\w+)/,
+    starts: {
+      end: /[\w]+/,
+    }
+  };
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/languages/bash.js
+<<<<<<< SEARCH
+  return {
+    name: 'Bash',
+    aliases: ['sh', 'zsh'],
+    keywords: {
+      $pattern: /\b[a-z._-]+\b/,
+      keyword:
+        'if then else elif fi for while in do done case esac function',
+      literal:
+        'true false',
+      built_in:
+        // Shell built-ins
+        // http://www.gnu.org/software/bash/manual/html_node/Shell-Builtin-Commands.html
+        'break cd continue eval exec exit export getopts hash pwd readonly return shift test times ' +
+        'trap umask unset ' +
+        // Bash built-ins
+        'alias bind builtin caller command declare echo enable help let local logout mapfile printf ' +
+        'read readarray source type typeset ulimit unalias ' +
+        // Shell modifiers
+        'set shopt ' +
+        // Zsh built-ins
+        'autoload bg bindkey bye cap chdir clone comparguments compcall compctl compdescribe compfiles ' +
+        'compgroups compquote comptags comptry compvalues dirs disable disown echotc echoti emulate ' +
+        'fc fg float functions getcap getln history integer jobs kill limit log noglob popd print ' +
+        'pushd pushln rehash sched setcap setopt stat suspend ttyctl unfunction unhash unlimit ' +
+        'unsetopt vared wait whence where which zcompile zformat zftp zle zmodload zparseopts zprof ' +
+        'zpty zregexparse zsocket zstyle ztcp'
+    },
+    contains: [
+      KNOWN_SHEBANG, // to catch known shells and boost relevancy
+      hljs.SHEBANG(), // to catch unknown shells but still highlight the shebang
+      FUNCTION,
+      ARITHMETIC,
+      hljs.HASH_COMMENT_MODE,
+      QUOTE_STRING,
+      ESCAPED_QUOTE,
+      APOS_STRING,
+      VAR
+=======
+  const OPERATORS = {
+    className: 'operator',
+    begin: /\s([\|\&\;\<\>]|\|\||&&|\<\<|\>\>|\<\<\<)\s/
+  };
+  
+  const LINE_CONTINUATION = {
+    className: 'operator',
+    begin: /\\$/
+  };
+  
+  return {
+    name: 'Bash',
+    aliases: ['sh', 'zsh'],
+    keywords: {
+      $pattern: /\b[a-z._-]+\b/,
+      keyword:
+        'if then else elif fi for while in do done case esac function',
+      literal:
+        'true false',
+      built_in:
+        // Shell built-ins
+        // http://www.gnu.org/software/bash/manual/html_node/Shell-Builtin-Commands.html
+        'break cd continue eval exec exit export getopts hash pwd readonly return shift test times ' +
+        'trap umask unset ' +
+        // Bash built-ins
+        'alias bind builtin caller command declare echo enable help let local logout mapfile printf ' +
+        'read readarray source type typeset ulimit unalias ' +
+        // Shell modifiers
+        'set shopt ' +
+        // Zsh built-ins
+        'autoload bg bindkey bye cap chdir clone comparguments compcall compctl compdescribe compfiles ' +
+        'compgroups compquote comptags comptry compvalues dirs disable disown echotc echoti emulate ' +
+        'fc fg float functions getcap getln history integer jobs kill limit log noglob popd print ' +
+        'pushd pushln rehash sched setcap setopt stat suspend ttyctl unfunction unhash unlimit ' +
+        'unsetopt vared wait whence where which zcompile zformat zftp zle zmodload zparseopts zprof ' +
+        'zpty zregexparse zsocket zstyle ztcp'
+    },
+    contains: [
+      KNOWN_SHEBANG, // to catch known shells and boost relevancy
+      hljs.SHEBANG(), // to catch unknown shells but still highlight the shebang
+      FUNCTION,
+      ARITHMETIC,
+      hljs.HASH_COMMENT_MODE,
+      QUOTE_STRING,
+      ESCAPED_QUOTE,
+      APOS_STRING,
+      HERE_DOC,
+      HERE_STRING,
+      OPERATORS,
+      LINE_CONTINUATION,
+      SUBST,
+      VAR
+>>>>>>> REPLACE
+```
+
+These changes add support for:
+
+1. Highlighting heredocs (`<<` and `<<<`) with the `HERE_DOC` and `HERE_STRING` rules
+2. Highlighting pipes (`|`), logical operators (`&&`, `||`), and redirections (`>`, `<`, `>>`, `<<`) with the `OPERATORS` rule
+3. Highlighting line continuation backslashes (`\`) at the end of lines with the `LINE_CONTINUATION` rule
+4. Ensuring that `SUBST` (for subshell expressions) is properly included in the main language definition
+
+The regular expressions in the `OPERATORS` rule are designed to match these operators with surrounding whitespace to avoid false positives in other contexts.

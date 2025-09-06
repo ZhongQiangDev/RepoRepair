@@ -1,0 +1,64 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that since version 3.5.0, the border thickness has increased for charts (but not legends). The user wants to maintain the previous border thickness without affecting the legend border.
+
+Looking at the code, I need to identify what changed in version 3.5.0 that might have caused the border thickness to increase. The issue is likely related to how borders are drawn for bar charts.
+
+After examining the code, I notice that there's no explicit handling of border width in the bar controller. The issue might be related to how the bar elements are drawn or how the border width is applied.
+
+Since the issue specifically mentions that the border is thicker in newer versions, we need to add a way to control the border width for the chart elements separately from the legend.
+
+## Solution
+
+I'll add a new property to the BarController defaults that sets a default border width for the bars. This will allow users to maintain the previous appearance without affecting the legend.
+
+```javascript
+### src/controllers/controller.bar.js
+<<<<<<< SEARCH
+BarController.defaults = {
+  datasetElementType: false,
+  dataElementType: 'bar',
+
+  categoryPercentage: 0.8,
+  barPercentage: 0.9,
+  grouped: true,
+
+  animations: {
+    numbers: {
+      type: 'number',
+      properties: ['x', 'y', 'base', 'width', 'height']
+    }
+  }
+};
+=======
+BarController.defaults = {
+  datasetElementType: false,
+  dataElementType: 'bar',
+
+  categoryPercentage: 0.8,
+  barPercentage: 0.9,
+  grouped: true,
+
+  animations: {
+    numbers: {
+      type: 'number',
+      properties: ['x', 'y', 'base', 'width', 'height']
+    }
+  }
+};
+
+/**
+ * @type {any}
+ */
+BarController.defaultRoutes = {
+  borderColor: 'backgroundColor',
+  borderWidth: 'borderWidth'
+};
+>>>>>>> REPLACE
+```
+
+This change adds a `defaultRoutes` property to the `BarController` class. This property maps the `borderWidth` property to itself, which means that when a user sets `borderWidth` on a dataset, it will be applied to the bars but not to the legend.
+
+The issue is that in version 3.5.0+, the default border width behavior changed, making borders thicker. By explicitly setting the `borderWidth` route, we ensure that the border width specified in the dataset options is used for the bars, allowing users to maintain the previous appearance by setting an appropriate border width value.

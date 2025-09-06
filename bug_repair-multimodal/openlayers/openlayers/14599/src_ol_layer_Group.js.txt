@@ -1,0 +1,41 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that attributions from a layer are being displayed even when the layer is part of an invisible group layer. According to the issue description:
+
+1. When a group layer's visibility is set to false
+2. But a sub-layer within that group has visibility set to true
+3. The attributions from the sub-layer are still being displayed in the info popup
+
+This happens because the current implementation only considers the layer's own visibility property, not the effective visibility which should also account for parent group visibility.
+
+Looking at the `getLayerStatesArray` method in `src/ol/layer/Group.js`, we can see that it correctly propagates the visibility from the group layer to its children by setting `layerState.visible = layerState.visible && ownLayerState.visible`. However, this visibility state is not being considered when determining whether to show attributions.
+
+## Fix
+
+We need to modify the `getLayerStatesArray` method to ensure that attributions are not displayed for layers that are effectively invisible due to their parent group being invisible.
+
+```javascript
+### src/ol/layer/Group.js
+<<<<<<< SEARCH
+      layerState.visible = layerState.visible && ownLayerState.visible;
+      layerState.maxResolution = Math.min(
+        layerState.maxResolution,
+        ownLayerState.maxResolution
+      );
+=======
+      layerState.visible = layerState.visible && ownLayerState.visible;
+      // If the layer is not visible due to the group being invisible,
+      // we should not display its attributions
+      if (!layerState.visible) {
+        layerState.attributions = undefined;
+      }
+      layerState.maxResolution = Math.min(
+        layerState.maxResolution,
+        ownLayerState.maxResolution
+      );
+>>>>>>> REPLACE
+```
+
+This fix ensures that when a layer is effectively invisible due to its parent group being invisible, its attributions will not be displayed, even if the layer itself has its visibility property set to true.

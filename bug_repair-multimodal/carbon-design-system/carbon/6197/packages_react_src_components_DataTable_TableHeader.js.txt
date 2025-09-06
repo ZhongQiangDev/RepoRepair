@@ -1,0 +1,42 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, there's a misalignment in the table header labels when sorting is enabled in "tall" data tables. Looking at the screenshot, we can see that sortable headers have different alignment compared to non-sortable headers.
+
+The issue is in the `TableHeader.js` file. When examining the code, I notice that for non-sortable headers, the `className` is applied to the `th` element, but for sortable headers, it's applied to the `button` element inside the `th`. This inconsistency causes the alignment issue.
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/DataTable/TableHeader.js
+<<<<<<< SEARCH
+  return (
+    <th
+      aria-sort={ariaSort}
+      className={headerClassName}
+      colSpan={colSpan}
+      ref={ref}
+      scope={scope}>
+      <button className={className} onClick={onClick} {...rest}>
+=======
+  return (
+    <th
+      aria-sort={ariaSort}
+      className={cx(headerClassName, {
+        [`${prefix}--table-sort`]: true,
+        [`${prefix}--table-sort--active`]:
+          isSortHeader && sortDirection !== sortStates.NONE,
+        [`${prefix}--table-sort--ascending`]:
+          isSortHeader && sortDirection === sortStates.DESC,
+      })}
+      colSpan={colSpan}
+      ref={ref}
+      scope={scope}>
+      <button className={`${prefix}--table-sort-button`} onClick={onClick} {...rest}>
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Moves the sorting-related classes to the `th` element to ensure consistent styling with non-sortable headers
+2. Gives the button a simpler class name that doesn't include the styling that should be on the `th`
+
+This change will ensure that the header labels have consistent alignment regardless of whether sorting is enabled or not, fixing the issue shown in the screenshot.

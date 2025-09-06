@@ -1,0 +1,40 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when `timePanelProps.defaultValue` is set, the DatePicker2 component shows "Invalid Date". Looking at the screenshot and the codesandbox link, it appears that the `defaultValue` from `timePanelProps` is not being properly handled.
+
+The problem is in the `time-panel.jsx` file. When the `TimePickerPanel` component is rendered, it's passing all `timePanelProps` to the component, including `defaultValue`. However, it's also explicitly setting the `value` prop, which is overriding any default value behavior.
+
+The issue is that when `value` is undefined or null, the component should use the `defaultValue` from `timePanelProps`, but it's not doing that. Instead, it's passing both props to the underlying component, causing a conflict.
+
+## Fix
+
+```javascript
+### src/date-picker2/panels/time-panel.jsx
+<<<<<<< SEARCH
+                <TimePickerPanel
+                    prefix={prefix}
+                    locale={locale}
+                    onSelect={this.onSelect}
+                    showHour={showHour}
+                    showSecond={showSecond}
+                    showMinute={showMinute}
+                    {...timePanelProps}
+                    value={value}
+                />
+=======
+                <TimePickerPanel
+                    prefix={prefix}
+                    locale={locale}
+                    onSelect={this.onSelect}
+                    showHour={showHour}
+                    showSecond={showSecond}
+                    showMinute={showMinute}
+                    {...timePanelProps}
+                    value={value || timePanelProps.defaultValue}
+                />
+>>>>>>> REPLACE
+```
+
+This fix ensures that when `value` is null or undefined, the component will fall back to using `timePanelProps.defaultValue`. This way, the `defaultValue` will be properly used when no value is explicitly provided, resolving the "Invalid Date" issue.

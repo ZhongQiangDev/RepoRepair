@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When using `QuerySet.only()` with `select_related()` on a reverse OneToOneField relation, the query includes unnecessary fields from the related model
+- Specifically, all fields from the secondary model are included in the SQL query even though only 'secondary_field_1' was requested
+
+2. Cause Analysis:
+- The issue appears to be in how Django handles field selection optimization when combining `only()` and `select_related()` specifically for reverse OneToOneField relations
+- The query optimization is not properly limiting the selected fields from the joined table in the generated SQL
+- This is likely a regression in Django 4.2 as the behavior works correctly in Django 4.1.9
+
+3. Most Relevant Files:
+The core files that would need to be examined/modified are those handling query generation and field selection optimization:
+
+```
+django/db/models/query.py
+django/db/models/sql/query.py
+django/db/models/fields/related.py
+django/db/models/expressions.py
+django/db/models/sql/datastructures.py
+```
+
+These files are ordered by relevance because:
+- query.py contains the core QuerySet implementation including only() and select_related() 
+- sql/query.py handles SQL query construction and optimization
+- fields/related.py defines OneToOneField and reverse relation handling
+- expressions.py handles field references and selections
+- sql/datastructures.py contains core structures for SQL generation

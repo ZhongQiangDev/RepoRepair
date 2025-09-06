@@ -1,0 +1,58 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that the WebGL layer incorrectly draws the fill color for polygons with holes. Specifically, the fill color appears to be overlaid multiple times, resulting in a darker appearance than expected. This issue occurs when the GeoJSON is valid according to geojsonlint.com, but not when it is invalid. The problem seems to be related to the orientation of the linear rings (clockwise vs. counter-clockwise).
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how the WebGL layer handles the orientation of the linear rings. In valid GeoJSON, the exterior ring of a polygon is typically counter-clockwise, and the interior rings (holes) are clockwise. However, the WebGL layer might be interpreting these orientations incorrectly, leading to the fill color being applied multiple times over the same area. This could be due to a mismatch in the expected orientation rules between the WebGL layer and the GeoJSON specification.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### src/ol/geom/flat/orient.js
+
+This file contains functions related to the orientation of linear rings, which is directly relevant to the issue described.
+
+```
+src/ol/geom/flat/orient.js
+function: linearRingIsClockwise
+function: linearRingIsOriented
+function: linearRingsAreOriented
+function: orientLinearRings
+function: orientLinearRingsArray
+```
+
+#### src/ol/render/webgl/MixedGeometryBatch.js
+
+This file manages the rendering of mixed geometry types but does not directly handle the orientation of linear rings.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### src/ol/render/webgl/renderinstructions.js
+
+This file generates render instructions for different geometry types but does not directly handle the orientation of linear rings.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### src/ol/render/webgl/VectorStyleRenderer.js
+
+This file handles the rendering of vector styles using WebGL but does not directly handle the orientation of linear rings.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### src/ol/webgl/styleparser.js
+
+This file parses style properties and generates GLSL code but does not directly handle the orientation of linear rings.
+
+```
+This file contains no relevant functions/classes.
+```
+
+### Summary of Relevant Locations
+
+The primary relevant file is `src/ol/geom/flat/orient.js`, which contains functions that determine and adjust the orientation of linear rings. These functions are likely where the issue lies, as they directly influence how the WebGL layer interprets the orientation of the polygon rings.

@@ -1,0 +1,70 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that a tick is sometimes rendered outside of the user-defined `max` axis limit when `includeBounds=false`. This results in an unwanted tick appearing beyond the specified maximum value on the axis, which is visually unappealing, especially in specific visualizations like eye diagrams.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from how the tick generation and placement are calculated when `includeBounds=false`. When `includeBounds` is set to `false`, the algorithm responsible for generating ticks may not correctly account for the exact `min` and `max` values specified by the user, leading to ticks being placed outside these bounds. This could be due to rounding errors, incorrect calculation of tick spacing, or improper handling of edge cases in the tick generation logic.
+
+### 3. Examine Each File One by One
+
+#### --- src/core/core.scale.autoskip.js ---
+This file contains functions related to tick skipping and spacing, which are crucial for determining which ticks are displayed on the axis. However, the issue described seems more related to the generation and placement of ticks rather than their skipping. Therefore, this file may not directly cause the issue but could be indirectly relevant if the tick skipping logic affects the final tick positions.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### --- src/core/core.scale.js ---
+This file contains the `Scale` class and several functions related to tick generation and positioning. The `Scale` class is fundamental for managing scales in charts, and the functions within this file are directly involved in calculating and rendering ticks.
+
+```
+src/core/core.scale.js
+class: Scale
+function: getPixelForGridLine
+function: getTickMarkLength
+```
+
+#### --- src/core/core.ticks.js ---
+This file contains functions related to tick formatting and calculation. The `generateTicks` function is particularly relevant as it is responsible for generating the ticks based on the specified options, including `includeBounds`.
+
+```
+src/core/core.ticks.js
+function: generateTicks
+```
+
+#### --- src/scales/scale.linear.js ---
+This file contains the `LinearScale` class, which extends the base scale class and provides specific methods for linear scales. The `getPixelForValue` and `getValueForPixel` methods are crucial for converting between data values and pixel positions, which could be relevant if there are issues with tick placement.
+
+```
+src/scales/scale.linear.js
+class: LinearScale
+```
+
+#### --- src/scales/scale.linearbase.js ---
+This file contains the `LinearScaleBase` class and the `generateTicks` function, which are directly involved in generating and configuring ticks for linear scales. The `generateTicks` function in this file is particularly relevant as it handles the tick generation logic.
+
+```
+src/scales/scale.linearbase.js
+class: LinearScaleBase
+function: generateTicks
+```
+
+### Summary of Relevant Locations
+
+```
+src/core/core.scale.js
+class: Scale
+function: getPixelForGridLine
+function: getTickMarkLength
+
+src/core/core.ticks.js
+function: generateTicks
+
+src/scales/scale.linear.js
+class: LinearScale
+
+src/scales/scale.linearbase.js
+class: LinearScaleBase
+function: generateTicks
+```

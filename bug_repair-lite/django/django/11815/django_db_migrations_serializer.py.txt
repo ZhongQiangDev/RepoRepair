@@ -1,0 +1,30 @@
+Based on the issue description, the bug is in the `EnumSerializer` class in `django/db/migrations/serializer.py`. The current implementation serializes the enum using its value instead of its name, which causes issues with translations since the value can change based on the language.
+
+Here's the fix that changes the serialization to use the enum name instead of its value:
+
+```python
+### django/db/migrations/serializer.py
+<<<<<<< SEARCH
+    def serialize(self):
+        enum_class = self.value.__class__
+        module = enum_class.__module__
+        v_string, v_imports = serializer_factory(self.value.value).serialize()
+        imports = {'import %s' % module, *v_imports}
+        return "%s.%s(%s)" % (module, enum_class.__name__, v_string), imports
+=======
+    def serialize(self):
+        enum_class = self.value.__class__
+        module = enum_class.__module__
+        name = self.value.name
+        imports = {'import %s' % module}
+        return "%s.%s['%s']" % (module, enum_class.__name__, name), imports
+>>>>>>> REPLACE
+```
+
+This change:
+1. Uses `self.value.name` to get the enum member's name (e.g., 'GOOD') instead of its value
+2. Changes the serialization format from `Status(value)` to `Status['name']`
+3. Removes the value serialization since we're using the name directly
+4. Simplifies the imports since we don't need to serialize the value anymore
+
+This fix ensures that migrations will use the enum member's name (which is constant) rather than its value (which can be translated), resolving the issue with translations breaking migrations.

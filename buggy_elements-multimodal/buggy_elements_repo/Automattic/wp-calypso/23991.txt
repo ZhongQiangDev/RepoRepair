@@ -1,0 +1,118 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when a user sets and then removes a featured image on a new post, the system incorrectly marks the post as "dirty" (indicating unsaved changes). This results in an "Are You Sure?" (AYS) dialog appearing when the user tries to navigate away, even though there are no actual changes to save.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how the system tracks changes to the post. When a featured image is set and then removed, the system may still consider the post as modified, even though the net effect is no change. This could be due to the way the featured image setting/removal is recorded in the post's state or how the "dirty" flag is managed.
+
+### 3. Examine Each File One by One
+
+#### `client/lib/posts/post-edit-store.js`
+
+This file contains functions that manage the state of the post being edited. The following functions are relevant:
+
+```
+client/lib/posts/post-edit-store.js
+function: dispatcherCallback
+function: getChangedAttributes
+function: isContentEmpty
+function: set
+function: startEditing
+```
+
+- `dispatcherCallback`: Handles various actions related to post editing, including setting and removing the featured image.
+- `getChangedAttributes`: Determines which attributes of the post have changed, which could be relevant to the "dirty" flag.
+- `isContentEmpty`: Checks if the post content is empty, which might be used to determine if the post is dirty.
+- `set`: Updates the post attributes, including the featured image.
+- `startEditing`: Initializes the editing process, which might set initial state that affects the "dirty" flag.
+
+#### `client/post-editor/post-editor.jsx`
+
+This file contains the main post editor component. The following functions are relevant:
+
+```
+client/post-editor/post-editor.jsx
+function: function_22
+function: function_48
+function: function_53
+function: function_62
+function: function_69
+```
+
+- `function_22`: Manages the state of the post being edited, including the "dirty" flag.
+- `function_48`: Handles the "dirty" state and triggers the AYS dialog.
+- `function_53`: Manages the save process, which might be related to the "dirty" flag.
+- `function_62`: Handles the success of a save operation, which might reset the "dirty" flag.
+- `function_69`: Switches the editor mode, which might affect the "dirty" flag.
+
+#### `client/post-editor/editor-featured-image/index.jsx`
+
+This file contains the `EditorFeaturedImage` class, which handles the featured image functionality. The following class is relevant:
+
+```
+client/post-editor/editor-featured-image/index.jsx
+class: EditorFeaturedImage
+```
+
+- `EditorFeaturedImage`: Manages the featured image, including setting and removing it, which directly affects the "dirty" flag.
+
+#### `client/state/posts/actions.js`
+
+This file contains action creators for post-related actions. The following functions are relevant:
+
+```
+client/state/posts/actions.js
+function: editPost
+function: receivePost
+function: savePost
+```
+
+- `editPost`: Updates the post, including the featured image.
+- `receivePost`: Handles the receipt of a post, which might affect the "dirty" flag.
+- `savePost`: Saves the post, which might reset the "dirty" flag.
+
+#### `client/state/ui/editor/actions.js`
+
+This file contains action creators for editor-related actions. The following functions are relevant:
+
+```
+client/state/ui/editor/actions.js
+function: startEditingPost
+function: stopEditingPost
+```
+
+- `startEditingPost`: Initiates the editing process, which might set initial state affecting the "dirty" flag.
+- `stopEditingPost`: Ends the editing process, which might reset the "dirty" flag.
+
+### Summary
+
+The relevant functions and classes are:
+
+```
+client/lib/posts/post-edit-store.js
+function: dispatcherCallback
+function: getChangedAttributes
+function: isContentEmpty
+function: set
+function: startEditing
+
+client/post-editor/post-editor.jsx
+function: function_22
+function: function_48
+function: function_53
+function: function_62
+function: function_69
+
+client/post-editor/editor-featured-image/index.jsx
+class: EditorFeaturedImage
+
+client/state/posts/actions.js
+function: editPost
+function: receivePost
+function: savePost
+
+client/state/ui/editor/actions.js
+function: startEditingPost
+function: stopEditingPost
+```

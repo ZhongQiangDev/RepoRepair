@@ -1,0 +1,52 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that the rightmost data point in a line chart gets cut off, as shown in the screenshot and the CodePen example. The tooltip for the point is displayed correctly, but the point itself is not visible.
+
+Looking at the code, the problem appears to be in the `getMaxOverflow` method of the `LineController` class. This method determines how much space to allocate for elements that might extend beyond the chart area, such as points at the edges of the chart.
+
+Currently, the method only considers the first and last points' sizes, but it doesn't properly account for the full point radius plus any border width. This causes the rightmost point to be partially cut off.
+
+## Fix
+
+```javascript
+### src/controllers/controller.line.js
+<<<<<<< SEARCH
+  getMaxOverflow() {
+    const me = this;
+    const meta = me._cachedMeta;
+    const border = meta.dataset.options.borderWidth || 0;
+    const data = meta.data || [];
+    if (!data.length) {
+      return border;
+    }
+    const firstPoint = data[0].size();
+    const lastPoint = data[data.length - 1].size();
+    return Math.max(border, firstPoint, lastPoint) / 2;
+  }
+=======
+  getMaxOverflow() {
+    const me = this;
+    const meta = me._cachedMeta;
+    const border = meta.dataset.options.borderWidth || 0;
+    const data = meta.data || [];
+    if (!data.length) {
+      return border;
+    }
+    const firstPoint = data[0].size(me.resolveDataElementOptions(0));
+    const lastPoint = data[data.length - 1].size(me.resolveDataElementOptions(data.length - 1));
+    return Math.max(border, firstPoint, lastPoint);
+  }
+>>>>>>> REPLACE
+```
+
+## Explanation
+
+The fix makes two important changes:
+
+1. It passes the resolved data element options to the `size()` method for both the first and last points. This ensures that the correct point size is calculated based on the actual options for those specific points.
+
+2. It removes the division by 2 at the end of the calculation. The `size()` method already returns the radius of the point, but we need the full diameter (or more precisely, the distance from the center to the edge) to ensure the point isn't cut off. By removing the division by 2, we ensure that enough space is allocated for the entire point to be visible.
+
+This change will ensure that the rightmost data point is fully visible on the chart, fixing the issue reported in the bug report.

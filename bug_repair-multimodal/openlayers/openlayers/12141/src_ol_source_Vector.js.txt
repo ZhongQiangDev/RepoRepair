@@ -1,0 +1,55 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when trying to get the extent of a VectorSource inside the `featuresloadend` callback function, the result is `[Infinity,Infinity,-Infinity,-Infinity]` which is incorrect. 
+
+Looking at the code and the issue description, the problem appears to be in the `loadFeatures` method of the `VectorSource` class. The issue is that the `featuresloadend` event is dispatched before the features are actually added to the source, which means that when trying to get the extent of the source inside the event handler, the features haven't been added yet and the extent is empty.
+
+The fix is to add the features to the source before dispatching the `featuresloadend` event.
+
+## Fix
+
+```javascript
+### src/ol/source/Vector.js
+<<<<<<< SEARCH
+        this.loader_.call(
+          this,
+          extentToLoad,
+          resolution,
+          projection,
+          function (features) {
+            --this.loadingExtentsCount_;
+            this.dispatchEvent(
+              new VectorSourceEvent(
+                VectorEventType.FEATURESLOADEND,
+                undefined,
+                features
+              )
+            );
+          }.bind(this),
+=======
+        this.loader_.call(
+          this,
+          extentToLoad,
+          resolution,
+          projection,
+          function (features) {
+            --this.loadingExtentsCount_;
+            if (features && features.length > 0) {
+              this.addFeaturesInternal(features);
+            }
+            this.dispatchEvent(
+              new VectorSourceEvent(
+                VectorEventType.FEATURESLOADEND,
+                undefined,
+                features
+              )
+            );
+          }.bind(this),
+>>>>>>> REPLACE
+```
+
+This fix ensures that the features are added to the source before the `featuresloadend` event is dispatched. This way, when trying to get the extent of the source inside the event handler, the features will already be added and the extent will be correct.
+
+The issue was that the features were being passed to the event, but they weren't being added to the source before the event was dispatched. The fix adds the features to the source before dispatching the event, which ensures that the extent of the source is correct when the event is handled.

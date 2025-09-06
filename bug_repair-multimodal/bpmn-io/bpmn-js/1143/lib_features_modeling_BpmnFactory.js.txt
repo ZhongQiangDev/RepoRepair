@@ -1,0 +1,41 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+Based on the issue description and the error shown in the screenshots:
+
+1. When a group is added to an empty diagram, and then trying to add other elements like a pool, the editor crashes.
+2. The console shows errors related to "Cannot read property 'width' of undefined" and "Cannot read property 'height' of undefined".
+
+Looking at the provided code snippet from `BpmnFactory.js`, I can see the `createDiShape` method which is responsible for creating diagram shapes. The issue likely occurs because when adding a group to an empty diagram, there might be no proper bounds handling for this specific scenario.
+
+The error suggests that when trying to create a shape after adding a group, the bounds object is undefined or missing properties, causing the crash when trying to access `width` and `height`.
+
+## Fix
+
+We need to ensure that the `createDiBounds` method properly handles cases where bounds might be undefined or incomplete. Let's add a check to ensure bounds are properly initialized:
+
+```javascript
+### lib/features/modeling/BpmnFactory.js
+<<<<<<< SEARCH
+BpmnFactory.prototype.createDiShape = function(semantic, bounds, attrs) {
+
+  return this.create('bpmndi:BPMNShape', assign({
+    bpmnElement: semantic,
+    bounds: this.createDiBounds(bounds)
+  }, attrs));
+};
+=======
+BpmnFactory.prototype.createDiShape = function(semantic, bounds, attrs) {
+  // Ensure bounds is an object with required properties
+  bounds = bounds || { x: 0, y: 0, width: 100, height: 80 };
+
+  return this.create('bpmndi:BPMNShape', assign({
+    bpmnElement: semantic,
+    bounds: this.createDiBounds(bounds)
+  }, attrs));
+};
+>>>>>>> REPLACE
+```
+
+This fix ensures that even if bounds is undefined or missing properties, we provide default values to prevent the errors. The default values (x: 0, y: 0, width: 100, height: 80) are reasonable defaults for a new shape, but these could be adjusted based on the application's requirements.

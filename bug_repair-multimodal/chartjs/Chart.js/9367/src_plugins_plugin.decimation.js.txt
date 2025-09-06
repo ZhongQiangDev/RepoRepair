@@ -1,0 +1,72 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs with the LTTB (Largest Triangle Three Buckets) algorithm when:
+1. The screen has scaling other than 100%
+2. The width is odd
+
+The specific problem is in the calculation of bucket ranges in the LTTB algorithm. The issue mentions that sometimes:
+- `avgRangeLength` becomes negative
+- `rangeTo` exceeds the data length
+
+This happens because of rounding errors when calculating bucket widths and ranges, which are exacerbated by screen scaling factors.
+
+The key issue is in the calculation of `avgRangeStart` and `avgRangeEnd`. When the bucket width is very small (which can happen with high-resolution screens and scaling), the floor operations can lead to unexpected results.
+
+## Fix
+
+```javascript
+### src/plugins/plugin.decimation.js
+<<<<<<< SEARCH
+    // Adding offset
+    const avgRangeStart = Math.floor((i + 1) * bucketWidth) + 1 + start;
+    const avgRangeEnd = Math.min(Math.floor((i + 2) * bucketWidth) + 1, count) + start;
+    const avgRangeLength = avgRangeEnd - avgRangeStart;
+
+    for (j = avgRangeStart; j < avgRangeEnd; j++) {
+      avgX += data[j].x;
+      avgY += data[j].y;
+    }
+
+    avgX /= avgRangeLength;
+    avgY /= avgRangeLength;
+
+    // Adding offset
+    const rangeOffs = Math.floor(i * bucketWidth) + 1 + start;
+    const rangeTo = Math.floor((i + 1) * bucketWidth) + 1 + start;
+=======
+    // Adding offset
+    const avgRangeStart = Math.floor((i + 1) * bucketWidth) + 1 + start;
+    const avgRangeEnd = Math.min(Math.floor((i + 2) * bucketWidth) + 1, count) + start;
+    const avgRangeLength = Math.max(1, avgRangeEnd - avgRangeStart);
+
+    // Only proceed if we have a valid range
+    if (avgRangeEnd > avgRangeStart) {
+      for (j = avgRangeStart; j < avgRangeEnd; j++) {
+        avgX += data[j].x;
+        avgY += data[j].y;
+      }
+      
+      avgX /= avgRangeLength;
+      avgY /= avgRangeLength;
+    } else {
+      // If range is invalid, use the first point in the range
+      avgX = data[Math.min(avgRangeStart, count - 1 + start)].x;
+      avgY = data[Math.min(avgRangeStart, count - 1 + start)].y;
+    }
+
+    // Adding offset
+    const rangeOffs = Math.floor(i * bucketWidth) + 1 + start;
+    const rangeTo = Math.min(Math.floor((i + 1) * bucketWidth) + 1 + start, endIndex);
+>>>>>>> REPLACE
+```
+
+The changes I've made:
+
+1. Added a safety check to ensure `avgRangeLength` is never negative by using `Math.max(1, avgRangeEnd - avgRangeStart)`
+2. Added a condition to only calculate averages if the range is valid (avgRangeEnd > avgRangeStart)
+3. If the range is invalid, use the first point in the range as the average
+4. Added a boundary check for `rangeTo` to ensure it never exceeds the data length by using `Math.min(rangeTo, endIndex)`
+
+These changes will prevent the algorithm from failing when dealing with odd widths and screen scaling factors, ensuring that all calculations remain within valid bounds.

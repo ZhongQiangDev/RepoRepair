@@ -1,0 +1,82 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when a label is cleared from a Task, the property `label` still exists in the DI (diagram interchange) object but with a value of `null`. This causes issues with linting tools. The expected behavior is that the `label` property should be completely removed when cleared.
+
+This issue was introduced when support for embedded label DIs was added. The problem is likely in the `setModdleProperties` function which is used in the `UpdateModdlePropertiesHandler`. When a property is set to `null`, it's still being kept in the object instead of being deleted.
+
+## Fix
+
+We need to modify the `setModdleProperties` function to remove properties that are set to `null` instead of keeping them with a null value. However, this function is not shown in the provided code segment. 
+
+Let's look for the implementation of `getModdleProperties` and `setModdleProperties` functions in the file, which should be defined somewhere in the same file. Since they're not visible in the provided code, I'll create a fix assuming they're defined at the end of the file:
+
+```javascript
+### lib/features/modeling/cmd/UpdateModdlePropertiesHandler.js
+<<<<<<< SEARCH
+/**
+ * Return visual references of given moddle element within the diagram.
+ *
+ * @param {ModdleElement} moddleElement
+ *
+ * @return {Array<djs.model.Element>}
+ */
+
+
+
+
+
+
+
+
+
+
+
+=======
+/**
+ * Return visual references of given moddle element within the diagram.
+ *
+ * @param {ModdleElement} moddleElement
+ *
+ * @return {Array<djs.model.Element>}
+ */
+
+/**
+ * Get properties of given moddle element.
+ *
+ * @param {ModdleElement} moddleElement
+ * @param {Array<string>} propertyNames
+ *
+ * @return {Object}
+ */
+function getModdleProperties(moddleElement, propertyNames) {
+  return reduce(propertyNames, function(result, key) {
+    result[key] = moddleElement.get(key);
+    return result;
+  }, {});
+}
+
+/**
+ * Set properties of given moddle element.
+ *
+ * @param {ModdleElement} moddleElement
+ * @param {Object} properties
+ */
+function setModdleProperties(moddleElement, properties) {
+  forEach(properties, function(value, key) {
+    if (value === null) {
+      // Remove property completely when null
+      moddleElement.$model.removeDescriptor(moddleElement, key);
+      delete moddleElement[key];
+    } else {
+      moddleElement.set(key, value);
+    }
+  });
+}
+>>>>>>> REPLACE
+```
+
+This fix modifies the `setModdleProperties` function to completely remove properties when their value is set to `null`, rather than setting them to null. This should resolve the issue where the `label` property exists with a null value after clearing the label.
+
+Note: Since I don't have the complete file, I'm making an educated guess about the implementation of these functions. The actual implementation might be different, but the principle of the fix remains the same: when a property is set to `null`, it should be completely removed from the object.

@@ -1,0 +1,107 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when `applyTransform` is called with an empty extent. An empty extent is represented with `[Infinity, Infinity, -Infinity, -Infinity]`. When this empty extent is transformed from EPSG:4326 to EPSG:3857 using `getTransform`, the transformation function tries to calculate values using `Math.tan` on infinity values, which results in NaN values.
+
+The problem is in the `applyTransform` function in `src/ol/extent.js`. When an empty extent is passed, the coordinates array will contain Infinity and -Infinity values. When these values are passed to the transform function, they become NaN, which then causes errors when trying to fit the view.
+
+## Fix
+
+We need to modify the `applyTransform` function to handle empty extents properly. The solution is to check if the extent is empty before attempting to transform it. If it's empty, we should return an empty extent directly.
+
+```javascript
+### src/ol/extent.js
+<<<<<<< SEARCH
+export function applyTransform(extent, transformFn, dest, stops) {
+  let coordinates = [];
+  if (stops > 1) {
+    const width = extent[2] - extent[0];
+    const height = extent[3] - extent[1];
+    for (let i = 0; i < stops; ++i) {
+      coordinates.push(
+        extent[0] + (width * i) / stops,
+        extent[1],
+        extent[2],
+        extent[1] + (height * i) / stops,
+        extent[2] - (width * i) / stops,
+        extent[3],
+        extent[0],
+        extent[3] - (height * i) / stops
+      );
+    }
+  } else {
+    coordinates = [
+      extent[0],
+      extent[1],
+      extent[2],
+      extent[1],
+      extent[2],
+      extent[3],
+      extent[0],
+      extent[3],
+    ];
+  }
+  transformFn(coordinates, coordinates, 2);
+  const xs = [];
+  const ys = [];
+  for (let i = 0, l = coordinates.length; i < l; i += 2) {
+    xs.push(coordinates[i]);
+    ys.push(coordinates[i + 1]);
+  }
+  return _boundingExtentXYs(xs, ys, dest);
+=======
+export function applyTransform(extent, transformFn, dest, stops) {
+  // Check if the extent is empty
+  if (extent[0] > extent[2]) {
+    if (dest) {
+      dest[0] = Infinity;
+      dest[1] = Infinity;
+      dest[2] = -Infinity;
+      dest[3] = -Infinity;
+      return dest;
+    } else {
+      return createEmpty();
+    }
+  }
+  
+  let coordinates = [];
+  if (stops > 1) {
+    const width = extent[2] - extent[0];
+    const height = extent[3] - extent[1];
+    for (let i = 0; i < stops; ++i) {
+      coordinates.push(
+        extent[0] + (width * i) / stops,
+        extent[1],
+        extent[2],
+        extent[1] + (height * i) / stops,
+        extent[2] - (width * i) / stops,
+        extent[3],
+        extent[0],
+        extent[3] - (height * i) / stops
+      );
+    }
+  } else {
+    coordinates = [
+      extent[0],
+      extent[1],
+      extent[2],
+      extent[1],
+      extent[2],
+      extent[3],
+      extent[0],
+      extent[3],
+    ];
+  }
+  transformFn(coordinates, coordinates, 2);
+  const xs = [];
+  const ys = [];
+  for (let i = 0, l = coordinates.length; i < l; i += 2) {
+    xs.push(coordinates[i]);
+    ys.push(coordinates[i + 1]);
+  }
+  return _boundingExtentXYs(xs, ys, dest);
+>>>>>>> REPLACE
+```
+
+This fix adds a check at the beginning of the `applyTransform` function to see if the extent is empty (which is the case when `minX > maxX`, i.e., `extent[0] > extent[2]`). If the extent is empty, it returns an empty extent directly, either by using the provided destination extent or by creating a new empty extent. This prevents the transformation function from being called with infinity values, which would result in NaN values.

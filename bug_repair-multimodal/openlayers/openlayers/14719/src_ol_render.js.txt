@@ -1,0 +1,34 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue states that the WMS image gets blurry when the ratio is not a round integer, or when the map width or height is not even. This is a common problem with canvas rendering and pixel ratios.
+
+Looking at the code, the issue is likely in the `toContext` function in `src/ol/render.js`. When setting the canvas dimensions, the code is using the pixel ratio to scale the canvas width and height, but this can lead to non-integer pixel values which causes blurriness.
+
+The fix is to ensure that the canvas dimensions are always integers by rounding the calculated values.
+
+## Fix
+
+```javascript
+### src/ol/render.js
+<<<<<<< SEARCH
+  if (size) {
+    canvas.width = size[0] * pixelRatio;
+    canvas.height = size[1] * pixelRatio;
+    canvas.style.width = size[0] + 'px';
+    canvas.style.height = size[1] + 'px';
+  }
+=======
+  if (size) {
+    canvas.width = Math.round(size[0] * pixelRatio);
+    canvas.height = Math.round(size[1] * pixelRatio);
+    canvas.style.width = size[0] + 'px';
+    canvas.style.height = size[1] + 'px';
+  }
+>>>>>>> REPLACE
+```
+
+This fix ensures that the canvas dimensions are always integer values by using `Math.round()`. When the pixel ratio is not a whole number, or when the map dimensions are not even, this rounding prevents the blurriness by ensuring the canvas is rendered on exact pixel boundaries.
+
+The blurriness occurs because when canvas dimensions are non-integer values, browsers have to interpolate pixel values, which creates the blurry effect. By rounding to the nearest integer, we ensure that each CSS pixel maps cleanly to the appropriate number of device pixels.

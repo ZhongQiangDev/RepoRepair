@@ -1,0 +1,54 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue shows a DAP (Deque Accessibility Platform) error with the MultiSelect.Filterable component. Looking at the screenshot, it appears to be an accessibility issue.
+
+The problem is likely related to the `aria-controls` attribute in the input element. The error message in the screenshot indicates that the input has an `aria-controls` attribute that references an element ID that doesn't exist or isn't properly formatted.
+
+Looking at the code, I can see that the input has:
+```javascript
+aria-controls={`${id}__menu`}
+```
+
+But the menu element has:
+```javascript
+id={`${id}-menu`}
+```
+
+There's a mismatch between the ID referenced in `aria-controls` (`${id}__menu`) and the actual ID of the menu element (`${id}-menu`). The input is using double underscores while the menu is using a hyphen.
+
+## Fix
+
+```javascript
+### packages/react/src/components/MultiSelect/FilterableMultiSelect.js
+<<<<<<< SEARCH
+                    <input
+                      className={inputClasses}
+                      aria-controls={`${id}__menu`}
+                      aria-autocomplete="list"
+                      ref={(el) => (this.inputNode = el)}
+                      {...getInputProps({
+                        disabled,
+                        id,
+                        placeholder,
+                        onKeyDown: this.handleOnInputKeyDown,
+                      })}
+                    />
+=======
+                    <input
+                      className={inputClasses}
+                      aria-controls={`${id}-menu`}
+                      aria-autocomplete="list"
+                      ref={(el) => (this.inputNode = el)}
+                      {...getInputProps({
+                        disabled,
+                        id,
+                        placeholder,
+                        onKeyDown: this.handleOnInputKeyDown,
+                      })}
+                    />
+>>>>>>> REPLACE
+```
+
+This fix ensures that the `aria-controls` attribute in the input element correctly references the ID of the menu element, which is `${id}-menu`. This will resolve the DAP accessibility error by making sure the input properly controls the menu it's associated with.

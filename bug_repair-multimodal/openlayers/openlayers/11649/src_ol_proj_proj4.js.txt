@@ -1,0 +1,45 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that when registering proj4js definitions with OpenLayers, geographic coordinate systems (like EPSG:4258) are not properly configured. Specifically:
+
+1. For geographic projections, the `units` property is undefined when it should default to "degrees"
+2. The `axisOrientation` is incorrectly set, defaulting to 'enu' when it should be 'neu' for geographic projections
+
+Looking at the code in `src/ol/proj/proj4.js`, the problem is in the `register` function where it creates a new Projection object. It's directly using the properties from proj4's definition without checking if they're appropriate for geographic projections.
+
+Here's the fix:
+
+```javascript
+### src/ol/proj/proj4.js
+<<<<<<< SEARCH
+      addProjection(
+        new Projection({
+          code: code,
+          axisOrientation: def.axis,
+          metersPerUnit: def.to_meter,
+          units: def.units,
+        })
+      );
+=======
+      const projectionOptions = {
+        code: code,
+        axisOrientation: def.axis,
+        metersPerUnit: def.to_meter,
+        units: def.units,
+      };
+      
+      // Handle geographic projections (longlat)
+      if (def.proj === 'longlat') {
+        if (!projectionOptions.units) {
+          projectionOptions.units = 'degrees';
+        }
+        if (!projectionOptions.axisOrientation) {
+          projectionOptions.axisOrientation = 'neu';
+        }
+      }
+      
+      addProjection(new Projection(projectionOptions));
+>>>>>>> REPLACE
+```
+
+This fix checks if the projection is a geographic one (longlat) and sets appropriate defaults for units and axisOrientation when they're not specified in the proj4js definition. Geographic projections should use "degrees" as units and "neu" (north-east-up) as the axis orientation.

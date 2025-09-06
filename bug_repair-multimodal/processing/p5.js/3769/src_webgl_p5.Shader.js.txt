@@ -1,0 +1,79 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is in the WebGL renderer's retained mode geometry creation. When creating a geometry, the code checks the *current* shader's attributes to determine which buffers to create. This means if a shader doesn't have certain attributes (like normal, texcoord, etc.), those buffers won't be created for the geometry.
+
+Later, if a different shader is used that *does* need those attributes, rendering fails because the buffers don't exist.
+
+In the example:
+1. A custom shader without normal attributes is set
+2. A sphere is created (and cached) with this shader active
+3. Later, when trying to render the sphere with lighting, it fails because the normal buffers weren't created
+
+The fix needs to ensure that all standard attributes are always created for geometries, regardless of the current shader.
+
+Looking at the provided code, I need to modify the `isLightShader()` method to add a new method that checks if a shader has normal attributes. This will be used when creating geometry buffers.
+
+## Fix
+
+```javascript
+### src/webgl/p5.Shader.js
+<<<<<<< SEARCH
+p5.Shader.prototype.isStrokeShader = function() {
+  return this.uniforms.uStrokeWeight !== undefined;
+};
+
+/**
+ * @method enableAttrib
+ * @chainable
+ * @private
+ */
+=======
+p5.Shader.prototype.isStrokeShader = function() {
+  return this.uniforms.uStrokeWeight !== undefined;
+};
+
+/**
+ * Returns true if the shader uses the normal attribute
+ * @method isNormalShader
+ * @return {Boolean}
+ */
+p5.Shader.prototype.isNormalShader = function() {
+  return this.attributes.aNormal !== undefined;
+};
+
+/**
+ * Returns true if the shader uses the color attribute
+ * @method isColorShader
+ * @return {Boolean}
+ */
+p5.Shader.prototype.isColorShader = function() {
+  return this.attributes.aVertexColor !== undefined;
+};
+
+/**
+ * Returns true if the shader uses the texcoord attribute
+ * @method isTextureShader
+ * @return {Boolean}
+ */
+p5.Shader.prototype.isTextureShader = function() {
+  return this.attributes.aTexCoord !== undefined;
+};
+
+/**
+ * @method enableAttrib
+ * @chainable
+ * @private
+ */
+>>>>>>> REPLACE
+```
+
+This adds helper methods to check for specific attributes in shaders. Now we need to modify the code that creates geometry buffers to use these methods, but that part isn't included in the provided code snippets. The fix would need to be applied to the `src/webgl/p5.RendererGL.Retained.js` file, specifically around line 171-172 as mentioned in the issue.
+
+Since that file isn't provided, I can only describe what needs to be changed there:
+
+1. Instead of checking the current shader's attributes to determine which buffers to create, the code should always create buffers for standard attributes (position, normal, color, texcoord) regardless of the current shader.
+2. Or, it could check if any of the default shaders (fill, stroke, etc.) require those attributes.
+
+The methods I've added will help with implementing this fix in the renderer code.

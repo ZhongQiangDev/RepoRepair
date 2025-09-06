@@ -1,0 +1,32 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- The `__isnull` lookup is accepting non-boolean values
+- Using truthy/falsey values doesn't promote INNER JOIN to OUTER JOIN as expected
+- This behavior is undocumented and untested
+
+2. Cause Analysis:
+- The `__isnull` lookup is not properly validating its input value type
+- The lookup implementation likely doesn't enforce boolean type checking
+- This affects how JOIN operations are handled in SQL generation
+- The issue stems from the lookup validation and SQL generation logic
+
+3. Most Related Files:
+The most relevant files for fixing this issue would be:
+
+```
+django/db/models/lookups.py
+django/db/models/sql/query.py
+django/db/models/query.py
+django/db/models/sql/where.py
+django/db/models/expressions.py
+```
+
+Reasoning for file selection:
+- `lookups.py` contains the `IsNull` lookup class which is directly responsible for handling `__isnull` lookups
+- `query.py` handles SQL query construction including JOIN operations
+- `query.py` manages the high-level query interface where lookups are processed
+- `where.py` handles WHERE clause generation which is affected by null checks
+- `expressions.py` provides base expression handling that lookups build upon
+
+The fix would primarily involve modifying the `IsNull` lookup class in `lookups.py` to enforce boolean value validation.

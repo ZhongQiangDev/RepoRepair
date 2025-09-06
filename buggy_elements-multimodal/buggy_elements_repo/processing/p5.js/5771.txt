@@ -1,0 +1,58 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior is that when using `beginShape(QUADS)` in WebGL mode, the resulting shape has self-intersections, unlike in 2D mode. Specifically, the vertices are not being processed in a consistent clockwise (CW) or counterclockwise (CCW) order, leading to incorrect rendering of the quad as two triangles with a diagonal intersection.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue is likely related to how the `QUADS` mode is handled in the WebGL renderer. In 2D mode, the vertices are processed in a way that forms a single quad, but in WebGL mode, the vertices are being processed as if they were in `QUAD_STRIP` mode, which results in the self-intersection. This suggests a discrepancy in how the vertex data is being interpreted or processed between the 2D and WebGL renderers.
+
+### 3. Examine Each File One by One
+
+#### --- src/core/shape/vertex.js ---
+```
+This file contains no relevant functions/classes.
+```
+
+#### --- src/webgl/p5.RendererGL.Immediate.js ---
+```
+src/webgl/p5.RendererGL.Immediate.js
+function: function_2
+function: function_6
+function: function_8
+```
+`function_2` is responsible for adding vertices for custom shapes in WebGL rendering. It handles the conversion of `QUADS` into `TRIANGLES` and `QUAD_STRIP` into `TRIANGLE_STRIP`. This function may need to be adjusted to ensure that `QUADS` are processed correctly in a consistent CW or CCW order.
+
+`function_6` generates edge indices for custom shapes based on the provided `shapeMode`. This function may need to be modified to handle `QUADS` correctly to avoid self-intersections.
+
+`function_8` is responsible for drawing the fill geometry in immediate mode. It may need to be adjusted to ensure that `QUADS` are rendered correctly in WebGL.
+
+#### --- src/webgl/p5.RendererGL.js ---
+```
+src/webgl/p5.RendererGL.js
+function: function_2
+function: function_4
+function: function_6
+```
+`function_2` sets default WebGL attributes. While this function is not directly related to the issue, it ensures that the WebGL context is properly configured, which is important for rendering.
+
+`function_4` handles the reset of the WebGL rendering context. This function may need to be reviewed to ensure that any changes made to handle `QUADS` correctly are preserved during resets.
+
+`function_6` clears the WebGL context. While not directly related to the issue, it ensures that the context is properly cleared before rendering.
+
+#### --- src/webgl/p5.RendererGL.Retained.js ---
+```
+This file contains no relevant functions/classes.
+```
+
+### Summary of Relevant Functions/Classes
+```
+src/webgl/p5.RendererGL.Immediate.js
+function: function_2
+function: function_6
+function: function_8
+
+src/webgl/p5.RendererGL.js
+function: function_2
+function: function_4
+function: function_6
+```

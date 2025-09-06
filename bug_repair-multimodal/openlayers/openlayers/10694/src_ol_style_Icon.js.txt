@@ -1,0 +1,47 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue states that the `setOpacity` function for feature styles is not working in OpenLayers 6.2.0, specifically for image styles. The feature should blink (change opacity) but it doesn't.
+
+Looking at the provided code for `Icon.js`, I notice that while the `opacity` property is passed to the parent `ImageStyle` constructor, there's no implementation to update the opacity after the style is created. The `Icon` class extends `ImageStyle`, but it doesn't override or implement the `setOpacity` method to update the underlying image opacity.
+
+The issue is that when `setOpacity` is called on an Icon instance, it updates the opacity property in the parent class, but this change is not propagated to the actual rendered image.
+
+## Fix
+
+We need to add a `setOpacity` method to the `Icon` class that will update the opacity and trigger a redraw. Here's the fix:
+
+```javascript
+### src/ol/style/Icon.js
+<<<<<<< SEARCH
+  unlistenImageChange(listener) {
+    this.iconImage_.removeEventListener(EventType.CHANGE, listener);
+  }
+}
+
+=======
+  unlistenImageChange(listener) {
+    this.iconImage_.removeEventListener(EventType.CHANGE, listener);
+  }
+
+  /**
+   * Set the opacity.
+   *
+   * @param {number} opacity Opacity.
+   * @api
+   */
+  setOpacity(opacity) {
+    super.setOpacity(opacity);
+    this.iconImage_.setOpacity(opacity);
+  }
+}
+
+>>>>>>> REPLACE
+```
+
+This fix adds a `setOpacity` method to the `Icon` class that:
+1. Calls the parent class's `setOpacity` method to update the opacity property
+2. Updates the opacity on the underlying `iconImage_` object, which will affect the rendered image
+
+This ensures that when opacity is changed on an Icon style, the visual appearance of the icon will update accordingly, allowing the blinking effect to work as expected.

@@ -1,0 +1,50 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The current default logging format only shows the base filename without the module name, which makes it harder to identify the source of log messages in larger projects. For example:
+```
+utils.py                   114 DEBUG    (0.000) SELECT "app_url"."id"...
+```
+doesn't provide as much context as:
+```
+DEBUG    django.db.backends:utils.py:114 (0.000) SELECT "app_url"."id"...
+```
+
+2. Cause Analysis:
+The issue stems from the default log format string using `%(filename)` instead of `%(name)` for the logger name. The current format:
+```
+DEFAULT_LOG_FORMAT = "%(filename)-25s %(lineno)4d %(levelname)-8s %(message)s"
+```
+only shows the base filename. A more informative format would be:
+```
+DEFAULT_LOG_FORMAT = "%(levelname)-8s %(name)s:%(filename)s:%(lineno)d %(message)s"
+```
+which includes the full module path.
+
+3. Relevant Files/Functions Analysis:
+
+src/_pytest/helpconfig.py:
+```
+This file contains no relevant functions/classes.
+```
+
+src/_pytest/logging.py:
+```
+function: pytest_addoption
+class: LoggingPlugin
+```
+These are relevant because:
+- `pytest_addoption` defines the default logging format options
+- `LoggingPlugin` handles the logging configuration and formatting
+
+testing/test_config.py:
+```
+This file contains no relevant functions/classes.
+```
+
+testing/test_helpconfig.py:
+```
+This file contains no relevant functions/classes.
+```
+
+The core of the issue lies in the logging configuration in src/_pytest/logging.py, particularly where the default format string is defined and where the logging configuration is set up. The LoggingPlugin class is responsible for implementing the logging behavior, while pytest_addoption defines the default format options that users can override.

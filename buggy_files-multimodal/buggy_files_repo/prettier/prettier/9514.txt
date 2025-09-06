@@ -1,0 +1,37 @@
+I'll analyze the GitHub problem description and identify the files that would need to be edited to fix the issue.
+
+## 1. Identifying the Wrong Behavior
+
+The issue is about performance in Prettier, specifically the speed of parsing JavaScript code. The current parser (Babylon) is slower than an alternative parser called Cherow, which according to the benchmark is about 40% faster. This affects the usability of Prettier, especially in format-on-save scenarios where performance is critical.
+
+## 2. Analyzing the Cause
+
+The cause is that Prettier currently uses Babylon as its JavaScript parser, but there's a faster alternative (Cherow) available. The benchmark shows Cherow is approximately 40% faster than Babylon. However, Cherow doesn't yet support Flow syntax, which would be a blocker for adoption.
+
+To fix this issue, Prettier would need to:
+1. Add Cherow as a dependency
+2. Create a new parser implementation using Cherow
+3. Update the parser selection logic to use Cherow when appropriate
+4. Ensure backward compatibility and handle the Flow syntax limitation
+
+## 3. Files Most Related to the Cause
+
+```
+src/language-js/parser-babel.js
+src/language-js/index.js
+src/main/parser.js
+src/language-js/parser-flow.js
+src/common/load-plugins.js
+```
+
+These files are the most critical for implementing the Cherow parser:
+
+1. `src/language-js/parser-babel.js` - This is the current Babel/Babylon parser implementation that would need to be complemented with a new Cherow parser implementation.
+
+2. `src/language-js/index.js` - This file defines the JavaScript language support and parser registration. It would need to be updated to include the new Cherow parser.
+
+3. `src/main/parser.js` - Contains the core parser resolution logic that would need to be updated to select Cherow when appropriate.
+
+4. `src/language-js/parser-flow.js` - Since Cherow doesn't support Flow syntax yet, this file is important to understand how Flow is currently handled and how to maintain compatibility.
+
+5. `src/common/load-plugins.js` - This file handles loading plugins and parsers, which would need to be updated to include the new Cherow parser.

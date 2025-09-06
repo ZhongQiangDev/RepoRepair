@@ -1,0 +1,26 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When using UniqueConstraint in a model, makemigrations doesn't validate whether the specified fields actually exist in the model
+- This contrasts with the older unique_together syntax which properly raises models.E012 error when fields don't exist
+
+2. Cause Analysis:
+- The validation check for field existence is missing in the UniqueConstraint implementation
+- While unique_together has field validation built in, this validation was not carried over when UniqueConstraint was implemented
+- The issue likely lies in the constraints and migration validation code paths
+
+3. Most Related Files (ordered by importance):
+```
+django/db/models/constraints.py
+django/db/migrations/operations/models.py
+django/db/migrations/autodetector.py
+django/core/management/commands/makemigrations.py
+django/db/models/base.py
+```
+
+Reasoning:
+- constraints.py contains the UniqueConstraint class implementation where field validation should occur
+- operations/models.py handles model operations including constraint changes during migrations
+- autodetector.py detects model changes and validates migrations
+- makemigrations.py is the command that should trigger field validation
+- base.py contains core model functionality that interacts with constraints

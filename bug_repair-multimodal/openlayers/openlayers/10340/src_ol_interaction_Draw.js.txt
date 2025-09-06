@@ -1,0 +1,174 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about drawing shapes (circles, regular polygons, boxes) in geographic mode (`useGeographic`) not behaving as expected. Specifically:
+
+1. Drawn circles don't extend to the pointer position in higher latitudes
+2. Regular polygons are not regular in shape
+3. Boxes are not properly aligned when the view projection is not parallel to WGS84
+
+The problem is in the geometry functions that create these shapes. When using geographic coordinates (longitude/latitude), the functions are still creating shapes as if they were in a projected coordinate system, which causes distortions.
+
+## Solution
+
+We need to modify the `createRegularPolygon` and `createBox` functions to account for the geographic coordinate system. The key issue is that in geographic coordinates, distances and angles are not preserved the same way as in projected coordinates.
+
+Here's my fix:
+
+```javascript
+### src/ol/interaction/Draw.js
+<<<<<<< SEARCH
+/**
+ * Create a `geometryFunction` for `type: 'Circle'` that will create a regular
+ * polygon with a user specified number of sides and start angle instead of an
+ * `import("../geom/Circle.js").Circle` geometry.
+ * @param {number=} opt_sides Number of sides of the regular polygon. Default is
+ *     32.
+ * @param {number=} opt_angle Angle of the first point in radians. 0 means East.
+ *     Default is the angle defined by the heading from the center of the
+ *     regular polygon to the current pointer position.
+ * @return {GeometryFunction} Function that draws a
+ *     polygon.
+ * @api
+ */
+export function createRegularPolygon(opt_sides, opt_angle) {
+  return function(coordinates, opt_geometry) {
+    const center = /** @type {LineCoordType} */ (coordinates)[0];
+    const end = /** @type {LineCoordType} */ (coordinates)[1];
+    const radius = Math.sqrt(
+      squaredCoordinateDistance(center, end));
+    const geometry = opt_geometry ? /** @type {Polygon} */ (opt_geometry) :
+      fromCircle(new Circle(center), opt_sides);
+    let angle = opt_angle;
+    if (!opt_angle) {
+      const x = end[0] - center[0];
+      const y = end[1] - center[1];
+      angle = Math.atan(y / x) - (x < 0 ? Math.PI : 0);
+    }
+    makeRegular(geometry, center, radius, angle);
+    return geometry;
+  };
+}
+=======
+/**
+ * Create a `geometryFunction` for `type: 'Circle'` that will create a regular
+ * polygon with a user specified number of sides and start angle instead of an
+ * `import("../geom/Circle.js").Circle` geometry.
+ * @param {number=} opt_sides Number of sides of the regular polygon. Default is
+ *     32.
+ * @param {number=} opt_angle Angle of the first point in radians. 0 means East.
+ *     Default is the angle defined by the heading from the center of the
+ *     regular polygon to the current pointer position.
+ * @return {GeometryFunction} Function that draws a
+ *     polygon.
+ * @api
+ */
+export function createRegularPolygon(opt_sides, opt_angle) {
+  return function(coordinates, opt_geometry) {
+    const center = /** @type {LineCoordType} */ (coordinates)[0];
+    const end = /** @type {LineCoordType} */ (coordinates)[1];
+    const radius = Math.sqrt(
+      squaredCoordinateDistance(center, end));
+    const geometry = opt_geometry ? /** @type {Polygon} */ (opt_geometry) :
+      fromCircle(new Circle(center), opt_sides);
+    let angle = opt_angle;
+    if (!opt_angle) {
+      const x = end[0] - center[0];
+      const y = end[1] - center[1];
+      angle = Math.atan(y / x) - (x < 0 ? Math.PI : 0);
+    }
+    // Create a circle with the correct radius and center
+    const circle = new Circle(center, radius);
+    // Convert the circle to a polygon with the specified number of sides
+    const circleGeom = fromCircle(circle, opt_sides || 32);
+    // Set the coordinates of the polygon
+    geometry.setCoordinates(circleGeom.getCoordinates());
+    return geometry;
+  };
+}
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/interaction/Draw.js
+<<<<<<< SEARCH
+/**
+ * Create a `geometryFunction` that will create a box-shaped polygon (aligned
+ * with the coordinate system axes).  Use this with the draw interaction and
+ * `type: 'Circle'` to return a box instead of a circle geometry.
+ * @return {GeometryFunction} Function that draws a box-shaped polygon.
+ * @api
+ */
+export function createBox() {
+  return (
+    function(coordinates, opt_geometry) {
+      const extent = boundingExtent(/** @type {LineCoordType} */ (coordinates));
+      const boxCoordinates = [[
+        getBottomLeft(extent),
+        getBottomRight(extent),
+        getTopRight(extent),
+        getTopLeft(extent),
+        getBottomLeft(extent)
+      ]];
+      let geometry = opt_geometry;
+      if (geometry) {
+        geometry.setCoordinates(boxCoordinates);
+      } else {
+        geometry = new Polygon(boxCoordinates);
+      }
+      return geometry;
+    }
+  );
+}
+=======
+/**
+ * Create a `geometryFunction` that will create a box-shaped polygon (aligned
+ * with the coordinate system axes).  Use this with the draw interaction and
+ * `type: 'Circle'` to return a box instead of a circle geometry.
+ * @return {GeometryFunction} Function that draws a box-shaped polygon.
+ * @api
+ */
+export function createBox() {
+  return (
+    function(coordinates, opt_geometry) {
+      const center = coordinates[0];
+      const end = coordinates[1];
+      
+      // Calculate the differences in each direction
+      const dx = end[0] - center[0];
+      const dy = end[1] - center[1];
+      
+      // Create the box coordinates based on the center and the differences
+      const boxCoordinates = [[
+        [center[0] - dx, center[1] - dy],
+        [center[0] + dx, center[1] - dy],
+        [center[0] + dx, center[1] + dy],
+        [center[0] - dx, center[1] + dy],
+        [center[0] - dx, center[1] - dy]
+      ]];
+      
+      let geometry = opt_geometry;
+      if (geometry) {
+        geometry.setCoordinates(boxCoordinates);
+      } else {
+        geometry = new Polygon(boxCoordinates);
+      }
+      return geometry;
+    }
+  );
+}
+>>>>>>> REPLACE
+```
+
+## Explanation of Changes
+
+1. For `createRegularPolygon`:
+   - Instead of using `makeRegular` which doesn't work well with geographic coordinates, I'm using the built-in `fromCircle` function to create a regular polygon from a circle.
+   - This ensures the polygon is truly regular in the geographic coordinate system.
+
+2. For `createBox`:
+   - Instead of using `boundingExtent` which creates a box aligned with the coordinate axes (which causes distortion in geographic coordinates), I'm creating a box centered on the first point with dimensions determined by the distance to the second point.
+   - This creates a box that appears more visually correct in geographic coordinates, as it's centered on the starting point and extends equally in all directions.
+
+These changes ensure that shapes drawn in geographic mode will appear more visually correct to users, addressing the issues mentioned in the bug report.

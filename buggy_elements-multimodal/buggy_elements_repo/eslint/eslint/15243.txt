@@ -1,0 +1,44 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that ESLint does not currently support async formatters. The user wants to switch to a highlighter library (`shiki`) that has an async API, but ESLint's formatter interface does not accommodate async functions. This limitation prevents the user from integrating the new highlighter effectively.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue is that ESLint's formatter interface is designed to work with synchronous functions only. When a formatter is called, it expects the formatted output to be returned immediately. However, an async formatter would need to return a Promise that resolves with the formatted output. ESLint does not currently handle this scenario, leading to the inability to use async formatters like the one provided by `shiki`.
+
+### 3. Examine Each File One by One
+
+#### --- lib/cli.js ---
+```
+lib/cli.js
+function: printResults
+```
+The `printResults` function is responsible for formatting and printing the linting results. It currently loads a formatter synchronously and expects the formatter to return the formatted output immediately. To support async formatters, this function would need to be modified to handle Promises.
+
+#### --- lib/cli-engine/cli-engine.js ---
+```
+lib/cli-engine/cli-engine.js
+class: CLIEngine
+```
+The `CLIEngine` class contains the core functionality of ESLint, including the method `getFormatter`, which loads and returns a formatter function. This method would need to be updated to support async formatters.
+
+#### --- lib/cli-engine/formatters/html.js ---
+```
+lib/cli-engine/formatters/html.js
+function: function_14
+function: renderResults
+```
+The `function_14` and `renderResults` functions are part of the HTML formatter. These functions would need to be updated to handle async operations if the formatter is async.
+
+#### --- lib/eslint/eslint.js ---
+```
+lib/eslint/eslint.js
+class: ESLint
+```
+The `ESLint` class contains the `loadFormatter` method, which loads a formatter. This method would need to be updated to support async formatters.
+
+#### --- lib/source-code/source-code.js ---
+```
+This file contains no relevant functions/classes.
+```
+The `source-code.js` file deals with parsing and analyzing source code and does not directly relate to the formatter interface or async operations. Therefore, it is not relevant to the issue at hand.

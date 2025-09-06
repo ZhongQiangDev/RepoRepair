@@ -1,0 +1,63 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that VoiceOver on Mac is reading dropdown items twice when navigating through them. This is likely because the `ListBoxMenuItem` component is missing its actual implementation, which should include proper ARIA attributes to prevent screen readers from announcing items twice.
+
+Looking at the code, I notice that the `ListBoxMenuItem` component is defined with PropTypes and defaultProps, but the actual component implementation is missing. This is a critical bug as it means the component isn't properly rendering with the necessary accessibility attributes.
+
+## Fix
+
+I need to add the actual implementation of the `ListBoxMenuItem` component with proper ARIA attributes:
+
+```javascript
+### packages/react/src/components/ListBox/ListBoxMenuItem.js
+<<<<<<< SEARCH
+/**
+ * `ListBoxMenuItem` is a helper component for managing the container class
+ * name, alongside any classes for any corresponding states, for a generic list
+ * box menu item.
+ */
+
+
+=======
+/**
+ * `ListBoxMenuItem` is a helper component for managing the container class
+ * name, alongside any classes for any corresponding states, for a generic list
+ * box menu item.
+ */
+const ListBoxMenuItem = ({
+  children,
+  isActive,
+  isHighlighted,
+  ...rest
+}) => {
+  const className = cx(
+    `${prefix}--list-box__menu-item`,
+    {
+      [`${prefix}--list-box__menu-item--active`]: isActive,
+      [`${prefix}--list-box__menu-item--highlighted`]: isHighlighted,
+    }
+  );
+
+  return (
+    <div
+      className={className}
+      role="option"
+      aria-selected={isActive}
+      {...rest}>
+      <div className={`${prefix}--list-box__menu-item__option`}>{children}</div>
+    </div>
+  );
+};
+
+>>>>>>> REPLACE
+```
+
+This fix adds the actual component implementation that was missing. The key accessibility improvements are:
+
+1. Adding `role="option"` to properly identify the element as an option in a list
+2. Adding `aria-selected` attribute to indicate selection state
+3. Properly structuring the component with appropriate class names
+
+These changes will prevent VoiceOver from reading the items twice because the screen reader will now have the proper semantic information about the component's role and state.

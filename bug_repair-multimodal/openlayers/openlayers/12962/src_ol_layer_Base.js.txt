@@ -1,0 +1,28 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is related to layer opacity stacking in OpenLayers 6.8.1 and later versions. When multiple layers have the same opacity value (e.g., 0.5), the top-most layer becomes opaque relative to other OpenLayers layers, though it still allows basemaps to show through.
+
+The problem appears to be in how layer opacity is handled in the `getLayerState` method of `BaseLayer.js`. Looking at the code, I can see that the opacity value is being rounded to 2 decimal places:
+
+```javascript
+state.opacity = clamp(Math.round(this.getOpacity() * 100) / 100, 0, 1);
+```
+
+This rounding is likely causing layers with very similar opacity values to be treated as having identical opacity, which leads to the stacking issue. When users set slightly different opacity values (like 0.49, 0.50, 0.51), the layers render correctly because the values remain distinct after rounding.
+
+## Fix
+
+The solution is to remove the rounding of opacity values in the `getLayerState` method, allowing layers to maintain their exact opacity values:
+
+```javascript
+### src/ol/layer/Base.js
+<<<<<<< SEARCH
+    state.opacity = clamp(Math.round(this.getOpacity() * 100) / 100, 0, 1);
+=======
+    state.opacity = clamp(this.getOpacity(), 0, 1);
+>>>>>>> REPLACE
+```
+
+This change will preserve the exact opacity values set by users, preventing the stacking issue when multiple layers have the same opacity. The `clamp` function is still used to ensure the opacity stays within the valid range of 0 to 1.

@@ -1,0 +1,41 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the problem is that ESLint's `key-spacing` rule with `align: 'value'` is causing unwanted formatting in JSX objects. The rule is aligning values in objects that are inside JSX curly braces, which makes the code look ugly.
+
+Looking at the code, I can see that the issue is in the `verifyAlignment` function. Currently, it doesn't check if the object is inside JSX curly braces before applying alignment rules.
+
+The fix would be to modify the `verifyAlignment` function to skip alignment for objects inside JSX expressions.
+
+```javascript
+### lib/rules/key-spacing.js
+<<<<<<< SEARCH
+        /**
+         * Verifies vertical alignment, taking into account groups of properties.
+         * @param  {ASTNode} node ObjectExpression node being evaluated.
+         * @returns {void}
+         */
+        function verifyAlignment(node) {
+            createGroups(node).forEach(group => {
+                verifyGroupAlignment(group.filter(isKeyValueProperty));
+            });
+        }
+=======
+        /**
+         * Verifies vertical alignment, taking into account groups of properties.
+         * @param  {ASTNode} node ObjectExpression node being evaluated.
+         * @returns {void}
+         */
+        function verifyAlignment(node) {
+            // Skip alignment for objects inside JSX expressions
+            if (node.parent && node.parent.type === "JSXExpressionContainer") {
+                return;
+            }
+            
+            createGroups(node).forEach(group => {
+                verifyGroupAlignment(group.filter(isKeyValueProperty));
+            });
+        }
+>>>>>>> REPLACE
+```
+
+This change checks if the parent of the object expression is a JSX expression container, and if so, it skips the alignment process. This will prevent the rule from aligning values in objects that are inside JSX curly braces, which should fix the issue described in the bug report.

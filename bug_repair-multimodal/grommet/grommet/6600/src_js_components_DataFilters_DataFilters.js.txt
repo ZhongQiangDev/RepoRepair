@@ -1,0 +1,191 @@
+I'll analyze the issue and provide a solution.
+
+Based on the issue description, the DataFilters component needs a new `layer` prop that allows filters to be displayed in a separate layer instead of a dropdown menu when there are many filters. Currently, the component has a `drop` prop for dropdown functionality, but it can overflow with many filters as shown in the screenshot.
+
+Looking at the provided code snippet, I can see that the DataFilters component is using DropButton for the dropdown functionality, but there's no implementation for a layer-based alternative. I need to modify the component to support this new `layer` prop.
+
+Here's my solution:
+
+```javascript
+### src/js/components/DataFilters/DataFilters.js
+<<<<<<< SEARCH
+import React, { Children, useContext, useMemo, useState } from 'react';
+import { Filter } from 'grommet-icons/icons/Filter';
+import { Box } from '../Box';
+import { Button } from '../Button';
+import { DataFilter } from '../DataFilter';
+import { DataForm } from '../Data/DataForm';
+import { DataSort } from '../DataSort';
+import { DropButton } from '../DropButton';
+import { Header } from '../Header';
+import { Heading } from '../Heading';
+import { DataContext } from '../../contexts/DataContext';
+import { MessageContext } from '../../contexts/MessageContext';
+import { DataFiltersPropTypes } from './propTypes';
+
+const dropProps = {
+  align: { top: 'bottom', right: 'right' },
+};
+=======
+import React, { Children, useContext, useMemo, useState } from 'react';
+import { Filter } from 'grommet-icons/icons/Filter';
+import { Box } from '../Box';
+import { Button } from '../Button';
+import { DataFilter } from '../DataFilter';
+import { DataForm } from '../Data/DataForm';
+import { DataSort } from '../DataSort';
+import { DropButton } from '../DropButton';
+import { Header } from '../Header';
+import { Heading } from '../Heading';
+import { Layer } from '../Layer';
+import { DataContext } from '../../contexts/DataContext';
+import { MessageContext } from '../../contexts/MessageContext';
+import { DataFiltersPropTypes } from './propTypes';
+
+const dropProps = {
+  align: { top: 'bottom', right: 'right' },
+};
+>>>>>>> REPLACE
+```
+
+Now I need to modify the DataFilters component implementation to support the new `layer` prop:
+
+```javascript
+### src/js/components/DataFilters/DataFilters.js
+<<<<<<< SEARCH
+DataFilters.propTypes = DataFiltersPropTypes;
+=======
+export const DataFilters = ({
+  children,
+  drop = false,
+  heading,
+  layer = false,
+  ...rest
+}) => {
+  const { messages } = useContext(MessageContext);
+  const { view } = useContext(DataContext);
+  const [open, setOpen] = useState(false);
+
+  // organize children into filters and sorts
+  const { filters, sorts } = useMemo(() => {
+    const result = { filters: [], sorts: [] };
+    Children.forEach(children, (child) => {
+      if (child.type === DataFilter) result.filters.push(child);
+      else if (child.type === DataSort) result.sorts.push(child);
+    });
+    return result;
+  }, [children]);
+
+  // if we have no filters or sorts, don't render anything
+  if (!filters.length && !sorts.length) return null;
+
+  // if we aren't dropping or layering, just render the children
+  if (!drop && !layer) return <Box {...rest}>{children}</Box>;
+
+  const content = (
+    <Box flex={false} gap="medium">
+      {heading || (
+        <Header>
+          <Heading level={4} margin="none">
+            {messages.dataFilters?.heading || 'Filters'}
+          </Heading>
+        </Header>
+      )}
+      <Box flex={false} gap="small">
+        {filters}
+        {sorts}
+      </Box>
+      {view?.clearFilters && (
+        <Box align="center">
+          <Button
+            label={messages.dataFilters?.clear || 'Clear all filters'}
+            onClick={() => view.clearFilters()}
+          />
+        </Box>
+      )}
+    </Box>
+  );
+
+  if (layer) {
+    return (
+      <Box flex={false} {...rest}>
+        <Button
+          icon={<Filter />}
+          onClick={() => setOpen(true)}
+          label={messages.dataFilters?.open || 'Filters'}
+        />
+        {open && (
+          <Layer
+            position="right"
+            onClickOutside={() => setOpen(false)}
+            onEsc={() => setOpen(false)}
+          >
+            <Box pad="medium" width="medium" flex={false}>
+              {content}
+              <Box margin={{ top: 'medium' }} align="center">
+                <Button
+                  label={messages.dataFilters?.close || 'Close'}
+                  onClick={() => setOpen(false)}
+                />
+              </Box>
+            </Box>
+          </Layer>
+        )}
+      </Box>
+    );
+  }
+
+  return (
+    <Box flex={false} {...rest}>
+      <DropButton
+        icon={<Filter />}
+        label={messages.dataFilters?.open || 'Filters'}
+        open={open}
+        onOpen={() => setOpen(true)}
+        onClose={() => setOpen(false)}
+        dropContent={<Box pad="medium">{content}</Box>}
+        dropProps={dropProps}
+      />
+    </Box>
+  );
+};
+
+DataFilters.propTypes = DataFiltersPropTypes;
+>>>>>>> REPLACE
+```
+
+Now I need to update the propTypes to include the new `layer` prop:
+
+```javascript
+### src/js/components/DataFilters/propTypes.js
+<<<<<<< SEARCH
+import PropTypes from 'prop-types';
+
+let DataFiltersPropTypes = {};
+
+if (process.env.NODE_ENV !== 'production') {
+  DataFiltersPropTypes = {
+    drop: PropTypes.bool,
+    heading: PropTypes.node,
+  };
+}
+
+export { DataFiltersPropTypes };
+=======
+import PropTypes from 'prop-types';
+
+let DataFiltersPropTypes = {};
+
+if (process.env.NODE_ENV !== 'production') {
+  DataFiltersPropTypes = {
+    drop: PropTypes.bool,
+    heading: PropTypes.node,
+    layer: PropTypes.bool,
+  };
+}
+
+export { DataFiltersPropTypes };
+>>>>>>> REPLACE
+```
+
+These changes add a new `layer` prop to the DataFilters component. When `layer` is true, clicking the filter button will open a Layer component on the right side of the screen instead of a dropdown. This provides more space for displaying many filters, as requested in the issue.

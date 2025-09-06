@@ -1,0 +1,48 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when rendering with `ol/render.toContext()` and setting a `pixelRatio` greater than 1, the line dash pattern is not scaled properly. This causes dashed lines to appear differently (often blurring into continuous lines) compared to when they're rendered on a map.
+
+The problem is that while the pixel coordinates are correctly scaled by the `pixelRatio`, the line dash pattern is not. The issue suggests that scaling the values in the `lineDash` array by the `pixelRatio` would solve the problem.
+
+## Solution
+
+We need to modify the `Stroke` class to include a method that can return a scaled version of the line dash pattern based on the pixel ratio. This will allow the rendering code to use the scaled dash pattern when needed.
+
+Here's the fix:
+
+```javascript
+### src/ol/style/Stroke.js
+<<<<<<< SEARCH
+  /**
+   * Get the line dash style for the stroke.
+   * @return {Array<number>} Line dash.
+   * @api
+   */
+  getLineDash() {
+    return this.lineDash_;
+  }
+=======
+  /**
+   * Get the line dash style for the stroke.
+   * @param {number} [pixelRatio=1] Pixel ratio.
+   * @return {Array<number>} Line dash.
+   * @api
+   */
+  getLineDash(pixelRatio) {
+    if (!this.lineDash_ || pixelRatio === undefined || pixelRatio === 1) {
+      return this.lineDash_;
+    }
+    const lineDash = this.lineDash_.slice();
+    for (let i = 0; i < lineDash.length; i++) {
+      lineDash[i] = lineDash[i] * pixelRatio;
+    }
+    return lineDash;
+  }
+>>>>>>> REPLACE
+```
+
+This change modifies the `getLineDash()` method to accept an optional `pixelRatio` parameter. When a pixel ratio is provided and is not 1, it creates a copy of the line dash array and scales each value by the pixel ratio. This ensures that the dash pattern appears consistent regardless of the device's pixel ratio.
+
+The rendering code that uses `toContext()` with a `pixelRatio` will now be able to get properly scaled line dash values, which will make the dashed lines appear consistent with how they're rendered on a map.

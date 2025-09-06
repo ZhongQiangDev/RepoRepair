@@ -1,0 +1,16 @@
+Let me analyze the problem and break down the wrong behaviors and their causes.
+
+### Answer 1
+**Wrong Behavior**: Dashed lines appear differently (blurred/continuous) when rendered using Canvas Immediate compared to map rendering on high DPI displays.
+**Cause**: The lineDash property is not being scaled according to the pixelRatio in the Canvas Immediate rendering context, while other properties (like coordinates) are properly scaled. This creates an inconsistency in how dashed lines are displayed between different rendering methods.
+
+### Answer 2
+**Wrong Behavior**: The gaps and dashes become disproportionately shorter compared to the line width on devices with pixelRatio > 1.0
+**Cause**: While the line width and coordinates are being scaled by the pixelRatio, the lineDash array values ([50, 50]) remain unscaled in the Canvas Immediate context. This causes the dash pattern to appear compressed relative to the line width on high DPI displays.
+
+### Answer 3
+**Wrong Behavior**: Inconsistent rendering between map view and Canvas Immediate view using the same style
+**Cause**: The OpenLayers map rendering pipeline automatically handles pixelRatio scaling for all style properties, including lineDash, while the ol.render.toContext() method only partially applies the pixelRatio scaling, missing the lineDash property.
+
+### Conclusion
+**Summary**: The core issue stems from incomplete pixelRatio handling in Canvas Immediate rendering. While the map rendering properly scales all style properties for high DPI displays, the Canvas Immediate context (ol.render.toContext) fails to scale the lineDash property. This creates three related problems: inconsistent dash rendering between methods, disproportionate dash patterns on high DPI displays, and inconsistent visual output despite using the same style definition. The suggested solution would be to scale the lineDash array values by the pixelRatio when using Canvas Immediate rendering, though this would require creating a separate style instance to avoid affecting map rendering.

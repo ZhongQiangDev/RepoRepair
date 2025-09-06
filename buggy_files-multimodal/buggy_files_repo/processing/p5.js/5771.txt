@@ -1,0 +1,32 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## 1. Identifying the Wrong Behavior
+
+The problem is that `beginShape(QUADS)` renders differently in WebGL mode compared to 2D mode. Specifically:
+- In 2D mode, the quad is rendered correctly as a rectangle
+- In WebGL mode, the quad appears to have self-intersections, creating an hourglass shape instead of a rectangle
+
+The issue is related to vertex ordering - WebGL is treating the vertices in `QUADS` mode the same way it would in `QUAD_STRIP` mode, which processes vertices in a different order.
+
+## 2. Analyzing the Cause
+
+The problem is in how the WebGL renderer processes vertices in `QUADS` mode. In 2D mode, `QUADS` correctly processes vertices in groups of 4, with each group forming a separate quadrilateral. However, in WebGL mode, it's incorrectly connecting the vertices as if they were in `QUAD_STRIP` mode, which connects vertices in a zigzag pattern.
+
+This is likely happening in the code that handles vertex processing in the WebGL renderer, specifically in the part that converts `QUADS` primitives to triangles (since WebGL natively only supports triangles).
+
+## 3. Files Most Related to the Cause
+
+```
+src/webgl/p5.RendererGL.Immediate.js
+src/webgl/p5.RendererGL.js
+src/core/shape/vertex.js
+src/webgl/p5.RendererGL.Retained.js
+```
+
+The most important file is `src/webgl/p5.RendererGL.Immediate.js` because it contains the `vertex()` and related functions that handle immediate mode rendering in WebGL, including how vertices are processed for different shape modes like `QUADS`. This is where the vertex ordering issue for `QUADS` mode would need to be fixed.
+
+The second file, `src/webgl/p5.RendererGL.js`, contains the core WebGL renderer implementation and might have code related to how primitives are processed.
+
+The third file would likely be `src/core/shape/vertex.js` (though not in your list), as it would contain the base implementation of vertex handling that the WebGL renderer extends.
+
+The fourth file, `src/webgl/p5.RendererGL.Retained.js`, handles retained mode rendering in WebGL and might also contain code related to how vertices are processed.

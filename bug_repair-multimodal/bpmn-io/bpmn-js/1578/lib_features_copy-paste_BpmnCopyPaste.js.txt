@@ -1,0 +1,69 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue occurs when copying a Pool (which contains a Process) and pasting it. The problem is that the copied Pool's Process has the same ID as the original Process, causing an error when exporting/importing the BPMN file.
+
+Looking at the error in the XML output:
+```xml
+<bpmn:process id="Process_17iojvx" isExecutable="false">
+    <bpmn:task id="Activity_0mkgwx2" />
+  </bpmn:process>
+  <bpmn:process id="Process_17iojvx" isExecutable="false">
+    <bpmn:task id="Activity_1xz8h8p" />
+</bpmn:process>
+```
+
+We can see that both processes have the same ID: `Process_17iojvx`. This is not valid XML as IDs must be unique.
+
+The bug is in the `BpmnCopyPaste.js` file. When copying a Process (which happens when copying a Pool), the code doesn't generate a new ID for the Process.
+
+## Fix
+
+We need to modify the `canCopyProperty` event handler to ensure that when a Process is copied, it gets a new ID.
+
+```javascript
+### lib/features/copy-paste/BpmnCopyPaste.js
+<<<<<<< SEARCH
+  eventBus.on('moddleCopy.canCopyProperty', function(context) {
+    var parent = context.parent,
+        property = context.property,
+        propertyName = context.propertyName,
+        bpmnProcess;
+
+    if (
+      propertyName === 'processRef' &&
+      is(parent, 'bpmn:Participant') &&
+      is(property, 'bpmn:Process')
+    ) {
+      bpmnProcess = bpmnFactory.create('bpmn:Process');
+
+      // return copy of process
+      return moddleCopy.copyElement(property, bpmnProcess);
+    }
+  });
+=======
+  eventBus.on('moddleCopy.canCopyProperty', function(context) {
+    var parent = context.parent,
+        property = context.property,
+        propertyName = context.propertyName,
+        bpmnProcess;
+
+    if (
+      propertyName === 'processRef' &&
+      is(parent, 'bpmn:Participant') &&
+      is(property, 'bpmn:Process')
+    ) {
+      bpmnProcess = bpmnFactory.create('bpmn:Process');
+
+      // Generate a new ID for the process to avoid duplicates
+      bpmnProcess.id = bpmnFactory.createId();
+
+      // return copy of process
+      return moddleCopy.copyElement(property, bpmnProcess);
+    }
+  });
+>>>>>>> REPLACE
+```
+
+This fix ensures that when a Process is copied (as part of copying a Pool), a new unique ID is generated for the Process, preventing the duplicate ID issue when exporting/importing the BPMN file.

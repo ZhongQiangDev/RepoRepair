@@ -1,0 +1,25 @@
+Let me help analyze this issue.
+
+1. Wrong Behavior:
+The Lighthouse tool is not waiting long enough to detect and measure Cumulative Layout Shift (CLS) accurately when using throttlingMethod=simulate mode. This results in potentially underreported CLS scores.
+
+2. Cause Analysis:
+The issue appears to be related to the timing and simulation of layout shifts in Lantern (simulate) mode. The tool is likely completing its analysis before all layout shifts have occurred, leading to incomplete CLS measurements. This is particularly problematic because CLS is a metric that needs to observe the entire page load process to accurately capture all layout shifts.
+
+3. Most Relevant Files:
+```
+lighthouse-core/audits/metrics/cumulative-layout-shift.js
+lighthouse-core/computed/metrics/lantern-metric.js
+lighthouse-core/lib/dependency-graph/simulator/simulator.js
+lighthouse-core/computed/metrics/metric.js
+lighthouse-core/audits/layout-shift-elements.js
+```
+
+These files are ordered by relevance because:
+1. cumulative-layout-shift.js directly handles the CLS metric calculation
+2. lantern-metric.js contains the base simulation logic for metrics
+3. simulator.js manages the timing and simulation of page load events
+4. metric.js provides the base metric computation framework
+5. layout-shift-elements.js identifies elements causing layout shifts
+
+These files would need to be modified to ensure the simulation waits long enough to capture all layout shifts before completing the CLS calculation.

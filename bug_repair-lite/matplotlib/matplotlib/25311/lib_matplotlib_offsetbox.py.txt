@@ -1,0 +1,121 @@
+Based on the issue description, the problem occurs when trying to pickle a figure that contains a draggable legend. The error suggests that the `FigureCanvasQTAgg` object cannot be pickled. Looking at the code in `lib/matplotlib/offsetbox.py`, the issue appears to be in the `DraggableBase` class where canvas callbacks are connected.
+
+The problem stems from the canvas callbacks not being properly set up for pickling. While the code attempts to use `_connect_picklable`, the canvas object itself is stored directly as an instance variable, which causes pickling issues.
+
+Here's the fix:
+
+```python
+### lib/matplotlib/offsetbox.py
+<<<<<<< SEARCH
+    def __init__(self, ref_artist, use_blit=False):
+        self.ref_artist = ref_artist
+        if not ref_artist.pickable():
+            ref_artist.set_picker(True)
+        self.got_artist = False
+        self.canvas = self.ref_artist.figure.canvas
+        self._use_blit = use_blit and self.canvas.supports_blit
+        self.cids = [
+            self.canvas.callbacks._connect_picklable(
+                'pick_event', self.on_pick),
+            self.canvas.callbacks._connect_picklable(
+                'button_release_event', self.on_release),
+        ]
+=======
+    def __init__(self, ref_artist, use_blit=False):
+        self.ref_artist = ref_artist
+        if not ref_artist.pickable():
+            ref_artist.set_picker(True)
+        self.got_artist = False
+        self._use_blit = use_blit
+        # Don't store canvas directly, access it through ref_artist when needed
+        self.cids = [
+            self.ref_artist.figure.canvas.callbacks._connect_picklable(
+                'pick_event', self.on_pick),
+            self.ref_artist.figure.canvas.callbacks._connect_picklable(
+                'button_release_event', self.on_release),
+        ]
+>>>>>>> REPLACE
+```
+
+This change:
+1. Removes the direct storage of the canvas object as an instance variable
+2. Accesses the canvas through `ref_artist.figure.canvas` when needed
+3. Updates the `_use_blit` initialization to avoid early canvas access
+
+We also need to update other methods that use `self.canvas` directly:
+
+```python
+### lib/matplotlib/offsetbox.py
+<<<<<<< SEARCH
+    def on_motion(self, evt):
+        if self._check_still_parented() and self.got_artist:
+            dx = evt.x - self.mouse_x
+            dy = evt.y - self.mouse_y
+            self.update_offset(dx, dy)
+            if self._use_blit:
+                self.canvas.restore_region(self.background)
+                self.ref_artist.draw(
+                    self.ref_artist.figure._get_renderer())
+                self.canvas.blit()
+            else:
+                self.canvas.draw()
+=======
+    def on_motion(self, evt):
+        if self._check_still_parented() and self.got_artist:
+            canvas = self.ref_artist.figure.canvas
+            dx = evt.x - self.mouse_x
+            dy = evt.y - self.mouse_y
+            self.update_offset(dx, dy)
+            if self._use_blit and canvas.supports_blit:
+                canvas.restore_region(self.background)
+                self.ref_artist.draw(
+                    self.ref_artist.figure._get_renderer())
+                canvas.blit()
+            else:
+                canvas.draw()
+>>>>>>> REPLACE
+```
+
+And:
+
+```python
+### lib/matplotlib/offsetbox.py
+<<<<<<< SEARCH
+    def on_pick(self, evt):
+        if self._check_still_parented() and evt.artist == self.ref_artist:
+            self.mouse_x = evt.mouseevent.x
+            self.mouse_y = evt.mouseevent.y
+            self.got_artist = True
+            if self._use_blit:
+                self.ref_artist.set_animated(True)
+                self.canvas.draw()
+                self.background = \
+                    self.canvas.copy_from_bbox(self.ref_artist.figure.bbox)
+                self.ref_artist.draw(
+                    self.ref_artist.figure._get_renderer())
+                self.canvas.blit()
+            self._c1 = self.canvas.callbacks._connect_picklable(
+                "motion_notify_event", self.on_motion)
+            self.save_offset()
+=======
+    def on_pick(self, evt):
+        if self._check_still_parented() and evt.artist == self.ref_artist:
+            canvas = self.ref_artist.figure.canvas
+            self.mouse_x = evt.mouseevent.x
+            self.mouse_y = evt.mouseevent.y
+            self.got_artist = True
+            if self._use_blit and canvas.supports_blit:
+                self.ref_artist.set_animated(True)
+                canvas.draw()
+                self.background = \
+                    canvas.copy_from_bbox(self.ref_artist.figure.bbox)
+                self.ref_artist.draw(
+                    self.ref_artist.figure._get_renderer())
+                canvas.blit()
+            self._c1 = canvas.callbacks._connect_picklable(
+                "motion_notify_event", self.on_motion)
+            self.save_offset()
+>>>>>>> REPLACE
+```
+
+These changes ensure that the `DraggableBase` class and its derivatives can be properly pickled by avoiding direct storage of the canvas object and accessing it through the reference artist when needed. The functionality remains the same, but the object becomes pickle-compatible.

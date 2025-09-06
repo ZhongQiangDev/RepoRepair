@@ -1,0 +1,71 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that the 'a' shortcut key for append/create functionality doesn't work properly in certain scenarios. Specifically:
+
+1. When an element is selected that can have elements appended to it in principle
+2. But there are no specific append actions available for that element
+3. In this case, the shortcut should fall back to "create" mode, but it doesn't do anything
+
+Looking at the code, the problem is in the `CreateAppendKeyboardBindings.js` file. When the 'a' key is pressed, the code checks if there's a single element selected, and if so, it triggers the 'appendElement' action. However, it doesn't handle the case where the 'appendElement' action doesn't do anything (because there are no append options for that element).
+
+## Fix
+
+We need to modify the keyboard binding for the 'a' key to check if the 'appendElement' action is successful, and if not, fall back to the 'createElement' action.
+
+```javascript
+### lib/features/create-append-anything/CreateAppendKeyboardBindings.js
+<<<<<<< SEARCH
+  // activate append/create element
+  // A
+  addListener('appendElement', function(context) {
+
+    var event = context.keyEvent;
+
+    if (keyboard && keyboard.hasModifier(event)) {
+      return;
+    }
+
+    if (keyboard && keyboard.isKey([ 'a', 'A' ], event)) {
+
+      if (selection && selection.get().length == 1) {
+        editorActions && editorActions.trigger('appendElement', event);
+      } else {
+        editorActions && editorActions.trigger('createElement', event);
+      }
+
+      return true;
+    }
+  });
+=======
+  // activate append/create element
+  // A
+  addListener('appendElement', function(context) {
+
+    var event = context.keyEvent;
+
+    if (keyboard && keyboard.hasModifier(event)) {
+      return;
+    }
+
+    if (keyboard && keyboard.isKey([ 'a', 'A' ], event)) {
+
+      if (selection && selection.get().length == 1) {
+        var appendResult = editorActions && editorActions.trigger('appendElement', event);
+        
+        // If append didn't work (no append options available), fall back to create
+        if (!appendResult) {
+          editorActions && editorActions.trigger('createElement', event);
+        }
+      } else {
+        editorActions && editorActions.trigger('createElement', event);
+      }
+
+      return true;
+    }
+  });
+>>>>>>> REPLACE
+```
+
+This fix checks the return value of the `editorActions.trigger('appendElement', event)` call. If it returns a falsy value (indicating the action wasn't successful), it falls back to triggering the 'createElement' action. This ensures that the 'a' key always does something useful, even when there are no append options available for the selected element.

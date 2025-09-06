@@ -1,0 +1,36 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The problem occurs when trying to combine Q objects with Exists objects using the & operator. Specifically:
+- `Exists(...) & Q()` works correctly
+- `Q() & Exists(...)` raises a TypeError
+
+2. Cause Analysis:
+The issue appears to be related to operator precedence and type handling in the combination of Q and Exists objects. The error occurs in Q's `__and__` method, which expects the other operand to be a Q object. When Q is on the left side, its `__and__` method is called, but it doesn't handle Exists objects. However, when Exists is on the left side, Python looks for `__rand__` in Exists to handle Q objects, which appears to be implemented correctly.
+
+3. Relevant Files/Functions Analysis:
+
+```
+django/db/models/query_utils.py
+class: Q
+```
+This class is directly involved as it handles the & operator through `__and__` method and fails to properly handle Exists objects.
+
+```
+django/db/models/expressions.py
+class: Exists
+```
+This class represents the Exists expression and should implement `__rand__` to handle Q objects properly when it's on the left side of &.
+
+```
+django/db/models/expressions.py
+class: Expression
+```
+This is the base class for all expressions including Exists, and may need modifications to support proper operator handling.
+
+The remaining files do not contain directly relevant functions/classes for this specific issue. The problem is primarily centered around the interaction between Q and Exists classes through the & operator, specifically in their operator method implementations.
+
+The fix would likely involve either:
+1. Modifying Q's `__and__` method to handle Exists objects
+2. Adding `__rand__` to Exists to handle Q objects
+3. Modifying the base Expression class to provide default implementations for these operators

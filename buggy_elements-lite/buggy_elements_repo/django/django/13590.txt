@@ -1,0 +1,36 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The issue occurs when named tuples are used as arguments to __range queryset filters in Django 3.0. The operation that worked in Django 2.2 now raises a TypeError with the message "__new__() missing 1 required positional argument: 'far'".
+
+2. Cause Analysis:
+The problem stems from how Django's Query.resolve_lookup_value handles tuples. When processing named tuples in range filters:
+- It first resolves lookups within the tuple elements
+- Then attempts to reconstruct the tuple with resolved elements
+- The reconstruction preserves the original tuple type (named tuple)
+- However, it passes an iterator to the named tuple constructor
+- Named tuples don't support construction from iterators directly, causing the TypeError
+
+3. Relevant Files Analysis:
+
+```
+django/db/models/sql/query.py
+class: Query
+```
+This class is directly relevant as it handles query construction and contains the resolve_lookup_value method that's causing the issue with named tuples.
+
+```
+django/db/models/lookups.py
+class: Range
+```
+This class is relevant as it handles range lookups and would be involved in processing the tuple arguments for range filters.
+
+```
+django/db/migrations/operations/utils.py
+class: ModelTuple
+```
+This class is relevant as it demonstrates Django's usage of named tuples in the codebase and could provide insight into proper tuple handling patterns.
+
+The remaining files contain no relevant functions/classes as they deal with other aspects of Django's ORM system that aren't directly related to the tuple processing issue in range queries.
+
+The core issue appears to be in the Query class's handling of tuple reconstruction, particularly when dealing with named tuples in range filters. The fix would likely involve modifying how the Query class reconstructs tuples to properly handle named tuple cases, possibly by using the * operator to expand the iterator when constructing the new tuple.

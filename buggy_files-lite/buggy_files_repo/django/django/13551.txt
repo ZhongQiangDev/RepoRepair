@@ -1,0 +1,24 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- A password reset token remains valid even after a user changes their email address
+- This is a security issue as the old email address (which may no longer be controlled by the user) can still be used to reset the password
+
+2. Cause Analysis:
+- The password reset token generation doesn't include the user's email address in the hash value
+- When a user changes their email, the token should become invalid since it represents a significant account change
+- The issue lies in the token generation/validation logic in Django's authentication system
+
+3. Most Related Files (ordered by importance):
+```
+django/contrib/auth/tokens.py
+django/contrib/auth/forms.py
+django/contrib/auth/views.py
+```
+
+Reasoning:
+- `tokens.py` is the most critical as it contains the `PasswordResetTokenGenerator` class that needs to be modified to include email in the hash value
+- `forms.py` contains the `PasswordResetForm` that handles the password reset workflow
+- `views.py` contains the password reset views that coordinate the entire process
+
+These files form the core of Django's password reset functionality, with `tokens.py` being the primary file needing modification to fix the security issue.

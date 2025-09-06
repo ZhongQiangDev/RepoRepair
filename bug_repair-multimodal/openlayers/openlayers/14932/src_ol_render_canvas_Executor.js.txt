@@ -1,0 +1,32 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, there's a regression in the `textAlign` property of the `Text` style when using 'start' and 'end' values. The issue is in the `horizontalTextAlign` function in `src/ol/render/canvas/Executor.js`.
+
+Looking at the code, I can see that the function is supposed to handle RTL (right-to-left) text by converting 'start' to 'left' and 'end' to 'right' when the text doesn't contain RTL characters. However, there's a bug in the implementation.
+
+The issue is that the function is incorrectly handling the 'start' and 'end' values. When text doesn't contain RTL characters, 'start' should be converted to 'left' and 'end' to 'right'. But the current implementation is doing this conversion regardless of whether the text contains RTL characters or not.
+
+Here's the fix:
+
+```javascript
+### src/ol/render/canvas/Executor.js
+<<<<<<< SEARCH
+function horizontalTextAlign(text, align) {
+  if ((align === 'start' || align === 'end') && !rtlRegEx.test(text)) {
+    align = align === 'start' ? 'left' : 'right';
+  }
+  return TEXT_ALIGN[align];
+}
+=======
+function horizontalTextAlign(text, align) {
+  if (align === 'start') {
+    align = rtlRegEx.test(text) ? 'right' : 'left';
+  } else if (align === 'end') {
+    align = rtlRegEx.test(text) ? 'left' : 'right';
+  }
+  return TEXT_ALIGN[align];
+}
+>>>>>>> REPLACE
+```
+
+This fix properly handles the 'start' and 'end' values based on whether the text contains RTL characters. If the text contains RTL characters, 'start' should be 'right' and 'end' should be 'left'. Otherwise, 'start' should be 'left' and 'end' should be 'right'.

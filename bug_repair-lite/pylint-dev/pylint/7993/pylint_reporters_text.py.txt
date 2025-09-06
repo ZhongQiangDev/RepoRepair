@@ -1,0 +1,64 @@
+Based on the issue description, the bug appears to be in the message template handling in `pylint/reporters/text.py`. The issue occurs when using custom braces in the message template, where Pylint 2.12.2 incorrectly handles templates containing JSON-like structures with curly braces.
+
+The problem is in the `on_set_current_module` method where the regular expression pattern used to find arguments doesn't properly handle nested curly braces. The current regex `r"\{(.+?)(:.*)?\}"` is too greedy and gets confused by the additional curly braces in the template.
+
+Here's the fix:
+
+```python
+### pylint/reporters/text.py
+<<<<<<< SEARCH
+        # Check to see if all parameters in the template are attributes of the Message
+        arguments = re.findall(r"\{(.+?)(:.*)?\}", template)
+        for argument in arguments:
+            if argument[0] not in MESSAGE_FIELDS:
+                warnings.warn(
+                    f"Don't recognize the argument '{argument[0]}' in the --msg-template. "
+                    "Are you sure it is supported on the current version of pylint?"
+                )
+                template = re.sub(r"\{" + argument[0] + r"(:.*?)?\}", "", template)
+        self._fixed_template = template
+=======
+        # Check to see if all parameters in the template are attributes of the Message
+        arguments = []
+        depth = 0
+        start = 0
+        in_field = False
+        
+        # Parse template manually to handle nested braces
+        for i, char in enumerate(template):
+            if char == '{':
+                if depth == 0:
+                    start = i + 1
+                    in_field = True
+                depth += 1
+            elif char == '}':
+                depth -= 1
+                if depth == 0 and in_field:
+                    field = template[start:i]
+                    if ':' in field:
+                        field = field.split(':', 1)[0]
+                    arguments.append(field)
+                    in_field = False
+        
+        # Check if arguments are valid Message fields
+        template_copy = template
+        for argument in arguments:
+            if argument not in MESSAGE_FIELDS:
+                if not any(c in argument for c in '{}'):  # Ignore nested structures
+                    warnings.warn(
+                        f"Don't recognize the argument '{argument}' in the --msg-template. "
+                        "Are you sure it is supported on the current version of pylint?"
+                    )
+                    template_copy = template_copy.replace("{" + argument + "}", "")
+        self._fixed_template = template_copy
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Replaces the regex-based argument parsing with a manual parser that properly handles nested braces
+2. Keeps track of brace depth to correctly identify actual template fields
+3. Ignores nested JSON-like structures when warning about unrecognized fields
+4. Only removes unrecognized fields that don't contain braces (preserving JSON-like structures)
+
+The new implementation will properly handle templates like `'{{ "Category": "{category}" }}'` while still maintaining the original functionality for simple templates. It won't warn about or remove the outer JSON structure, only checking the actual template fields (like `{category}`).

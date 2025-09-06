@@ -1,0 +1,284 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is that the ComboBox component doesn't properly support refs. When users try to pass a ref to the ComboBox component, they get a warning in the console because the component doesn't forward the ref properly.
+
+Looking at the code, I can see that the ComboBox component is a functional component that doesn't use React.forwardRef, which is necessary to properly accept and forward refs from parent components. The issue mentions that this component was rewritten from a class to a functional component, but the ref forwarding wasn't implemented.
+
+The issue suggests implementing ref forwarding similar to how it's done in the TextInput component.
+
+## Solution
+
+I need to:
+1. Wrap the ComboBox component with React.forwardRef
+2. Accept the forwarded ref as a parameter
+3. Merge this ref with the internal textInput ref
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+const ComboBox = (props) => {
+  const {
+    ariaLabel,
+    className: containerClassName,
+    direction,
+    disabled,
+    downshiftProps,
+    helperText,
+    id,
+    initialSelectedItem,
+    invalid,
+    invalidText,
+    items,
+    itemToElement,
+    itemToString,
+    light,
+    onChange,
+    onInputChange,
+    onToggleClick, // eslint-disable-line no-unused-vars
+    placeholder,
+    selectedItem,
+    shouldFilterItem,
+    size,
+    titleText,
+    translateWithId,
+    type, // eslint-disable-line no-unused-vars
+    warn,
+    warnText,
+    ...rest
+  } = props;
+
+  const textInput = useRef();
+=======
+const ComboBox = React.forwardRef(function ComboBox(props, ref) {
+  const {
+    ariaLabel,
+    className: containerClassName,
+    direction,
+    disabled,
+    downshiftProps,
+    helperText,
+    id,
+    initialSelectedItem,
+    invalid,
+    invalidText,
+    items,
+    itemToElement,
+    itemToString,
+    light,
+    onChange,
+    onInputChange,
+    onToggleClick, // eslint-disable-line no-unused-vars
+    placeholder,
+    selectedItem,
+    shouldFilterItem,
+    size,
+    titleText,
+    translateWithId,
+    type, // eslint-disable-line no-unused-vars
+    warn,
+    warnText,
+    ...rest
+  } = props;
+
+  const textInput = useRef(null);
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+export default ComboBox;
+=======
+export default ComboBox;
+
+// Return a single item
+function defaultItemToString(item) {
+  if (typeof item === 'string') {
+    return item;
+  }
+
+  return item && item.label;
+}
+
+function defaultShouldFilterItem({ item, itemToString, inputValue }) {
+  if (!inputValue) {
+    return true;
+  }
+
+  return itemToString(item)
+    .toLowerCase()
+    .includes(inputValue.toLowerCase());
+}
+
+function getInputValue({ selectedItem, itemToString, initialSelectedItem, inputValue }) {
+  if (selectedItem) {
+    return itemToString(selectedItem);
+  }
+
+  if (initialSelectedItem) {
+    return itemToString(initialSelectedItem);
+  }
+
+  return inputValue || '';
+}
+
+function findHighlightedIndex({ items, itemToString }, inputValue) {
+  if (!inputValue) {
+    return -1;
+  }
+
+  const searchValue = inputValue.toLowerCase();
+
+  for (let i = 0; i < items.length; i++) {
+    const item = itemToString(items[i]).toLowerCase();
+    if (item.indexOf(searchValue) !== -1) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+import mergeRefs from '../../tools/mergeRefs';
+
+const { prefix } = settings;
+=======
+import mergeRefs from '../../tools/mergeRefs';
+
+const { prefix } = settings;
+
+// Return a single item
+function defaultItemToString(item) {
+  if (typeof item === 'string') {
+    return item;
+  }
+
+  return item && item.label;
+}
+
+function defaultShouldFilterItem({ item, itemToString, inputValue }) {
+  if (!inputValue) {
+    return true;
+  }
+
+  return itemToString(item)
+    .toLowerCase()
+    .includes(inputValue.toLowerCase());
+}
+
+function getInputValue({ selectedItem, itemToString, initialSelectedItem, inputValue }) {
+  if (selectedItem) {
+    return itemToString(selectedItem);
+  }
+
+  if (initialSelectedItem) {
+    return itemToString(initialSelectedItem);
+  }
+
+  return inputValue || '';
+}
+
+function findHighlightedIndex({ items, itemToString }, inputValue) {
+  if (!inputValue) {
+    return -1;
+  }
+
+  const searchValue = inputValue.toLowerCase();
+
+  for (let i = 0; i < items.length; i++) {
+    const item = itemToString(items[i]).toLowerCase();
+    if (item.indexOf(searchValue) !== -1) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+=======
+import mergeRefs from '../../tools/mergeRefs';
+
+const { prefix } = settings;
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+                  ref={mergeRefs(textInput, rootProps.ref)}
+=======
+                  ref={mergeRefs(textInput, rootProps.ref, ref)}
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+// Return a single item
+function defaultItemToString(item) {
+  if (typeof item === 'string') {
+    return item;
+  }
+
+  return item && item.label;
+}
+
+function defaultShouldFilterItem({ item, itemToString, inputValue }) {
+  if (!inputValue) {
+    return true;
+  }
+
+  return itemToString(item)
+    .toLowerCase()
+    .includes(inputValue.toLowerCase());
+}
+
+function getInputValue({ selectedItem, itemToString, initialSelectedItem, inputValue }) {
+  if (selectedItem) {
+    return itemToString(selectedItem);
+  }
+
+  if (initialSelectedItem) {
+    return itemToString(initialSelectedItem);
+  }
+
+  return inputValue || '';
+}
+
+function findHighlightedIndex({ items, itemToString }, inputValue) {
+  if (!inputValue) {
+    return -1;
+  }
+
+  const searchValue = inputValue.toLowerCase();
+
+  for (let i = 0; i < items.length; i++) {
+    const item = itemToString(items[i]).toLowerCase();
+    if (item.indexOf(searchValue) !== -1) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+=======
+>>>>>>> REPLACE
+```
+
+The changes I've made:
+
+1. Wrapped the ComboBox component with React.forwardRef to properly accept refs from parent components
+2. Added the ref parameter to the component function
+3. Merged the external ref with the internal textInput ref and the rootProps.ref using the mergeRefs utility
+4. Moved the helper functions to the top of the file to avoid duplicate definitions
+5. Initialized textInput ref with null for clarity
+
+These changes will allow users to pass refs to the ComboBox component without warnings, and the refs will properly reference the input element.

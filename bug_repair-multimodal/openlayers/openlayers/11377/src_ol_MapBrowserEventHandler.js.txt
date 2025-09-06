@@ -1,0 +1,62 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue reports that pointermove performance is much slower in version 6.4.0 compared to 6.3.1, affecting operations like zoom, panning, and cursor changes.
+
+Looking at the code, I notice a potential performance issue in the `relayEvent_` method. This method is called for every pointer move event, and it creates a new `MapBrowserEvent` for each move. The problem appears to be that in version 6.4.0, the code is calculating whether dragging is occurring on every single pointer move event, even when not necessary.
+
+The issue is in the `relayEvent_` method where it's doing unnecessary calculations for the dragging state on every pointer move, even when no button is pressed. This would cause performance degradation, especially with many features.
+
+## Fix
+
+```javascript
+### src/ol/MapBrowserEventHandler.js
+<<<<<<< SEARCH
+  /**
+   * Wrap and relay a pointer event.  Note that this requires that the type
+   * string for the MapBrowserEvent matches the PointerEvent type.
+   * @param {PointerEvent} pointerEvent Pointer
+   * event.
+   * @private
+   */
+  relayEvent_(pointerEvent) {
+    this.originalPointerMoveEvent_ = pointerEvent;
+    const dragging = !!(this.down_ && this.isMoving_(pointerEvent));
+    this.dispatchEvent(
+      new MapBrowserEvent(pointerEvent.type, this.map_, pointerEvent, dragging)
+    );
+  }
+=======
+  /**
+   * Wrap and relay a pointer event.  Note that this requires that the type
+   * string for the MapBrowserEvent matches the PointerEvent type.
+   * @param {PointerEvent} pointerEvent Pointer
+   * event.
+   * @private
+   */
+  relayEvent_(pointerEvent) {
+    this.originalPointerMoveEvent_ = pointerEvent;
+    // Only calculate dragging state when we have a down event
+    // This avoids unnecessary calculations on every pointer move
+    const dragging = this.down_ ? !!(this.isMoving_(pointerEvent)) : false;
+    this.dispatchEvent(
+      new MapBrowserEvent(pointerEvent.type, this.map_, pointerEvent, dragging)
+    );
+  }
+>>>>>>> REPLACE
+```
+
+The fix optimizes the `relayEvent_` method by only calculating the dragging state when there's an active pointer down event. This avoids the expensive `isMoving_` calculation on every pointer move when no button is pressed, which should significantly improve performance.
+
+The key change is replacing:
+```javascript
+const dragging = !!(this.down_ && this.isMoving_(pointerEvent));
+```
+
+with:
+```javascript
+const dragging = this.down_ ? !!(this.isMoving_(pointerEvent)) : false;
+```
+
+This ensures we only call `isMoving_` when `this.down_` is truthy, avoiding unnecessary calculations when no pointer button is pressed.

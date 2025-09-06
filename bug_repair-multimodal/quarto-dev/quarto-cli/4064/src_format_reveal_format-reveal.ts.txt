@@ -1,0 +1,87 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when using percentage values for `width` and `height` in RevealJS presentations, the presentation doesn't render properly. Looking at the code, I can see that in the `revealHtmlPostprocessor` function, there's a section that quotes the `slideNumber` value, but there's no similar handling for percentage values in width and height.
+
+The problem is in the `revealjsFormat` function where default values for width and height are set as numbers (1050 and 700), but when users provide percentage values like "100%", these values aren't properly quoted in the generated template. This causes the RevealJS initialization to fail.
+
+## Fix
+
+We need to modify the `revealMetadataFilter` function to ensure that percentage values for width and height are properly quoted in the template.
+
+```typescript
+### src/format/reveal/format-reveal.ts
+<<<<<<< SEARCH
+          extras.metadata = {
+            ...extras.metadata,
+            ...revealMetadataFilter({
+              width: 1050,
+              height: 700,
+              margin: 0.1,
+              center: false,
+              navigationMode: "linear",
+              controlsLayout: "edges",
+              controlsTutorial: false,
+              hash: true,
+              history: true,
+              hashOneBasedIndex: false,
+              fragmentInURL: false,
+              transition: "none",
+              backgroundTransition: "none",
+              pdfSeparateFragments: false,
+            }),
+          };
+=======
+          extras.metadata = {
+            ...extras.metadata,
+            ...revealMetadataFilter({
+              width: 1050,
+              height: 700,
+              margin: 0.1,
+              center: false,
+              navigationMode: "linear",
+              controlsLayout: "edges",
+              controlsTutorial: false,
+              hash: true,
+              history: true,
+              hashOneBasedIndex: false,
+              fragmentInURL: false,
+              transition: "none",
+              backgroundTransition: "none",
+              pdfSeparateFragments: false,
+            }),
+          };
+>>>>>>> REPLACE
+```
+
+The issue is not in this part of the code. Let's look at the `revealHtmlPostprocessor` function where the template is being modified:
+
+```typescript
+### src/format/reveal/format-reveal.ts
+<<<<<<< SEARCH
+        // quote slideNumber
+        scriptEl.innerText = scriptEl.innerText.replace(
+          /slideNumber: (h[\.\/]v|c(?:\/t)?)/,
+          "slideNumber: '$1'",
+        );
+=======
+        // quote slideNumber and percentage values for width/height
+        scriptEl.innerText = scriptEl.innerText.replace(
+          /slideNumber: (h[\.\/]v|c(?:\/t)?)/,
+          "slideNumber: '$1'",
+        );
+        
+        // Quote percentage values for width and height
+        scriptEl.innerText = scriptEl.innerText.replace(
+          /width: (\d+%)/g,
+          "width: '$1'",
+        );
+        scriptEl.innerText = scriptEl.innerText.replace(
+          /height: (\d+%)/g,
+          "height: '$1'",
+        );
+>>>>>>> REPLACE
+```
+
+This fix adds two additional replacements that look for width and height values with percentage signs and properly quote them in the template. This ensures that when users specify values like "100%" for width or height, they are properly passed to RevealJS as strings rather than being treated as invalid numeric values.

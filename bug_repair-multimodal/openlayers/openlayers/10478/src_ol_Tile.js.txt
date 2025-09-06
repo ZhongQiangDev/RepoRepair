@@ -1,0 +1,38 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when zooming in and out on a map with a reprojected Tile layer, sometimes there are white areas. This happens because the underlying Tile object has been disposed and is therefore excluded from the stitching process to make the source canvas for the reprojection.
+
+Looking at the code, I can see that when a tile is disposed, its state is set to `TileState.ABORT` in the `disposeInternal` method. However, it seems that tiles in the ABORT state are not properly handled during reprojection, causing white areas to appear.
+
+The issue statement mentions that simply including tiles in the ABORT state doesn't work, suggesting that we need a more nuanced approach. The problem is likely that tiles are being disposed prematurely or that disposed tiles should still be usable for rendering until they're fully replaced.
+
+## Fix
+
+The issue is in the `disposeInternal` method of the `Tile` class. Currently, when a tile is disposed, its state is set to `TileState.ABORT`, which makes it unusable for reprojection. Instead, we should only change the state to ABORT if it's not already in a LOADED state. This way, tiles that have already loaded their data will still be available for reprojection even after they're technically "disposed".
+
+```javascript
+### src/ol/Tile.js
+<<<<<<< SEARCH
+  /**
+   * @inheritDoc
+   */
+  disposeInternal() {
+    this.setState(TileState.ABORT);
+  }
+=======
+  /**
+   * @inheritDoc
+   */
+  disposeInternal() {
+    // Only abort loading tiles, not already loaded ones
+    // This ensures loaded tiles can still be used for reprojection
+    if (this.state !== TileState.LOADED) {
+      this.setState(TileState.ABORT);
+    }
+  }
+>>>>>>> REPLACE
+```
+
+This change ensures that tiles that have already loaded their data will remain in the LOADED state even after they're disposed, allowing them to be used for reprojection. This should prevent the white areas from appearing when zooming in and out on the map.

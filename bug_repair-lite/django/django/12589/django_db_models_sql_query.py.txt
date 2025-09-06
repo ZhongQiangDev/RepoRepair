@@ -1,0 +1,91 @@
+Based on the issue description, the bug appears to be in the GROUP BY clause generation in Django 3.0. The issue occurs when using annotations with subqueries and trying to group by the annotated field.
+
+The key problem is that in Django 3.0, the GROUP BY clause uses the raw "status" column name instead of the full subquery expression, causing an ambiguous column reference error.
+
+Looking at the code, the issue is in the `set_group_by()` method of the Query class. We need to modify it to properly handle subquery expressions in GROUP BY clauses.
+
+Here's the fix:
+
+```python
+### django/db/models/sql/query.py
+<<<<<<< SEARCH
+    def set_group_by(self, allow_aliases=True):
+        """
+        Expand the GROUP BY clause required by the query.
+
+        This will usually be the set of all non-aggregate fields in the
+        return data. If the database backend supports grouping by the
+        primary key, and the query would be equivalent, the optimization
+        will be made automatically.
+        """
+        group_by = list(self.select)
+        if self.annotation_select:
+            for alias, annotation in self.annotation_select.items():
+                signature = inspect.signature(annotation.get_group_by_cols)
+                if 'alias' not in signature.parameters:
+                    annotation_class = annotation.__class__
+                    msg = (
+                        '`alias=None` must be added to the signature of '
+                        '%s.%s.get_group_by_cols().'
+                    ) % (annotation_class.__module__, annotation_class.__qualname__)
+                    warnings.warn(msg, category=RemovedInDjango40Warning)
+                    group_by_cols = annotation.get_group_by_cols()
+                else:
+                    if not allow_aliases:
+                        alias = None
+                    group_by_cols = annotation.get_group_by_cols(alias=alias)
+                group_by.extend(group_by_cols)
+        self.group_by = tuple(group_by)
+=======
+    def set_group_by(self, allow_aliases=True):
+        """
+        Expand the GROUP BY clause required by the query.
+
+        This will usually be the set of all non-aggregate fields in the
+        return data. If the database backend supports grouping by the
+        primary key, and the query would be equivalent, the optimization
+        will be made automatically.
+        """
+        group_by = []
+        if self.select:
+            # Add selected expressions to GROUP BY if they are not aggregates
+            for col in self.select:
+                # Skip aggregates
+                if not getattr(col, 'contains_aggregate', False):
+                    group_by.append(col)
+
+        if self.annotation_select:
+            for alias, annotation in self.annotation_select.items():
+                signature = inspect.signature(annotation.get_group_by_cols)
+                if 'alias' not in signature.parameters:
+                    annotation_class = annotation.__class__
+                    msg = (
+                        '`alias=None` must be added to the signature of '
+                        '%s.%s.get_group_by_cols().'
+                    ) % (annotation_class.__module__, annotation_class.__qualname__)
+                    warnings.warn(msg, category=RemovedInDjango40Warning)
+                    group_by_cols = annotation.get_group_by_cols()
+                else:
+                    if not allow_aliases:
+                        alias = None
+                    group_by_cols = annotation.get_group_by_cols(alias=alias)
+                # Only add non-aggregate columns to GROUP BY
+                for col in group_by_cols:
+                    if not getattr(col, 'contains_aggregate', False):
+                        group_by.append(col)
+        self.group_by = tuple(group_by)
+>>>>>>> REPLACE
+```
+
+The key changes in this fix are:
+
+1. We now check if each column contains an aggregate before adding it to GROUP BY
+2. We handle the select expressions separately from annotations
+3. We only add non-aggregate columns to GROUP BY from both select and annotations
+
+This ensures that:
+1. Subquery expressions are properly included in GROUP BY with their full expression
+2. We avoid ambiguous column references by using the complete column expression
+3. We don't include aggregate expressions in GROUP BY which could cause errors
+
+The fix properly handles the case described in the issue where a subquery annotation is used with GROUP BY by ensuring the full subquery expression is used in the GROUP BY clause rather than just the raw column name.

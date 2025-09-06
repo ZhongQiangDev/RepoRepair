@@ -1,0 +1,51 @@
+Based on the issue description, the bug occurs when trying to convert a BlockDiagMatrix with a single matrix element back to a regular Matrix. The error occurs in the `_entry` method of BlockMatrix class when trying to access elements of a single matrix block.
+
+Looking at the code, the issue is in the BlockDiagMatrix class where it doesn't properly handle the case of a single matrix. The `_entry` method inherited from BlockMatrix assumes a block structure, but for a single matrix we should just return the element directly.
+
+Here's the fix:
+
+```python
+### sympy/matrices/expressions/blockmatrix.py
+<<<<<<< SEARCH
+    def _entry(self, i, j, **kwargs):
+        # Find row entry
+        for row_block, numrows in enumerate(self.rowblocksizes):
+            if (i < numrows) != False:
+                break
+            else:
+                i -= numrows
+        for col_block, numcols in enumerate(self.colblocksizes):
+            if (j < numcols) != False:
+                break
+            else:
+                j -= numcols
+        return self.blocks[row_block, col_block][i, j]
+=======
+    def _entry(self, i, j, **kwargs):
+        # Special case for single matrix
+        if len(self.args) == 1:
+            return self.args[0][i, j]
+            
+        # Find row entry
+        for row_block, numrows in enumerate(self.rowblocksizes):
+            if (i < numrows) != False:
+                break
+            else:
+                i -= numrows
+        for col_block, numcols in enumerate(self.colblocksizes):
+            if (j < numcols) != False:
+                break
+            else:
+                j -= numcols
+        return self.blocks[row_block, col_block][i, j]
+>>>>>>> REPLACE
+```
+
+This fix adds a special case for when BlockDiagMatrix contains only one matrix. In that case, we directly access the elements from that single matrix instead of trying to handle it as a block structure. This should resolve the "TypeError: 'One' object is not subscriptable" error when converting a single-matrix BlockDiagMatrix to a regular Matrix.
+
+The fix works because:
+1. It checks if there's only one matrix in the BlockDiagMatrix using `len(self.args) == 1`
+2. If true, it directly returns the element from that matrix using `self.args[0][i, j]`
+3. Otherwise, it falls back to the original block matrix element access logic
+
+This maintains the existing functionality for multi-matrix BlockDiagMatrix while fixing the single-matrix case.

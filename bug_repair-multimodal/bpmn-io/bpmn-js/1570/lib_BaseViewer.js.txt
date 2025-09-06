@@ -1,0 +1,69 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+Based on the issue description and the GIF, the problem is that when a user wraps a process in a pool, the diagram jumps or shifts in the viewport. The expected behavior is that the diagram should stay in the current viewport without jumping.
+
+Looking at the code, the issue is likely related to how the diagram is rendered after modifications. The `BaseViewer.js` file contains the core functionality for rendering BPMN diagrams.
+
+The problem appears to be in the viewport handling during diagram updates. When a process is wrapped in a pool, the diagram is re-rendered, but the viewport position isn't properly maintained.
+
+## Fix
+
+The issue is likely in the `importDefinitions` method in `BaseViewer.js`. When the diagram is updated (such as when wrapping a process in a pool), we need to ensure the viewport position is preserved.
+
+```javascript
+### lib/BaseViewer.js
+<<<<<<< SEARCH
+BaseViewer.prototype.importDefinitions = wrapForCompatibility(function importDefinitions(definitions, bpmnDiagram) {
+
+  var self = this;
+
+  return new Promise(function(resolve, reject) {
+
+    self._setDefinitions(definitions);
+
+    self.open(bpmnDiagram).then(function(result) {
+
+      var warnings = result.warnings;
+
+      return resolve({ warnings: warnings });
+    }).catch(function(err) {
+
+      return reject(err);
+    });
+  });
+});
+=======
+BaseViewer.prototype.importDefinitions = wrapForCompatibility(function importDefinitions(definitions, bpmnDiagram) {
+
+  var self = this;
+
+  return new Promise(function(resolve, reject) {
+    // Store the current viewport before updating the diagram
+    var canvas = self.get('canvas');
+    var viewbox = canvas.viewbox();
+    
+    self._setDefinitions(definitions);
+
+    self.open(bpmnDiagram).then(function(result) {
+      // Restore the viewport after the diagram has been rendered
+      if (viewbox) {
+        canvas.viewbox(viewbox);
+      }
+
+      var warnings = result.warnings;
+
+      return resolve({ warnings: warnings });
+    }).catch(function(err) {
+
+      return reject(err);
+    });
+  });
+});
+>>>>>>> REPLACE
+```
+
+This fix captures the current viewport position before updating the diagram and restores it after the diagram has been rendered. This should prevent the diagram from jumping when a process is wrapped in a pool.
+
+The `canvas.viewbox()` method gets the current viewport information, and `canvas.viewbox(viewbox)` sets it back to the same position after the diagram is rendered.

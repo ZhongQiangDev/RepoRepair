@@ -1,0 +1,37 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that Lighthouse does not handle Out-of-Process Iframes (OOPIFs) correctly. Specifically, it seems that Lighthouse is not performing target discovery for iframes, which means it may only be able to analyze requests from the main frame and not from iframes that are loaded in separate processes.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior likely stems from Lighthouse's current implementation, which may not be set up to handle the target discovery process for iframes as demonstrated in the Chrome DevTools example. The `Target.sendMessageToTarget` method is used in Chrome DevTools to send commands like `Network.enable` to discovered targets (iframes), but Lighthouse might not be doing this, leading to incomplete data collection for iframes.
+
+### 3. Examine Each File One by One
+
+#### lighthouse-core/gather/gatherers/chrome-console-messages.js
+
+This file contains no relevant functions/classes. The `ChromeConsoleMessages` class is focused on collecting console log messages and does not deal with network requests or target discovery.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### lighthouse-core/lib/network-request.js
+
+This file contains the `NetworkRequest` class and related functions, which handle the details of individual network requests. However, it does not appear to include any functionality for target discovery or handling OOPIFs.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### lighthouse-core/lib/dependency-graph/network-node.js
+
+This file contains the `NetworkNode` class, which encapsulates a network request record. It does not include any functionality for target discovery or handling OOPIFs.
+
+```
+This file contains no relevant functions/classes.
+```
+
+### Conclusion
+
+Based on the provided files, none of them contain functions or classes directly related to the issue of handling OOPIFs. The problem likely lies in other parts of the Lighthouse codebase that handle network request gathering and target discovery. To fix this issue, you would need to look into the parts of the code that manage network requests and ensure they include the necessary logic to discover and handle iframes as separate targets. This might involve adding or modifying functions similar to `Target.sendMessageToTarget` and `Target.receivedMessageFromTarget` as shown in the Chrome DevTools example.

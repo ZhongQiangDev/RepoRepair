@@ -1,0 +1,23 @@
+I'll analyze the issue and provide a fix.
+
+The issue is about incorrect handling of trailing escaped backslashes in properties files. When a line ends with an escaped backslash (`\\`), it's being incorrectly treated as a line continuation character.
+
+Looking at the code, the problem is in the `DELIM_AND_VALUE` object, specifically in the `contains` array of the `starts` property. The current implementation only handles the case of `\\\\n` (escaped newline), but doesn't properly handle the case when a line ends with an escaped backslash.
+
+Here's the fix:
+
+```javascript
+### src/languages/properties.js
+<<<<<<< SEARCH
+            contains: [
+              { begin: '\\\\\\n' }
+            ]
+=======
+            contains: [
+              { begin: '\\\\\\n' },
+              { begin: '\\\\$', relevance: 0 }
+            ]
+>>>>>>> REPLACE
+```
+
+This fix adds a new pattern to match a backslash at the end of the line (`\\$`), which will prevent it from being treated as a line continuation character. The `relevance: 0` ensures it doesn't affect the highlighting priority.

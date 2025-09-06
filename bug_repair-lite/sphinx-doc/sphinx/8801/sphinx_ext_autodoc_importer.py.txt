@@ -1,0 +1,33 @@
+Based on the issue description, the bug appears to be in how annotation-only members from superclasses are handled during documentation generation. The issue shows that `attr1` from the parent class `Foo` is not being properly documented when documenting the child class `Bar`, even though it should be included due to the `:inherited-members:` option.
+
+Looking at the code, the issue is in the `get_class_members()` function in `sphinx/ext/autodoc/importer.py`. The function processes annotations from each class in the MRO chain, but it's not properly handling the inheritance of these annotations. The current code only adds annotation-only members if they're not already in the members dict, which means inherited annotations can be skipped if there's already a member with that name.
+
+Here's the fix:
+
+```python
+### sphinx/ext/autodoc/importer.py
+<<<<<<< SEARCH
+            # annotation only member (ex. attr: int)
+            for name in getannotations(cls):
+                name = unmangle(cls, name)
+                if name and name not in members:
+                    members[name] = ObjectMember(name, INSTANCEATTR, class_=cls)
+=======
+            # annotation only member (ex. attr: int)
+            for name in getannotations(cls):
+                name = unmangle(cls, name)
+                if name:
+                    # Always include annotations from the MRO chain
+                    if name not in members or members[name].class_ != cls:
+                        members[name] = ObjectMember(name, INSTANCEATTR, class_=cls)
+>>>>>>> REPLACE
+```
+
+This change:
+1. Removes the simple `name not in members` check that was causing inherited annotations to be skipped
+2. Adds a more sophisticated check that allows an annotation to be added if:
+   - The name isn't in members yet, OR
+   - The existing member with that name comes from a different class
+3. This ensures that annotation-only members from parent classes are properly included in the documentation
+
+The fix ensures that annotation-only members from parent classes are properly documented when using `:inherited-members:` in the autodoc directive.

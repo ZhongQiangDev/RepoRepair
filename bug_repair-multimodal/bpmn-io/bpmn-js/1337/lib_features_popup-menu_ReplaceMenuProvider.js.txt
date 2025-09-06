@@ -1,0 +1,47 @@
+I'll analyze the issue and provide a solution.
+
+The issue is about disallowing typed start events inside non-event based sub-processes. According to the issue description, we need to:
+1. Disallow morphing to typed start event inside a sub-process
+2. Drop event type when moving a start event to a sub-process
+
+Looking at the code, the problem is in the `ReplaceMenuProvider.prototype.getEntries` function. Currently, it allows all start event types to be used inside non-event sub-processes. We need to modify the code to filter out typed start events when inside a regular sub-process.
+
+Here's the fix:
+
+```javascript
+### lib/features/popup-menu/ReplaceMenuProvider.js
+<<<<<<< SEARCH
+  // start events outside event sub processes
+  if (is(businessObject, 'bpmn:StartEvent') && !isEventSubProcess(businessObject.$parent)) {
+
+    entries = filter(replaceOptions.START_EVENT, differentType);
+
+    return this._createEntries(element, entries);
+  }
+=======
+  // start events outside event sub processes
+  if (is(businessObject, 'bpmn:StartEvent') && !isEventSubProcess(businessObject.$parent)) {
+
+    // if the start event is inside a sub process, we don't allow
+    // typed start events
+    if (is(businessObject.$parent, 'bpmn:SubProcess')) {
+      entries = filter(replaceOptions.START_EVENT, function(entry) {
+        var target = entry.target;
+        
+        // we only allow default start events inside sub processes
+        if (target.eventDefinitionType) {
+          return false;
+        }
+        
+        return differentType(entry);
+      });
+    } else {
+      entries = filter(replaceOptions.START_EVENT, differentType);
+    }
+
+    return this._createEntries(element, entries);
+  }
+>>>>>>> REPLACE
+```
+
+This change adds a condition to check if the start event is inside a regular sub-process. If it is, we filter out any start event types that have an `eventDefinitionType` property, which means they are typed events. This ensures that only untyped start events are allowed inside non-event based sub-processes.

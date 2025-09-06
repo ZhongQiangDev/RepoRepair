@@ -1,0 +1,43 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that boundary events should not be allowed as message flow targets according to BPMN semantics. Currently, the system allows connecting a message flow to a boundary event, which is incorrect behavior.
+
+Looking at the code, the problem is in the `isMessageFlowTarget` function. This function checks if an element can be a target for a message flow, but it doesn't specifically exclude boundary events.
+
+The fix needs to add a check to ensure boundary events cannot be message flow targets.
+
+## Fix
+
+```javascript
+### lib/features/rules/BpmnRules.js
+<<<<<<< SEARCH
+function isMessageFlowTarget(element) {
+  return (
+    is(element, 'bpmn:InteractionNode') &&
+    !isForCompensation(element) && (
+      !is(element, 'bpmn:Event') || (
+        is(element, 'bpmn:CatchEvent') &&
+        hasEventDefinitionOrNone(element, 'bpmn:MessageEventDefinition')
+      )
+    )
+  );
+}
+=======
+function isMessageFlowTarget(element) {
+  return (
+    is(element, 'bpmn:InteractionNode') &&
+    !isForCompensation(element) &&
+    !isBoundaryEvent(element) && (
+      !is(element, 'bpmn:Event') || (
+        is(element, 'bpmn:CatchEvent') &&
+        hasEventDefinitionOrNone(element, 'bpmn:MessageEventDefinition')
+      )
+    )
+  );
+}
+>>>>>>> REPLACE
+```
+
+This fix adds a check for boundary events in the `isMessageFlowTarget` function. By adding `!isBoundaryEvent(element)` as a condition, we ensure that boundary events cannot be targets for message flows, which aligns with BPMN semantics.

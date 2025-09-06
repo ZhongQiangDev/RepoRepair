@@ -1,0 +1,63 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when changing a task from parallel multi-instance to sequential multi-instance (or vice versa), the multi-instance properties like loop cardinality are lost. This happens because the current implementation of the `UpdatePropertiesHandler` doesn't properly preserve these properties when switching between multi-instance types.
+
+Looking at the code, the problem is likely in the `setProperties` function which is called in the `execute` method. The issue is that when changing the multi-instance type, the properties related to multi-instance behavior are not being preserved.
+
+The bug is not directly visible in the provided code snippet, as the `setProperties` function implementation is not shown. However, based on the issue description, we need to modify the `UpdatePropertiesHandler` to preserve multi-instance properties when switching between parallel and sequential multi-instance types.
+
+## Fix
+
+We need to modify the `execute` method to preserve multi-instance properties when changing between parallel and sequential multi-instance types. Here's the fix:
+
+```javascript
+### lib/features/modeling/cmd/UpdatePropertiesHandler.js
+<<<<<<< SEARCH
+  // update properties
+  setProperties(element, properties);
+
+  // store old values
+  context.oldProperties = oldProperties;
+  context.changed = changed;
+=======
+  // preserve multi-instance properties when switching between sequential and parallel
+  if ('isSequential' in properties && businessObject.loopCharacteristics) {
+    var loopCharacteristics = businessObject.loopCharacteristics;
+    
+    // store multi-instance properties before update
+    var multiInstanceProps = {
+      loopCardinality: loopCharacteristics.loopCardinality,
+      loopDataInputRef: loopCharacteristics.loopDataInputRef,
+      loopDataOutputRef: loopCharacteristics.loopDataOutputRef,
+      inputDataItem: loopCharacteristics.inputDataItem,
+      outputDataItem: loopCharacteristics.outputDataItem,
+      completionCondition: loopCharacteristics.completionCondition
+    };
+    
+    // update properties
+    setProperties(element, properties);
+    
+    // restore multi-instance properties after update
+    if (businessObject.loopCharacteristics) {
+      forEach(multiInstanceProps, function(value, key) {
+        if (value !== undefined) {
+          businessObject.loopCharacteristics[key] = value;
+        }
+      });
+    }
+  } else {
+    // update properties normally
+    setProperties(element, properties);
+  }
+
+  // store old values
+  context.oldProperties = oldProperties;
+  context.changed = changed;
+>>>>>>> REPLACE
+```
+
+This fix identifies when the `isSequential` property is being changed (which happens when switching between parallel and sequential multi-instance). It then preserves the important multi-instance properties like loop cardinality, loop data references, data items, and completion condition before the update, and restores them after the update.
+
+This ensures that when switching between parallel and sequential multi-instance types, the multi-instance properties are not lost.

@@ -1,0 +1,94 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that the `popupContainer` configuration on `ConfigProvider` doesn't work for Dialog components. This means that when a user sets a custom container for popups through the ConfigProvider, the Dialog component ignores this setting and renders in the default location (likely the document body).
+
+Looking at the code, I can see that the Dialog component uses an Overlay component for rendering, but it doesn't pass any container configuration from ConfigProvider to this Overlay. The Dialog component needs to be updated to respect the `popupContainer` setting from ConfigProvider.
+
+## Solution
+
+We need to modify the Dialog component to accept and pass the `popupContainer` prop to the Overlay component. This will allow the Dialog to be rendered in the container specified by ConfigProvider.
+
+```javascript
+### src/dialog/dialog.jsx
+<<<<<<< SEARCH
+        const {
+            prefix,
+            visible,
+            hasMask,
+            animation,
+            autoFocus,
+            closeable,
+            onClose,
+            afterClose,
+            shouldUpdatePosition,
+            align,
+            overlayProps,
+            rtl,
+        } = this.props;
+=======
+        const {
+            prefix,
+            visible,
+            hasMask,
+            animation,
+            autoFocus,
+            closeable,
+            onClose,
+            afterClose,
+            shouldUpdatePosition,
+            align,
+            overlayProps,
+            rtl,
+            popupContainer,
+        } = this.props;
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/dialog/dialog.jsx
+<<<<<<< SEARCH
+            ref: this.getOverlayRef,
+            rtl,
+            maskClass: useCSS ? `${prefix}dialog-container` : '',
+            isChildrenInMask: useCSS && hasMask,
+=======
+            ref: this.getOverlayRef,
+            rtl,
+            maskClass: useCSS ? `${prefix}dialog-container` : '',
+            isChildrenInMask: useCSS && hasMask,
+            container: popupContainer,
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/dialog/dialog.jsx
+<<<<<<< SEARCH
+    static propTypes = {
+        prefix: PropTypes.string,
+        pure: PropTypes.bool,
+        rtl: PropTypes.bool,
+        className: PropTypes.string,
+        /**
+         * 是否显示
+         */
+        visible: PropTypes.bool,
+=======
+    static propTypes = {
+        prefix: PropTypes.string,
+        pure: PropTypes.bool,
+        rtl: PropTypes.bool,
+        className: PropTypes.string,
+        /**
+         * 指定浮层挂载的容器，可以为节点id的字符串，也可以是节点的引用
+         */
+        popupContainer: PropTypes.any,
+        /**
+         * 是否显示
+         */
+        visible: PropTypes.bool,
+>>>>>>> REPLACE
+```
+
+With these changes, the Dialog component will now respect the `popupContainer` prop, which can be passed from ConfigProvider. This will fix the issue where the Dialog doesn't respect the `popupContainer` configuration from ConfigProvider.

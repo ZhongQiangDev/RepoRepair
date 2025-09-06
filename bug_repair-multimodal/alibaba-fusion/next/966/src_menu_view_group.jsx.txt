@@ -1,0 +1,59 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue states that when a Menu.Group contains spaces in its children, it's causing an error. Looking at the code, I can see the problem:
+
+In the `render` method of the `Group` component, there's a call to `children.map()`. This assumes that `children` is always an array, but in React, `children` can be:
+- A single React element
+- An array of React elements
+- A string (which happens when there's just text or spaces)
+- null or undefined
+
+When there are spaces in the JSX between child elements, React treats these spaces as text nodes. When the code tries to call `map()` on a string or a single element, it will throw an error.
+
+## Fix
+
+We need to ensure that `children` is always treated as an array by using `React.Children.map()` instead of directly calling `map()` on `children`.
+
+```javascript
+### src/menu/view/group.jsx
+<<<<<<< SEARCH
+        const newChildren = children.map(child => {
+            const { className } = child.props;
+            const newChildClassName = cx({
+                [`${prefix}menu-group-item`]: true,
+                [className]: !!className,
+            });
+
+            return cloneElement(child, {
+                parentMode,
+                className: newChildClassName,
+            });
+        });
+=======
+        const newChildren = React.Children.map(children, child => {
+            if (!React.isValidElement(child)) {
+                return child;
+            }
+            
+            const { className } = child.props;
+            const newChildClassName = cx({
+                [`${prefix}menu-group-item`]: true,
+                [className]: !!className,
+            });
+
+            return cloneElement(child, {
+                parentMode,
+                className: newChildClassName,
+            });
+        });
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Uses `React.Children.map()` which safely handles all types of children
+2. Adds a check with `React.isValidElement()` to ensure we only try to access props on valid React elements
+3. Returns non-element children as-is (like text nodes)
+
+This will prevent the error when there are spaces or other non-element content in the children of a Menu.Group.

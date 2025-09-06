@@ -1,0 +1,68 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue states that group elements are not being rendered on top of other elements. When a new element is created on a group's border, the group borders are visible behind the new element, but they should be rendered on top.
+
+Looking at the provided code, I notice that the `BpmnRenderer.js` file contains the rendering logic, but it doesn't show how the z-index or rendering order is determined. The issue is likely related to how group elements are drawn and their position in the rendering stack.
+
+In BPMN diagrams, groups are typically rendered as containers that should appear on top of other elements. This is a common pattern in diagramming libraries where container elements need to be visually distinct from their contents.
+
+## Solution
+
+The issue is that we need to ensure group elements are rendered with a higher z-index or later in the rendering process than other elements. Since the file doesn't show the complete implementation, I'll need to make an educated guess about where to fix this.
+
+Based on the issue description and the code provided, I believe we need to modify the `BpmnRenderer` to handle groups differently, ensuring they're rendered on top. This likely involves adding specific handling for group elements in the renderer.
+
+```javascript
+### lib/draw/BpmnRenderer.js
+<<<<<<< SEARCH
+BpmnRenderer.prototype.drawShape = function(parentGfx, element) {
+  var type = element.type;
+  var h = this.handlers[type];
+
+  /* jshint -W040 */
+  return h(parentGfx, element);
+};
+
+BpmnRenderer.prototype.drawConnection = function(parentGfx, element) {
+  var type = element.type;
+  var h = this.handlers[type];
+
+  /* jshint -W040 */
+  return h(parentGfx, element);
+};
+
+=======
+BpmnRenderer.prototype.drawShape = function(parentGfx, element) {
+  var type = element.type;
+  var h = this.handlers[type];
+
+  /* jshint -W040 */
+  var gfx = h(parentGfx, element);
+  
+  // Ensure groups are always rendered on top
+  if (is(element, 'bpmn:Group')) {
+    var group = gfx || parentGfx.childNodes[parentGfx.childNodes.length - 1];
+    
+    if (group) {
+      // Move group to the end of its parent's children to render it on top
+      group.parentNode.appendChild(group);
+    }
+  }
+  
+  return gfx;
+};
+
+BpmnRenderer.prototype.drawConnection = function(parentGfx, element) {
+  var type = element.type;
+  var h = this.handlers[type];
+
+  /* jshint -W040 */
+  return h(parentGfx, element);
+};
+
+>>>>>>> REPLACE
+```
+
+This solution modifies the `drawShape` method to check if the element is a BPMN group. If it is, it ensures the group is moved to the end of its parent's children list, which will make it render on top of other elements. The DOM rendering order determines which elements appear on top, with later elements in the DOM tree appearing above earlier ones.

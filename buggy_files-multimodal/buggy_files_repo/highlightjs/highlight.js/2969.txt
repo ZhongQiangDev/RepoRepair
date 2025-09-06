@@ -1,0 +1,29 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue with Ruby character literals.
+
+## 1. Identifying the Wrong Behavior
+
+The issue is that only some cases of Ruby character literals are properly supported in syntax highlighting. Specifically, these cases are not working correctly:
+- Single slash character (`?/`) - breaks following lines as it gets treated as starting a regex
+- Escaped backslash character (`?\\`)
+- Non-ascii character (`?あ`)
+- Unicode using curly-bracket notation (`?\u{1AF9}`)
+- Control and Meta characters (`?\C-a`)
+
+## 2. Analyzing the Cause
+
+The root cause appears to be in the Ruby language definition for Highlight.js. The current implementation doesn't properly handle all forms of Ruby character literals, especially those that involve special characters or escape sequences. The most critical issue is with the slash character (`?/`), which is being incorrectly interpreted as the start of a regular expression.
+
+Ruby character literals are denoted by a question mark followed by a character (e.g., `?a`). The language definition needs to be updated to properly recognize all valid forms of these literals.
+
+## 3. Files Most Related to the Cause
+
+```
+src/languages/ruby.js
+src/highlight.js
+```
+
+The `src/languages/ruby.js` file is the most important one to modify as it contains the language definition for Ruby, including how character literals should be parsed and highlighted. This is where the rules for recognizing Ruby syntax elements are defined.
+
+The `src/highlight.js` file is the core of the library and might need minor adjustments if there are any global patterns or rules that affect how character literals are processed across languages.
+
+Claude Code: I've identified the files that need to be modified to fix the Ruby character literals issue. The primary file is `src/languages/ruby.js`, which contains the Ruby language definition and is where the character literal syntax rules need to be updated. The secondary file is `src/highlight.js`, which might need adjustments if there are any global patterns affecting character literal processing.

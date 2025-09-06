@@ -1,0 +1,48 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is related to JavaScript floating-point precision problems. When adding 0.01 to 4.02, JavaScript returns 4.029999999999999 instead of 4.03 due to how floating-point numbers are represented in binary. This causes display issues in the NumberPicker component.
+
+The problem occurs in the `upStep` method where the calculation is performed. The current implementation doesn't properly handle floating-point precision issues.
+
+## Fix
+
+We need to modify the `upStep` method to ensure proper rounding after the calculation. The issue is that while the code uses a precision factor to handle decimal calculations, it doesn't properly round the result to the specified precision.
+
+```javascript
+### src/number-picker/index.jsx
+<<<<<<< SEARCH
+    upStep(val) {
+        const {step, min} = this.props;
+        const precisionFactor = this.getPrecisionFactor();
+        let result;
+        if (typeof val === 'number') {
+            result = (precisionFactor * val + precisionFactor * step) / precisionFactor;
+        } else {
+            result = min === -Infinity ? step : min;
+        }
+        return result;
+    }
+=======
+    upStep(val) {
+        const {step, min} = this.props;
+        const precisionFactor = this.getPrecisionFactor();
+        let result;
+        if (typeof val === 'number') {
+            result = (precisionFactor * val + precisionFactor * step) / precisionFactor;
+            
+            // Fix floating point precision issues
+            const precision = this.getPrecision();
+            if (precision > 0) {
+                result = Number(Number(result).toFixed(precision));
+            }
+        } else {
+            result = min === -Infinity ? step : min;
+        }
+        return result;
+    }
+>>>>>>> REPLACE
+```
+
+This fix adds the same rounding logic that's already present in the `downStep` method to the `upStep` method. It ensures that after calculating the new value, we round it to the specified precision, which will fix the floating-point precision issues like 4.02 + 0.01 showing as 4.029999999999999 instead of 4.03.

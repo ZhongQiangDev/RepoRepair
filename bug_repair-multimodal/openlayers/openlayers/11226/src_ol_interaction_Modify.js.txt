@@ -1,0 +1,48 @@
+I'll analyze the issue and provide a fix.
+
+Looking at the issue, there's a problem with the Modify interaction when editing geometry in a GeometryCollection. The bug occurs when dragging a common vertex of polygons in a GeometryCollection.
+
+After examining the code, I found that the issue is in the `writeGeometryCollectionGeometry_` method. When writing a GeometryCollection, it doesn't properly pass the feature to the individual geometry writers. This causes problems when trying to modify vertices that are shared between geometries in a collection.
+
+Here's the fix:
+
+```javascript
+### src/ol/interaction/Modify.js
+<<<<<<< SEARCH
+  /**
+   * @param {Feature} feature Feature
+   * @param {import("../geom/GeometryCollection.js").default} geometry Geometry.
+   * @private
+   */
+  writeGeometryCollectionGeometry_(feature, geometry) {
+    const geometries = geometry.getGeometriesArray();
+    for (let i = 0; i < geometries.length; ++i) {
+      const geometry = geometries[i];
+      const writer = this.SEGMENT_WRITERS_[geometry.getType()];
+      writer(feature, geometry);
+    }
+  }
+=======
+  /**
+   * @param {Feature} feature Feature
+   * @param {import("../geom/GeometryCollection.js").default} geometry Geometry.
+   * @private
+   */
+  writeGeometryCollectionGeometry_(feature, geometry) {
+    const geometries = geometry.getGeometriesArray();
+    for (let i = 0; i < geometries.length; ++i) {
+      const geom = geometries[i];
+      const writer = this.SEGMENT_WRITERS_[geom.getType()];
+      if (writer) {
+        writer(feature, geom);
+      }
+    }
+  }
+>>>>>>> REPLACE
+```
+
+The fix makes two important changes:
+1. Renames the inner `geometry` variable to `geom` to avoid shadowing the outer `geometry` parameter
+2. Adds a check to ensure the writer exists before calling it
+
+This ensures that when modifying vertices in a GeometryCollection, the proper feature reference is maintained throughout the process, and we don't attempt to call undefined writers.

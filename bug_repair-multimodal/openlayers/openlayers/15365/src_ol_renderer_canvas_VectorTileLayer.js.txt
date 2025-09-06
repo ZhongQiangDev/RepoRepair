@@ -1,0 +1,33 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when changing the opacity of a layer group, it doesn't affect the labels rendered for vector tile layers within that group. This only happens for vector tile labels, while vector layer labels work correctly.
+
+Looking at the code, I can see that in the `postRender` method of `CanvasVectorTileLayerRenderer`, the opacity is set directly from the layer:
+
+```javascript
+context.globalAlpha = layer.getOpacity();
+```
+
+This doesn't take into account the opacity that might be set on a parent group. For vector layers, this is likely handled correctly, but for vector tile layers, it's not being applied to the labels.
+
+## Fix
+
+The solution is to modify the `postRender` method to use the combined opacity from both the layer and any parent groups. This is likely available through the `frameState` parameter.
+
+```javascript
+### src/ol/renderer/canvas/VectorTileLayer.js
+<<<<<<< SEARCH
+    const alpha = context.globalAlpha;
+    context.globalAlpha = layer.getOpacity();
+=======
+    const alpha = context.globalAlpha;
+    const opacity = layer.getOpacity();
+    // Get the opacity from the layer's render state which includes parent group opacity
+    const layerState = frameState.layerStatesArray[frameState.layerIndex];
+    context.globalAlpha = layerState.opacity;
+>>>>>>> REPLACE
+```
+
+This change ensures that the opacity applied to vector tile labels includes any opacity set on parent layer groups, which should fix the issue described.

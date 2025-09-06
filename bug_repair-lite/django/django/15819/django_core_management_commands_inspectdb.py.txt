@@ -1,0 +1,43 @@
+Based on the issue description, the bug is that Django's `inspectdb` command doesn't generate `related_name` parameters for foreign key fields that point to the same model, which causes reverse accessor name clashes.
+
+The fix needs to be implemented in the part where foreign key fields are generated. Looking at the code, this happens in the `handle_inspection` method where it processes relations. We need to modify the code to add `related_name` when a relation points to the same table.
+
+Here's the fix:
+
+```python
+### django/core/management/commands/inspectdb.py
+<<<<<<< SEARCH
+                        rel_to = (
+                            "self"
+                            if ref_db_table == table_name
+                            else table2model(ref_db_table)
+                        )
+                        if rel_to in known_models:
+                            field_type = "%s(%s" % (rel_type, rel_to)
+                        else:
+                            field_type = "%s('%s'" % (rel_type, rel_to)
+=======
+                        rel_to = (
+                            "self"
+                            if ref_db_table == table_name
+                            else table2model(ref_db_table)
+                        )
+                        if rel_to == "self":
+                            extra_params["related_name"] = "%s_%s" % (att_name, table_name.lower())
+                        if rel_to in known_models:
+                            field_type = "%s(%s" % (rel_type, rel_to)
+                        else:
+                            field_type = "%s('%s'" % (rel_type, rel_to)
+>>>>>>> REPLACE
+```
+
+This change adds a `related_name` parameter when a foreign key or one-to-one field references the same table (self-reference). The `related_name` is constructed using the field name and table name to ensure uniqueness.
+
+For example, if you have a table "Person" with two self-referencing fields "manager" and "assistant", it will generate:
+
+```python
+manager = models.ForeignKey('self', related_name='manager_person', ...)
+assistant = models.ForeignKey('self', related_name='assistant_person', ...)
+```
+
+This prevents the reverse accessor clash mentioned in the issue by giving each relation a unique related name.

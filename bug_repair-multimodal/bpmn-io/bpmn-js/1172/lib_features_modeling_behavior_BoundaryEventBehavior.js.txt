@@ -1,0 +1,97 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that associations on boundary events can be created but aren't rendered after importing a BPMN diagram. Looking at the screenshots:
+1. In the first image, there's a boundary event with an association to a data object
+2. After exporting and reimporting, the association is missing
+
+The `BoundaryEventBehavior.js` file handles boundary event-related behavior, but it doesn't contain any code related to handling associations on boundary events. The current implementation only deals with removing boundary events in specific scenarios (when connecting to event-based gateways).
+
+The issue is likely that the boundary event's associations aren't being properly maintained during import/export. We need to ensure that when a boundary event is imported, its associations are properly restored.
+
+## Fix
+
+The current file doesn't have any code related to handling associations during import/export. We need to add functionality to preserve associations for boundary events. Since this is a behavior file, we should add a handler that ensures associations are properly maintained.
+
+```javascript
+### lib/features/modeling/behavior/BoundaryEventBehavior.js
+<<<<<<< SEARCH
+import inherits from 'inherits';
+
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+
+import { is } from '../../../util/ModelUtil';
+
+import {
+  filter,
+  forEach
+} from 'min-dash';
+=======
+import inherits from 'inherits';
+
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+
+import { is } from '../../../util/ModelUtil';
+
+import {
+  filter,
+  forEach
+} from 'min-dash';
+
+import {
+  getBusinessObject
+} from '../../../util/ModelUtil';
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/modeling/behavior/BoundaryEventBehavior.js
+<<<<<<< SEARCH
+/**
+ * BPMN specific boundary event behavior
+ */
+export default function BoundaryEventBehavior(eventBus, modeling) {
+
+  CommandInterceptor.call(this, eventBus);
+=======
+/**
+ * BPMN specific boundary event behavior
+ */
+export default function BoundaryEventBehavior(eventBus, modeling, canvas) {
+
+  CommandInterceptor.call(this, eventBus);
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/modeling/behavior/BoundaryEventBehavior.js
+<<<<<<< SEARCH
+BoundaryEventBehavior.$inject = [
+  'eventBus',
+  'modeling'
+];
+=======
+  // ensure connections are updated when importing boundary events
+  this.postExecute('shape.create', function(event) {
+    var context = event.context,
+        shape = context.shape;
+
+    if (is(shape, 'bpmn:BoundaryEvent') && context.hints && context.hints.createElementsBehavior === false) {
+      // this is a boundary event created during import
+      // make sure connections are properly updated
+      eventBus.fire('import.render.connections', { element: shape });
+    }
+  });
+
+BoundaryEventBehavior.$inject = [
+  'eventBus',
+  'modeling',
+  'canvas'
+];
+>>>>>>> REPLACE
+```
+
+This fix adds a new handler for the 'shape.create' event that specifically targets boundary events created during import (identified by the `createElementsBehavior` hint). When such a boundary event is created, it fires an 'import.render.connections' event to ensure that all connections (including associations) related to the boundary event are properly rendered.
+
+The fix also adds the canvas service to the injected dependencies and imports the getBusinessObject utility, which might be needed for handling the business object aspects of the boundary events.

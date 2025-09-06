@@ -1,0 +1,157 @@
+I'll analyze the issue and provide the necessary edits to implement icon-only variants for the ContainedTabs component.
+
+Based on the issue description, we need to update the Tabs component to support an icon-only variant. Looking at the provided code for ContainedTabs.js, I need to add support for this feature.
+
+The issue shows mockups for both Line Tabs and ContainedTabs with icon-only variants. For the ContainedTabs component, we need to add a prop that allows specifying the icon-only mode and then modify the component to handle this properly.
+
+Here are the necessary changes:
+
+```javascript
+### packages/react/src/components/Tabs/next/ContainedTabs.js
+<<<<<<< SEARCH
+const ContainedTabs = React.forwardRef(function ContainedTabs(
+  {
+    children,
+    className,
+    leftOverflowButtonProps,
+    light = false,
+    onSelectionChange,
+    rightOverflowButtonProps,
+    scrollIntoView = true,
+    selected = 0,
+    selectionMode = 'automatic',
+    tabContentClassName,
+    ...other
+  },
+  ref
+) {
+=======
+const ContainedTabs = React.forwardRef(function ContainedTabs(
+  {
+    children,
+    className,
+    iconOnly = false,
+    leftOverflowButtonProps,
+    light = false,
+    onSelectionChange,
+    rightOverflowButtonProps,
+    scrollIntoView = true,
+    selected = 0,
+    selectionMode = 'automatic',
+    tabContentClassName,
+    ...other
+  },
+  ref
+) {
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Tabs/next/ContainedTabs.js
+<<<<<<< SEARCH
+    tabs: classNames(
+      className,
+      `${prefix}--tabs`,
+      `${prefix}--tabs--container`,
+      {
+        [`${prefix}--tabs--light`]: light,
+      }
+    ),
+=======
+    tabs: classNames(
+      className,
+      `${prefix}--tabs`,
+      `${prefix}--tabs--container`,
+      {
+        [`${prefix}--tabs--light`]: light,
+        [`${prefix}--tabs--icon-only`]: iconOnly,
+      }
+    ),
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Tabs/next/ContainedTabs.js
+<<<<<<< SEARCH
+  const tabsWithProps = getTabs().map((tab, index) => {
+    const tabIndex = index === isSelected ? 0 : -1;
+    const newTab = React.cloneElement(tab, {
+      index,
+      selected: index === isSelected,
+      handleTabClick: handleTabClick(onSelectionChange),
+      tabIndex,
+      ref: (e) => {
+        setTabAt(index, e);
+      },
+      handleTabKeyDown: handleTabKeyDown(onSelectionChange),
+    });
+
+    return newTab;
+  });
+=======
+  const tabsWithProps = getTabs().map((tab, index) => {
+    const tabIndex = index === isSelected ? 0 : -1;
+    const newTab = React.cloneElement(tab, {
+      index,
+      selected: index === isSelected,
+      handleTabClick: handleTabClick(onSelectionChange),
+      tabIndex,
+      ref: (e) => {
+        setTabAt(index, e);
+      },
+      handleTabKeyDown: handleTabKeyDown(onSelectionChange),
+      iconOnly,
+    });
+
+    return newTab;
+  });
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Tabs/next/ContainedTabs.js
+<<<<<<< SEARCH
+ContainedTabs.propTypes = {
+  /**
+   * Pass in a collection of <Tab> children to be rendered depending on the
+   * currently selected tab
+   */
+  children: PropTypes.node,
+
+  /**
+   * Provide a className that is applied to the root <div> component for the
+   * <Tabs>
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify whether the Tab content is hidden
+   */
+  hidden: PropTypes.bool,
+=======
+ContainedTabs.propTypes = {
+  /**
+   * Pass in a collection of <Tab> children to be rendered depending on the
+   * currently selected tab
+   */
+  children: PropTypes.node,
+
+  /**
+   * Provide a className that is applied to the root <div> component for the
+   * <Tabs>
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify whether the Tab content is hidden
+   */
+  hidden: PropTypes.bool,
+
+  /**
+   * Specify whether the tabs should be rendered with icons only (no text)
+   */
+  iconOnly: PropTypes.bool,
+>>>>>>> REPLACE
+```
+
+These changes add an `iconOnly` prop to the ContainedTabs component with a default value of `false`. The prop is then passed down to each Tab child component and also used to add an appropriate CSS class to the tabs container. This will allow styling the tabs to display only icons when the `iconOnly` prop is set to `true`.

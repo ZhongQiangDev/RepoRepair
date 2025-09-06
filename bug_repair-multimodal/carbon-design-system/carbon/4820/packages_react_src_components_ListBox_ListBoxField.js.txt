@@ -1,0 +1,43 @@
+I'll analyze the issue and provide a fix for the DAP (Digital Accessibility Platform) violations in the ListBoxField component.
+
+Looking at the screenshots from the issue, there are accessibility violations related to the dropdown component. The main issue appears to be with the ARIA attributes in the ListBoxField component.
+
+The specific problems I can identify:
+1. The component is using `role="combobox"` but is missing required ARIA attributes for this role
+2. There are issues with the aria-controls and aria-owns attributes
+
+Here's my fix:
+
+```javascript
+### packages/react/src/components/ListBox/ListBoxField.js
+<<<<<<< SEARCH
+  <div
+    role={rest['aria-expanded'] ? 'combobox' : rest.role || 'combobox'}
+    aria-owns={(rest['aria-expanded'] && `${id}__menu`) || null}
+    aria-controls={(rest['aria-expanded'] && `${id}__menu`) || null}
+    className={`${prefix}--list-box__field`}
+    tabIndex={(!disabled && tabIndex) || -1}
+    {...rest}
+    aria-label={rest['aria-expanded'] ? t('close.menu') : t('open.menu')}>
+=======
+  <div
+    role="button"
+    aria-haspopup="listbox"
+    aria-expanded={rest['aria-expanded'] || false}
+    aria-owns={rest['aria-expanded'] ? `${id}__menu` : null}
+    aria-controls={rest['aria-expanded'] ? `${id}__menu` : null}
+    className={`${prefix}--list-box__field`}
+    tabIndex={(!disabled && tabIndex) || -1}
+    {...rest}
+    aria-label={rest['aria-expanded'] ? t('close.menu') : t('open.menu')}>
+>>>>>>> REPLACE
+```
+
+This fix addresses the DAP violations by:
+
+1. Changing the role from "combobox" to "button" with aria-haspopup="listbox" - this is a more appropriate pattern for a dropdown trigger
+2. Explicitly setting aria-expanded to either the provided value or false (rather than omitting it)
+3. Maintaining the aria-owns and aria-controls attributes but ensuring they're properly set based on the expanded state
+4. Keeping the existing aria-label that changes based on the expanded state
+
+This approach follows ARIA best practices for dropdown menus and should resolve the accessibility violations shown in the screenshots.

@@ -1,0 +1,66 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub issue is that the rendering of vector contexts in tile layers breaks down when the view rotation is close to 90 and 270 degrees. This affects stroke width, text scale, and the precision of geometry. The issue is observed when comparing the rendering of a tile layer with a vector layer, where the vector layer does not exhibit the same problem.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely lies in how transformations and rotations are applied to the vector context of tile layers. Specifically, the problem may be related to how the coordinate transformations are handled during rendering, particularly when the view rotation is near 90 or 270 degrees. This could involve issues with the transformation matrix, scaling, or the way the rotation is applied to the canvas context.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### src/ol/render.js
+
+```
+src/ol/render.js
+function: getVectorContext
+function: toContext
+```
+
+- `getVectorContext`: This function is responsible for creating a `CanvasImmediateRenderer` object for immediate mode rendering on a canvas. It calculates the transform by combining the inverse pixel transform with the coordinate-to-pixel transform from the frame state. This function is directly involved in setting up the rendering context and could be a source of the issue.
+- `toContext`: This function initializes a canvas context for drawing geometries by configuring the canvas dimensions and scaling transformations. It could be relevant if there are issues with setting up the canvas context correctly for different rotations.
+
+#### src/ol/transform.js
+
+```
+src/ol/transform.js
+function: compose
+function: apply
+function: rotate
+```
+
+- `compose`: This function constructs a composite transform by sequentially applying translation, scaling, and rotation. If the rotation is not applied correctly, it could lead to the observed rendering issues.
+- `apply`: This function applies a transformation matrix to a coordinate. If the transformation matrix is not correctly set up for rotations near 90 or 270 degrees, it could cause the issue.
+- `rotate`: This function applies a rotation transformation to a transform matrix. If the rotation is not correctly applied, it could lead to the observed rendering issues.
+
+#### src/ol/render/canvas/Builder.js
+
+```
+src/ol/render/canvas/Builder.js
+class: CanvasBuilder
+```
+
+- `CanvasBuilder`: This class is responsible for generating and managing rendering instructions for canvas-based rendering of vector geometries. It handles both rendering and hit detection instructions. If there are issues with how the rendering instructions are generated or applied, it could contribute to the problem.
+
+#### src/ol/render/canvas/LineStringBuilder.js
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### src/ol/render/canvas/TextBuilder.js
+
+```
+src/ol/render/canvas/TextBuilder.js
+class: CanvasTextBuilder
+```
+
+- `CanvasTextBuilder`: This class is responsible for rendering text on a canvas. If there are issues with how text is rendered or transformed, it could contribute to the problem, especially regarding text scale and precision.
+
+### Summary
+
+The identified functions and classes that are potentially relevant to the issue are:
+
+- `src/ol/render.js`: `getVectorContext`, `toContext`
+- `src/ol/transform.js`: `compose`, `apply`, `rotate`
+- `src/ol/render/canvas/Builder.js`: `CanvasBuilder`
+- `src/ol/render/canvas/TextBuilder.js`: `CanvasTextBuilder`

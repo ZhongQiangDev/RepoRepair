@@ -1,0 +1,85 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that when an `id` attribute is passed to the `Rating` component and the user clicks to change the rating, the `onChange` event is triggered twice. Looking at the code, I can see that when an `id` is provided, the component adds accessibility features including hidden radio inputs.
+
+The problem is in the click handling logic. When an `id` is provided, both the click handler on the base div (`handleClick`) and the change handler on the radio input (`handleChecked`) are being triggered, causing the `onChange` callback to be called twice.
+
+## Solution
+
+We need to modify the component to prevent the double event firing when an `id` is provided. The best approach is to check if the click event is coming from a radio input or its label, and if so, prevent the `handleClick` from being called again.
+
+Here's the fix:
+
+```javascript
+### src/rating/rating.jsx
+<<<<<<< SEARCH
+    handleClick(e) {
+        if (this.state.disabled) {
+            return;
+        }
+        const { allowClear } = this.props;
+        const { value } = this.state;
+        const newValue = this.getValue(e);
+        let isReset = false;
+        if (allowClear) {
+            isReset = newValue === value;
+        }
+        this.handleLeave();
+        if (newValue < 0) {
+            return;
+        }
+
+        if (!('value' in this.props)) {
+            this.setState({ value: isReset ? 0 : newValue, clicked: true });
+        }
+
+        this.props.onChange(isReset ? 0 : newValue);
+        setTimeout(() => {
+            this.setState({ clicked: false });
+        }, 100);
+        this.setState({
+            cleanedValue: isReset ? newValue : null,
+        });
+    }
+=======
+    handleClick(e) {
+        if (this.state.disabled) {
+            return;
+        }
+        
+        // If the click is coming from a radio input or its label, don't process it again
+        // as it will be handled by handleChecked
+        if (this.props.id && (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL')) {
+            return;
+        }
+        
+        const { allowClear } = this.props;
+        const { value } = this.state;
+        const newValue = this.getValue(e);
+        let isReset = false;
+        if (allowClear) {
+            isReset = newValue === value;
+        }
+        this.handleLeave();
+        if (newValue < 0) {
+            return;
+        }
+
+        if (!('value' in this.props)) {
+            this.setState({ value: isReset ? 0 : newValue, clicked: true });
+        }
+
+        this.props.onChange(isReset ? 0 : newValue);
+        setTimeout(() => {
+            this.setState({ clicked: false });
+        }, 100);
+        this.setState({
+            cleanedValue: isReset ? newValue : null,
+        });
+    }
+>>>>>>> REPLACE
+```
+
+This fix checks if an `id` is provided (which enables accessibility features) and if the click event originated from an input or label element. If both conditions are true, the function returns early, preventing the duplicate event handling.

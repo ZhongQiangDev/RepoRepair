@@ -1,0 +1,121 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that the append shortcut 'a' is not working on elements that don't have an append menu. According to the requirements:
+- Where append is possible, 'a' should trigger append
+- Where append is not possible, 'a' should trigger create
+
+Currently, the `AppendContextPadProvider.getContextPadEntries` method only returns the append entry if the popup menu for 'bpmn-append' is not empty. This means that elements without append options don't get any action when 'a' is pressed.
+
+The fix should modify the code to always return an action for the 'a' key, defaulting to create when append is not applicable.
+
+## Fix
+
+```javascript
+### lib/features/create-append-anything/AppendContextPadProvider.js
+<<<<<<< SEARCH
+AppendContextPadProvider.$inject = [
+  'contextPad',
+  'popupMenu',
+  'translate',
+  'canvas'
+];
+
+AppendContextPadProvider.prototype.getContextPadEntries = function(element) {
+  const popupMenu = this._popupMenu;
+  const translate = this._translate;
+  const getAppendMenuPosition = this._getAppendMenuPosition.bind(this);
+
+  if (!popupMenu.isEmpty(element, 'bpmn-append')) {
+
+    // append menu entry
+    return {
+      'append': {
+        group: 'model',
+        imageUrl: appendIcon,
+        title: translate('Append element'),
+        action: {
+          click: function(event, element) {
+
+            var position = assign(getAppendMenuPosition(element), {
+              cursor: { x: event.x, y: event.y }
+            });
+
+            popupMenu.open(element, 'bpmn-append', position, {
+              title: translate('Append element'),
+              width: 300,
+              search: true
+            });
+          }
+        }
+      }
+    };
+  }
+};
+=======
+AppendContextPadProvider.$inject = [
+  'contextPad',
+  'popupMenu',
+  'translate',
+  'canvas',
+  'create'
+];
+
+function AppendContextPadProvider(contextPad, popupMenu, translate, canvas, create) {
+  this._contextPad = contextPad;
+  this._popupMenu = popupMenu;
+  this._translate = translate;
+  this._canvas = canvas;
+  this._create = create;
+
+  contextPad.registerProvider(this);
+}
+
+AppendContextPadProvider.prototype.getContextPadEntries = function(element) {
+  const popupMenu = this._popupMenu;
+  const translate = this._translate;
+  const create = this._create;
+  const getAppendMenuPosition = this._getAppendMenuPosition.bind(this);
+
+  // Always return an append entry, but with different actions based on availability
+  return {
+    'append': {
+      group: 'model',
+      imageUrl: appendIcon,
+      title: translate('Append element'),
+      action: {
+        click: function(event, element) {
+          // If append menu has options, show it
+          if (!popupMenu.isEmpty(element, 'bpmn-append')) {
+            var position = assign(getAppendMenuPosition(element), {
+              cursor: { x: event.x, y: event.y }
+            });
+
+            popupMenu.open(element, 'bpmn-append', position, {
+              title: translate('Append element'),
+              width: 300,
+              search: true
+            });
+          } else {
+            // If no append options, trigger create mode
+            create.start(event, element);
+          }
+        }
+      }
+    }
+  };
+};
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Adds the `create` service to the injected dependencies
+2. Adds a constructor function to properly initialize all dependencies
+3. Modifies the `getContextPadEntries` method to always return an 'append' entry
+4. Changes the click action to check if the append menu has options:
+   - If it does, it opens the append menu as before
+   - If it doesn't, it triggers the create mode instead
+
+This ensures that the 'a' shortcut will always do something - either open the append menu or trigger create mode, depending on the context.

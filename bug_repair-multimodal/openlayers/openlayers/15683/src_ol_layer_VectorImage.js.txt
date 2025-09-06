@@ -1,0 +1,36 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that the vector layer canvas is being cropped when the map is rotated. This started happening in version 9.1.0, likely introduced by PR #15652. 
+
+Looking at the provided code from `src/ol/layer/VectorImage.js`, I notice that the issue is likely related to the `imageRatio` property. This property determines the ratio by which the rendered extent should be larger than the viewport extent.
+
+When the map is rotated, the vector layer canvas needs to be larger to accommodate the rotated content without cropping. The current default value of `1` is likely not sufficient when rotation is applied.
+
+## Fix
+
+The solution is to increase the default `imageRatio` value to ensure the canvas is large enough when the map is rotated. This will provide more buffer space for the rotated content.
+
+```javascript
+### src/ol/layer/VectorImage.js
+<<<<<<< SEARCH
+    /**
+     * @type {number}
+     * @private
+     */
+    this.imageRatio_ =
+      options.imageRatio !== undefined ? options.imageRatio : 1;
+=======
+    /**
+     * @type {number}
+     * @private
+     */
+    this.imageRatio_ =
+      options.imageRatio !== undefined ? options.imageRatio : 1.5;
+>>>>>>> REPLACE
+```
+
+This change increases the default `imageRatio` from 1 to 1.5, which should provide enough additional canvas space to prevent cropping when the map is rotated. The larger ratio ensures that the rendered extent is 50% larger than the viewport extent, giving more room for rotated content.
+
+The documentation already mentions that "A larger ratio avoids cut images during panning, but will cause a decrease in performance." This is a reasonable trade-off to fix the cropping issue during rotation.

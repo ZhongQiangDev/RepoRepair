@@ -1,0 +1,51 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is about respecting the `imageSmoothing` setting from tile sources when using the WebGLTile renderer. Currently, when a tile source has `imageSmoothing: false`, the WebGLTile renderer doesn't respect this setting, which causes unwanted smoothing of pixel values. This is particularly problematic for applications like the Sea Level example where precise pixel values are important.
+
+The fix would involve passing the `imageSmoothing` setting from the source to the `TileTexture` which would then use `gl.NEAREST` instead of `gl.LINEAR` for texture filtering when smoothing is disabled.
+
+Looking at the provided code, I need to modify the `WebGLTileLayer` class to pass the `imageSmoothing` setting from the source to the renderer.
+
+## Solution
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+  createRenderer() {
+    const parsedStyle = parseStyle(this.style_, this.getSourceBandCount_());
+
+    return new WebGLTileLayerRenderer(this, {
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      cacheSize: this.cacheSize_,
+      paletteTextures: parsedStyle.paletteTextures,
+    });
+  }
+=======
+  createRenderer() {
+    const parsedStyle = parseStyle(this.style_, this.getSourceBandCount_());
+    const source = this.getSource();
+    
+    return new WebGLTileLayerRenderer(this, {
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      cacheSize: this.cacheSize_,
+      paletteTextures: parsedStyle.paletteTextures,
+      imageSmoothing: source && 'getImageSmoothing' in source ? source.getImageSmoothing() : true,
+    });
+  }
+>>>>>>> REPLACE
+```
+
+This change retrieves the `imageSmoothing` setting from the source (if available) and passes it to the WebGLTileLayerRenderer. The renderer would then need to pass this setting to the `TileTexture` which would use `gl.NEAREST` instead of `gl.LINEAR` for texture filtering when `imageSmoothing` is false.
+
+Note that this change assumes:
+1. The source has a `getImageSmoothing()` method (which TileImage sources do)
+2. The WebGLTileLayerRenderer constructor accepts an `imageSmoothing` option
+3. The WebGLTileLayerRenderer passes this option to the TileTexture
+
+The issue mentions that currently only `TileImage` sources support the `imageSmoothing` option, so we check if the source has a `getImageSmoothing` method before calling it. If it doesn't, we default to `true` for backward compatibility.

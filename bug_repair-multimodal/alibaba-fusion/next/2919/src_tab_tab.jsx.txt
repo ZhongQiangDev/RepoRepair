@@ -1,0 +1,52 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about the Tab component not having scrolling functionality when the tab content is too long. According to the screenshot and description, the user wants to be able to scroll through tabs using either drag (mouse) or keyboard scrolling when there are many tabs.
+
+Looking at the code, I can see that the Tab component has keyboard navigation for switching between tabs (using arrow keys), but it doesn't have proper scrolling behavior for the tab navigation bar itself when there are many tabs.
+
+The issue is that while the component has a `scrollable` class applied when on touch devices (`isTouchable`), it doesn't enable scrolling for desktop users with many tabs. We need to modify the code to make the tabs scrollable regardless of the device type.
+
+## Fix
+
+```javascript
+### src/tab/tab.jsx
+<<<<<<< SEARCH
+        const isTouchable = ['phone', 'tablet'].indexOf(device) !== -1;
+        let newPosition = tabPosition;
+        if (rtl && ['left', 'right'].indexOf(tabPosition) >= 0) {
+            newPosition = tabPosition === 'left' ? 'right' : 'left';
+        }
+        const classNames = classnames(
+            {
+                [`${prefix}tabs`]: true,
+                [`${prefix}tabs-${shape}`]: shape,
+                [`${prefix}tabs-vertical`]: shape === 'wrapped' && ['left', 'right'].indexOf(tabPosition) >= 0,
+                [`${prefix}tabs-scrollable`]: isTouchable,
+                [`${prefix}tabs-${newPosition}`]: shape === 'wrapped',
+                [`${prefix + size}`]: size,
+            },
+            className
+        );
+=======
+        const isTouchable = ['phone', 'tablet'].indexOf(device) !== -1;
+        let newPosition = tabPosition;
+        if (rtl && ['left', 'right'].indexOf(tabPosition) >= 0) {
+            newPosition = tabPosition === 'left' ? 'right' : 'left';
+        }
+        const classNames = classnames(
+            {
+                [`${prefix}tabs`]: true,
+                [`${prefix}tabs-${shape}`]: shape,
+                [`${prefix}tabs-vertical`]: shape === 'wrapped' && ['left', 'right'].indexOf(tabPosition) >= 0,
+                [`${prefix}tabs-scrollable`]: true, // Always enable scrollable behavior
+                [`${prefix}tabs-${newPosition}`]: shape === 'wrapped',
+                [`${prefix + size}`]: size,
+            },
+            className
+        );
+>>>>>>> REPLACE
+```
+
+This change makes the tabs always scrollable by setting the `${prefix}tabs-scrollable` class to `true` regardless of the device type. This will allow users to scroll through tabs when there are many of them, using either mouse drag or keyboard, as requested in the issue.

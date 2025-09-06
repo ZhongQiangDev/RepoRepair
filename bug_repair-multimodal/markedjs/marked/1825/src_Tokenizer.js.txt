@@ -1,0 +1,48 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that task lists are being rendered even when GFM (GitHub Flavored Markdown) is disabled. According to the issue description, task lists are an extension of GFM, so they should not be processed when the `gfm` option is set to `false`.
+
+Looking at the code, I can see that in the `list` method of the `Tokenizer` class, task lists are being processed unconditionally. The code checks for task list items with the regex `/^\[[ xX]\] /` and sets the `task` and `checked` properties accordingly, without checking if GFM is enabled.
+
+Here's the fix:
+
+```javascript
+### src/Tokenizer.js
+<<<<<<< SEARCH
+        // Check for task list items
+        istask = /^\[[ xX]\] /.test(item);
+        ischecked = undefined;
+        if (istask) {
+          ischecked = item[1] !== ' ';
+          item = item.replace(/^\[[ xX]\] +/, '');
+        }
+
+        list.items.push({
+          type: 'list_item',
+          raw,
+          task: istask,
+          checked: ischecked,
+          loose: loose,
+          text: item
+        });
+=======
+        // Check for task list items
+        istask = this.options.gfm && /^\[[ xX]\] /.test(item);
+        ischecked = undefined;
+        if (istask) {
+          ischecked = item[1] !== ' ';
+          item = item.replace(/^\[[ xX]\] +/, '');
+        }
+
+        list.items.push({
+          type: 'list_item',
+          raw,
+          task: istask,
+          checked: ischecked,
+          loose: loose,
+          text: item
+        });
+>>>>>>> REPLACE
+```
+
+This change adds a check for `this.options.gfm` before processing task list items. If GFM is disabled, the task list syntax will be treated as regular text, which is the expected behavior according to the issue description.

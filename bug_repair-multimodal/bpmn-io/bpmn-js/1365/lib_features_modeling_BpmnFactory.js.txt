@@ -1,0 +1,39 @@
+I'll analyze the issue and provide a solution.
+
+The issue is about implementing the ability to toggle `isCollection = true` on data objects, inputs, and outputs in BPMN diagrams. This is a feature request to support the BPMN 2.0 specification's "isCollection" marker.
+
+Looking at the provided code, I don't see any implementation for handling the `isCollection` property. The `BpmnFactory.js` file is responsible for creating BPMN elements, but it doesn't have specific logic for setting the `isCollection` property on data objects.
+
+To fix this issue, we need to modify the `BpmnFactory.js` file to handle the `isCollection` property when creating data objects. Here's my proposed solution:
+
+```javascript
+### lib/features/modeling/BpmnFactory.js
+<<<<<<< SEARCH
+BpmnFactory.prototype.create = function(type, attrs) {
+  var element = this._model.create(type, attrs || {});
+
+  this._ensureId(element);
+
+  return element;
+};
+=======
+BpmnFactory.prototype.create = function(type, attrs) {
+  var element = this._model.create(type, attrs || {});
+
+  this._ensureId(element);
+
+  // Handle isCollection property for data objects, data inputs, and data outputs
+  if (isAny(element, [
+    'bpmn:DataObject',
+    'bpmn:DataInput',
+    'bpmn:DataOutput'
+  ]) && attrs && attrs.isCollection) {
+    element.isCollection = attrs.isCollection;
+  }
+
+  return element;
+};
+>>>>>>> REPLACE
+```
+
+This change adds a check for data objects, data inputs, and data outputs, and sets the `isCollection` property if it's provided in the attributes. This allows the property to be toggled on these elements, which is what the issue is requesting.

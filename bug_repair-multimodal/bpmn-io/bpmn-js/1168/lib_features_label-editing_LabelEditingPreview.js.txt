@@ -1,0 +1,54 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when pasting elements with a task in the first position, direct editing is automatically activated for that task. According to the issue description, this happens despite a previous fix that was supposed to select all elements after pasting.
+
+Looking at the provided code, I can see that the `LabelEditingPreview.js` file handles the visual aspects of direct editing, but it doesn't contain the logic that triggers direct editing after pasting. The bug is likely in the interaction between the paste functionality and the direct editing activation.
+
+The issue description mentions that a previous fix (issue #1152) attempted to solve this by selecting all elements after pasting, but the bug still persists. This suggests that the direct editing is being triggered even when multiple elements are selected.
+
+## Solution
+
+Since we don't have the paste handler code or the direct editing activation code in the provided snippets, I'll need to make an educated guess about the fix. The most likely solution is to modify the direct editing activation logic to not trigger when elements are being pasted.
+
+However, since I don't have access to that code, I'll propose a more general solution in the `LabelEditingPreview.js` file. We can add a check in the `directEditing.activate` event handler to prevent direct editing activation immediately after a paste operation.
+
+```javascript
+### lib/features/label-editing/LabelEditingPreview.js
+<<<<<<< SEARCH
+  eventBus.on('directEditing.activate', function(context) {
+    var activeProvider = context.active;
+
+    element = activeProvider.element.label || activeProvider.element;
+=======
+  // Track if we're currently in a paste operation
+  var isPasting = false;
+  
+  eventBus.on('clipboard.paste.start', function() {
+    isPasting = true;
+  });
+  
+  eventBus.on('clipboard.paste.end', function() {
+    // Use a small delay to ensure this happens after any direct editing would be triggered
+    setTimeout(function() {
+      isPasting = false;
+    }, 0);
+  });
+
+  eventBus.on('directEditing.activate', function(context) {
+    // Prevent direct editing activation during paste operations
+    if (isPasting) {
+      context.preventDefault();
+      return;
+    }
+    
+    var activeProvider = context.active;
+
+    element = activeProvider.element.label || activeProvider.element;
+>>>>>>> REPLACE
+```
+
+This solution adds tracking for paste operations and prevents direct editing from being activated during a paste. It assumes that there are `clipboard.paste.start` and `clipboard.paste.end` events that are fired during paste operations. If these events don't exist, the implementation would need to be adjusted based on the actual events available in the codebase.
+
+Note: Since I don't have access to the complete codebase, this solution is based on my understanding of the issue and common patterns in event-based systems. The actual implementation might need to be adjusted based on the specific event system and architecture of the application.

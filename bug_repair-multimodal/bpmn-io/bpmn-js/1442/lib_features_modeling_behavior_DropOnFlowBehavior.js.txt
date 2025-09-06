@@ -1,0 +1,73 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when multiple shapes are pasted onto a connection (sequence flow), the behavior doesn't handle this case correctly. Looking at the code, I can see that in the `elements.move` post-execution handler, it only processes the first shape (`shapes[0]`) when inserting shapes onto a connection, ignoring any additional shapes.
+
+The GIF in the issue shows that when pasting multiple tasks onto a flow, only one task gets properly connected, while the other one is just placed without proper connections.
+
+## Solution
+
+We need to modify the code to handle multiple shapes when they're dropped onto a connection. Instead of just processing the first shape, we should process all shapes and connect them in sequence along the flow.
+
+Here's the fix:
+
+```javascript
+### lib/features/modeling/behavior/DropOnFlowBehavior.js
+<<<<<<< SEARCH
+  this.postExecuted('elements.move', function(context) {
+
+    var shapes = context.shapes,
+        targetFlow = context.targetFlow,
+        position = context.position;
+
+    if (targetFlow) {
+      insertShape(shapes[0], targetFlow, position);
+    }
+
+  }, true);
+=======
+  this.postExecuted('elements.move', function(context) {
+
+    var shapes = context.shapes,
+        targetFlow = context.targetFlow,
+        position = context.position;
+
+    if (targetFlow && shapes.length) {
+      // Handle multiple shapes: connect them in sequence
+      if (shapes.length > 1) {
+        var currentFlow = targetFlow;
+        
+        // Process all shapes and connect them in sequence
+        shapes.forEach(function(shape) {
+          insertShape(shape, currentFlow, position);
+          
+          // Find the new outgoing connection from the inserted shape
+          // to use as the target flow for the next shape
+          currentFlow = find(shape.outgoing, function(connection) {
+            return connection.target === targetFlow.target;
+          });
+          
+          // If we couldn't find a valid connection, stop the sequence
+          if (!currentFlow) {
+            return;
+          }
+        });
+      } else {
+        // Single shape case - use existing logic
+        insertShape(shapes[0], targetFlow, position);
+      }
+    }
+
+  }, true);
+>>>>>>> REPLACE
+```
+
+This change will:
+1. Check if there are any shapes to process
+2. If there are multiple shapes, process them in sequence
+3. For each shape, insert it onto the current flow
+4. Find the new outgoing connection from the inserted shape to use as the target flow for the next shape
+5. Continue until all shapes are processed or we can't find a valid connection
+
+This should result in the shapes being connected in sequence along the flow, which is the expected behavior when pasting multiple shapes onto a connection.

@@ -1,0 +1,58 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when an Intermediate Event is copied and pasted as a Boundary Event, it loses its properties (like Async Continuations and Job Configurations). This happens because in the `CreateBoundaryEventBehavior.js` file, when an Intermediate Event is attached to a shape, it's completely replaced with a new Boundary Event without preserving the original event's properties.
+
+Looking at the code, in the `preExecute` handler for 'shape.create', a new business object is created from scratch using `bpmnFactory.create('bpmn:BoundaryEvent', attrs)` without copying over any properties from the original event.
+
+## Fix
+
+We need to modify the `CreateBoundaryEventBehavior.js` file to preserve the properties of the original event when converting it to a Boundary Event. Here's the fix:
+
+```javascript
+### lib/features/modeling/behavior/CreateBoundaryEventBehavior.js
+<<<<<<< SEARCH
+    if (host && is(shape, 'bpmn:IntermediateThrowEvent')) {
+      attrs.attachedToRef = host.businessObject;
+
+      businessObject = bpmnFactory.create('bpmn:BoundaryEvent', attrs);
+
+      boundaryEvent = {
+        type: 'bpmn:BoundaryEvent',
+        businessObject: businessObject
+      };
+
+      context.shape = elementFactory.createShape(boundaryEvent);
+    }
+=======
+    if (host && is(shape, 'bpmn:IntermediateThrowEvent')) {
+      attrs.attachedToRef = host.businessObject;
+      
+      // Copy properties from the original business object
+      var originalBusinessObject = shape.businessObject;
+      
+      // Create new business object with the same properties
+      businessObject = bpmnFactory.create('bpmn:BoundaryEvent', attrs);
+      
+      // Copy over the extensionElements if they exist
+      if (originalBusinessObject.extensionElements) {
+        businessObject.extensionElements = originalBusinessObject.extensionElements;
+      }
+      
+      // Copy over any other relevant properties
+      if (originalBusinessObject.eventDefinitions) {
+        businessObject.eventDefinitions = originalBusinessObject.eventDefinitions;
+      }
+      
+      boundaryEvent = {
+        type: 'bpmn:BoundaryEvent',
+        businessObject: businessObject
+      };
+
+      context.shape = elementFactory.createShape(boundaryEvent);
+    }
+>>>>>>> REPLACE
+```
+
+This fix preserves the `extensionElements` (which typically contain Async Continuations and Job Configurations) and `eventDefinitions` from the original Intermediate Event when converting it to a Boundary Event. These are the key properties that need to be maintained during the conversion process.

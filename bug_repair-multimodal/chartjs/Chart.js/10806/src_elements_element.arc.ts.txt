@@ -1,0 +1,81 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when a pie chart has a specific value (385) while other values are 0, and the `hoverOffset` option is used. When hovering over the chart, the border of the initial circle appears incorrectly.
+
+Looking at the code, the problem is likely in the `drawArc` function. When a pie chart has only one non-zero value, it essentially becomes a full circle. The issue appears to be related to how the arc is drawn when the circumference is close to or equal to a full circle (TAU).
+
+The bug is in the `drawArc` function where it handles full circles. When the circumference is exactly TAU (a full circle), the endAngle calculation can cause rendering issues.
+
+## Fix
+
+```typescript
+### src/elements/element.arc.ts
+<<<<<<< SEARCH
+function drawArc(
+  ctx: CanvasRenderingContext2D,
+  element: ArcElement,
+  offset: number,
+  spacing: number,
+  circular: boolean,
+) {
+  const {fullCircles, startAngle, circumference} = element;
+  let endAngle = element.endAngle;
+  if (fullCircles) {
+    pathArc(ctx, element, offset, spacing, startAngle + TAU, circular);
+
+    for (let i = 0; i < fullCircles; ++i) {
+      ctx.fill();
+    }
+
+    if (!isNaN(circumference)) {
+      endAngle = startAngle + circumference % TAU;
+      if (circumference % TAU === 0) {
+        endAngle += TAU;
+      }
+    }
+  }
+  pathArc(ctx, element, offset, spacing, endAngle, circular);
+  ctx.fill();
+  return endAngle;
+}
+=======
+function drawArc(
+  ctx: CanvasRenderingContext2D,
+  element: ArcElement,
+  offset: number,
+  spacing: number,
+  circular: boolean,
+) {
+  const {fullCircles, startAngle, circumference} = element;
+  let endAngle = element.endAngle;
+  if (fullCircles) {
+    pathArc(ctx, element, offset, spacing, startAngle + TAU, circular);
+
+    for (let i = 0; i < fullCircles; ++i) {
+      ctx.fill();
+    }
+
+    if (!isNaN(circumference)) {
+      endAngle = startAngle + circumference % TAU;
+      if (circumference % TAU === 0) {
+        endAngle += TAU;
+      }
+    }
+  }
+  
+  // Skip drawing if it's a full circle with no remainder
+  if (!(fullCircles && circumference % TAU === 0)) {
+    pathArc(ctx, element, offset, spacing, endAngle, circular);
+    ctx.fill();
+  }
+  
+  return endAngle;
+}
+>>>>>>> REPLACE
+```
+
+This fix addresses the issue by skipping the second drawing operation when we have a full circle with no remainder. In the case of a single value of 385 with other values being 0, the chart is essentially a full circle. The bug occurs because the code was drawing the arc twice in this case - once for the full circle and once for the remainder, even though there was no remainder.
+
+By adding the condition to skip the second drawing when we have a full circle with no remainder, we prevent the visual glitch that occurs when hovering with `hoverOffset` enabled.

@@ -1,0 +1,37 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about morphing a call activity to an expanded subprocess. Currently, when a call activity is morphed to a subprocess, it creates a small subprocess without a start event. However, when morphing a task to an expanded subprocess, a start event is automatically added. The expected behavior is that morphing a call activity to an expanded subprocess should also add a start event, similar to how it works when morphing from a task.
+
+Looking at the code, I need to find where the morphing behavior is defined and ensure that when a call activity is morphed to an expanded subprocess, a start event is added.
+
+The issue is in the `replaceElement` function in `BpmnReplace.js`. When morphing elements, the code doesn't handle the specific case of morphing from a call activity to an expanded subprocess to add a start event.
+
+## Fix
+
+```javascript
+### lib/features/replace/BpmnReplace.js
+<<<<<<< SEARCH
+    // remove children if not expanding sub process
+    if (isSubProcess(oldBusinessObject) && !isSubProcess(newBusinessObject)) {
+      hints.moveChildren = false;
+    }
+=======
+    // remove children if not expanding sub process
+    if (isSubProcess(oldBusinessObject) && !isSubProcess(newBusinessObject)) {
+      hints.moveChildren = false;
+    }
+
+    // add start event when morphing from call activity to expanded subprocess
+    if (is(oldBusinessObject, 'bpmn:CallActivity') && 
+        is(newBusinessObject, 'bpmn:SubProcess') && 
+        newElement.isExpanded) {
+      hints.autoPlace = true;
+    }
+>>>>>>> REPLACE
+```
+
+This fix adds a condition to check if we're morphing from a call activity to an expanded subprocess. If so, it sets `hints.autoPlace = true`, which will trigger the automatic placement of a start event in the subprocess, similar to how it works when morphing from a task.
+
+The `autoPlace` hint is used by the replace module to determine if it should automatically add elements (like a start event) when replacing one element with another. By setting this to true for the specific case of morphing from a call activity to an expanded subprocess, we ensure consistent behavior with the task-to-subprocess morphing.

@@ -1,0 +1,86 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, there's a problem with y-axis labels overlapping in Chart.js version 2.9.3 that wasn't present in version 2.7.3. Looking at the screenshots and the provided fiddles, it appears that the y-axis scale is not properly calculating the spacing between tick labels.
+
+The issue is likely related to the tick autoSkipping functionality. In the provided code segment, I don't see the complete implementation of the autoSkip functionality, but I can see that there are functions related to tick spacing and skipping.
+
+The problem is that the `skip` function in `core.scale.js` is not properly handling the spacing between ticks, causing them to overlap. Let's fix this by examining the implementation of the autoSkip functionality.
+
+Looking at the issue more carefully, I notice that the problem is likely in the calculation of tick spacing. The `calculateSpacing` function seems to be returning a value that's too small, causing too many ticks to be displayed and thus overlapping.
+
+Here's my fix:
+
+```javascript
+### src/core/core.scale.js
+<<<<<<< SEARCH
+function calculateSpacing(majorIndices, ticks, ticksLimit) {
+  const evenMajorSpacing = getEvenSpacing(majorIndices);
+  const spacing = ticks.length / ticksLimit;
+
+  // If the major ticks are evenly spaced apart, place the minor ticks
+  // so that they divide the major ticks into even chunks
+  if (!evenMajorSpacing) {
+    return Math.max(spacing, 1);
+  }
+
+  const factors = _factorize(evenMajorSpacing);
+  for (let i = 0, ilen = factors.length - 1; i < ilen; i++) {
+    const factor = factors[i];
+    if (factor > spacing) {
+      return factor;
+    }
+  }
+  return Math.max(spacing, 1);
+}
+=======
+function calculateSpacing(majorIndices, ticks, ticksLimit) {
+  const evenMajorSpacing = getEvenSpacing(majorIndices);
+  const spacing = ticks.length / ticksLimit;
+
+  // If the major ticks are evenly spaced apart, place the minor ticks
+  // so that they divide the major ticks into even chunks
+  if (!evenMajorSpacing) {
+    return Math.max(spacing, 1);
+  }
+
+  const factors = _factorize(evenMajorSpacing);
+  for (let i = 0, ilen = factors.length - 1; i < ilen; i++) {
+    const factor = factors[i];
+    if (factor > spacing) {
+      return factor;
+    }
+  }
+  return Math.max(spacing, 1);
+}
+
+/**
+ * @param {number[]} arr
+ */
+function getEvenSpacing(arr) {
+  const len = arr.length;
+  if (len < 2) {
+    return false;
+  }
+
+  const first = arr[0];
+  const last = arr[len - 1];
+  const spacing = (last - first) / (len - 1);
+
+  for (let i = 1; i < len; i++) {
+    const prev = arr[i - 1];
+    const curr = arr[i];
+    const diff = curr - prev;
+    if (Math.abs(diff - spacing) > 1e-6) {
+      return false;
+    }
+  }
+  return spacing;
+}
+>>>>>>> REPLACE
+```
+
+I noticed that the `getEvenSpacing` function was missing from the provided code segment, which is crucial for the proper calculation of tick spacing. This function checks if the major tick indices are evenly spaced and returns the spacing if they are, or false otherwise.
+
+Without this function, the `calculateSpacing` function would always return a value based on the first condition (`!evenMajorSpacing`), which might not be appropriate for all cases, leading to overlapping labels.
+
+By adding the missing `getEvenSpacing` function, we ensure that the tick spacing is calculated correctly, which should fix the overlapping y-axis labels issue.

@@ -1,0 +1,167 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about a COG (Cloud Optimized GeoTIFF) not displaying completely in OpenLayers - only the upper part is shown. Looking at the screenshot, it appears the image is being cut off.
+
+The problem is likely in the `ReprojTile.js` file where the tile size is being handled. When dealing with non-square pixels (where width and height differ), the code might not be correctly handling the dimensions.
+
+Looking at the code, I found the issue in the `reproject_()` method. When getting the tile size, it correctly handles both numeric sizes and array sizes, but when creating the canvas in `renderReprojected()`, it might not be properly using the height value for non-square tiles.
+
+## Fix
+
+```javascript
+### src/ol/reproj/Tile.js
+<<<<<<< SEARCH
+      const z = this.wrappedTileCoord_[0];
+      const size = this.targetTileGrid_.getTileSize(z);
+      const width = typeof size === 'number' ? size : size[0];
+      const height = typeof size === 'number' ? size : size[1];
+      const targetResolution = this.targetTileGrid_.getResolution(z);
+      const sourceResolution = this.sourceTileGrid_.getResolution(
+        this.sourceZ_
+      );
+
+      const targetExtent = this.targetTileGrid_.getTileCoordExtent(
+        this.wrappedTileCoord_
+      );
+
+      this.canvas_ = renderReprojected(
+        width,
+        height,
+        this.pixelRatio_,
+=======
+      const z = this.wrappedTileCoord_[0];
+      const size = this.targetTileGrid_.getTileSize(z);
+      const width = typeof size === 'number' ? size : size[0];
+      const height = typeof size === 'number' ? size : size[1];
+      const targetResolution = this.targetTileGrid_.getResolution(z);
+      const sourceResolution = this.sourceTileGrid_.getResolution(
+        this.sourceZ_
+      );
+
+      const targetExtent = this.targetTileGrid_.getTileCoordExtent(
+        this.wrappedTileCoord_
+      );
+
+      this.canvas_ = renderReprojected(
+        width,
+        height,
+        this.pixelRatio_,
+>>>>>>> REPLACE
+```
+
+The code looks correct for handling non-square pixels. Let me check the `renderReprojected` function to see if it's properly using the height parameter.
+
+Since we don't have access to the `reproj.js` file where `renderReprojected` is defined, I need to make an educated guess. The issue might be related to how the target extent is calculated or how the triangulation is performed.
+
+Let's try a different approach by examining how the tile coordinates are handled:
+
+```javascript
+### src/ol/reproj/Tile.js
+<<<<<<< SEARCH
+    const targetExtent = targetTileGrid.getTileCoordExtent(
+      this.wrappedTileCoord_
+    );
+    const maxTargetExtent = this.targetTileGrid_.getExtent();
+    let maxSourceExtent = this.sourceTileGrid_.getExtent();
+
+    const limitedTargetExtent = maxTargetExtent
+      ? getIntersection(targetExtent, maxTargetExtent)
+      : targetExtent;
+=======
+    const targetExtent = targetTileGrid.getTileCoordExtent(
+      this.wrappedTileCoord_
+    );
+    const maxTargetExtent = this.targetTileGrid_.getExtent();
+    let maxSourceExtent = this.sourceTileGrid_.getExtent();
+
+    const limitedTargetExtent = maxTargetExtent
+      ? getIntersection(targetExtent, maxTargetExtent)
+      : targetExtent;
+>>>>>>> REPLACE
+```
+
+The issue might be in the triangulation or in how the source tiles are selected. Let's look at the triangulation creation:
+
+```javascript
+### src/ol/reproj/Tile.js
+<<<<<<< SEARCH
+    /**
+     * @private
+     * @type {!import("./Triangulation.js").default}
+     */
+    this.triangulation_ = new Triangulation(
+      sourceProj,
+      targetProj,
+      limitedTargetExtent,
+      maxSourceExtent,
+      sourceResolution * errorThresholdInPixels,
+      targetResolution
+    );
+=======
+    /**
+     * @private
+     * @type {!import("./Triangulation.js").default}
+     */
+    this.triangulation_ = new Triangulation(
+      sourceProj,
+      targetProj,
+      limitedTargetExtent,
+      maxSourceExtent,
+      sourceResolution * errorThresholdInPixels,
+      targetResolution
+    );
+>>>>>>> REPLACE
+```
+
+After reviewing the code, I believe the issue might be in how the source extent is calculated or how the triangulation is performed. Since we don't have access to the implementation of `Triangulation` or `renderReprojected`, I'll make an educated guess based on the issue description.
+
+The most likely issue is that the code is not properly handling non-square pixels in the COG. Let's modify the `reproject_` method to ensure the correct aspect ratio is maintained:
+
+```javascript
+### src/ol/reproj/Tile.js
+<<<<<<< SEARCH
+      const z = this.wrappedTileCoord_[0];
+      const size = this.targetTileGrid_.getTileSize(z);
+      const width = typeof size === 'number' ? size : size[0];
+      const height = typeof size === 'number' ? size : size[1];
+      const targetResolution = this.targetTileGrid_.getResolution(z);
+      const sourceResolution = this.sourceTileGrid_.getResolution(
+        this.sourceZ_
+      );
+
+      const targetExtent = this.targetTileGrid_.getTileCoordExtent(
+        this.wrappedTileCoord_
+      );
+=======
+      const z = this.wrappedTileCoord_[0];
+      const size = this.targetTileGrid_.getTileSize(z);
+      const width = typeof size === 'number' ? size : size[0];
+      const height = typeof size === 'number' ? size : size[1];
+      const targetResolution = this.targetTileGrid_.getResolution(z);
+      const sourceResolution = this.sourceTileGrid_.getResolution(
+        this.sourceZ_
+      );
+
+      // Calculate the target extent based on the actual width and height
+      const targetExtent = this.targetTileGrid_.getTileCoordExtent(
+        this.wrappedTileCoord_
+      );
+      // Adjust the extent if needed to maintain aspect ratio
+      const extentWidth = targetExtent[2] - targetExtent[0];
+      const extentHeight = targetExtent[3] - targetExtent[1];
+      const aspectRatio = width / height;
+      const extentAspectRatio = extentWidth / extentHeight;
+      
+      // If aspect ratios don't match, adjust the extent
+      if (Math.abs(aspectRatio - extentAspectRatio) > 0.0001) {
+        const centerY = (targetExtent[1] + targetExtent[3]) / 2;
+        const newHeight = extentWidth / aspectRatio;
+        targetExtent[1] = centerY - newHeight / 2;
+        targetExtent[3] = centerY + newHeight / 2;
+      }
+>>>>>>> REPLACE
+```
+
+This change adjusts the target extent to match the aspect ratio of the tile size, which should help ensure that non-square pixels are handled correctly. The issue appears to be that the extent calculation doesn't properly account for the aspect ratio of the tile, causing only part of the image to be displayed.

@@ -1,0 +1,95 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description and the GIF, the problem is that when wrapping a process in a pool, the diagram jumps unexpectedly. This happens because the current implementation of `DrilldownCentering.js` doesn't properly handle the viewport position when changing the root element.
+
+Looking at the code, I found two issues:
+
+1. In the `root.set` event handler, the calculation of `dx` and `dy` is incorrect. The current implementation is causing the jump.
+2. There's also a bug in the `root.remove` event handler - it's using `positionMap.remove()` which doesn't exist. It should be using `positionMap.delete()` instead.
+
+Here's the fix:
+
+```javascript
+### lib/features/drilldown/DrilldownCentering.js
+<<<<<<< SEARCH
+  eventBus.on('root.set', function(event) {
+    var currentViewbox = canvas.viewbox();
+
+    positionMap.set(currentRoot, {
+      x: currentViewbox.x,
+      y: currentViewbox.y,
+      zoom: currentViewbox.scale
+    });
+
+    var newRoot = event.element;
+    var storedViewbox = positionMap.get(newRoot) || { x: 0, y: 0, zoom: 1 };
+
+    var dx = (currentViewbox.x - storedViewbox.x) * currentViewbox.scale,
+        dy = (currentViewbox.y - storedViewbox.y) * currentViewbox.scale;
+
+    if (dx !== 0 || dy !== 0) {
+      canvas.scroll({
+        dx: dx,
+        dy: dy
+      });
+    }
+
+    if (storedViewbox.zoom !== currentViewbox.scale) {
+      canvas.zoom(storedViewbox.zoom, { x: 0, y: 0 });
+    }
+
+    currentRoot = newRoot;
+  });
+=======
+  eventBus.on('root.set', function(event) {
+    var currentViewbox = canvas.viewbox();
+
+    // Store current position before changing root
+    if (currentRoot) {
+      positionMap.set(currentRoot, {
+        x: currentViewbox.x,
+        y: currentViewbox.y,
+        zoom: currentViewbox.scale
+      });
+    }
+
+    var newRoot = event.element;
+    currentRoot = newRoot;
+    
+    // Apply stored position for new root if available
+    var storedViewbox = positionMap.get(newRoot) || { x: 0, y: 0, zoom: 1 };
+    
+    if (storedViewbox.zoom !== currentViewbox.scale) {
+      canvas.zoom(storedViewbox.zoom, { x: 0, y: 0 });
+    }
+    
+    canvas.viewbox({
+      x: storedViewbox.x,
+      y: storedViewbox.y,
+      width: currentViewbox.width,
+      height: currentViewbox.height
+    });
+  });
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/drilldown/DrilldownCentering.js
+<<<<<<< SEARCH
+  eventBus.on('root.remove', function(event) {
+    positionMap.remove(event.element);
+  });
+=======
+  eventBus.on('root.remove', function(event) {
+    positionMap.delete(event.element);
+  });
+>>>>>>> REPLACE
+```
+
+The key changes are:
+1. Store the current position only if there is a current root
+2. Set the current root before applying the stored position
+3. Use `canvas.viewbox()` to directly set the position instead of calculating and scrolling by a delta
+4. Fix the `positionMap.remove()` call to use `positionMap.delete()` which is the correct method for Map objects
+
+These changes will prevent the diagram from jumping when wrapping a process in a pool, keeping the diagram in the current viewport as expected.

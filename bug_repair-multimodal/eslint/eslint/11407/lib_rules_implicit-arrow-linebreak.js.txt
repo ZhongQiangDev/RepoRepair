@@ -1,0 +1,85 @@
+I'll analyze the issue and provide a fix for the bug in the `implicit-arrow-linebreak` rule.
+
+## Bug Analysis
+
+The issue occurs when the `implicit-arrow-linebreak` rule tries to fix arrow functions with comments. The autofixer is incorrectly adding extra closing parentheses, which results in invalid JavaScript code.
+
+Looking at the code, the problem is in the `addParentheses` function. When fixing arrow functions to be on the same line, it's adding closing parentheses at the end of the function body, but it's not properly handling the case where there are multiple nested arrow functions.
+
+The key issue is in the `addParentheses` function where it's adding closing parentheses without properly checking if they're needed or if they're being added in the right place.
+
+## Fix
+
+```javascript
+### lib/rules/implicit-arrow-linebreak.js
+<<<<<<< SEARCH
+        /**
+         * Helper function for adding parentheses fixes for nodes containing nested arrow functions
+         * @param {Fixer} fixer Fixer
+         * @param {Token} arrow - The arrow token
+         * @param {ASTNode} arrowBody - The arrow function body
+         * @returns {Function[]} autofixer -- wraps function bodies with parentheses
+         */
+        function addParentheses(fixer, arrow, arrowBody) {
+            const parenthesesFixes = [];
+            let closingParentheses = "";
+
+            let followingBody = arrowBody;
+            let currentArrow = arrow;
+
+            while (currentArrow) {
+                if (!isParenthesised(sourceCode, followingBody)) {
+                    parenthesesFixes.push(
+                        fixer.insertTextAfter(currentArrow, " (")
+                    );
+
+                    const paramsToken = sourceCode.getTokenBefore(currentArrow, token =>
+                        isOpeningParenToken(token) || token.type === "Identifier");
+
+                    const whiteSpaces = " ".repeat(paramsToken.loc.start.column);
+
+                    closingParentheses = `\n${whiteSpaces})${closingParentheses}`;
+                }
+
+                currentArrow = sourceCode.getTokenAfter(currentArrow, isArrowToken);
+
+                if (currentArrow) {
+                    followingBody = sourceCode.getTokenAfter(currentArrow, token => !isOpeningParenToken(token));
+                }
+            }
+
+            return [...parenthesesFixes,
+                fixer.insertTextAfter(arrowBody, closingParentheses)
+            ];
+        }
+=======
+        /**
+         * Helper function for adding parentheses fixes for nodes containing nested arrow functions
+         * @param {Fixer} fixer Fixer
+         * @param {Token} arrow - The arrow token
+         * @param {ASTNode} arrowBody - The arrow function body
+         * @returns {Function[]} autofixer -- wraps function bodies with parentheses
+         */
+        function addParentheses(fixer, arrow, arrowBody) {
+            // If the body is already parenthesized, don't add more parentheses
+            if (isParenthesised(sourceCode, arrowBody)) {
+                return [];
+            }
+            
+            // Just add a single set of parentheses around the arrow function body
+            return [
+                fixer.insertTextAfter(arrow, " ("),
+                fixer.insertTextAfter(arrowBody, ")")
+            ];
+        }
+>>>>>>> REPLACE
+```
+
+This fix simplifies the `addParentheses` function to only add a single set of parentheses around the arrow function body when needed, rather than trying to handle nested arrow functions with multiple sets of parentheses. The original implementation was too complex and was incorrectly adding extra closing parentheses, which resulted in invalid JavaScript.
+
+The new implementation:
+1. Checks if the body is already parenthesized, and if so, doesn't add more parentheses
+2. Otherwise, adds a single opening parenthesis after the arrow and a single closing parenthesis after the body
+3. Avoids the complex logic that was trying to handle nested arrow functions, which was causing the bug
+
+This should fix the issue where the autofixer was adding extra characters and creating invalid JavaScript code.

@@ -1,0 +1,269 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is requesting to add a watermark of the selected sprite or backdrop in the blocks workspace. This was a feature in Scratch 2.0 that helped clarify which sprite or backdrop was selected. The watermark should:
+- Have a max size of 48px by 48px (3rem by 3rem)
+- Be positioned in the top-right corner
+- Be right-aligned with the zoom controls
+- Have 35% opacity
+- Ideally be below blocks (z-index)
+- Support RTL languages
+
+Looking at the provided code, I don't see any implementation of this watermark feature. The `sprite-selector-item.jsx` file handles the sprite selector items in the sprite library, but doesn't implement the watermark in the blocks workspace.
+
+## Solution
+
+We need to create a new component or modify an existing one to display the watermark in the blocks workspace. Since the issue doesn't provide the blocks workspace component code, I'll need to create a new component for the watermark and then suggest where it should be integrated.
+
+First, let's create a new component for the watermark:
+
+```javascript
+### src/components/blocks-workspace-watermark/blocks-workspace-watermark.jsx
+<<<<<<< SEARCH
+=======
+import React from 'react';
+import PropTypes from 'prop-types';
+import classNames from 'classnames';
+
+import styles from './blocks-workspace-watermark.css';
+
+const BlocksWorkspaceWatermark = props => {
+    if (!props.costumeURL) return null;
+    
+    return (
+        <div
+            className={classNames(
+                styles.watermark,
+                {[styles.isRtl]: props.isRtl}
+            )}
+        >
+            <img
+                className={styles.watermarkImage}
+                src={props.costumeURL}
+                alt={props.name}
+            />
+        </div>
+    );
+};
+
+BlocksWorkspaceWatermark.propTypes = {
+    costumeURL: PropTypes.string,
+    isRtl: PropTypes.bool,
+    name: PropTypes.string
+};
+
+export default BlocksWorkspaceWatermark;
+>>>>>>> REPLACE
+```
+
+Now, let's create the CSS for this component:
+
+```javascript
+### src/components/blocks-workspace-watermark/blocks-workspace-watermark.css
+<<<<<<< SEARCH
+=======
+@import "../../css/units.css";
+@import "../../css/z-index.css";
+
+.watermark {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 3rem;
+    height: 3rem;
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: $z-index-workspace-watermark;
+}
+
+.watermark-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.is-rtl {
+    right: auto;
+    left: 0.5rem;
+}
+>>>>>>> REPLACE
+```
+
+Now, we need to add a z-index value for the watermark in the z-index.css file:
+
+```javascript
+### src/css/z-index.css
+<<<<<<< SEARCH
+/* Toolbox, flyout and backpack */
+$z-index-toolbox: 40; 
+$z-index-flyout: 30; 
+$z-index-backpack: 50;
+
+/* Card */
+$z-index-card: 490;
+=======
+/* Toolbox, flyout and backpack */
+$z-index-toolbox: 40; 
+$z-index-flyout: 30; 
+$z-index-backpack: 50;
+
+/* Workspace watermark */
+$z-index-workspace-watermark: 20;
+
+/* Card */
+$z-index-card: 490;
+>>>>>>> REPLACE
+```
+
+Now, we need to create a container component to connect the watermark to the Redux store:
+
+```javascript
+### src/containers/blocks-workspace-watermark.jsx
+<<<<<<< SEARCH
+=======
+import {connect} from 'react-redux';
+import React from 'react';
+import PropTypes from 'prop-types';
+import VM from 'scratch-vm';
+import {SVGRenderer} from 'scratch-svg-renderer';
+
+import BlocksWorkspaceWatermarkComponent from '../components/blocks-workspace-watermark/blocks-workspace-watermark.jsx';
+import {HAS_FONT_REGEXP} from './sprite-selector-item';
+
+class BlocksWorkspaceWatermark extends React.Component {
+    constructor (props) {
+        super(props);
+        this.svgRenderer = new SVGRenderer();
+        this.decodedAssetId = null;
+        this.cachedUrl = null;
+    }
+
+    getCostumeUrl () {
+        if (!this.props.assetId) return null;
+
+        const storage = this.props.vm.runtime.storage;
+        const asset = storage.get(this.props.assetId);
+        
+        // If the SVG refers to fonts, they must be inlined in order to display correctly in the img tag.
+        // Avoid parsing the SVG when possible, since it's expensive.
+        if (asset.assetType === storage.AssetType.ImageVector) {
+            // If the asset ID has not changed, no need to re-parse
+            if (this.decodedAssetId === this.props.assetId) {
+                return this.cachedUrl;
+            }
+            this.decodedAssetId = this.props.assetId;
+            const svgString = this.props.vm.runtime.storage.get(this.props.assetId).decodeText();
+            if (svgString.match(HAS_FONT_REGEXP)) {
+                this.svgRenderer.loadString(svgString);
+                const svgText = this.svgRenderer.toString(true /* shouldInjectFonts */);
+                this.cachedUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svgText)}`;
+            } else {
+                this.cachedUrl = this.props.vm.runtime.storage.get(this.props.assetId).encodeDataURI();
+            }
+            return this.cachedUrl;
+        }
+        return this.props.vm.runtime.storage.get(this.props.assetId).encodeDataURI();
+    }
+
+    render () {
+        return (
+            <BlocksWorkspaceWatermarkComponent
+                costumeURL={this.getCostumeUrl()}
+                isRtl={this.props.isRtl}
+                name={this.props.name}
+            />
+        );
+    }
+}
+
+BlocksWorkspaceWatermark.propTypes = {
+    assetId: PropTypes.string,
+    isRtl: PropTypes.bool,
+    name: PropTypes.string,
+    vm: PropTypes.instanceOf(VM).isRequired
+};
+
+const mapStateToProps = state => {
+    const targets = state.scratchGui.targets;
+    const currentTarget = targets.editingTarget;
+    const target = targets.sprites[currentTarget] || targets.stage;
+    
+    if (!target || !target.costumes) return {};
+    
+    const currentCostume = target.costumes[target.currentCostume];
+    return {
+        assetId: currentCostume && currentCostume.assetId,
+        name: target.name,
+        isRtl: state.locales.isRtl,
+        vm: state.scratchGui.vm
+    };
+};
+
+export default connect(
+    mapStateToProps
+)(BlocksWorkspaceWatermark);
+>>>>>>> REPLACE
+```
+
+Finally, we need to add the watermark component to the blocks workspace. Since the blocks workspace component isn't provided in the code snippets, I'll suggest where it should be added:
+
+```javascript
+### src/components/blocks/blocks.jsx
+<<<<<<< SEARCH
+import React from 'react';
+import PropTypes from 'prop-types';
+import styles from './blocks.css';
+import {ScratchBlocks} from 'scratch-blocks';
+=======
+import React from 'react';
+import PropTypes from 'prop-types';
+import styles from './blocks.css';
+import {ScratchBlocks} from 'scratch-blocks';
+import BlocksWorkspaceWatermark from '../../containers/blocks-workspace-watermark.jsx';
+>>>>>>> REPLACE
+```
+
+And then add the component to the render method:
+
+```javascript
+### src/components/blocks/blocks.jsx
+<<<<<<< SEARCH
+    render () {
+        const {
+            anyModalVisible,
+            componentRef,
+            customProceduresVisible,
+            ...props
+        } = this.props;
+        return (
+            <div
+                className={styles.blocksWrapper}
+                {...props}
+            >
+                <div
+                    className={styles.blocks}
+                    ref={this.setBlocks}
+                />
+=======
+    render () {
+        const {
+            anyModalVisible,
+            componentRef,
+            customProceduresVisible,
+            ...props
+        } = this.props;
+        return (
+            <div
+                className={styles.blocksWrapper}
+                {...props}
+            >
+                <div
+                    className={styles.blocks}
+                    ref={this.setBlocks}
+                />
+                <BlocksWorkspaceWatermark />
+>>>>>>> REPLACE
+```
+
+These changes will add a watermark of the selected sprite or backdrop to the blocks workspace, positioned in the top-right corner with 35% opacity, and properly handle RTL languages.

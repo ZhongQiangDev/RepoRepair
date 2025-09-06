@@ -1,0 +1,22 @@
+Based on the issue description, the bug is in the `_make_hash_value` method of `PasswordResetTokenGenerator`. The issue states that changing a user's email address doesn't invalidate existing password reset tokens, which means the token generation isn't taking the email into account.
+
+To fix this, we need to include the user's email in the hash value generation. Here's the fix:
+
+```python
+### django/contrib/auth/tokens.py
+<<<<<<< SEARCH
+        login_timestamp = '' if user.last_login is None else user.last_login.replace(microsecond=0, tzinfo=None)
+        return str(user.pk) + user.password + str(login_timestamp) + str(timestamp)
+=======
+        login_timestamp = '' if user.last_login is None else user.last_login.replace(microsecond=0, tzinfo=None)
+        email = getattr(user, 'email', '')  # Safely get email if it exists
+        return str(user.pk) + user.password + str(login_timestamp) + str(timestamp) + str(email)
+>>>>>>> REPLACE
+```
+
+This change:
+1. Adds the user's email to the hash value generation
+2. Uses `getattr(user, 'email', '')` to safely handle cases where a user might not have an email field (as mentioned in the issue that nothing forces a user to have an email in AbstractBaseUser)
+3. Maintains backward compatibility with the existing token format while adding the email component
+
+When a user changes their email address, the hash value will now be different, causing existing password reset tokens to become invalid, which is the desired behavior.

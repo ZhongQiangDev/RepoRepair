@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- The `iconDescription` prop in TableBatchAction is incorrectly required even when there are visible children elements
+- When there are children (visible labels), JAWS screen reader reads both the `iconDescription` and the visible label, causing redundant announcements
+- The default value of `iconDescription` is incorrectly set to "Add" instead of an empty string
+
+2. Cause Analysis:
+- The component is enforcing `iconDescription` as a required prop unconditionally, without checking if there are visible children
+- The ARIA labeling is not properly handling the case where visible text labels exist
+- The default prop value is hardcoded to "Add" instead of being empty when not needed
+
+3. Most Related Files:
+```
+packages/react/src/components/DataTable/TableBatchAction.js
+packages/react/src/components/Button/Button.js
+packages/react/src/prop-types/tools/createChainableTypeChecker.js
+packages/react/src/prop-types/isRequiredOneOf.js
+packages/react/src/components/DataTable/TableBatchActions.js
+```
+
+These files are most relevant because:
+- TableBatchAction.js is the main component with the issue
+- Button.js is likely the base component being used that needs proper ARIA handling
+- The prop-types related files handle validation logic that needs to be updated
+- TableBatchActions.js is the parent component that may need adjustments for proper accessibility
+
+The fix would involve modifying these files to make `iconDescription` conditional based on the presence of children and updating the default value to an empty string.

@@ -1,0 +1,40 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that setting the opacity option in `ol/layer/Heatmap` has no effect. The problem appears to be in the `WebGLPostProcessingPass` class, which is responsible for rendering WebGL layers with proper opacity.
+
+Looking at the code, I can see that in the `apply` method, the opacity value is retrieved from the layer state:
+
+```javascript
+const opacity = frameState.layerStatesArray[frameState.layerIndex].opacity;
+gl.uniform1f(this.renderTargetOpacityLocation_, opacity);
+```
+
+However, there's a problem with how the blending is set up. The current code uses:
+
+```javascript
+gl.enable(gl.BLEND);
+gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+```
+
+This blend function (`gl.ONE, gl.ONE_MINUS_SRC_ALPHA`) is not correctly applying the opacity. For proper opacity handling, we need to use a different blend function that respects the alpha value.
+
+## Fix
+
+```javascript
+### src/ol/webgl/PostProcessingPass.js
+<<<<<<< SEARCH
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+=======
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+>>>>>>> REPLACE
+```
+
+This change modifies the blend function from `(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)` to `(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)`. 
+
+The new blend function properly respects the opacity value set on the layer. With `gl.SRC_ALPHA`, the source color is multiplied by the source alpha (opacity), which allows the opacity setting to take effect. The previous setting `gl.ONE` was effectively ignoring the opacity value.
+
+This change will make the heatmap layer's opacity setting work as expected, similar to how it worked in version 6.9.0.

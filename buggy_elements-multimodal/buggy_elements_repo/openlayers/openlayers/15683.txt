@@ -1,0 +1,74 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that the vector layer canvas is cropped when the map is rotated. Specifically, when a polygon that spans the entire width of the map is created and the map is rotated using `shift+ALT+DRAG`, the polygon gets cut off instead of being displayed correctly.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from incorrect handling of coordinate transformations during the rotation of the map. When the map is rotated, the coordinate system changes, and if the transformations applied to the vector layer canvas do not account for this change correctly, the rendered content may be clipped or distorted. This could be due to improper scaling, translation, or rotation applied to the canvas or the coordinate system used for rendering.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### `src/ol/transform.js`
+
+This file contains functions for applying, composing, and manipulating transformations, which are crucial for handling coordinate transformations during map rotation. The following functions are relevant:
+
+```
+src/ol/transform.js
+function: apply
+function: compose
+function: rotate
+function: translate
+function: multiply
+```
+
+#### `src/ol/layer/VectorImage.js`
+
+This file contains the `VectorImageLayer` class, which manages the rendering of vector data. The `imageRatio_` property and the `getImageRatio()` method might be relevant if the issue involves incorrect scaling or sizing of the rendered extent.
+
+```
+src/ol/layer/VectorImage.js
+class: VectorImageLayer
+```
+
+#### `src/ol/render/canvas/Builder.js`
+
+This file contains the `CanvasBuilder` class, which generates canvas rendering instructions for vector geometries. While it handles rendering instructions and coordinate processing, it does not directly manage transformations related to map rotation.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `src/ol/renderer/canvas/VectorImageLayer.js`
+
+This file contains the `CanvasVectorImageLayerRenderer` class, which is responsible for rendering vector image layers on a canvas. The `coordinateToVectorPixelTransform_` and `renderedPixelToCoordinateTransform_` properties, along with the `prepareFrame` method, are relevant for coordinate transformations during rendering.
+
+```
+src/ol/renderer/canvas/VectorImageLayer.js
+class: CanvasVectorImageLayerRenderer
+```
+
+#### `src/ol/renderer/canvas/VectorLayer.js`
+
+This file contains the `CanvasVectorLayerRenderer` class, which manages the rendering of vector layers. While it does not directly address the specific issue of coordinate transformations during map rotation, it handles rendering frames, feature interaction, and frame preparation.
+
+```
+src/ol/renderer/canvas/VectorLayer.js
+class: CanvasVectorLayerRenderer
+```
+
+### Summary of Relevant Locations
+
+```
+src/ol/transform.js
+function: apply
+function: compose
+function: rotate
+function: translate
+function: multiply
+
+src/ol/layer/VectorImage.js
+class: VectorImageLayer
+
+src/ol/renderer/canvas/VectorImageLayer.js
+class: CanvasVectorImageLayerRenderer
+```

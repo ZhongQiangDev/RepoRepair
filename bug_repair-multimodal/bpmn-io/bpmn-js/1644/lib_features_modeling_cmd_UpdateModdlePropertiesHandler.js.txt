@@ -1,0 +1,70 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when changing a task from parallel multi-instance to sequential multi-instance (or vice versa), the multi-instance properties like loop cardinality are lost. This happens because the `UpdateModdlePropertiesHandler` doesn't properly handle the visual references of the moddle element.
+
+Looking at the code, I notice that the `getVisualReferences` method is referenced but not fully implemented in the provided code snippet. This method is crucial for identifying all elements that need to be updated when moddle properties change.
+
+The issue is likely that when switching between parallel and sequential multi-instance, the handler doesn't properly identify and update all related elements, causing the multi-instance properties to be lost.
+
+## Fix
+
+I need to implement the `getVisualReferences` method to properly handle multi-instance markers:
+
+```javascript
+### lib/features/modeling/cmd/UpdateModdlePropertiesHandler.js
+<<<<<<< SEARCH
+/**
+ * Return visual references of given moddle element within the diagram.
+ *
+ * @param {ModdleElement} moddleElement
+ *
+ * @return {Array<djs.model.Element>}
+ */
+
+
+
+
+
+
+
+
+
+
+
+=======
+/**
+ * Return visual references of given moddle element within the diagram.
+ *
+ * @param {ModdleElement} moddleElement
+ *
+ * @return {Array<djs.model.Element>}
+ */
+UpdateModdlePropertiesHandler.prototype.getVisualReferences = function(moddleElement) {
+
+  var elementRegistry = this._elementRegistry;
+
+  var references = [];
+
+  // retrieve all elements that reference the
+  // changed element via their business object
+  elementRegistry.forEach(function(element) {
+    var bo = getBusinessObject(element);
+
+    if (bo === moddleElement) {
+      references.push(element);
+    }
+
+    // special handling for multi-instance markers
+    if (is(bo, 'bpmn:Activity') && bo.loopCharacteristics === moddleElement) {
+      references.push(element);
+    }
+  });
+
+  return references;
+};
+>>>>>>> REPLACE
+```
+
+This implementation of `getVisualReferences` will properly identify all visual elements that reference the moddle element being updated, including activities with multi-instance markers. The special handling for multi-instance markers ensures that when switching between parallel and sequential multi-instance, the properties are preserved.

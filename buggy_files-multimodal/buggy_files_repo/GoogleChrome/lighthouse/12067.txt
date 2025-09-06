@@ -1,0 +1,24 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The minification-estimator incorrectly reports that a minified JavaScript code is not minified. Specifically, the code:
+```javascript
+switch(true){case/^hello!/.test("hello!"):document.write("///<any content>");}
+```
+is already minified but is being flagged as unminified.
+
+2. Cause Analysis:
+The issue lies in the `hasPunctuatorBefore` function in `lighthouse-core/lib/minification-estimator.js`. When processing the code, it incorrectly identifies the "/" after "case" as a division operator rather than the start of a regular expression. This causes the function to misinterpret the subsequent code, treating everything after "//" as a comment, leading to incorrect minification assessment.
+
+The root cause is that the `PUNCTUATOR_REGEX` pattern doesn't include the keyword "case" in its list, causing the function to fail to recognize that a regular expression can follow the "case" keyword.
+
+3. Most Related Files:
+```
+lighthouse-core/lib/minification-estimator.js
+lighthouse-core/audits/byte-efficiency/unminified-javascript.js
+lighthouse-core/computed/js-bundles.js
+lighthouse-core/lib/cdt/generated/SourceMap.js
+lighthouse-core/scripts/legacy-javascript/run.js
+```
+
+The first file contains the actual bug and needs to be fixed. The second file uses the minification estimator for JavaScript auditing. The third file handles JavaScript bundle analysis. The fourth file deals with source mapping which is related to code transformation. The fifth file handles JavaScript processing and bundling tasks.

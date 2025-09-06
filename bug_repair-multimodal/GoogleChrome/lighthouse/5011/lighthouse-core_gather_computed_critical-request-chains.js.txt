@@ -1,0 +1,72 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about Lighthouse incorrectly flagging a stylesheet loaded with `rel=preload` as part of a "critical request chain" even though it loads asynchronously and doesn't block page rendering.
+
+Looking at the code in `critical-request-chains.js`, the problem is in the `isCritical` method. Currently, it determines if a request is critical based on its priority and resource type. Stylesheets loaded with `rel=preload` still have a high priority, but they're specifically designed not to block rendering.
+
+The fix should detect resources loaded with `rel=preload` and exclude them from critical request chains.
+
+## Fix
+
+```javascript
+### lighthouse-core/gather/computed/critical-request-chains.js
+<<<<<<< SEARCH
+  static isCritical(request, mainResource) {
+    assert.ok(mainResource, 'mainResource not provided');
+    const resourceTypeCategory = request._resourceType && request._resourceType._category;
+
+    // Iframes are considered High Priority but they are not render blocking
+    const isIframe = request._resourceType === WebInspector.resourceTypes.Document
+      && request.frameId !== mainResource.frameId;
+    // XHRs are fetched at High priority, but we exclude them, as they are unlikely to be critical
+    // Images are also non-critical.
+    // Treat any images missed by category, primarily favicons, as non-critical resources
+    const nonCriticalResourceTypes = [
+      WebInspector.resourceTypes.Image._category,
+      WebInspector.resourceTypes.XHR._category,
+    ];
+    if (nonCriticalResourceTypes.includes(resourceTypeCategory) ||
+        isIframe ||
+        request.mimeType && request.mimeType.startsWith('image/')) {
+      return false;
+    }
+
+    return ['VeryHigh', 'High', 'Medium'].includes(request.priority());
+=======
+  static isCritical(request, mainResource) {
+    assert.ok(mainResource, 'mainResource not provided');
+    const resourceTypeCategory = request._resourceType && request._resourceType._category;
+
+    // Iframes are considered High Priority but they are not render blocking
+    const isIframe = request._resourceType === WebInspector.resourceTypes.Document
+      && request.frameId !== mainResource.frameId;
+    // XHRs are fetched at High priority, but we exclude them, as they are unlikely to be critical
+    // Images are also non-critical.
+    // Treat any images missed by category, primarily favicons, as non-critical resources
+    const nonCriticalResourceTypes = [
+      WebInspector.resourceTypes.Image._category,
+      WebInspector.resourceTypes.XHR._category,
+    ];
+    
+    // Check if this resource was loaded with rel=preload (which doesn't block rendering)
+    const isPreload = request.initiator && 
+                      request.initiator.type === 'parser' && 
+                      request.initiator.attrs && 
+                      request.initiator.attrs.some(attr => 
+                        attr.name.toLowerCase() === 'rel' && 
+                        attr.value.toLowerCase() === 'preload');
+    
+    if (nonCriticalResourceTypes.includes(resourceTypeCategory) ||
+        isIframe ||
+        isPreload ||
+        request.mimeType && request.mimeType.startsWith('image/')) {
+      return false;
+    }
+
+    return ['VeryHigh', 'High', 'Medium'].includes(request.priority());
+>>>>>>> REPLACE
+```
+
+This fix adds a check to detect resources loaded with `rel=preload` by examining the request's initiator attributes. If a resource is loaded with `rel=preload`, it's considered non-critical since it's specifically designed not to block rendering, which addresses the issue described in the ticket.

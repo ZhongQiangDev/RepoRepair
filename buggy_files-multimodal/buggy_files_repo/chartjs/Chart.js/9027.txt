@@ -1,0 +1,34 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- A RangeError is thrown with message "minimumFractionDigits value is out of range"
+- This occurs during chart creation (new Chart())
+- The error trace shows it happens during number formatting in the scale system
+- The chart library is calculating NaN for chart height
+
+2. Cause Analysis:
+- The error originates from `NumberFormat` constructor in the native JavaScript API
+- Looking at the stack trace and screenshots:
+  - The error occurs during scale numeric formatting
+  - It happens when generating tick labels
+  - The issue appears to be related to invalid fraction digits being passed to number formatting
+  - The screenshots show NaN values being processed during chart construction
+- This suggests the core issue is improper handling of invalid numeric values during scale initialization and tick generation
+
+3. Most Relevant Files:
+```
+src/core/core.scale.js
+src/scales/scale.linear.js
+src/helpers/helpers.intl.js
+src/core/core.layouts.js
+src/core/core.controller.js
+```
+
+These files are most relevant because:
+- core.scale.js: Contains core scale functionality and tick generation logic
+- scale.linear.js: Handles linear scale specifics where the error occurs
+- helpers.intl.js: Contains the number formatting logic that's throwing the error
+- core.layouts.js: Manages chart layout and dimensions which could affect height calculations
+- core.controller.js: Manages chart initialization where the error surfaces
+
+The error appears to originate from improper number formatting during scale initialization, making these files the most likely locations for implementing a fix.

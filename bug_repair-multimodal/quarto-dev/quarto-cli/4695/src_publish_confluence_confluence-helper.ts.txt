@@ -1,0 +1,35 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that links in `index.qmd` files aren't being resolved properly when published to Confluence. Looking at the code, I can see that the problem is in the `updateLinks` function in `src/publish/confluence/confluence-helper.ts`.
+
+The issue is with the regular expression `LINK_FINDER` which is currently defined as:
+```typescript
+export const LINK_FINDER: RegExp = /(\S*.qmd'|\S*.qmd#\S*')/g;
+```
+
+This regex is only looking for links that end with `.qmd'` or `.qmd#something'`, but it's not matching the format used in the example:
+```
+* [January](2022-01.qmd)
+* [March](2022-03.qmd)
+```
+
+These links are in Markdown format, so the regex needs to be updated to match links in the format `](filename.qmd)`.
+
+Here's the fix:
+
+```typescript
+### src/publish/confluence/confluence-helper.ts
+<<<<<<< SEARCH
+export const LINK_FINDER: RegExp = /(\S*.qmd'|\S*.qmd#\S*')/g;
+export const FILE_FINDER: RegExp = /(?<=href=\')(.*)(?=\.qmd)/;
+=======
+export const LINK_FINDER: RegExp = /(\S*.qmd'|\S*.qmd#\S*'|\]([^)]+\.qmd))/g;
+export const FILE_FINDER: RegExp = /(?<=href=\'|(?<=\]))([^)']*)(?=\.qmd)/;
+>>>>>>> REPLACE
+```
+
+This updated regex will:
+1. Add a new pattern `\]([^)]+\.qmd)` to match Markdown-style links like `](2022-01.qmd)`
+2. Update the FILE_FINDER regex to extract filenames from both HTML-style links (`href='filename.qmd'`) and Markdown-style links (`](filename.qmd)`)
+
+The changes ensure that links in Markdown format, which are commonly used in `.qmd` files, are properly processed and resolved when publishing to Confluence.

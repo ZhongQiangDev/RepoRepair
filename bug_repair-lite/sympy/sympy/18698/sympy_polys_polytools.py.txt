@@ -1,0 +1,65 @@
+Based on the issue description, the bug is in the `sqf_list` function where it's not handling factors with the same multiplicity correctly. The example shows that `(x - 3)**3 * (x - 2)**3` should give one factor with multiplicity 3, but instead gives two separate factors with multiplicity 3.
+
+Looking at the code, we need to modify the `sqf_list` function to properly combine factors with the same multiplicity. Here's the fix:
+
+```python
+### sympy/polys/polytools.py
+<<<<<<< SEARCH
+@public
+def sqf_list(f, *gens, **args):
+    """
+    Compute a list of square-free factors of ``f``.
+
+    Examples
+    ========
+
+    >>> from sympy import sqf_list
+    >>> from sympy.abc import x
+
+    >>> sqf_list(2*x**5 + 16*x**4 + 50*x**3 + 76*x**2 + 56*x + 16)
+    (2, [(x + 1, 2), (x + 2, 3)])
+
+    """
+    return _generic_factor_list(f, gens, args, method='sqf')
+=======
+@public
+def sqf_list(f, *gens, **args):
+    """
+    Compute a list of square-free factors of ``f``.
+
+    Examples
+    ========
+
+    >>> from sympy import sqf_list
+    >>> from sympy.abc import x
+
+    >>> sqf_list(2*x**5 + 16*x**4 + 50*x**3 + 76*x**2 + 56*x + 16)
+    (2, [(x + 1, 2), (x + 2, 3)])
+
+    """
+    factors = _generic_factor_list(f, gens, args, method='sqf')
+    if not factors:
+        return factors
+        
+    # Combine factors with same multiplicity
+    coeff, factor_list = factors
+    combined = {}
+    for factor, mult in factor_list:
+        if factor in combined:
+            # Add the multiplicities when factors are the same
+            combined[factor] += mult
+        else:
+            combined[factor] = mult
+            
+    return (coeff, sorted(combined.items(), key=lambda x: (x[1], x[0])))
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Takes the output from _generic_factor_list
+2. Creates a dictionary to track unique factors and their multiplicities
+3. Combines multiplicities when the same factor is encountered
+4. Returns the coefficient and sorted list of unique factors with their combined multiplicities
+
+This will ensure that identical factors with the same multiplicity are combined into a single factor entry, fixing the issue shown in the example where `(x - 3)**3 * (x - 2)**3` was giving duplicate factors.

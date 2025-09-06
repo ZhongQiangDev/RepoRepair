@@ -1,0 +1,37 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that the LaTeX magic comments should be case insensitive, but currently the regex in the `MAGIC_COMMENT` rule only matches when "TeX" is written exactly as "TeX" (with uppercase T and lowercase e and x). This is why in the example, the second line with "TEX" (uppercase E) is not being highlighted.
+
+Looking at the code, the issue is in the `MAGIC_COMMENT` definition:
+
+```javascript
+const MAGIC_COMMENT = {
+  className: 'meta',
+  begin: '% !TeX',
+  end: '$',
+  relevance: 10
+};
+```
+
+The fix is to make the regex case insensitive for the "TeX" part. Here's the search/replace edit:
+
+```javascript
+### src/languages/latex.js
+<<<<<<< SEARCH
+  const MAGIC_COMMENT = {
+    className: 'meta',
+    begin: '% !TeX',
+    end: '$',
+    relevance: 10
+  };
+=======
+  const MAGIC_COMMENT = {
+    className: 'meta',
+    begin: /% ![tT][eE][xX]/,
+    end: '$',
+    relevance: 10
+  };
+>>>>>>> REPLACE
+```
+
+This change replaces the string literal with a regular expression that matches "TeX" in any case combination (tEX, TEX, Tex, etc.), which will solve the issue described in the ticket.

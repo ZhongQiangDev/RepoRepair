@@ -1,0 +1,89 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about icon styles with displacement getting clipped. Based on the issue description:
+
+1. When using an `ol/style/Icon` with `displacement` set, the icon gets clipped
+2. The example shows a green cross icon that's being clipped
+3. The regular shape in the original example works fine with displacement
+
+Looking at the code, the problem is likely in the `renderPointGeometry` function in `src/ol/renderer/vector.js`. When an icon with displacement is rendered, the renderer doesn't properly account for the displacement when determining the rendering area, causing the icon to be clipped.
+
+## Fix
+
+The issue is that when an image with displacement is drawn, the renderer needs to account for the displacement when calculating the image's extent. Let's modify the `renderPointGeometry` function to properly handle icon displacement:
+
+```javascript
+### src/ol/renderer/vector.js
+<<<<<<< SEARCH
+  if (imageStyle) {
+    if (imageStyle.getImageState() != ImageState.LOADED) {
+      return;
+    }
+    const imageReplay = builderGroup.getBuilder(
+      style.getZIndex(),
+      BuilderType.IMAGE
+    );
+    imageReplay.setImageStyle(imageStyle, declutterImageWithText);
+    imageReplay.drawPoint(geometry, feature);
+  }
+=======
+  if (imageStyle) {
+    if (imageStyle.getImageState() != ImageState.LOADED) {
+      return;
+    }
+    const imageReplay = builderGroup.getBuilder(
+      style.getZIndex(),
+      BuilderType.IMAGE
+    );
+    imageReplay.setImageStyle(imageStyle, declutterImageWithText);
+    imageReplay.drawPoint(geometry, feature);
+  }
+>>>>>>> REPLACE
+```
+
+After examining the code more carefully, I don't see a direct issue in the `renderPointGeometry` function itself. The problem is likely in the canvas rendering code that handles the icon displacement. 
+
+Since we don't have access to the full codebase, I need to make an educated guess about where the issue might be. The problem is likely in how the canvas renderer calculates the extent for icons with displacement.
+
+Let's look at the `MultiPointGeometry` function as well, since it also handles image styles:
+
+```javascript
+### src/ol/renderer/vector.js
+<<<<<<< SEARCH
+  if (imageStyle) {
+    if (imageStyle.getImageState() != ImageState.LOADED) {
+      return;
+    }
+    const imageReplay = builderGroup.getBuilder(
+      style.getZIndex(),
+      BuilderType.IMAGE
+    );
+    imageReplay.setImageStyle(imageStyle, declutterImageWithText);
+    imageReplay.drawMultiPoint(geometry, feature);
+  }
+=======
+  if (imageStyle) {
+    if (imageStyle.getImageState() != ImageState.LOADED) {
+      return;
+    }
+    const imageReplay = builderGroup.getBuilder(
+      style.getZIndex(),
+      BuilderType.IMAGE
+    );
+    imageReplay.setImageStyle(imageStyle, declutterImageWithText);
+    imageReplay.drawMultiPoint(geometry, feature);
+  }
+>>>>>>> REPLACE
+```
+
+Based on the limited code provided, I don't see a direct issue in the vector renderer code. The problem is likely in one of these areas:
+
+1. The canvas builder that handles the actual drawing of the icon
+2. The extent calculation for icons with displacement
+3. The clipping region setup when rendering icons
+
+Without seeing more of the codebase, particularly the image builder implementation, it's difficult to provide a precise fix. However, I can suggest that the issue is likely related to how the canvas extent is calculated for icons with displacement.
+
+The most likely fix would involve ensuring that the canvas extent accounts for the icon's displacement when determining the rendering area. This would typically be in the image builder or in the code that sets up the canvas for rendering.

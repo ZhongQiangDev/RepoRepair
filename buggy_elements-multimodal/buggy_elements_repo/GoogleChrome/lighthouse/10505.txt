@@ -1,0 +1,67 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that Lighthouse reports a `NO_TTI_CPU_IDLE_PERIOD` error when the page has a slow First Contentful Paint (FCP) but becomes idle immediately after it. This results in no performance score being reported for the Time to Interactive (TTI) metric.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior likely stems from how Lighthouse determines the Time to Interactive (TTI). Specifically, the issue may be related to how Lighthouse identifies periods of CPU and network quietness after the First Meaningful Paint (FMP). If the page becomes idle immediately after a slow FCP, Lighthouse might not correctly identify a sufficiently long quiet period, leading to the `NO_TTI_CPU_IDLE_PERIOD` error.
+
+### 3. Examine Each File One by One and Determine Relevant Functions/Classes
+
+#### lighthouse-core/audits/metrics/interactive.js
+
+```
+lighthouse-core/audits/metrics/interactive.js
+class: InteractiveMetric
+```
+
+The `InteractiveMetric` class is directly related to determining when a web page becomes consistently interactive. The `audit` method in this class is responsible for analyzing traces and devtools logs to compute the interactive time. This class is likely where the issue lies, as it needs to correctly identify the quiet periods after FCP.
+
+#### lighthouse-core/computed/main-thread-tasks.js
+
+```
+lighthouse-core/computed/main-thread-tasks.js
+class: MainThreadTasks
+```
+
+The `MainThreadTasks` class computes main thread tasks based on the provided trace and context. While this class is important for understanding the tasks executed on the main thread, it may not be directly responsible for the `NO_TTI_CPU_IDLE_PERIOD` error. However, it could be indirectly related if the main thread tasks are not correctly identified, affecting the quiet period detection.
+
+#### lighthouse-core/computed/metrics/interactive.js
+
+```
+lighthouse-core/computed/metrics/interactive.js
+class: Interactive
+```
+
+The `Interactive` class is crucial for calculating the Time To Interactive (TTI). The methods `_findNetworkQuietPeriods`, `_findCPUQuietPeriods`, and `findOverlappingQuietPeriods` are specifically designed to identify quiet periods for network and CPU. These methods are likely where the issue needs to be addressed to correctly identify the quiet periods after a slow FCP.
+
+#### lighthouse-core/computed/metrics/lantern-interactive.js
+
+```
+This file contains no relevant functions/classes.
+```
+
+The `LanternInteractive` class is used for simulating and estimating the time to interactive using a dependency graph. Since the issue is related to actual trace data and not simulation, this class is not directly relevant to the problem.
+
+#### lighthouse-core/lib/tracehouse/main-thread-tasks.js
+
+```
+This file contains no relevant functions/classes.
+```
+
+The `MainThreadTasks` class in this file processes trace events from the main thread and organizes them into a hierarchical structure of tasks. While this is important for understanding the main thread activities, it is not directly related to identifying quiet periods for TTI.
+
+### Summary of Relevant Locations
+
+1. ```
+   lighthouse-core/audits/metrics/interactive.js
+   class: InteractiveMetric
+   ```
+2. ```
+   lighthouse-core/computed/main-thread-tasks.js
+   class: MainThreadTasks
+   ```
+3. ```
+   lighthouse-core/computed/metrics/interactive.js
+   class: Interactive
+   ```

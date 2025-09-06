@@ -1,0 +1,65 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the `ignoreRestSiblings` flag in the `no-unused-vars` rule isn't working properly inside function arguments. Looking at the code, I can see that the `hasRestSpreadSibling` function is only checking for rest properties in object patterns, but not in function parameters.
+
+The issue is in the `hasRestSpreadSibling` function, which needs to be updated to also check for rest parameters in function arguments.
+
+Here's the fix:
+
+```javascript
+### lib/rules/no-unused-vars.js
+<<<<<<< SEARCH
+        function hasRestSpreadSibling(variable) {
+            if (config.ignoreRestSiblings) {
+                const restProperties = new Set(["ExperimentalRestProperty", "RestProperty"]);
+
+                return variable.defs
+                    .filter(def => def.name.type === "Identifier")
+                    .some(def => (
+                        def.node.id &&
+                        def.node.id.type === "ObjectPattern" &&
+                        def.node.id.properties.length &&
+                        restProperties.has(def.node.id.properties[def.node.id.properties.length - 1].type) &&  // last property is a rest property
+                        !restProperties.has(def.name.parent.type)  // variable is sibling of the rest property
+                    ));
+            }
+
+            return false;
+        }
+=======
+        function hasRestSpreadSibling(variable) {
+            if (config.ignoreRestSiblings) {
+                const restProperties = new Set(["ExperimentalRestProperty", "RestProperty"]);
+
+                return variable.defs
+                    .filter(def => def.name.type === "Identifier")
+                    .some(def => {
+                        // Check for object rest properties
+                        if (def.node.id &&
+                            def.node.id.type === "ObjectPattern" &&
+                            def.node.id.properties.length &&
+                            restProperties.has(def.node.id.properties[def.node.id.properties.length - 1].type) &&  // last property is a rest property
+                            !restProperties.has(def.name.parent.type)) {  // variable is sibling of the rest property
+                            return true;
+                        }
+                        
+                        // Check for function parameter rest elements
+                        if (def.node.parent && 
+                            def.node.parent.type === "FunctionDeclaration" || 
+                            def.node.parent.type === "FunctionExpression" || 
+                            def.node.parent.type === "ArrowFunctionExpression") {
+                            const params = def.node.parent.params;
+                            const restParam = params.find(param => param.type === "RestElement");
+                            return restParam && params.indexOf(def.node) < params.indexOf(restParam);
+                        }
+                        
+                        return false;
+                    });
+            }
+
+            return false;
+        }
+>>>>>>> REPLACE
+```
+
+This fix extends the `hasRestSpreadSibling` function to also check if the variable is a parameter in a function that has a rest parameter. If it is, and it appears before the rest parameter, it should be considered a "rest sibling" and not be flagged as unused.

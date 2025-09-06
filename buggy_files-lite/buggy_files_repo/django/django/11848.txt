@@ -1,0 +1,24 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The problem is in django.utils.http.parse_http_date's handling of two-digit years in RFC 850 dates. Currently, it hardcodes:
+- Years 00-69 are interpreted as 2000-2069
+- Years 70-99 are interpreted as 1970-1999
+
+2. Cause Analysis:
+According to RFC 7231, two-digit years should be interpreted differently:
+- If the year appears to be more than 50 years in the future, it should be interpreted as the most recent year in the past with those same last two digits
+- The current implementation doesn't compare against the current year as required, instead using fixed ranges
+
+3. Most Related Files:
+Looking through the repository information, these files are most relevant to handling dates and HTTP parsing:
+
+```
+django/utils/http.py
+django/utils/dateparse.py
+django/utils/dateformat.py
+django/utils/timezone.py
+django/utils/formats.py
+```
+
+The most important is django/utils/http.py as it likely contains the parse_http_date function mentioned in the issue. The other files are related to date parsing and formatting support, but the core issue lies in the HTTP date parsing implementation.

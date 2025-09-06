@@ -1,0 +1,49 @@
+Based on the issue description, the bug occurs when trying to create an empty Array using `Array([])`. The error happens in the `_scan_iterable_shape` method when it tries to unpack values from an empty iterable.
+
+The issue is in the `_scan_iterable_shape` method where it doesn't properly handle empty iterables. Let's fix this by adding a special case for empty iterables.
+
+Here's the fix:
+
+```python
+### sympy/tensor/array/ndim_array.py
+<<<<<<< SEARCH
+    @classmethod
+    def _scan_iterable_shape(cls, iterable):
+        def f(pointer):
+            if not isinstance(pointer, Iterable):
+                return [pointer], ()
+
+            result = []
+            elems, shapes = zip(*[f(i) for i in pointer])
+            if len(set(shapes)) != 1:
+                raise ValueError("could not determine shape unambiguously")
+            for i in elems:
+                result.extend(i)
+            return result, (len(shapes),)+shapes[0]
+
+        return f(iterable)
+=======
+    @classmethod
+    def _scan_iterable_shape(cls, iterable):
+        def f(pointer):
+            if not isinstance(pointer, Iterable):
+                return [pointer], ()
+            
+            if len(pointer) == 0:
+                return [], (0,)
+
+            result = []
+            elems, shapes = zip(*[f(i) for i in pointer])
+            if len(set(shapes)) != 1:
+                raise ValueError("could not determine shape unambiguously")
+            for i in elems:
+                result.extend(i)
+            return result, (len(shapes),)+shapes[0]
+
+        return f(iterable)
+>>>>>>> REPLACE
+```
+
+This fix adds a special case to handle empty iterables by returning an empty list for elements and a shape tuple of (0,). This matches the behavior of sympy.Matrix([]) and allows empty arrays to be created.
+
+The change ensures that when an empty list is passed to Array([]), it will properly create an empty array with shape (0,) instead of raising a ValueError.

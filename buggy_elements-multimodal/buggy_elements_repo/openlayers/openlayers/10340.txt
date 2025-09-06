@@ -1,0 +1,81 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The GitHub problem description highlights two main issues:
+
+1. **Incorrect Shape and Size of Drawn Geometries with `useGeographic`**: When using the `useGeographic` option, drawn circles and other custom geometries do not maintain their expected shape and size. For example, a circle does not extend to the pointer position as it would in non-geographic mode, especially noticeable in higher latitudes.
+
+2. **Irregular Shapes from `createRegularPolygon` and `createBox`**: 
+   - `createRegularPolygon` produces shapes that are far from regular, as shown in the first image where the polygon appears distorted.
+   - `createBox` cannot produce a box when the view projection is not parallel to WGS84, as shown in the second image where the box is not aligned correctly.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issues seem to stem from how coordinates are transformed and handled when `useGeographic` is enabled. When `useGeographic` is set, the user projection is set to EPSG:4326 (WGS84), which is a geographic coordinate system. This can cause problems when drawing shapes because:
+
+- **Geographic Coordinates vs. Projected Coordinates**: Geographic coordinates (latitude/longitude) are not linear and do not maintain consistent distances and angles across the globe. When drawing shapes in a geographic coordinate system, the shapes may appear distorted, especially at higher latitudes.
+- **Transformations and Projections**: The transformations between geographic and projected coordinates may not be correctly applied when drawing shapes, leading to irregular shapes and incorrect sizes.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### `src/ol/proj.js`
+
+This file contains functions related to coordinate transformations and projections, which are likely relevant to the issues described.
+
+```
+src/ol/proj.js
+function: addCommon
+function: addCoordinateTransforms
+function: createSafeCoordinateTransform
+function: fromLonLat
+function: toLonLat
+```
+
+#### `src/ol/geom/Circle.js`
+
+This file contains the `Circle` class, which is directly related to the issue of drawing circles with incorrect shapes and sizes.
+
+```
+src/ol/geom/Circle.js
+class: Circle
+```
+
+#### `src/ol/geom/Geometry.js`
+
+This file contains the `Geometry` class, which is a base class for all geometry types and includes methods for transformations and manipulations.
+
+```
+src/ol/geom/Geometry.js
+class: Geometry
+```
+
+#### `src/ol/geom/flat/geodesic.js`
+
+This file contains functions related to generating geodesic lines and arcs, which may be relevant to the issue of irregular shapes.
+
+```
+src/ol/geom/flat/geodesic.js
+function: greatCircleArc
+function: line
+function: meridian
+function: parallel
+```
+
+#### `src/ol/interaction/Draw.js`
+
+This file contains the `Draw` class and functions related to drawing interactions, including `createRegularPolygon` and `createBox`, which are directly related to the issues described.
+
+```
+src/ol/interaction/Draw.js
+function: createBox
+function: createRegularPolygon
+class: Draw
+class: DrawEvent
+```
+
+#### Other Files
+
+The remaining files do not appear to contain functions or classes directly related to the described issues.
+
+```
+This file contains no relevant functions/classes.
+```

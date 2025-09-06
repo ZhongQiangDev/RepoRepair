@@ -1,0 +1,31 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- The FilePathField's path parameter is being set with a computed value (os.path.join) during model definition
+- This causes the path to be evaluated and hardcoded at migration creation time based on the local machine's configuration
+- When running migrations on other machines (e.g. production), the hardcoded path doesn't match the actual filesystem paths
+
+2. Cause Analysis:
+- FilePathField doesn't support callable/dynamic paths
+- The path value gets evaluated and serialized into the migration file when makemigrations runs
+- There's no mechanism to defer path evaluation until runtime when migrations are applied
+- This is primarily a limitation in how Django serializes field configurations into migrations
+
+3. Most Relevant Files (ordered by importance):
+
+```
+django/db/migrations/serializer.py
+django/core/files/storage.py
+django/db/migrations/writer.py
+django/core/files/uploadedfile.py
+django/forms/models.py
+```
+
+Rationale for file selection:
+- migrations/serializer.py: Handles how field configurations are serialized into migrations
+- files/storage.py: Contains core file handling and path resolution logic
+- migrations/writer.py: Manages how migrations are written to files
+- files/uploadedfile.py: Implements file upload handling and path processing
+- forms/models.py: Contains model form field definitions and validation
+
+The primary fix would likely need to be implemented in the serializer.py to allow for dynamic/callable paths to be properly handled during migration creation and application.

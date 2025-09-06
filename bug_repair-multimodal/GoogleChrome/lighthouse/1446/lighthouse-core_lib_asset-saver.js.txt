@@ -1,0 +1,136 @@
+Based on the issue statement, the problem is about adding performance metrics to the timeline trace. The issue mentions that Lighthouse should inject performance metrics into the trace as fake trace events before saving it to disk. This allows the metrics to be visualized in the Chrome DevTools Timeline.
+
+Looking at the code, I notice that the `prepareAssets` function processes traces but doesn't inject any performance metrics into them. According to the issue, we need to modify the trace data to include these metrics before saving.
+
+Let's fix this by adding code to inject performance metrics into the trace:
+
+```javascript
+### lighthouse-core/lib/asset-saver.js
+<<<<<<< SEARCH
+/**
+ * Filter traces and extract screenshots to prepare for saving.
+ * @param {!Artifacts} artifacts
+ * @param {!Results} results
+ * @return {!Promise<!Array<{traceData: !Object, html: string}>>}
+ */
+function prepareAssets(artifacts, results) {
+  const passNames = Object.keys(artifacts.traces);
+  const assets = [];
+
+  return passNames.reduce((chain, passName) => {
+    const trace = artifacts.traces[passName];
+
+    return chain.then(_ => artifacts.requestScreenshots(trace))
+      .then(screenshots => {
+        const traceData = Object.assign({}, trace);
+        const html = screenshotDump(screenshots, results);
+
+        assets.push({
+          traceData,
+          html
+        });
+      });
+=======
+/**
+ * Filter traces and extract screenshots to prepare for saving.
+ * @param {!Artifacts} artifacts
+ * @param {!Results} results
+ * @return {!Promise<!Array<{traceData: !Object, html: string}>>}
+ */
+function prepareAssets(artifacts, results) {
+  const passNames = Object.keys(artifacts.traces);
+  const assets = [];
+
+  return passNames.reduce((chain, passName) => {
+    const trace = artifacts.traces[passName];
+
+    return chain.then(_ => artifacts.requestScreenshots(trace))
+      .then(screenshots => {
+        const traceData = Object.assign({}, trace);
+        
+        // Inject performance metrics into the trace as fake trace events
+        if (results && results.audits) {
+          const metrics = [];
+          
+          // Add metrics from results.audits
+          if (results.audits['first-contentful-paint']) {
+            metrics.push({
+              name: 'First contentful paint',
+              ts: results.audits['first-contentful-paint'].rawValue * 1000
+            });
+          }
+          
+          if (results.audits['first-meaningful-paint']) {
+            metrics.push({
+              name: 'First meaningful paint',
+              ts: results.audits['first-meaningful-paint'].rawValue * 1000
+            });
+          }
+          
+          if (results.audits['speed-index']) {
+            metrics.push({
+              name: 'Perceptual Speed Index',
+              ts: results.audits['speed-index'].rawValue * 1000
+            });
+          }
+          
+          if (results.audits['time-to-interactive']) {
+            metrics.push({
+              name: 'Time to Interactive',
+              ts: results.audits['time-to-interactive'].rawValue * 1000
+            });
+          }
+          
+          if (results.audits['first-visual-change']) {
+            metrics.push({
+              name: 'First visual change',
+              ts: results.audits['first-visual-change'].rawValue * 1000
+            });
+          }
+          
+          if (results.audits['visually-complete']) {
+            metrics.push({
+              name: 'Visually complete',
+              ts: results.audits['visually-complete'].rawValue * 1000
+            });
+          }
+          
+          // Add the metrics to the trace
+          if (metrics.length) {
+            if (!traceData.traceEvents) {
+              traceData.traceEvents = [];
+            }
+            
+            metrics.forEach(metric => {
+              traceData.traceEvents.push({
+                cat: 'blink.user_timing',
+                name: metric.name,
+                ph: 'R',
+                pid: 1,
+                tid: 1,
+                ts: metric.ts,
+                args: {}
+              });
+            });
+          }
+        }
+        
+        const html = screenshotDump(screenshots, results);
+
+        assets.push({
+          traceData,
+          html
+        });
+      });
+>>>>>>> REPLACE
+```
+
+This change injects performance metrics from the audit results into the trace as fake trace events. Each metric is added as a user timing event with the appropriate timestamp. The metrics included are:
+- First contentful paint
+- First meaningful paint
+- Perceptual Speed Index
+- Time to Interactive
+- First visual change
+- Visually complete
+
+These are the metrics mentioned in the issue description. The events are added to the trace's `traceEvents` array with the appropriate format to be recognized by Chrome DevTools Timeline.

@@ -1,0 +1,25 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## Analysis of the Problem
+
+The issue occurs when drawing a textured triangle followed by an untextured square with lighting enabled in WebGL mode. On Android devices, the square doesn't appear.
+
+The root cause is in the shader attribute handling:
+1. When drawing a textured triangle, UV information is stored in texture registers in the lightingShader
+2. When subsequently drawing the untextured square, the shader still has the texture register enabled
+3. The texture data only has 3 vertices (for the triangle), but the square needs 4 vertices
+4. While most environments handle this gracefully by filling missing data with zeros, some Android devices treat this as an error and don't render the object
+
+The solution involves disabling unused attribute registers when they're not needed for the current drawing operation.
+
+## Files That Need to Be Edited
+
+```
+src/webgl/p5.RenderBuffer.js
+src/webgl/p5.RendererGL.js
+src/webgl/p5.Shader.js
+```
+
+The primary file that needs modification is `src/webgl/p5.RenderBuffer.js`, which contains the `_prepareBuffer` function that handles buffer preparation for shader attributes. This is where we need to add code to disable registers for unused attributes.
+
+The other files provide context and may need minor adjustments to support the fix, as they handle shader binding, attribute enabling, and WebGL rendering pipeline management.

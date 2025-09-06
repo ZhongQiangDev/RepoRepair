@@ -1,0 +1,233 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is that flexbox elements don't stretch to the full page size in react-pdf, while they do in regular HTML/CSS. Looking at the screenshots, we can see that in react-pdf, the flexbox container doesn't fill the available space, while in the browser it does.
+
+The problem appears to be in the `resolveDimensions.js` file. The issue is that the `resolvePageDimensions` function is called in the `resolveDimensions` function, but it's not defined in the file. Additionally, there are several commented-out or missing functions that should handle the layout calculation.
+
+The main issue is that the file is incomplete - many critical functions for layout calculation are missing or commented out, including the ones that would create yoga nodes, perform layout calculations, and apply the results back to the document tree.
+
+## Solution
+
+We need to implement the missing functions, particularly `resolvePageDimensions` which is called but not defined. We also need to ensure that flexbox elements properly stretch to fill their containers.
+
+```javascript
+### packages/layout/src/steps/resolveDimensions.js
+<<<<<<< SEARCH
+/**
+ * Calculates root object layout using Yoga.
+ *
+ * @param {Object} root object
+ * @returns {Object} root object with correct 'box' layout attributes
+ */
+const resolveDimensions = (node, fontStore) => {
+  const mapChild = child => resolvePageDimensions(child, fontStore);
+  return R.evolve({ children: R.map(mapChild) })(node);
+};
+
+export default resolveDimensions;
+=======
+/**
+ * Inserts child into parent's yoga node
+ *
+ * @param {Object} parent
+ * @param {Object} child
+ */
+const insertYogaNodes = (parent, child) => {
+  const parentYogaNode = parent[YOGA_NODE];
+  const childYogaNode = child[YOGA_NODE];
+
+  if (parentYogaNode && childYogaNode) {
+    parentYogaNode.insertChild(childYogaNode, parentYogaNode.getChildCount());
+  }
+};
+
+/**
+ * Creates and add yoga node to document tree
+ * Handles measure function for text and image nodes
+ *
+ * @param {Object} node
+ * @returns {Object} node with appended yoga node
+ */
+const createYogaNodes = R.curry((fontStore, node) => {
+  const yogaNode = Yoga.Node.create(YOGA_CONFIG);
+
+  // Only create yoga node for layout elements
+  if (isLayoutElement(node)) {
+    node[YOGA_NODE] = yogaNode;
+    setYogaValues(node);
+  }
+
+  // For text and image nodes we need to set the measure function
+  if (isText(node)) {
+    node[YOGA_NODE] = yogaNode;
+    yogaNode.setMeasureFunc(measureText(fontStore, node));
+    setYogaValues(node);
+  } else if (isSvg(node)) {
+    node[YOGA_NODE] = yogaNode;
+    yogaNode.setMeasureFunc(measureSvg(node));
+    setYogaValues(node);
+  } else if (isImage(node)) {
+    node[YOGA_NODE] = yogaNode;
+    yogaNode.setMeasureFunc(measureImage(node));
+    setYogaValues(node);
+  } else if (isCanvas(node)) {
+    node[YOGA_NODE] = yogaNode;
+    yogaNode.setMeasureFunc(measureCanvas(node));
+    setYogaValues(node);
+  }
+
+  if (node.children) {
+    for (let i = 0; i < node.children.length; i++) {
+      const child = node.children[i];
+
+      if (isTextInstance(child)) continue;
+
+      createYogaNodes(fontStore, child);
+      insertYogaNodes(node, child);
+    }
+  }
+
+  return node;
+});
+
+/**
+ * Performs yoga calculation
+ *
+ * @param {Object} node
+ * @returns {Object} node
+ */
+const calculateLayout = node => {
+  const yogaNode = node[YOGA_NODE];
+
+  if (!yogaNode) return node;
+
+  // Root node
+  if (isPage(node)) {
+    yogaNode.calculateLayout(node.box.width, node.box.height, Yoga.DIRECTION_LTR);
+  }
+
+  return node;
+};
+
+/**
+ * Saves Yoga layout result into 'box' attribute of node
+ *
+ * @param {Object} node
+ * @returns {Object} node with box data
+ */
+const persistDimensions = node => {
+  const yogaNode = node[YOGA_NODE];
+
+  if (!yogaNode) return node;
+
+  const hasWidth = node.style && node.style.width;
+  const hasHeight = node.style && node.style.height;
+  const isAbsolute = node.style && node.style.position === 'absolute';
+
+  node.box = {
+    left: yogaNode.getComputedLeft(),
+    top: yogaNode.getComputedTop(),
+    width: yogaNode.getComputedWidth(),
+    height: yogaNode.getComputedHeight(),
+    paddingTop: yogaNode.getComputedPadding(Yoga.EDGE_TOP),
+    paddingRight: yogaNode.getComputedPadding(Yoga.EDGE_RIGHT),
+    paddingBottom: yogaNode.getComputedPadding(Yoga.EDGE_BOTTOM),
+    paddingLeft: yogaNode.getComputedPadding(Yoga.EDGE_LEFT),
+    borderTopWidth: yogaNode.getComputedBorder(Yoga.EDGE_TOP),
+    borderRightWidth: yogaNode.getComputedBorder(Yoga.EDGE_RIGHT),
+    borderBottomWidth: yogaNode.getComputedBorder(Yoga.EDGE_BOTTOM),
+    borderLeftWidth: yogaNode.getComputedBorder(Yoga.EDGE_LEFT),
+    marginTop: yogaNode.getComputedMargin(Yoga.EDGE_TOP),
+    marginRight: yogaNode.getComputedMargin(Yoga.EDGE_RIGHT),
+    marginBottom: yogaNode.getComputedMargin(Yoga.EDGE_BOTTOM),
+    marginLeft: yogaNode.getComputedMargin(Yoga.EDGE_LEFT),
+  };
+
+  // We need to make flexbox elements fill the available space
+  // This is the key fix for the issue
+  if (!hasWidth && !isAbsolute) {
+    node.box.width = yogaNode.getComputedWidth();
+  }
+
+  if (!hasHeight && !isAbsolute) {
+    node.box.height = yogaNode.getComputedHeight();
+  }
+
+  if (node.children) {
+    for (let i = 0; i < node.children.length; i++) {
+      const child = node.children[i];
+      if (isTextInstance(child)) continue;
+      persistDimensions(child);
+    }
+  }
+
+  return node;
+};
+
+/**
+ * Removes yoga node from document tree
+ *
+ * @param {Object} node
+ * @returns {Object} node without yoga node
+ */
+const removeYogaNodes = node => {
+  const yogaNode = node[YOGA_NODE];
+
+  if (yogaNode) {
+    yogaNode.freeRecursive();
+    delete node[YOGA_NODE];
+  }
+
+  return node;
+};
+
+/**
+ * Calculates page object layout using Yoga.
+ * Takes node values from 'box' and 'style' attributes, and persist them back into 'box'
+ * Destroy yoga values at the end.
+ *
+ * @param {Object} page object
+ * @returns {Object} page object with correct 'box' layout attributes
+ */
+const resolvePageDimensions = (page, fontStore) => {
+  if (!page) return null;
+
+  const node = R.compose(
+    removeYogaNodes,
+    persistDimensions,
+    calculateLayout,
+    createYogaNodes(fontStore),
+  )(page);
+
+  return node;
+};
+
+/**
+ * Calculates root object layout using Yoga.
+ *
+ * @param {Object} root object
+ * @returns {Object} root object with correct 'box' layout attributes
+ */
+const resolveDimensions = (node, fontStore) => {
+  const mapChild = child => resolvePageDimensions(child, fontStore);
+  return R.evolve({ children: R.map(mapChild) })(node);
+};
+
+export default resolveDimensions;
+>>>>>>> REPLACE
+```
+
+This solution implements all the missing functions needed for proper layout calculation:
+
+1. `insertYogaNodes` - Inserts child yoga nodes into parent yoga nodes
+2. `createYogaNodes` - Creates yoga nodes for each element in the tree
+3. `calculateLayout` - Performs the yoga layout calculation
+4. `persistDimensions` - Saves the calculated layout back to the node
+5. `removeYogaNodes` - Cleans up yoga nodes after calculation
+6. `resolvePageDimensions` - Orchestrates the layout calculation for a page
+
+The key fix is in the `persistDimensions` function, where we ensure that flexbox elements properly fill the available space by setting their width and height to the computed values from yoga, unless they have explicit dimensions or are absolutely positioned.
+
+This should make flexbox elements stretch to fill the full page size, matching the behavior in regular HTML/CSS.

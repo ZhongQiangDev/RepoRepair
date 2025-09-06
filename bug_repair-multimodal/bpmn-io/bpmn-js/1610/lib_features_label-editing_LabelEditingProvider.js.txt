@@ -1,0 +1,47 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, when a user switches planes with direct editing active, the editing box remains open even though the element being edited is no longer visible. The expected behavior is that direct editing should be canceled when switching planes.
+
+Looking at the code, I notice that the `LabelEditingProvider` is listening to various events to cancel or complete direct editing, but it's not listening for plane switching events. The issue video shows that when navigating between planes, the direct editing box remains open.
+
+We need to add an event listener for plane switching. In BPMN.js, plane switching is typically handled through the "canvas.viewbox.changed" event, but I notice the code is already listening to "canvas.viewbox.changing" which should trigger before the change happens. However, it seems this isn't sufficient.
+
+Here's my fix:
+
+```javascript
+### lib/features/label-editing/LabelEditingProvider.js
+<<<<<<< SEARCH
+  // complete on followup canvas operation
+  eventBus.on([
+    'autoPlace.start',
+    'canvas.viewbox.changing',
+    'drag.init',
+    'element.mousedown',
+    'popupMenu.open'
+  ], function(event) {
+
+    if (directEditing.isActive()) {
+      directEditing.complete();
+    }
+  });
+=======
+  // complete on followup canvas operation
+  eventBus.on([
+    'autoPlace.start',
+    'canvas.viewbox.changing',
+    'canvas.viewbox.changed',
+    'drag.init',
+    'element.mousedown',
+    'popupMenu.open'
+  ], function(event) {
+
+    if (directEditing.isActive()) {
+      directEditing.complete();
+    }
+  });
+>>>>>>> REPLACE
+```
+
+This change adds the "canvas.viewbox.changed" event to the list of events that trigger completion of direct editing. This ensures that when the viewbox has changed (which happens when switching planes), any active direct editing will be completed.
+
+The issue might be that the "canvas.viewbox.changing" event is fired when the viewbox starts changing, but if the direct editing component doesn't respond quickly enough, the plane switch might complete before the editing is canceled. Adding the "canvas.viewbox.changed" event ensures that direct editing is also completed after the viewbox change is complete.

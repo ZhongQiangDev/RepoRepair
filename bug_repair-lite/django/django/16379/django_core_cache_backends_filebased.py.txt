@@ -1,0 +1,34 @@
+Based on the issue description, the bug is in the `has_key` method of `FileBasedCache`. The issue is a race condition where the file could be deleted between checking its existence with `os.path.exists()` and opening it with `open()`. This can happen especially when multiple threads try to access an expired cache entry simultaneously, since `_is_expired()` deletes expired files.
+
+To fix this, we should handle the `FileNotFoundError` exception that could occur when opening the file, similar to how it's handled in other methods like `get()` and `delete()`. Here's the fix:
+
+```python
+### django/core/cache/backends/filebased.py
+<<<<<<< SEARCH
+    def has_key(self, key, version=None):
+        fname = self._key_to_file(key, version)
+        if os.path.exists(fname):
+            with open(fname, "rb") as f:
+                return not self._is_expired(f)
+        return False
+=======
+    def has_key(self, key, version=None):
+        fname = self._key_to_file(key, version)
+        try:
+            with open(fname, "rb") as f:
+                return not self._is_expired(f)
+        except FileNotFoundError:
+            return False
+>>>>>>> REPLACE
+```
+
+The fix:
+1. Removes the `os.path.exists()` check since it's redundant and prone to race conditions
+2. Wraps the file operations in a try-except block to handle `FileNotFoundError`
+3. Returns `False` if the file doesn't exist or can't be opened
+
+This approach is more robust because it:
+- Eliminates the race condition window between existence check and file open
+- Handles the case where the file is deleted by another thread/process
+- Matches the error handling pattern used in other methods of the class
+- Is more efficient by avoiding an extra filesystem check (`exists()`)

@@ -1,0 +1,277 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is in the `createBuffers` method of `p5.RendererGL.prototype`. When creating a retained-mode geometry, the code is checking the current fill and stroke shaders for which buffers to create and which attributes to enable. This means that if the current shader doesn't have a particular attribute, the corresponding buffer won't be created.
+
+Later, when a different shader is used that does require that attribute, rendering fails because the buffer doesn't exist.
+
+The problem is specifically in how the code conditionally creates buffers based on whether the current shader has certain attributes. Instead, it should always create all the necessary buffers regardless of the current shader's attributes.
+
+## Fix
+
+The solution is to modify the `createBuffers` method to always create all the necessary buffers, regardless of whether the current shader uses them or not.
+
+```javascript
+### src/webgl/p5.RendererGL.Retained.js
+<<<<<<< SEARCH
+  var strokeShader = this._getRetainedStrokeShader();
+  strokeShader.bindShader();
+
+  // initialize the stroke shader's 'aPosition' buffer, if used
+  if (strokeShader.attributes.aPosition) {
+    geometry.lineVertexBuffer = gl.createBuffer();
+
+    this._bindBuffer(
+      geometry.lineVertexBuffer,
+      gl.ARRAY_BUFFER,
+      this._flatten(obj.lineVertices),
+      Float32Array,
+      gl.STATIC_DRAW
+    );
+
+    strokeShader.enableAttrib(
+      strokeShader.attributes.aPosition.location,
+      3,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+
+  // initialize the stroke shader's 'aDirection' buffer, if used
+  if (strokeShader.attributes.aDirection) {
+    geometry.lineNormalBuffer = gl.createBuffer();
+
+    this._bindBuffer(
+      geometry.lineNormalBuffer,
+      gl.ARRAY_BUFFER,
+      this._flatten(obj.lineNormals),
+      Float32Array,
+      gl.STATIC_DRAW
+    );
+
+    strokeShader.enableAttrib(
+      strokeShader.attributes.aDirection.location,
+      4,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+  strokeShader.unbindShader();
+
+  var fillShader = this._getRetainedFillShader();
+  fillShader.bindShader();
+
+  // initialize the fill shader's 'aPosition' buffer, if used
+  if (fillShader.attributes.aPosition) {
+    geometry.vertexBuffer = gl.createBuffer();
+
+    // allocate space for vertex positions
+    this._bindBuffer(
+      geometry.vertexBuffer,
+      gl.ARRAY_BUFFER,
+      this._vToNArray(obj.vertices),
+      Float32Array,
+      gl.STATIC_DRAW
+    );
+
+    fillShader.enableAttrib(
+      fillShader.attributes.aPosition.location,
+      3,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+
+  // allocate space for faces
+  geometry.indexBuffer = gl.createBuffer();
+  this._bindBuffer(
+    geometry.indexBuffer,
+    gl.ELEMENT_ARRAY_BUFFER,
+    this._flatten(obj.faces),
+    Uint16Array,
+    gl.STATIC_DRAW
+  );
+
+  // initialize the fill shader's 'aNormal' buffer, if used
+  if (fillShader.attributes.aNormal) {
+    geometry.normalBuffer = gl.createBuffer();
+
+    // allocate space for normals
+    this._bindBuffer(
+      geometry.normalBuffer,
+      gl.ARRAY_BUFFER,
+      this._vToNArray(obj.vertexNormals),
+      Float32Array,
+      gl.STATIC_DRAW
+    );
+
+    fillShader.enableAttrib(
+      fillShader.attributes.aNormal.location,
+      3,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+
+  // initialize the fill shader's 'aTexCoord' buffer, if used
+  if (fillShader.attributes.aTexCoord) {
+    geometry.uvBuffer = gl.createBuffer();
+
+    // tex coords
+    this._bindBuffer(
+      geometry.uvBuffer,
+      gl.ARRAY_BUFFER,
+      this._flatten(obj.uvs),
+      Float32Array,
+      gl.STATIC_DRAW
+    );
+
+    fillShader.enableAttrib(
+      fillShader.attributes.aTexCoord.location,
+      2,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+  fillShader.unbindShader();
+=======
+  var strokeShader = this._getRetainedStrokeShader();
+  strokeShader.bindShader();
+
+  // Always create line vertex buffer
+  geometry.lineVertexBuffer = gl.createBuffer();
+  this._bindBuffer(
+    geometry.lineVertexBuffer,
+    gl.ARRAY_BUFFER,
+    this._flatten(obj.lineVertices),
+    Float32Array,
+    gl.STATIC_DRAW
+  );
+
+  if (strokeShader.attributes.aPosition) {
+    strokeShader.enableAttrib(
+      strokeShader.attributes.aPosition.location,
+      3,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+
+  // Always create line normal buffer
+  geometry.lineNormalBuffer = gl.createBuffer();
+  this._bindBuffer(
+    geometry.lineNormalBuffer,
+    gl.ARRAY_BUFFER,
+    this._flatten(obj.lineNormals),
+    Float32Array,
+    gl.STATIC_DRAW
+  );
+
+  if (strokeShader.attributes.aDirection) {
+    strokeShader.enableAttrib(
+      strokeShader.attributes.aDirection.location,
+      4,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+  strokeShader.unbindShader();
+
+  var fillShader = this._getRetainedFillShader();
+  fillShader.bindShader();
+
+  // Always create vertex buffer
+  geometry.vertexBuffer = gl.createBuffer();
+  // allocate space for vertex positions
+  this._bindBuffer(
+    geometry.vertexBuffer,
+    gl.ARRAY_BUFFER,
+    this._vToNArray(obj.vertices),
+    Float32Array,
+    gl.STATIC_DRAW
+  );
+
+  if (fillShader.attributes.aPosition) {
+    fillShader.enableAttrib(
+      fillShader.attributes.aPosition.location,
+      3,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+
+  // allocate space for faces
+  geometry.indexBuffer = gl.createBuffer();
+  this._bindBuffer(
+    geometry.indexBuffer,
+    gl.ELEMENT_ARRAY_BUFFER,
+    this._flatten(obj.faces),
+    Uint16Array,
+    gl.STATIC_DRAW
+  );
+
+  // Always create normal buffer
+  geometry.normalBuffer = gl.createBuffer();
+  // allocate space for normals
+  this._bindBuffer(
+    geometry.normalBuffer,
+    gl.ARRAY_BUFFER,
+    this._vToNArray(obj.vertexNormals),
+    Float32Array,
+    gl.STATIC_DRAW
+  );
+
+  if (fillShader.attributes.aNormal) {
+    fillShader.enableAttrib(
+      fillShader.attributes.aNormal.location,
+      3,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+
+  // Always create UV buffer
+  geometry.uvBuffer = gl.createBuffer();
+  // tex coords
+  this._bindBuffer(
+    geometry.uvBuffer,
+    gl.ARRAY_BUFFER,
+    this._flatten(obj.uvs),
+    Float32Array,
+    gl.STATIC_DRAW
+  );
+
+  if (fillShader.attributes.aTexCoord) {
+    fillShader.enableAttrib(
+      fillShader.attributes.aTexCoord.location,
+      2,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+  }
+  fillShader.unbindShader();
+>>>>>>> REPLACE
+```
+
+This fix ensures that all necessary buffers are always created, regardless of whether the current shader uses them or not. The enableAttrib calls are still conditional, as they should only be called if the current shader has the corresponding attribute. This way, when a different shader is used later that does require these attributes, the buffers will already exist.

@@ -1,0 +1,23 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## Problem Analysis
+
+1. **Wrong Behavior**: In Django admin, when specifying a `verbose_name` for an Inline class, the `verbose_name_plural` is not automatically derived from it. Instead, it continues to use the model's name or the model's Meta class verbose_name.
+
+2. **Cause**: The issue is that Django's admin Inline classes aren't following the same pattern as model Meta classes. In model Meta classes, if you specify a `verbose_name`, the `verbose_name_plural` is automatically derived by adding an 's' (or following language-specific pluralization rules). However, this behavior isn't implemented for admin Inline classes.
+
+3. **Required Fix**: Modify the Inline admin classes to derive the `verbose_name_plural` from the `verbose_name` when only the latter is specified, similar to how it works in model Meta classes.
+
+## Files Most Related to the Cause
+
+```
+django/contrib/admin/options.py
+django/contrib/admin/helpers.py
+django/contrib/admin/checks.py
+```
+
+The most important file is `django/contrib/admin/options.py` as it contains the `InlineModelAdmin` class which is the base class for inline admins and likely handles the verbose_name and verbose_name_plural attributes.
+
+The `django/contrib/admin/helpers.py` file is also important as it likely contains helper classes for rendering the inline admin forms, which would need to access these verbose names.
+
+The `django/contrib/admin/checks.py` file may contain validation for admin configurations, which might need to be updated if there are any checks related to verbose names in inlines.

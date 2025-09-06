@@ -1,0 +1,156 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about adding support for a custom `id` attribute on the `legend` element within the `FormGroup` component. This is needed for proper screen reader support, where the `legend` element needs an `id` that corresponds to the `aria-labelledby` attribute of the `fieldset`.
+
+Currently, the `FormGroup` component allows passing arbitrary props to the `fieldset` element through the `...other` spread operator, but there's no way to pass custom attributes to the `legend` element.
+
+## Solution
+
+We need to modify the `FormGroup` component to:
+1. Accept a new prop called `legendId` that will be applied to the `legend` element
+2. Use this `legendId` to set the `aria-labelledby` attribute on the `fieldset` element
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/FormGroup/FormGroup.js
+<<<<<<< SEARCH
+const FormGroup = ({
+  legendText,
+  invalid,
+  children,
+  className,
+  message,
+  messageText,
+  hasMargin,
+  ...other
+}) => {
+  const classNamesLegend = classnames(`${prefix}--label`, className);
+  const classNamesFieldset = classnames(`${prefix}--fieldset`, className, {
+    [`${prefix}--fieldset--no-margin`]: !hasMargin,
+  });
+
+  return (
+    <fieldset
+      {...(invalid && { 'data-invalid': '' })}
+      className={classNamesFieldset}
+      {...other}>
+      <legend className={classNamesLegend}>{legendText}</legend>
+=======
+const FormGroup = ({
+  legendText,
+  invalid,
+  children,
+  className,
+  message,
+  messageText,
+  hasMargin,
+  legendId,
+  ...other
+}) => {
+  const classNamesLegend = classnames(`${prefix}--label`, className);
+  const classNamesFieldset = classnames(`${prefix}--fieldset`, className, {
+    [`${prefix}--fieldset--no-margin`]: !hasMargin,
+  });
+
+  return (
+    <fieldset
+      {...(invalid && { 'data-invalid': '' })}
+      className={classNamesFieldset}
+      {...(legendId && { 'aria-labelledby': legendId })}
+      {...other}>
+      <legend className={classNamesLegend} id={legendId}>{legendText}</legend>
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/FormGroup/FormGroup.js
+<<<<<<< SEARCH
+FormGroup.propTypes = {
+  /**
+   * Provide the children form elements to be rendered inside of the <fieldset>
+   */
+  children: PropTypes.node,
+
+  /**
+   * Provide a custom className to be applied to the containing <fieldset> node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify whether or not the FormGroup should provide bottom margin
+   */
+  hasMargin: PropTypes.bool,
+
+  /**
+   * Specify whether the <FormGroup> is invalid
+   */
+  invalid: PropTypes.bool,
+
+  /**
+   * Provide the text to be rendered inside of the fieldset <legend>
+   */
+  legendText: PropTypes.node.isRequired,
+
+  /**
+   * Specify whether the message should be displayed in the <FormGroup>
+   */
+  message: PropTypes.bool,
+
+  /**
+   * Provide the text for the message in the <FormGroup>
+   */
+  messageText: PropTypes.string,
+};
+=======
+FormGroup.propTypes = {
+  /**
+   * Provide the children form elements to be rendered inside of the <fieldset>
+   */
+  children: PropTypes.node,
+
+  /**
+   * Provide a custom className to be applied to the containing <fieldset> node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify whether or not the FormGroup should provide bottom margin
+   */
+  hasMargin: PropTypes.bool,
+
+  /**
+   * Specify whether the <FormGroup> is invalid
+   */
+  invalid: PropTypes.bool,
+
+  /**
+   * Provide the text to be rendered inside of the fieldset <legend>
+   */
+  legendText: PropTypes.node.isRequired,
+
+  /**
+   * Provide a custom id for the fieldset <legend>
+   */
+  legendId: PropTypes.string,
+
+  /**
+   * Specify whether the message should be displayed in the <FormGroup>
+   */
+  message: PropTypes.bool,
+
+  /**
+   * Provide the text for the message in the <FormGroup>
+   */
+  messageText: PropTypes.string,
+};
+>>>>>>> REPLACE
+```
+
+This solution adds a new `legendId` prop to the `FormGroup` component. When provided, this ID will be:
+1. Applied to the `legend` element as its `id` attribute
+2. Used to set the `aria-labelledby` attribute on the `fieldset` element
+
+This implementation satisfies the requirements in the issue by allowing users to specify a custom ID for the legend that will be properly connected to the fieldset for screen reader accessibility.

@@ -1,0 +1,37 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about an Ad Hoc Collapsed Subprocess getting weird dimensions when:
+1. A subprocess is created and expanded with a child element
+2. The subprocess is collapsed
+3. The subprocess is converted to an Ad Hoc subprocess
+
+Looking at the code in `ResizeBehavior.js`, I can see that minimum dimensions are only set for expanded subprocesses:
+
+```javascript
+if (is(shape, 'bpmn:SubProcess') && isExpanded(shape)) {
+  context.minDimensions = SUB_PROCESS_MIN_DIMENSIONS;
+}
+```
+
+The problem is that when a subprocess is collapsed and then converted to an Ad Hoc subprocess, it doesn't maintain proper dimensions because the minimum dimensions constraint is only applied to expanded subprocesses.
+
+## Fix
+
+We need to modify the code to apply minimum dimensions to all subprocesses, regardless of whether they're expanded or collapsed:
+
+```javascript
+### lib/features/modeling/behavior/ResizeBehavior.js
+<<<<<<< SEARCH
+    if (is(shape, 'bpmn:SubProcess') && isExpanded(shape)) {
+      context.minDimensions = SUB_PROCESS_MIN_DIMENSIONS;
+    }
+=======
+    if (is(shape, 'bpmn:SubProcess')) {
+      context.minDimensions = SUB_PROCESS_MIN_DIMENSIONS;
+    }
+>>>>>>> REPLACE
+```
+
+This change removes the `isExpanded(shape)` condition, ensuring that minimum dimensions are applied to all subprocesses, whether they are expanded or collapsed. This will prevent the weird dimensions issue when converting a collapsed subprocess to an Ad Hoc subprocess.

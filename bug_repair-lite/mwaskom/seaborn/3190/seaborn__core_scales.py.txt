@@ -1,0 +1,32 @@
+Based on the issue, the bug occurs when trying to perform subtraction on boolean values in the scale setup. The error occurs in `ContinuousBase._setup()` where it tries to calculate the normalization parameters by subtracting boolean values.
+
+The fix should handle boolean data by converting it to numeric values before performing the subtraction operation. Here's the proposed fix:
+
+```python
+### seaborn/_core/scales.py
+<<<<<<< SEARCH
+            vmin, vmax = axis.convert_units((vmin, vmax))
+            a = forward(vmin)
+            b = forward(vmax) - forward(vmin)
+
+            def normalize(x):
+                return (x - a) / b
+=======
+            vmin, vmax = axis.convert_units((vmin, vmax))
+            # Convert boolean values to numeric before performing operations
+            a = forward(float(vmin) if isinstance(vmin, bool) else vmin)
+            fvmax = float(vmax) if isinstance(vmax, bool) else vmax
+            fvmin = float(vmin) if isinstance(vmin, bool) else vmin
+            b = forward(fvmax) - forward(fvmin)
+
+            def normalize(x):
+                return (x - a) / b
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Detects if the min/max values are boolean
+2. Converts boolean values to float (True->1.0, False->0.0) before performing the forward transform and subtraction
+3. Maintains the same normalization logic but now works with boolean data
+
+The fix addresses the TypeError by ensuring we're performing numeric operations rather than boolean operations when calculating the scale normalization parameters.

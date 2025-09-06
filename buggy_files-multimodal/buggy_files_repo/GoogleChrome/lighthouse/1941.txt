@@ -1,0 +1,26 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The issue involves a security vulnerability where JavaScript code can break out of its intended scope using String.replace's special `$'` pattern. When inserting `console.log('$');` into report-renderer.js, the `$'` pattern in the string causes the replacement to include all content that follows the matched substring, potentially leading to script injection.
+
+2. Cause Analysis:
+The root cause is the unsafe usage of String.replace() when handling JavaScript content in report generation. The `$'` is a special replacement pattern in String.replace() that injects all content following the match. This means malicious code could use this pattern to break out of the intended script context and inject arbitrary code into the page.
+
+3. Most Related Files:
+Based on the repository information, here are the most relevant files ordered by importance:
+
+```
+lighthouse-core/report/report-generator.js
+lighthouse-core/report/v2/report-renderer.js
+lighthouse-viewer/app/src/lighthouse-report-viewer.js
+lighthouse-core/report/formatter.js
+lighthouse-core/report/handlebar-helpers.js
+```
+
+These files are selected because:
+- report-generator.js is the main file responsible for generating HTML reports and handling JavaScript content injection
+- report-renderer.js directly handles the rendering of report content and script injection
+- lighthouse-report-viewer.js manages report display and content handling
+- formatter.js and handlebar-helpers.js are involved in content formatting and template processing where string replacements might occur
+
+The fix would likely need to focus on sanitizing or escaping special replacement patterns in the report generation process, particularly in report-generator.js and report-renderer.js.

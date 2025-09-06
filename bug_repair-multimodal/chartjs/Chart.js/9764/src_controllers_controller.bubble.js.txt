@@ -1,0 +1,90 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is with the hover radius behavior in the bubble chart. According to the documentation, hover radius should be an *additional* radius when hovered. Setting hover radius to 0 should result in the same size for hover/not hover states.
+
+Looking at the code, the problem is in the `resolveDataElementOptions` method. When the mode is not 'active', it sets the radius to 0 before adding the custom radius:
+
+```javascript
+if (mode !== 'active') {
+  values.radius = 0;
+}
+values.radius += valueOrDefault(parsed && parsed._custom, radius);
+```
+
+This means:
+1. In normal state, it sets radius to 0 and then adds the custom radius
+2. In active (hover) state, it keeps the original radius and adds the custom radius
+
+This is incorrect because:
+- It's resetting the base radius to 0 in normal state
+- It's not properly handling the hover radius as an additional radius
+
+## Fix
+
+```javascript
+### src/controllers/controller.bubble.js
+<<<<<<< SEARCH
+  /**
+	 * @param {number} index
+	 * @param {string} [mode]
+	 * @protected
+	 */
+  resolveDataElementOptions(index, mode) {
+    const parsed = this.getParsed(index);
+    let values = super.resolveDataElementOptions(index, mode);
+
+    // In case values were cached (and thus frozen), we need to clone the values
+    if (values.$shared) {
+      values = Object.assign({}, values, {$shared: false});
+    }
+
+    // Custom radius resolution
+    const radius = values.radius;
+    if (mode !== 'active') {
+      values.radius = 0;
+    }
+    values.radius += valueOrDefault(parsed && parsed._custom, radius);
+
+    return values;
+  }
+=======
+  /**
+	 * @param {number} index
+	 * @param {string} [mode]
+	 * @protected
+	 */
+  resolveDataElementOptions(index, mode) {
+    const parsed = this.getParsed(index);
+    let values = super.resolveDataElementOptions(index, mode);
+
+    // In case values were cached (and thus frozen), we need to clone the values
+    if (values.$shared) {
+      values = Object.assign({}, values, {$shared: false});
+    }
+
+    // Custom radius resolution
+    const radius = values.radius;
+    values.radius = valueOrDefault(parsed && parsed._custom, radius);
+    
+    // Add hover radius only in active mode
+    if (mode === 'active') {
+      values.radius += valueOrDefault(values.hoverRadius, 0);
+    }
+
+    return values;
+  }
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Removes the code that resets radius to 0 in non-active mode
+2. Sets the base radius to the custom radius (or the default radius if no custom radius)
+3. Only adds the hover radius when in 'active' mode, treating it as an additional radius as per the documentation
+4. Uses `valueOrDefault` to handle cases where hoverRadius might be undefined
+
+This change ensures that:
+- The bubble maintains its proper size in normal state
+- The hover radius is correctly applied as an additional radius only when hovered
+- Setting hover radius to 0 will result in no size change on hover, as expected

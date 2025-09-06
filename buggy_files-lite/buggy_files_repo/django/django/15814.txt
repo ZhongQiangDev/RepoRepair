@@ -1,0 +1,27 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The error occurs when using `select_related()` followed by `only()` on a proxy model. Specifically, when trying to access the foreign key field's attribute through `only()`, it fails with "ValueError: 'id' is not in list".
+
+2. Cause Analysis:
+The issue appears to be in how Django handles field selection (`only()`) with proxy models when combined with `select_related()`. The error suggests that Django is failing to properly include the required 'id' field in the query when dealing with proxy model relationships. This is likely due to how the query compiler handles field resolution and joins with proxy models.
+
+3. Most Related Files:
+Based on the error trace and functionality involved, here are the most relevant files:
+
+```
+django/db/models/query.py
+django/db/models/sql/compiler.py
+django/db/models/sql/query.py
+django/db/models/fields/related.py
+django/db/models/expressions.py
+```
+
+These files are ordered by importance because:
+1. `query.py` contains the core QuerySet implementation where `only()` and `select_related()` are defined
+2. `compiler.py` handles the SQL generation and field selection logic
+3. `sql/query.py` manages the internal query construction
+4. `fields/related.py` handles proxy model relationship fields
+5. `expressions.py` deals with field references and column selection
+
+The fix mentioned in the issue (changing `opts = cur_model._meta` to `opts = cur_model._meta.concrete_model._meta`) would likely need to be implemented in one of these files, most probably in `sql/query.py` or `compiler.py`.

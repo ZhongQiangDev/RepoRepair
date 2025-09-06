@@ -1,0 +1,33 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that when a comment appears on the same line as a decorator in Python code, the entire line gets the `hljs-meta` class instead of having the comment part properly formatted with the `hljs-comment` class.
+
+Looking at the code, I can see that the decorator is defined in the `contains` array with:
+
+```javascript
+{
+  className: 'meta',
+  begin: /^[\t ]*@/, end: /$/
+}
+```
+
+The problem is that the `end: /$/` pattern means the decorator's meta styling extends to the end of the line, including any comments. We need to modify this to stop the meta styling when a comment starts.
+
+Here's the fix:
+
+```javascript
+### src/languages/python.js
+<<<<<<< SEARCH
+      {
+        className: 'meta',
+        begin: /^[\t ]*@/, end: /$/
+      },
+=======
+      {
+        className: 'meta',
+        begin: /^[\t ]*@/, end: /(?=#)|$/
+      },
+>>>>>>> REPLACE
+```
+
+This change modifies the `end` pattern to stop either when it encounters a `#` character (which starts a comment) or at the end of the line (`$`). The `(?=#)` is a positive lookahead that matches a position right before a `#` character without consuming it, allowing the comment highlighting to take over.

@@ -1,0 +1,52 @@
+Based on the issue description, the problem is related to the behavior of `iter_content(decode_unicode=True)` not properly decoding bytes to unicode strings as expected. The issue lies in the `stream_decode_response_unicode()` function in requests/utils.py.
+
+The current implementation doesn't properly handle the bytes-to-unicode decoding when `decode_unicode=True`. Here's the fix:
+
+```python
+### requests/utils.py
+<<<<<<< SEARCH
+def stream_decode_response_unicode(iterator, r):
+    """Stream decodes a iterator."""
+
+    if r.encoding is None:
+        for item in iterator:
+            yield item
+        return
+
+    decoder = codecs.getincrementaldecoder(r.encoding)(errors='replace')
+    for chunk in iterator:
+        rv = decoder.decode(chunk)
+        if rv:
+            yield rv
+    rv = decoder.decode(b'', final=True)
+    if rv:
+        yield rv
+=======
+def stream_decode_response_unicode(iterator, r):
+    """Stream decodes a iterator."""
+
+    if r.encoding is None:
+        for item in iterator:
+            yield item
+        return
+
+    decoder = codecs.getincrementaldecoder(r.encoding)(errors='replace')
+    for chunk in iterator:
+        if isinstance(chunk, str):
+            yield chunk
+        else:
+            rv = decoder.decode(chunk)
+            if rv:
+                yield rv
+    rv = decoder.decode(b'', final=True)
+    if rv:
+        yield rv
+>>>>>>> REPLACE
+```
+
+The fix adds a check to see if the chunk is already a string (unicode) before attempting to decode it. This ensures that:
+
+1. If the chunk is already a string, it's passed through as-is
+2. If the chunk is bytes, it gets properly decoded using the specified encoding
+
+This change makes the behavior consistent with the expectation that `iter_content(decode_unicode=True)` should always yield unicode strings, similar to how `r.text` works. The issue was that the original code wasn't checking the type of the chunks and was trying to decode everything, which could cause issues when some chunks were already decoded.

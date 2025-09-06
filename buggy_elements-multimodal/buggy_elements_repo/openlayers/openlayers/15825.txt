@@ -1,0 +1,59 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that tiles near the antimeridian (180° longitude) are not rendered correctly when using a stereographic projection. This results in black gaps in the rendered map, which vary in size depending on the source tile size and zoom level.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how the tile coordinates are handled when wrapping around the antimeridian. When reprojecting from a geographic projection (e.g., EPSG:4326) to a stereographic projection, the tile coordinates near the antimeridian may not be correctly adjusted to fit within the projection's extent. This can lead to tiles being excluded from rendering because their coordinates are considered outside the valid extent.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### src/ol/tilegrid.js
+```
+src/ol/tilegrid.js
+function: wrapX
+function: createForProjection
+function: extentFromProjection
+```
+- `wrapX`: This function adjusts tile coordinates to ensure they fit within the projection's extent. It may need to be modified to handle stereographic projections correctly.
+- `createForProjection`: This function creates a tile grid for a given projection. It may need adjustments to handle the stereographic projection's specific requirements.
+- `extentFromProjection`: This function calculates the extent of a projection. It may need to be adjusted to correctly handle the stereographic projection's extent.
+
+#### src/ol/renderer/webgl/TileLayer.js
+```
+src/ol/renderer/webgl/TileLayer.js
+class: WebGLTileLayerRenderer
+```
+- `WebGLTileLayerRenderer`: This class manages the rendering of tiles using WebGL. It may need modifications to handle the stereographic projection correctly, especially in terms of tile coordinate wrapping and extent calculations.
+
+#### src/ol/renderer/webgl/TileLayerBase.js
+```
+src/ol/renderer/webgl/TileLayerBase.js
+function: getRenderExtent
+function: lookupHasTile
+```
+- `getRenderExtent`: This function calculates the rendering extent, which may need adjustments to handle the stereographic projection's extent correctly.
+- `lookupHasTile`: This function checks if a tile is in the lookup, which may need adjustments to handle tile coordinates near the antimeridian correctly.
+
+#### src/ol/renderer/webgl/worldUtil.js
+```
+src/ol/renderer/webgl/worldUtil.js
+function: getWorldParameters
+```
+- `getWorldParameters`: This function calculates world parameters for rendering, which may need adjustments to handle the stereographic projection's multi-world scenarios correctly.
+
+#### src/ol/source/GeoTIFF.js
+```
+src/ol/source/GeoTIFF.js
+class: GeoTIFFSource
+```
+- `GeoTIFFSource`: This class manages GeoTIFF sources. While it may not directly cause the issue, it may need adjustments to ensure correct tile data is provided for the stereographic projection.
+
+#### Other Files
+```
+This file contains no relevant functions/classes.
+```
+- `src/ol/renderer/webgl/TileTexture.js`
+- `src/ol/source/DataTile.js`
+- `src/ol/source/TileImage.js`
+- `src/ol/tilegrid/TileGrid.js`

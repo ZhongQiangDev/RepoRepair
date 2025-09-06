@@ -1,0 +1,36 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## Identifying the Wrong Behavior
+The problem is that in VB.NET syntax highlighting, when quote marks include an '@' symbol (like in SQL parameters), the opening quotes are not properly recognized. This causes incorrect syntax highlighting as shown in the example:
+`
+bob = new SqlCommand("Select * from test Where Code=@Code");
+`
+
+## Analyzing the Cause
+The issue appears to be in the string pattern definition for VB.NET in Prism.js. The current pattern doesn't include the '@' symbol in the allowed characters within string literals. The user suggests adding '@' to the string pattern in `prism-basic.js`, but is concerned about potential regression issues in other languages that extend it.
+
+## Files That Need to Be Edited
+
+```
+components/prism-basic.js
+```
+
+This is the only file that needs to be modified. The issue is in the string pattern definition for VB.NET, which is defined in the `prism-basic.js` file. The pattern needs to be updated to include the '@' symbol as an allowed character within string literals.
+
+The current pattern appears to be:
+`javascript
+'string': {
+    pattern: /"(?:""|[!#$%&'()*,\/:;<=>?^_ +\-.A-Z\d])*"/i,
+    greedy: true
+},
+`
+
+And it needs to be modified to include the '@' symbol:
+`javascript
+'string': {
+    pattern: /"(?:""|[@!#$%&'()*,\/:;<=>?^_ +\-.A-Z\d])*"/i,
+    greedy: true
+},
+`
+
+This change would allow the '@' symbol to be properly recognized within string literals in VB.NET, fixing the highlighting issue without causing regressions in other languages.

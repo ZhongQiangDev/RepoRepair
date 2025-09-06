@@ -1,0 +1,56 @@
+Based on the issue description, the bug occurs when multiplying a BlockMatrix containing ZeroMatrix blocks multiple times. The error shows that after the first multiplication, the ZeroMatrix blocks are converted to Zero objects which don't have the required 'cols' attribute.
+
+Looking at the code, the issue is in the ZeroMatrix class implementation. The ZeroMatrix class needs to maintain its type through operations rather than being converted to a simple Zero scalar.
+
+Here's the fix:
+
+```python
+### sympy/matrices/expressions/matexpr.py
+<<<<<<< SEARCH
+    def _entry(self, i, j, **kwargs):
+        return S.Zero
+
+    def __nonzero__(self):
+        return False
+
+    __bool__ = __nonzero__
+=======
+    def _entry(self, i, j, **kwargs):
+        return S.Zero
+
+    def __nonzero__(self):
+        return False
+
+    __bool__ = __nonzero__
+
+    def _eval_power(self, exp):
+        if exp.is_zero:
+            from .identity import Identity
+            return Identity(self.rows)
+        return self
+
+    def _eval_mul(self, other):
+        if isinstance(other, MatrixExpr):
+            if self.cols != other.rows:
+                raise ShapeError("Matrices %s, %s are not aligned" % (self, other))
+            return ZeroMatrix(self.rows, other.cols)
+        return self * other
+
+    def _eval_rmul(self, other):
+        if isinstance(other, MatrixExpr):
+            if other.cols != self.rows:
+                raise ShapeError("Matrices %s, %s are not aligned" % (other, self))
+            return ZeroMatrix(other.rows, self.cols)
+        return other * self
+>>>>>>> REPLACE
+```
+
+This fix adds proper matrix multiplication handling for ZeroMatrix by:
+
+1. Adding `_eval_mul` to handle left multiplication, ensuring the result stays as a ZeroMatrix with proper dimensions
+2. Adding `_eval_rmul` to handle right multiplication, ensuring the result stays as a ZeroMatrix with proper dimensions 
+3. Adding `_eval_power` to handle matrix powers properly
+
+The key is that these methods ensure that operations with ZeroMatrix maintain the ZeroMatrix type rather than degrading to a scalar Zero. This preserves the matrix dimensions and required matrix attributes like 'cols' and 'rows'.
+
+This should fix the issue where multiple multiplications of a BlockMatrix containing ZeroMatrix blocks fails. The ZeroMatrix blocks will now maintain their matrix nature through the multiplication operations.

@@ -1,0 +1,43 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The issue is that django.utils.html.json_script() function has a hardcoded DjangoJSONEncoder and doesn't allow customization of the JSON encoder. This limits flexibility when users need to customize how certain values are encoded to JSON.
+
+2. Cause Analysis:
+The root cause is that the json_script() function in django.utils.html.py uses a hardcoded DjangoJSONEncoder class for JSON serialization, without providing a parameter to allow users to specify their own encoder class. This makes it impossible to customize the JSON encoding behavior for special data types or custom serialization needs.
+
+3. Examining Files:
+
+django/core/serializers/base.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/core/serializers/json.py:
+```
+django/core/serializers/json.py
+class: DjangoJSONEncoder
+```
+
+django/template/defaultfilters.py:
+```
+django/template/defaultfilters.py
+function: json_script
+```
+
+django/utils/html.py:
+```
+django/utils/html.py
+function: json_script
+```
+
+django/utils/safestring.py:
+```
+django/utils/safestring.py
+function: mark_safe
+class: SafeString
+```
+
+The most relevant locations are in django/utils/html.py and django/core/serializers/json.py, as they contain the json_script function that needs modification and the DjangoJSONEncoder class that's currently hardcoded. The other relevant functions/classes are involved in the JSON encoding and HTML safety process but are more peripheral to the core issue.
+
+The solution would involve modifying the json_script function to accept an optional encoder parameter that defaults to DjangoJSONEncoder, similar to how Python's json.dumps() allows customization of its encoder.

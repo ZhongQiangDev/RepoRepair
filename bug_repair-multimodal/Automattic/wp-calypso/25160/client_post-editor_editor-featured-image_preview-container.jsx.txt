@@ -1,0 +1,77 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a user selects a featured image from their Google library, the image isn't properly set as the featured image for the post. Looking at the code, I can see a potential issue in the `componentDidUpdate` lifecycle method.
+
+The problem appears to be that when a user selects an image from Google, the component doesn't properly clean up event listeners when unmounting, which could lead to memory leaks and unexpected behavior. The `componentWillUnmount` lifecycle method is missing, which should remove the event listener from the MediaStore.
+
+Additionally, there's an issue with how the `showEditIcon` prop is being handled. In the component's state, it's initialized as `false`, but in the render method, it's hardcoded to `true`, ignoring the prop value passed from the parent component.
+
+## Fix
+
+```javascript
+### client/post-editor/editor-featured-image/preview-container.jsx
+<<<<<<< SEARCH
+	componentDidUpdate( prevProps ) {
+		const { siteId, itemId } = this.props;
+		if ( siteId !== prevProps.siteId || itemId !== prevProps.itemId ) {
+			this.fetchImage();
+		}
+	}
+
+
+=======
+	componentDidUpdate( prevProps ) {
+		const { siteId, itemId } = this.props;
+		if ( siteId !== prevProps.siteId || itemId !== prevProps.itemId ) {
+			this.fetchImage();
+		}
+	}
+
+	componentWillUnmount() {
+		MediaStore.off( 'change', this.updateImageState );
+	}
+
+>>>>>>> REPLACE
+```
+
+```javascript
+### client/post-editor/editor-featured-image/preview-container.jsx
+<<<<<<< SEARCH
+	state = {
+		image: null,
+		onImageChange: noop,
+		showEditIcon: false,
+	};
+=======
+	state = {
+		image: null,
+	};
+>>>>>>> REPLACE
+```
+
+```javascript
+### client/post-editor/editor-featured-image/preview-container.jsx
+<<<<<<< SEARCH
+			<EditorFeaturedImagePreview
+				image={ this.state.image }
+				maxWidth={ this.props.maxWidth }
+				showEditIcon
+			/>
+=======
+			<EditorFeaturedImagePreview
+				image={ this.state.image }
+				maxWidth={ this.props.maxWidth }
+				showEditIcon={ this.props.showEditIcon }
+			/>
+>>>>>>> REPLACE
+```
+
+These changes:
+
+1. Add a `componentWillUnmount` lifecycle method to properly clean up the event listener when the component is unmounted.
+2. Remove unnecessary state properties that aren't being used correctly.
+3. Fix the `showEditIcon` prop to use the value passed from the parent component instead of hardcoding it to `true`.
+
+The main issue was likely the missing cleanup in `componentWillUnmount`, which could cause memory leaks and unexpected behavior when selecting images from Google library. By properly removing the event listener, we ensure that the component behaves correctly when unmounted and remounted, which happens during the image selection process.

@@ -1,0 +1,44 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The problem is that `__isnull` lookup is accepting non-boolean values and still working for simple queries, but not promoting INNER JOIN to OUTER JOIN as it should. This inconsistency in behavior could lead to confusion and bugs.
+
+2. Cause Analysis:
+The root cause appears to be that the `IsNull` lookup class is not properly validating its input value (rhs) to ensure it's a boolean. While the lookup still works for simple queries due to Python's truthy/falsey evaluation, it fails to properly handle join promotion when non-boolean values are used.
+
+3. Examining Files:
+
+django/db/models/expressions.py:
+```
+No relevant functions/classes.
+```
+
+django/db/models/lookups.py:
+```
+django/db/models/lookups.py
+class: IsNull
+```
+
+django/db/models/query.py:
+```
+No relevant functions/classes.
+```
+
+django/db/models/sql/query.py:
+```
+django/db/models/sql/query.py
+class: JoinPromoter
+```
+
+django/db/models/sql/where.py:
+```
+django/db/models/sql/where.py
+class: WhereNode
+```
+
+The key classes involved are:
+- `IsNull`: This is the main class that needs to validate the boolean input
+- `JoinPromoter`: This class handles the promotion of joins from INNER to OUTER based on conditions
+- `WhereNode`: This class manages the WHERE clause conditions and works with JoinPromoter to determine join types
+
+The fix would likely involve adding validation in the `IsNull` class to ensure the input value is strictly a boolean, which would then allow `JoinPromoter` and `WhereNode` to work correctly with the validated conditions.

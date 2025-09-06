@@ -1,0 +1,32 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The `sqlmigrate` command is incorrectly wrapping SQL output in BEGIN/COMMIT statements for databases that don't support transactional DDL. This means it's adding transaction blocks even when the database engine doesn't support rolling back DDL operations.
+
+2. Cause Analysis:
+The issue stems from the `sqlmigrate` command only checking `migration.atomic` to determine whether to wrap the output in transactions, without considering the database's capability to rollback DDL operations (`connection.features.can_rollback_ddl`).
+
+3. File Analysis:
+
+django/core/management/commands/sqlmigrate.py:
+```
+django/core/management/commands/sqlmigrate.py
+class: Command
+```
+This is relevant because it contains the core logic for the sqlmigrate command and specifically handles the output_transaction flag that determines whether to wrap SQL in transactions.
+
+django/db/transaction.py:
+```
+django/db/transaction.py
+class: Atomic
+```
+This is relevant as it's the underlying class that handles transaction management and would be involved in how transactions are processed.
+
+django/db/migrations/executor.py:
+```
+django/db/migrations/executor.py
+class: MigrationExecutor
+```
+This is relevant because it's responsible for executing migrations and interacts with the database connection features that determine DDL rollback capability.
+
+The issue specifically needs to be fixed in the Command class of sqlmigrate.py, where the output_transaction attribute should consider both migration.atomic and connection.features.can_rollback_ddl before deciding to wrap the output in transaction statements.

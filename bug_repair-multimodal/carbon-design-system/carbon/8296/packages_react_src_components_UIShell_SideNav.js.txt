@@ -1,0 +1,124 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is that when the SideNav is expanded on small/medium viewports:
+1. Clicking on a SideNavLink doesn't close the SideNav
+2. Clicking on the overlay doesn't close the SideNav
+
+Looking at the code, I can see that:
+- The SideNav component has an overlay (`${prefix}--side-nav__overlay`) that appears when the SideNav is expanded
+- However, there's no click handler on this overlay to close the SideNav
+- Also, there's no mechanism to close the SideNav when a SideNavLink is clicked
+
+## Solution
+
+We need to:
+1. Add a click handler to the overlay to close the SideNav when clicked
+2. Ensure that when a SideNavLink is clicked, the SideNav closes
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/UIShell/SideNav.js
+<<<<<<< SEARCH
+  return (
+    <>
+      {isFixedNav ? null : <div className={overlayClassName} />}
+      <nav
+=======
+  const handleOverlayClick = (event) => {
+    event.stopPropagation();
+    handleToggle(event, false);
+  };
+
+  return (
+    <>
+      {isFixedNav ? null : (
+        <div className={overlayClassName} onClick={handleOverlayClick} />
+      )}
+      <nav
+>>>>>>> REPLACE
+```
+
+This adds a click handler to the overlay that will close the SideNav when clicked.
+
+For the second part of the issue (closing the SideNav when a link is clicked), we need to modify how the children are rendered to add click handlers to SideNavLinks:
+
+```javascript
+### packages/react/src/components/UIShell/SideNav.js
+<<<<<<< SEARCH
+  let childrenToRender = children;
+
+  // if a rail, pass the expansion state as a prop, so children can update themselves to match
+  if (isRail) {
+    childrenToRender = React.Children.map(children, (child) => {
+      // if we are controlled, check for if we have hovered over or the expanded state, else just use the expanded state (uncontrolled)
+      let currentExpansionState = controlled
+        ? expandedViaHoverState || expanded
+        : expanded;
+      // avoid spreading `isSideNavExpanded` to non-Carbon UI Shell children
+      return React.cloneElement(child, {
+        ...(CARBON_SIDENAV_ITEMS.includes(child.type?.displayName)
+          ? {
+              isSideNavExpanded: currentExpansionState,
+            }
+          : {}),
+      });
+    });
+  }
+=======
+  let childrenToRender = children;
+
+  // Process children to add necessary props
+  childrenToRender = React.Children.map(children, (child) => {
+    if (!child) return child;
+
+    // if we are controlled, check for if we have hovered over or the expanded state, else just use the expanded state (uncontrolled)
+    let currentExpansionState = controlled
+      ? expandedViaHoverState || expanded
+      : expanded;
+    
+    // For SideNavItems, we need to process its children to add click handlers
+    if (child.type?.displayName === 'SideNavItems') {
+      return React.cloneElement(child, {}, 
+        React.Children.map(child.props.children, (grandChild) => {
+          if (!grandChild) return grandChild;
+          
+          // For SideNavLink, add onClick handler to close the SideNav
+          if (grandChild.type?.displayName === 'SideNavLink') {
+            const originalOnClick = grandChild.props.onClick;
+            return React.cloneElement(grandChild, {
+              onClick: (e) => {
+                if (originalOnClick) originalOnClick(e);
+                // Only close if not persistent (mobile/tablet view)
+                if (!isPersistent) {
+                  handleToggle(e, false);
+                }
+              }
+            });
+          }
+          return grandChild;
+        })
+      );
+    }
+    
+    // For rail mode, pass expansion state
+    if (isRail && CARBON_SIDENAV_ITEMS.includes(child.type?.displayName)) {
+      return React.cloneElement(child, {
+        isSideNavExpanded: currentExpansionState
+      });
+    }
+    
+    return child;
+  });
+>>>>>>> REPLACE
+```
+
+This solution:
+1. Adds a click handler to the overlay to close the SideNav when clicked
+2. Processes the children to add click handlers to SideNavLinks that will close the SideNav when clicked
+3. Preserves the existing rail functionality
+4. Only closes the SideNav when not in persistent mode (which is what we want for mobile/tablet views)
+
+These changes will ensure that the SideNav behaves as expected: closing when a link is clicked or when the user clicks outside the SideNav on the overlay.

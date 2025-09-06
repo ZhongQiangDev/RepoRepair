@@ -1,0 +1,38 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that the Lighthouse audit is incorrectly reporting that compression is missing for resources that are actually compressed. Looking at the screenshot and the curl output, we can see that the resource is being served with gzip compression (the `Content-Encoding: gzip` header is present), but Lighthouse is still flagging it as unoptimized.
+
+The problem is in the `filterUnoptimizedResponses` method in the `ResponseCompression` class. When checking for content encoding headers, the code is case-sensitive in its comparison of header values, but HTTP headers are case-insensitive according to the HTTP specification.
+
+The issue is in this part of the code:
+```javascript
+const isContentEncoded = record.responseHeaders.find(header =>
+  header.name.toLowerCase() === 'content-encoding' &&
+  compressionTypes.includes(header.value)
+);
+```
+
+While the header name is correctly converted to lowercase for comparison, the header value is compared directly without any case normalization. If the server returns "GZIP" or "Gzip" instead of "gzip", the check will fail.
+
+## Fix
+
+We need to modify the code to make the header value comparison case-insensitive:
+
+```javascript
+### lighthouse-core/gather/gatherers/dobetterweb/response-compression.js
+<<<<<<< SEARCH
+      const isContentEncoded = record.responseHeaders.find(header =>
+        header.name.toLowerCase() === 'content-encoding' &&
+        compressionTypes.includes(header.value)
+      );
+=======
+      const isContentEncoded = record.responseHeaders.find(header =>
+        header.name.toLowerCase() === 'content-encoding' &&
+        compressionTypes.includes(header.value.toLowerCase())
+      );
+>>>>>>> REPLACE
+```
+
+This change ensures that the header value is converted to lowercase before checking if it's in the list of compression types, making the comparison case-insensitive. This will fix the issue where valid compression headers with different casing (like "Gzip" or "GZIP") were being ignored.

@@ -1,0 +1,126 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is about making warnings visible within Passed Audits. Currently, when an audit passes but has warnings, those warnings aren't clearly visible to users in the "Passed Audits" section. According to the issue description, the plan is to add a block of warnings following the "Passed Audits" section.
+
+Looking at the code, I can see that warnings are already being added to individual audit elements in the `populateAuditValues` method, but there's no specific handling to make these warnings visible when they're in the collapsed "Passed Audits" section.
+
+## Solution
+
+We need to modify the `renderClump` method to check if any of the passed audits have warnings and, if so, display those warnings in a summary block right after the clump header. This will make the warnings visible even when the "Passed Audits" section is collapsed.
+
+Here's my fix:
+
+```javascript
+### lighthouse-core/report/html/renderer/category-renderer.js
+<<<<<<< SEARCH
+  /**
+   * Take a set of audits and render in a top-level, expandable clump that starts
+   * in a collapsed state.
+   * @param {Exclude<TopLevelClumpId, 'failed'>} clumpId
+   * @param {{auditRefs: Array<LH.ReportResult.AuditRef>, description?: string}} clumpOpts
+   * @return {Element}
+   */
+  renderClump(clumpId, {auditRefs, description}) {
+    const clumpTmpl = this.dom.cloneTemplate('#tmpl-lh-clump', this.templateContext);
+    const clumpElement = this.dom.find('.lh-clump', clumpTmpl);
+
+    const summaryInnerEl = this.dom.find('.lh-audit-group__summary', clumpElement);
+    const chevronEl = summaryInnerEl.appendChild(this._createChevron());
+    chevronEl.title = Util.UIStrings.auditGroupExpandTooltip;
+
+    const headerEl = this.dom.find('.lh-audit-group__header', clumpElement);
+    const title = this._clumpTitles[clumpId];
+    headerEl.textContent = title;
+    if (description) {
+      const markdownDescriptionEl = this.dom.convertMarkdownLinkSnippets(description);
+      const auditGroupDescription = this.dom.createElement('div', 'lh-audit-group__description');
+      auditGroupDescription.appendChild(markdownDescriptionEl);
+      clumpElement.appendChild(auditGroupDescription);
+    }
+
+    const itemCountEl = this.dom.find('.lh-audit-group__itemcount', clumpElement);
+    // TODO(i18n): support multiple locales here
+    itemCountEl.textContent = `${auditRefs.length} audits`;
+
+    // Add all audit results to the clump.
+    const auditElements = auditRefs.map(this.renderAudit.bind(this));
+    clumpElement.append(...auditElements);
+
+    clumpElement.classList.add(`lh-clump--${clumpId.toLowerCase()}`);
+    return clumpElement;
+=======
+  /**
+   * Take a set of audits and render in a top-level, expandable clump that starts
+   * in a collapsed state.
+   * @param {Exclude<TopLevelClumpId, 'failed'>} clumpId
+   * @param {{auditRefs: Array<LH.ReportResult.AuditRef>, description?: string}} clumpOpts
+   * @return {Element}
+   */
+  renderClump(clumpId, {auditRefs, description}) {
+    const clumpTmpl = this.dom.cloneTemplate('#tmpl-lh-clump', this.templateContext);
+    const clumpElement = this.dom.find('.lh-clump', clumpTmpl);
+
+    const summaryInnerEl = this.dom.find('.lh-audit-group__summary', clumpElement);
+    const chevronEl = summaryInnerEl.appendChild(this._createChevron());
+    chevronEl.title = Util.UIStrings.auditGroupExpandTooltip;
+
+    const headerEl = this.dom.find('.lh-audit-group__header', clumpElement);
+    const title = this._clumpTitles[clumpId];
+    headerEl.textContent = title;
+    if (description) {
+      const markdownDescriptionEl = this.dom.convertMarkdownLinkSnippets(description);
+      const auditGroupDescription = this.dom.createElement('div', 'lh-audit-group__description');
+      auditGroupDescription.appendChild(markdownDescriptionEl);
+      clumpElement.appendChild(auditGroupDescription);
+    }
+
+    const itemCountEl = this.dom.find('.lh-audit-group__itemcount', clumpElement);
+    // TODO(i18n): support multiple locales here
+    itemCountEl.textContent = `${auditRefs.length} audits`;
+
+    // Check if any passed audits have warnings
+    if (clumpId === 'passed') {
+      const auditsWithWarnings = auditRefs.filter(audit => audit.result.warnings && audit.result.warnings.length);
+      if (auditsWithWarnings.length) {
+        const warningsEl = this.dom.createElement('div', 'lh-warnings--toplevel');
+        const warningsTitle = this.dom.createElement('h4');
+        warningsTitle.textContent = Util.UIStrings.warningHeader;
+        warningsEl.appendChild(warningsTitle);
+        
+        const warningsList = this.dom.createElement('ul');
+        auditsWithWarnings.forEach(audit => {
+          if (!audit.result.warnings) return;
+          
+          const auditWarningsEl = this.dom.createElement('li');
+          const auditTitle = this.dom.createElement('span', 'lh-warnings__audit-title');
+          auditTitle.textContent = audit.result.title + ': ';
+          auditWarningsEl.appendChild(auditTitle);
+          
+          const warningsUl = this.dom.createElement('ul');
+          audit.result.warnings.forEach(warning => {
+            const warningLi = this.dom.createElement('li');
+            warningLi.textContent = warning;
+            warningsUl.appendChild(warningLi);
+          });
+          
+          auditWarningsEl.appendChild(warningsUl);
+          warningsList.appendChild(auditWarningsEl);
+        });
+        
+        warningsEl.appendChild(warningsList);
+        clumpElement.appendChild(warningsEl);
+      }
+    }
+
+    // Add all audit results to the clump.
+    const auditElements = auditRefs.map(this.renderAudit.bind(this));
+    clumpElement.append(...auditElements);
+
+    clumpElement.classList.add(`lh-clump--${clumpId.toLowerCase()}`);
+    return clumpElement;
+>>>>>>> REPLACE
+```
+
+This change adds a new section to the "Passed Audits" clump that displays all warnings from passed audits. The warnings are organized by audit title, making it clear which audit each warning belongs to. This section will be visible even when the "Passed Audits" section is collapsed, ensuring users don't miss important warnings.

@@ -1,0 +1,85 @@
+I'll analyze the issue and provide a fix.
+
+The issue is about inconsistent formatting of comments in `switch` statements. Specifically, when a comment follows a `case:` statement on the same line, it stays on that line, but when a comment follows a `default:` statement, it gets moved to the next line.
+
+Looking at the code, the issue is likely in the `SwitchCase` handling in the `printer-estree.js` file. Let's examine how comments are handled in switch cases.
+
+After reviewing the code, I found that the issue is in how the `default:` case is handled differently from regular `case` statements. The problem is in the `printPathNoParens` function, specifically in the `SwitchCase` case handling.
+
+Here's my fix:
+
+```javascript
+### src/language-js/printer-estree.js
+<<<<<<< SEARCH
+    case "SwitchCase": {
+      if (node.test) {
+        parts.push("case ", print("test"), ":");
+      } else {
+        parts.push("default:");
+      }
+
+      const consequent = node.consequent.filter(
+        (node) => node.type !== "EmptyStatement"
+      );
+
+      if (consequent.length > 0) {
+        const cons = printSwitchCaseConsequent(path, options, print);
+
+        parts.push(
+          consequent.length === 1 && consequent[0].type === "BlockStatement"
+            ? [" ", cons]
+            : indent([hardline, cons])
+        );
+      }
+
+      return parts;
+=======
+    case "SwitchCase": {
+      if (node.test) {
+        parts.push("case ", print("test"), ":");
+      } else {
+        parts.push("default:");
+      }
+
+      const consequent = node.consequent.filter(
+        (node) => node.type !== "EmptyStatement"
+      );
+
+      if (consequent.length > 0) {
+        const cons = printSwitchCaseConsequent(path, options, print);
+
+        parts.push(
+          consequent.length === 1 && consequent[0].type === "BlockStatement"
+            ? [" ", cons]
+            : indent([hardline, cons])
+        );
+      }
+
+      return parts;
+>>>>>>> REPLACE
+```
+
+After examining the code more carefully, I see that the issue is not directly in the `SwitchCase` handling but likely in how trailing comments are processed. The issue is probably in the `printSwitchCaseConsequent` function which is imported from `./print/statement.js`. Since that file isn't provided in the code segments, I'll need to make an educated guess about the fix.
+
+Let me provide a more targeted fix:
+
+```javascript
+### src/language-js/printer-estree.js
+<<<<<<< SEARCH
+    case "SwitchCase": {
+      if (node.test) {
+        parts.push("case ", print("test"), ":");
+      } else {
+        parts.push("default:");
+      }
+=======
+    case "SwitchCase": {
+      if (node.test) {
+        parts.push("case ", print("test"), ":");
+      } else {
+        parts.push("default:", hasComment(node, CommentCheckFlags.Trailing) ? " " : "");
+      }
+>>>>>>> REPLACE
+```
+
+This fix adds a space after `default:` when there's a trailing comment, which should keep the comment on the same line, similar to how it works for `case` statements.

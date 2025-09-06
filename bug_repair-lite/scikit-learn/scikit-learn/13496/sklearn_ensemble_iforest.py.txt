@@ -1,0 +1,77 @@
+Based on the issue description, the bug is that the `warm_start` parameter is not exposed in the `IsolationForest` class's `__init__()` method, even though it's available through inheritance from `BaseBagging`.
+
+Here's the fix to expose the `warm_start` parameter:
+
+```python
+### sklearn/ensemble/iforest.py
+<<<<<<< SEARCH
+    def __init__(self,
+                 n_estimators=100,
+                 max_samples="auto",
+                 contamination="legacy",
+                 max_features=1.,
+                 bootstrap=False,
+                 n_jobs=None,
+                 behaviour='old',
+                 random_state=None,
+                 verbose=0):
+=======
+    def __init__(self,
+                 n_estimators=100,
+                 max_samples="auto",
+                 contamination="legacy",
+                 max_features=1.,
+                 bootstrap=False,
+                 n_jobs=None,
+                 behaviour='old',
+                 random_state=None,
+                 verbose=0,
+                 warm_start=False):
+>>>>>>> REPLACE
+```
+
+And we need to add the warm_start parameter to the class docstring parameters section:
+
+```python
+### sklearn/ensemble/iforest.py
+<<<<<<< SEARCH
+    verbose : int, optional (default=0)
+        Controls the verbosity of the tree building process.
+
+
+    Attributes
+=======
+    verbose : int, optional (default=0)
+        Controls the verbosity of the tree building process.
+
+    warm_start : bool, optional (default=False)
+        When set to ``True``, reuse the solution of the previous call to fit
+        and add more estimators to the ensemble, otherwise, just fit a whole
+        new forest. See :term:`the Glossary <warm_start>`.
+
+    Attributes
+>>>>>>> REPLACE
+```
+
+And finally, we need to pass the warm_start parameter to the parent class:
+
+```python
+### sklearn/ensemble/iforest.py
+<<<<<<< SEARCH
+            n_jobs=n_jobs,
+            random_state=random_state,
+            verbose=verbose)
+=======
+            n_jobs=n_jobs,
+            random_state=random_state,
+            verbose=verbose,
+            warm_start=warm_start)
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Add the warm_start parameter to the __init__ method signature
+2. Add documentation for the warm_start parameter
+3. Pass the warm_start parameter to the parent BaseBagging class
+
+The parameter will now be properly exposed and documented, making it easier for users to discover and use this functionality.

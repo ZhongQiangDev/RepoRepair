@@ -1,0 +1,41 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is in the `enqueueTiles` method of the `WebGLTileLayerRenderer` class. According to the issue description, `layer.getMinZoom()` is being used incorrectly as a tile grid zoom level, when it actually returns a view zoom level that doesn't directly relate to tile grid zoom levels.
+
+The problematic code is on lines 336-340:
+
+```javascript
+const minZ = Math.max(
+  initialZ - tileLayer.getPreload(),
+  tileGrid.getMinZoom(),
+  tileLayer.getMinZoom()  // This is the incorrect usage
+);
+```
+
+This is causing potential issues where tiles might not be loaded correctly, especially when a source with a small tile grid is part of a larger view.
+
+## Fix
+
+I'll replace the incorrect usage of `tileLayer.getMinZoom()` with the proper approach. According to the issue, we should either remove it or replace it with a calculation using `tileGrid.getZForResolution()` from `layer.getMaxResolution()` or `view.getResolutionForZoom(layer.getMinZoom())`.
+
+Since we want to maintain the intended purpose (limiting the minimum zoom level for tile loading), I'll replace it with the correct approach:
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+    const minZ = Math.max(
+      initialZ - tileLayer.getPreload(),
+      tileGrid.getMinZoom(),
+      tileLayer.getMinZoom()
+    );
+=======
+    const minZ = Math.max(
+      initialZ - tileLayer.getPreload(),
+      tileGrid.getMinZoom()
+    );
+>>>>>>> REPLACE
+```
+
+This fix removes the incorrect usage of `tileLayer.getMinZoom()` from the calculation of `minZ`. The `tileGrid.getMinZoom()` is sufficient to determine the minimum zoom level for the tile grid, which is what we need in this context.

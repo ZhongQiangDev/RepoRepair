@@ -1,0 +1,57 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when the browser is zoomed (e.g., at 150%) and VectorTile is rendered with `renderMode: 'image'`. The problem manifests as clipping between tiles, visible in the animation.
+
+Looking at the code, the issue is likely in the `toContext` function in `src/ol/render.js`. When the browser is zoomed, the device pixel ratio is affected, but the current implementation doesn't properly account for this when setting up the canvas dimensions.
+
+The problem is that when the browser is zoomed, the browser's reported `devicePixelRatio` is affected by the zoom level. For example, if the physical device has a pixel ratio of 1 and the browser is zoomed to 150%, the reported `devicePixelRatio` becomes 1.5. 
+
+When rendering vector tiles in 'image' mode, the canvas size needs to be properly adjusted to account for both the device pixel ratio and the browser zoom level.
+
+## Fix
+
+```javascript
+### src/ol/render.js
+<<<<<<< SEARCH
+export function toContext(context, opt_options) {
+  const canvas = context.canvas;
+  const options = opt_options ? opt_options : {};
+  const pixelRatio = options.pixelRatio || DEVICE_PIXEL_RATIO;
+  const size = options.size;
+  if (size) {
+    canvas.width = size[0] * pixelRatio;
+    canvas.height = size[1] * pixelRatio;
+    canvas.style.width = size[0] + 'px';
+    canvas.style.height = size[1] + 'px';
+  }
+  const extent = [0, 0, canvas.width, canvas.height];
+  const transform = scaleTransform(createTransform(), pixelRatio, pixelRatio);
+  return new CanvasImmediateRenderer(context, pixelRatio, extent, transform, 0);
+}
+=======
+export function toContext(context, opt_options) {
+  const canvas = context.canvas;
+  const options = opt_options ? opt_options : {};
+  const pixelRatio = options.pixelRatio || DEVICE_PIXEL_RATIO;
+  const size = options.size;
+  if (size) {
+    canvas.width = size[0] * pixelRatio;
+    canvas.height = size[1] * pixelRatio;
+    canvas.style.width = size[0] + 'px';
+    canvas.style.height = size[1] + 'px';
+    
+    // Apply a scaling transformation to account for the pixel ratio
+    context.scale(pixelRatio, pixelRatio);
+  }
+  const extent = [0, 0, canvas.width, canvas.height];
+  const transform = scaleTransform(createTransform(), pixelRatio, pixelRatio);
+  return new CanvasImmediateRenderer(context, pixelRatio, extent, transform, 0);
+}
+>>>>>>> REPLACE
+```
+
+This fix adds a crucial `context.scale(pixelRatio, pixelRatio)` call after setting the canvas dimensions. This ensures that the rendering context is properly scaled to account for the device pixel ratio and browser zoom level, which prevents the clipping issues between tiles.
+
+The scaling transformation ensures that all drawing operations are properly scaled according to the pixel ratio, which is especially important when the browser is zoomed. This should fix the clipping issues observed when using VectorTile with `renderMode: 'image'` in a zoomed browser.

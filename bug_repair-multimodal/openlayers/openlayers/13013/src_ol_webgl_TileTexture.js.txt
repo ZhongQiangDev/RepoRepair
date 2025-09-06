@@ -1,0 +1,141 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about black tiles appearing when using `WebGLTileLayer` with `DataTileSource` and a custom tile grid. The error message indicates there's a problem with texture upload:
+
+```
+WebGL warning: texImage: Desired upload requires more data than is available: (767 rows plus 770 pixels needed, 767 rows plus 258 pixels available)
+```
+
+Looking at the code in `src/ol/webgl/TileTexture.js`, I can see that the problem is in the `uploadTile_` method. When handling data tiles, the code is using the tile grid size to determine the texture size, but it's not checking if the actual data matches this size.
+
+The issue is that the `texImage2D` call is using the tile grid's size, but the actual data might be smaller. This mismatch causes the WebGL warning and results in black tiles.
+
+## Fix
+
+We need to modify the `uploadDataTexture` function to use the actual data size rather than assuming the tile grid size is correct:
+
+```javascript
+### src/ol/webgl/TileTexture.js
+<<<<<<< SEARCH
+/**
+ * @param {import("./Helper.js").default} helper The WebGL helper.
+ * @param {WebGLTexture} texture The texture.
+ * @param {import("../DataTile.js").Data} data The pixel data.
+ * @param {import("../size.js").Size} size The pixel size.
+ * @param {number} bandCount The band count.
+ */
+function uploadDataTexture(helper, texture, data, size, bandCount) {
+  const gl = helper.getGL();
+  bindAndConfigure(gl, texture);
+
+  let format;
+  switch (bandCount) {
+    case 1: {
+      format = gl.LUMINANCE;
+      break;
+    }
+    case 2: {
+      format = gl.LUMINANCE_ALPHA;
+      break;
+    }
+    case 3: {
+      format = gl.RGB;
+      break;
+    }
+    case 4: {
+      format = gl.RGBA;
+      break;
+    }
+    default: {
+      throw new Error(`Unsupported number of bands: ${bandCount}`);
+    }
+  }
+
+  let textureType;
+  if (data instanceof Float32Array) {
+    textureType = gl.FLOAT;
+    helper.getExtension('OES_texture_float');
+    helper.getExtension('OES_texture_float_linear');
+  } else {
+    textureType = gl.UNSIGNED_BYTE;
+  }
+
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    format,
+    size[0],
+    size[1],
+    0,
+    format,
+    textureType,
+    data
+  );
+}
+=======
+/**
+ * @param {import("./Helper.js").default} helper The WebGL helper.
+ * @param {WebGLTexture} texture The texture.
+ * @param {import("../DataTile.js").Data} data The pixel data.
+ * @param {import("../size.js").Size} size The pixel size.
+ * @param {number} bandCount The band count.
+ */
+function uploadDataTexture(helper, texture, data, size, bandCount) {
+  const gl = helper.getGL();
+  bindAndConfigure(gl, texture);
+
+  let format;
+  switch (bandCount) {
+    case 1: {
+      format = gl.LUMINANCE;
+      break;
+    }
+    case 2: {
+      format = gl.LUMINANCE_ALPHA;
+      break;
+    }
+    case 3: {
+      format = gl.RGB;
+      break;
+    }
+    case 4: {
+      format = gl.RGBA;
+      break;
+    }
+    default: {
+      throw new Error(`Unsupported number of bands: ${bandCount}`);
+    }
+  }
+
+  let textureType;
+  if (data instanceof Float32Array) {
+    textureType = gl.FLOAT;
+    helper.getExtension('OES_texture_float');
+    helper.getExtension('OES_texture_float_linear');
+  } else {
+    textureType = gl.UNSIGNED_BYTE;
+  }
+
+  // Calculate the actual width and height based on the data size and band count
+  const pixelCount = data.length / bandCount;
+  const width = Math.min(size[0], Math.ceil(pixelCount / size[1]));
+  const height = Math.min(size[1], Math.ceil(pixelCount / size[0]));
+
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    format,
+    width,
+    height,
+    0,
+    format,
+    textureType,
+    data
+  );
+}
+>>>>>>> REPLACE
+```
+
+This fix calculates the actual width and height based on the data size and band count, ensuring that we don't try to upload more data than is available. It uses the minimum of the tile grid size and the calculated size based on the data length to avoid the WebGL warning.

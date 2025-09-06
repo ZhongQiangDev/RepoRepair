@@ -1,0 +1,88 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is requesting the implementation of an `isCollection` marker for data objects in BPMN diagrams, as specified in the BPMN 2.0 specification. This marker should be toggleable, similar to how multiple/ad-hoc modifiers work on user tasks.
+
+Looking at the provided code, I can see that we're examining the `UpdatePropertiesHandler.js` file, which handles updating properties on BPMN elements. The issue is that the code doesn't currently handle the `isCollection` property for data objects.
+
+## Bug Localization
+
+The bug is in the `UpdatePropertiesHandler.js` file. Specifically, the issue is that the `referencePropertyNames` array at the bottom of the file doesn't include the `isCollection` property. This array seems to list properties that need special handling.
+
+Additionally, I notice that the `reverts` method implementation is missing in the provided code snippet, which should be responsible for reverting property changes.
+
+## Solution
+
+I'll provide two fixes:
+
+1. Add the missing `reverts` method implementation
+2. Update the `referencePropertyNames` array to include the `isCollection` property
+
+Here are the *SEARCH/REPLACE* edits:
+
+```javascript
+### lib/features/modeling/cmd/UpdatePropertiesHandler.js
+<<<<<<< SEARCH
+/**
+ * Reverts the update on a BPMN elements properties.
+ *
+ * @param  {Object} context
+ *
+ * @return {djs.model.Base} the updated element
+ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var referencePropertyNames = [ 'default' ];
+=======
+/**
+ * Reverts the update on a BPMN elements properties.
+ *
+ * @param  {Object} context
+ *
+ * @return {djs.model.Base} the updated element
+ */
+UpdatePropertiesHandler.prototype.revert = function(context) {
+
+  var element = context.element,
+      oldProperties = context.oldProperties,
+      businessObject = element.businessObject,
+      elementRegistry = this._elementRegistry,
+      ids = this._moddle.ids;
+
+  // update properties
+  setProperties(businessObject, oldProperties);
+
+  if (isIdChange(oldProperties, businessObject)) {
+    ids.unclaim(businessObject[ID]);
+
+    elementRegistry.updateId(element, oldProperties[ID]);
+
+    ids.claim(oldProperties[ID], businessObject);
+  }
+
+  return context.changed;
+};
+
+
+var referencePropertyNames = [ 'default', 'isCollection' ];
+>>>>>>> REPLACE
+```
+
+This fix adds the missing `revert` method implementation and adds `isCollection` to the `referencePropertyNames` array, which should allow the property to be properly handled when updating BPMN elements.

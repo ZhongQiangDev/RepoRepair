@@ -1,0 +1,230 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about inconsistent formatting of comments in `switch` statements. Specifically, when a comment follows a `case:` or `default:` label on the same line, the behavior is different:
+
+- For `case:` labels, the comment stays on the same line: `case Keyword.impl: // comment`
+- For `default:` labels, the comment gets moved to the next line: 
+  ```
+  default:
+    // comment
+  ```
+
+This inconsistency is confusing for users. The expected behavior is that comments should be treated the same way for both `case:` and `default:` labels.
+
+Looking at the code, the issue is likely in the comment handling logic for switch statements. Since we don't see specific switch statement comment handling in the provided file, the bug is probably in the general comment handling logic.
+
+## Fix
+
+The issue is that there's no specific handler for comments after `default:` labels in switch statements. We need to add this functionality to ensure consistent behavior with `case:` labels.
+
+```javascript
+### src/language-js/comments.js
+<<<<<<< SEARCH
+/**
+ * @param {CommentContext} context
+ * @returns {boolean}
+ */
+function handleEndOfLineComment(context) {
+  return [
+    handleClosureTypeCastComments,
+    handleLastFunctionArgComments,
+    handleConditionalExpressionComments,
+    handleImportSpecifierComments,
+    handleIfStatementComments,
+    handleWhileComments,
+    handleTryStatementComments,
+    handleClassComments,
+    handleLabeledStatementComments,
+    handleCallExpressionComments,
+    handlePropertyComments,
+    handleOnlyComments,
+    handleTypeAliasComments,
+    handleVariableDeclaratorComments,
+    handleBreakAndContinueStatementComments,
+  ].some((fn) => fn(context));
+}
+=======
+/**
+ * @param {CommentContext} context
+ * @returns {boolean}
+ */
+function handleEndOfLineComment(context) {
+  return [
+    handleClosureTypeCastComments,
+    handleLastFunctionArgComments,
+    handleConditionalExpressionComments,
+    handleImportSpecifierComments,
+    handleIfStatementComments,
+    handleWhileComments,
+    handleTryStatementComments,
+    handleClassComments,
+    handleLabeledStatementComments,
+    handleCallExpressionComments,
+    handlePropertyComments,
+    handleOnlyComments,
+    handleTypeAliasComments,
+    handleVariableDeclaratorComments,
+    handleBreakAndContinueStatementComments,
+    handleSwitchDefaultCaseComments,
+  ].some((fn) => fn(context));
+}
+
+/**
+ * @param {CommentContext} context
+ * @returns {boolean}
+ */
+function handleSwitchDefaultCaseComments({ comment, precedingNode, enclosingNode }) {
+  if (
+    enclosingNode &&
+    (enclosingNode.type === "SwitchCase" || enclosingNode.type === "SwitchStatement") &&
+    precedingNode &&
+    precedingNode.type === "Identifier" &&
+    precedingNode.name === "default"
+  ) {
+    addTrailingComment(precedingNode, comment);
+    return true;
+  }
+  return false;
+}
+>>>>>>> REPLACE
+```
+
+Wait, I need to reconsider this approach. The issue is more complex than I initially thought. Let me analyze the problem more carefully.
+
+After further analysis, I believe the issue is in how Prettier handles comments after `default:` labels. The problem is that Prettier is treating the `default:` label differently from `case:` labels when it comes to trailing comments.
+
+Let me provide a more accurate fix:
+
+```javascript
+### src/language-js/comments.js
+<<<<<<< SEARCH
+/**
+ * @param {CommentContext} context
+ * @returns {boolean}
+ */
+function handleRemainingComment(context) {
+  return [
+    handleIgnoreComments,
+    handleIfStatementComments,
+    handleWhileComments,
+    handleObjectPropertyAssignment,
+    handleCommentInEmptyParens,
+    handleMethodNameComments,
+    handleOnlyComments,
+    handleCommentAfterArrowParams,
+    handleFunctionNameComments,
+    handleTSMappedTypeComments,
+    handleBreakAndContinueStatementComments,
+    handleTSFunctionTrailingComments,
+  ].some((fn) => fn(context));
+}
+=======
+/**
+ * @param {CommentContext} context
+ * @returns {boolean}
+ */
+function handleRemainingComment(context) {
+  return [
+    handleIgnoreComments,
+    handleIfStatementComments,
+    handleWhileComments,
+    handleObjectPropertyAssignment,
+    handleCommentInEmptyParens,
+    handleMethodNameComments,
+    handleOnlyComments,
+    handleCommentAfterArrowParams,
+    handleFunctionNameComments,
+    handleTSMappedTypeComments,
+    handleBreakAndContinueStatementComments,
+    handleTSFunctionTrailingComments,
+    handleSwitchDefaultCaseComments,
+  ].some((fn) => fn(context));
+}
+
+/**
+ * @param {CommentContext} context
+ * @returns {boolean}
+ */
+function handleSwitchDefaultCaseComments({ comment, enclosingNode }) {
+  if (
+    enclosingNode &&
+    enclosingNode.type === "SwitchCase" &&
+    !enclosingNode.test // 'default' case doesn't have a 'test' property
+  ) {
+    addTrailingComment(enclosingNode, comment);
+    return true;
+  }
+  return false;
+}
+>>>>>>> REPLACE
+```
+
+Actually, I need to be more precise with my fix. Let me analyze the issue one more time.
+
+The problem is that for `case` labels, the comment is attached to the case expression, but for `default` labels (which don't have an expression), the comment is being treated differently. We need to ensure that comments after `default:` are handled consistently with comments after `case:`.
+
+Here's the correct fix:
+
+```javascript
+### src/language-js/comments.js
+<<<<<<< SEARCH
+function handleEndOfLineComment(context) {
+  return [
+    handleClosureTypeCastComments,
+    handleLastFunctionArgComments,
+    handleConditionalExpressionComments,
+    handleImportSpecifierComments,
+    handleIfStatementComments,
+    handleWhileComments,
+    handleTryStatementComments,
+    handleClassComments,
+    handleLabeledStatementComments,
+    handleCallExpressionComments,
+    handlePropertyComments,
+    handleOnlyComments,
+    handleTypeAliasComments,
+    handleVariableDeclaratorComments,
+    handleBreakAndContinueStatementComments,
+  ].some((fn) => fn(context));
+}
+=======
+function handleEndOfLineComment(context) {
+  return [
+    handleClosureTypeCastComments,
+    handleLastFunctionArgComments,
+    handleConditionalExpressionComments,
+    handleImportSpecifierComments,
+    handleIfStatementComments,
+    handleWhileComments,
+    handleTryStatementComments,
+    handleClassComments,
+    handleLabeledStatementComments,
+    handleCallExpressionComments,
+    handlePropertyComments,
+    handleOnlyComments,
+    handleTypeAliasComments,
+    handleVariableDeclaratorComments,
+    handleBreakAndContinueStatementComments,
+    handleSwitchDefaultCaseComments,
+  ].some((fn) => fn(context));
+}
+
+/**
+ * @param {CommentContext} context
+ * @returns {boolean}
+ */
+function handleSwitchDefaultCaseComments({ comment, enclosingNode }) {
+  if (
+    enclosingNode &&
+    enclosingNode.type === "SwitchCase" &&
+    !enclosingNode.test // 'default' case doesn't have a 'test' property
+  ) {
+    addDanglingComment(enclosingNode, comment);
+    return true;
+  }
+  return false;
+}
+>>>>>>> REPLACE
+```

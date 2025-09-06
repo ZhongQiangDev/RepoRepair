@@ -1,0 +1,173 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is related to inconsistent behavior when adding, removing, and redoing the first participant in a BPMN model. Specifically:
+
+1. When adding the first participant, the process ID remains the same (Process_1)
+2. When undoing this action, the participant is removed and the process ID still remains the same
+3. When redoing the action, the process ID changes unexpectedly
+4. Additionally, when deleting the only participant (not via undo), the process ID also changes
+
+The root cause appears to be in the `UpdateCanvasRootHandler.js` file. When a participant is added or removed, this handler is responsible for updating the canvas root element. The issue is that during the redo operation, the handler doesn't properly preserve the original process ID.
+
+## Solution
+
+The problem is that the handler doesn't preserve the ID of the process when swapping between roots. We need to modify the `execute` and `revert` methods to ensure that the ID is preserved when appropriate.
+
+```javascript
+### lib/features/modeling/cmd/UpdateCanvasRootHandler.js
+<<<<<<< SEARCH
+UpdateCanvasRootHandler.prototype.execute = function(context) {
+
+  var canvas = this._canvas;
+
+  var newRoot = context.newRoot,
+      newRootBusinessObject = newRoot.businessObject,
+      oldRoot = canvas.getRootElement(),
+      oldRootBusinessObject = oldRoot.businessObject,
+      bpmnDefinitions = oldRootBusinessObject.$parent,
+      diPlane = oldRootBusinessObject.di;
+
+  // (1) replace process old <> new root
+  canvas.setRootElement(newRoot, true);
+
+  // (2) update root elements
+  collectionAdd(bpmnDefinitions.rootElements, newRootBusinessObject);
+  newRootBusinessObject.$parent = bpmnDefinitions;
+
+  collectionRemove(bpmnDefinitions.rootElements, oldRootBusinessObject);
+  oldRootBusinessObject.$parent = null;
+
+  // (3) wire di
+  oldRootBusinessObject.di = null;
+
+  diPlane.bpmnElement = newRootBusinessObject;
+  newRootBusinessObject.di = diPlane;
+
+  context.oldRoot = oldRoot;
+
+  // TODO(nikku): return changed elements?
+  // return [ newRoot, oldRoot ];
+};
+=======
+UpdateCanvasRootHandler.prototype.execute = function(context) {
+
+  var canvas = this._canvas;
+
+  var newRoot = context.newRoot,
+      newRootBusinessObject = newRoot.businessObject,
+      oldRoot = canvas.getRootElement(),
+      oldRootBusinessObject = oldRoot.businessObject,
+      bpmnDefinitions = oldRootBusinessObject.$parent,
+      diPlane = oldRootBusinessObject.di;
+
+  // Store original ID for redo operations
+  context.oldRootId = oldRootBusinessObject.id;
+  
+  // (1) replace process old <> new root
+  canvas.setRootElement(newRoot, true);
+
+  // (2) update root elements
+  collectionAdd(bpmnDefinitions.rootElements, newRootBusinessObject);
+  newRootBusinessObject.$parent = bpmnDefinitions;
+
+  collectionRemove(bpmnDefinitions.rootElements, oldRootBusinessObject);
+  oldRootBusinessObject.$parent = null;
+
+  // (3) wire di
+  oldRootBusinessObject.di = null;
+
+  diPlane.bpmnElement = newRootBusinessObject;
+  newRootBusinessObject.di = diPlane;
+
+  context.oldRoot = oldRoot;
+
+  // TODO(nikku): return changed elements?
+  // return [ newRoot, oldRoot ];
+};
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/modeling/cmd/UpdateCanvasRootHandler.js
+<<<<<<< SEARCH
+UpdateCanvasRootHandler.prototype.revert = function(context) {
+
+  var canvas = this._canvas;
+
+  var newRoot = context.newRoot,
+      newRootBusinessObject = newRoot.businessObject,
+      oldRoot = context.oldRoot,
+      oldRootBusinessObject = oldRoot.businessObject,
+      bpmnDefinitions = newRootBusinessObject.$parent,
+      diPlane = newRootBusinessObject.di;
+
+  // (1) replace process old <> new root
+  canvas.setRootElement(oldRoot, true);
+
+  // (2) update root elements
+  collectionRemove(bpmnDefinitions.rootElements, newRootBusinessObject);
+  newRootBusinessObject.$parent = null;
+
+  collectionAdd(bpmnDefinitions.rootElements, oldRootBusinessObject);
+  oldRootBusinessObject.$parent = bpmnDefinitions;
+
+  // (3) wire di
+  newRootBusinessObject.di = null;
+
+  diPlane.bpmnElement = oldRootBusinessObject;
+  oldRootBusinessObject.di = diPlane;
+
+  // TODO(nikku): return changed elements?
+  // return [ newRoot, oldRoot ];
+};
+=======
+UpdateCanvasRootHandler.prototype.revert = function(context) {
+
+  var canvas = this._canvas;
+
+  var newRoot = context.newRoot,
+      newRootBusinessObject = newRoot.businessObject,
+      oldRoot = context.oldRoot,
+      oldRootBusinessObject = oldRoot.businessObject,
+      bpmnDefinitions = newRootBusinessObject.$parent,
+      diPlane = newRootBusinessObject.di;
+
+  // Restore original ID if it was stored
+  if (context.oldRootId) {
+    oldRootBusinessObject.id = context.oldRootId;
+  }
+
+  // (1) replace process old <> new root
+  canvas.setRootElement(oldRoot, true);
+
+  // (2) update root elements
+  collectionRemove(bpmnDefinitions.rootElements, newRootBusinessObject);
+  newRootBusinessObject.$parent = null;
+
+  collectionAdd(bpmnDefinitions.rootElements, oldRootBusinessObject);
+  oldRootBusinessObject.$parent = bpmnDefinitions;
+
+  // (3) wire di
+  newRootBusinessObject.di = null;
+
+  diPlane.bpmnElement = oldRootBusinessObject;
+  oldRootBusinessObject.di = diPlane;
+
+  // TODO(nikku): return changed elements?
+  // return [ newRoot, oldRoot ];
+};
+>>>>>>> REPLACE
+```
+
+## Explanation
+
+The fix addresses the issue by:
+
+1. Storing the original process ID (`oldRootId`) in the context object during the `execute` method
+2. Restoring this ID during the `revert` method when redoing the operation
+
+This ensures that when a participant is added, removed, and then re-added through redo, the process ID remains consistent. The fix preserves the ID information across the undo/redo cycle, which was previously being lost.
+
+This solution should address both the inconsistent redo behavior and the issue with duplicate Pool IDs when copying Pools, as it ensures proper ID management during canvas root element updates.

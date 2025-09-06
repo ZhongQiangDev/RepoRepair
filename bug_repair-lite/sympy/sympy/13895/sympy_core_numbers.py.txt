@@ -1,0 +1,30 @@
+Based on the issue description, the problem appears to be in how SymPy handles simplification of expressions with negative bases raised to fractional powers. The issue shows that `(-x/4 - S(1)/12)**x - 1` simplifies incorrectly when x=9/5, producing different numerical results.
+
+Looking at the code, this is likely related to how Integer._eval_power() handles negative bases with fractional exponents. The current implementation extracts the imaginary unit (I) only for the special case of square roots, but should handle it more generally for all fractional powers of negative numbers.
+
+Here's the fix:
+
+```python
+### sympy/core/numbers.py
+<<<<<<< SEARCH
+        if expt is S.Half and self.is_negative:
+            # we extract I for this special case since everyone is doing so
+            return S.ImaginaryUnit*Pow(-self, expt)
+        if expt.is_negative:
+=======
+        if self.is_negative and expt.is_Rational and expt.q != 1:
+            # When we have a negative base and fractional power,
+            # we must extract the imaginary unit to get correct results
+            return (S.NegativeOne)**expt * (-self)**expt
+        if expt.is_negative:
+>>>>>>> REPLACE
+```
+
+This change ensures that for any negative base raised to a fractional power (not just square roots), we properly handle the complex results by extracting the negative sign and handling it separately. This fixes the inconsistency in numerical evaluation while maintaining correct symbolic results.
+
+The fix works by:
+1. Checking if the base is negative and the exponent is a fraction (q != 1)
+2. Separating the negative sign by writing (-n)^x as (-1)^x * n^x
+3. This ensures proper complex results for all fractional powers of negative numbers
+
+This should resolve the issue where different forms of the same expression were giving different numerical results.

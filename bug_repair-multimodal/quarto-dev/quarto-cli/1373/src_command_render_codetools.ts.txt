@@ -1,0 +1,27 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when using a URL for the `source` option in `code-tools`, the code tools menu doesn't show up. Looking at the code, I can see the problem in the `resolveCodeTools` function.
+
+In this function, when checking if source code should be available, it's only checking if `format.render[kKeepSource]` is true, but it's not considering the case where `codeToolsResolved.source` is a string URL. When `codeToolsResolved.source` is a URL string, it's being converted to a boolean value in the condition check, which is always true, but then it's being overwritten with the value of `!!format.render[kKeepSource]`.
+
+Here's the fix:
+
+```typescript
+### src/command/render/codetools.ts
+<<<<<<< SEARCH
+  // if we have request source, make sure we are able to keep source
+  if (codeToolsResolved.source) {
+    codeToolsResolved.source = !!format.render[kKeepSource];
+  }
+=======
+  // if we have request source, make sure we are able to keep source
+  // but don't override if it's a URL string
+  if (codeToolsResolved.source && typeof codeToolsResolved.source !== "string") {
+    codeToolsResolved.source = !!format.render[kKeepSource];
+  }
+>>>>>>> REPLACE
+```
+
+This change ensures that if `codeToolsResolved.source` is a string (URL), it won't be overwritten by the `kKeepSource` check. This way, when a URL is provided for the source option, it will be preserved and the code tools menu will be displayed properly.

@@ -1,0 +1,48 @@
+Based on the issue, there appears to be a bug in rendering pi**(1/E) where it incorrectly shows a negative square root. The issue is likely in how the PrettyPrinter handles exponents with irrational numbers.
+
+Looking at the code, the issue seems to be in the `_print_Pow` method of the PrettyPrinter class. The current implementation doesn't properly handle irrational exponents like 1/E.
+
+Here's the fix:
+
+```python
+### sympy/printing/pretty/pretty.py
+<<<<<<< SEARCH
+    def _print_Pow(self, power):
+        from sympy.simplify.simplify import fraction
+        b, e = power.as_base_exp()
+        if power.is_commutative:
+            if e is S.NegativeOne:
+                return prettyForm("1")/self._print(b)
+            n, d = fraction(e)
+            if n is S.One and d.is_Atom and not e.is_Integer and self._settings['root_notation']:
+                return self._print_nth_root(b, e)
+            if e.is_Rational and e < 0:
+                return prettyForm("1")/self._print(Pow(b, -e, evaluate=False))
+
+        if b.is_Relational:
+            return prettyForm(*self._print(b).parens()).__pow__(self._print(e))
+
+        return self._print(b)**self._print(e)
+=======
+    def _print_Pow(self, power):
+        from sympy.simplify.simplify import fraction
+        b, e = power.as_base_exp()
+        if power.is_commutative:
+            if e is S.NegativeOne:
+                return prettyForm("1")/self._print(b)
+            n, d = fraction(e)
+            if n is S.One and d.is_Atom and not e.is_Integer and self._settings['root_notation'] and e.is_rational:
+                return self._print_nth_root(b, e)
+            if e.is_Rational and e < 0:
+                return prettyForm("1")/self._print(Pow(b, -e, evaluate=False))
+
+        if b.is_Relational:
+            return prettyForm(*self._print(b).parens()).__pow__(self._print(e))
+
+        return self._print(b)**self._print(e)
+>>>>>>> REPLACE
+```
+
+The key change is adding `and e.is_rational` to the condition for using root notation. This ensures that root notation is only used for rational exponents, not irrational ones like 1/E. This will make pi**(1/E) print as a regular exponential form rather than incorrectly trying to use root notation.
+
+The fix ensures that expressions like pi**(1/E) are displayed properly as exponential expressions rather than being incorrectly rendered as roots. This matches the behavior shown in the LaTeX and str representations mentioned in the issue.

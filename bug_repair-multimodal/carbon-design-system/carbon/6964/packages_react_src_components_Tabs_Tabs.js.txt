@@ -1,0 +1,118 @@
+I'll analyze the issue and provide the necessary search/replace edits to fix the problem.
+
+## Issue Analysis
+
+The issue is that the Tabs component is incorrectly using `role="navigation"` which creates an unnecessary navigation landmark. This causes accessibility testing tools to flag it as needing a label. According to the issue:
+
+1. The navigation role should be removed from the Tabs component
+2. The `role` prop should not be available at all for the Tabs component
+3. References to `<nav>` in comments should be removed
+
+## Fixes Required
+
+Looking at the code, I need to make the following changes:
+
+1. Remove `role="navigation"` as the default prop
+2. Remove the `role` prop from the component's PropTypes
+3. Update the className prop description to remove reference to `<nav>`
+4. Remove the `role` attribute from the rendered component
+
+Here are the search/replace edits:
+
+```javascript
+### packages/react/src/components/Tabs/Tabs.js
+<<<<<<< SEARCH
+    /**
+     * Provide a className that is applied to the root <nav> component for the
+     * <Tabs>
+     */
+    className: PropTypes.string,
+=======
+    /**
+     * Provide a className that is applied to the root component for the
+     * <Tabs>
+     */
+    className: PropTypes.string,
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Tabs/Tabs.js
+<<<<<<< SEARCH
+    /**
+     * By default, this value is "navigation". You can also provide an alternate
+     * role if it makes sense from the accessibility-side
+     */
+    role: PropTypes.string.isRequired,
+=======
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Tabs/Tabs.js
+<<<<<<< SEARCH
+  static defaultProps = {
+    role: 'navigation',
+    type: 'default',
+    selected: 0,
+    selectionMode: 'automatic',
+  };
+=======
+  static defaultProps = {
+    type: 'default',
+    selected: 0,
+    selectionMode: 'automatic',
+  };
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Tabs/Tabs.js
+<<<<<<< SEARCH
+    const {
+      className,
+      role,
+      type,
+      light,
+      onSelectionChange,
+      selectionMode, // eslint-disable-line no-unused-vars
+      tabContentClassName,
+      ...other
+    } = this.props;
+=======
+    const {
+      className,
+      type,
+      light,
+      onSelectionChange,
+      selectionMode, // eslint-disable-line no-unused-vars
+      tabContentClassName,
+      ...other
+    } = this.props;
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Tabs/Tabs.js
+<<<<<<< SEARCH
+        <div
+          {...other}
+          className={classes.tabs}
+          role={role}
+          onScroll={this.handleScroll}>
+=======
+        <div
+          {...other}
+          className={classes.tabs}
+          onScroll={this.handleScroll}>
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Remove the `role` prop from the component's PropTypes
+2. Remove `role: 'navigation'` from the defaultProps
+3. Update the className prop description to remove reference to `<nav>`
+4. Remove the `role` attribute from the rendered component
+5. Remove the `role` parameter from the destructured props
+
+This should fully address the issue by removing all references to navigation landmarks from the Tabs component.

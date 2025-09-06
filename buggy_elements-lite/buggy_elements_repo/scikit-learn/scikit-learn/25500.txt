@@ -1,0 +1,32 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The CalibratedClassifierCV crashes when using isotonic regression calibration method while scikit-learn is configured with `set_config(transform_output="pandas")`. The error occurs during predict_proba where it fails to broadcast an array from shape (20,1) into shape (20,).
+
+2. Cause Analysis:
+The issue appears to be that when scikit-learn is configured to output pandas DataFrames, the IsotonicRegression calibrator returns a DataFrame instead of a numpy array. This causes problems in the _CalibratedClassifier's predict_proba method when it tries to assign values using numpy broadcasting: `proba[:, class_idx] = calibrator.predict(this_pred)`. The DataFrame output doesn't automatically conform to the expected numpy array shape.
+
+3. Relevant Files/Functions Analysis:
+
+```
+sklearn/calibration.py
+class: _CalibratedClassifier
+class: CalibratedClassifierCV
+```
+These classes are directly involved in the error as they handle the calibration process and the problematic predict_proba method.
+
+```
+sklearn/isotonic.py
+class: IsotonicRegression
+```
+This class is relevant as it's the calibrator that's returning pandas DataFrame output instead of the expected numpy array when configured with transform_output="pandas".
+
+```
+sklearn/base.py
+class: TransformerMixin
+```
+This class is relevant because it's the base class that influences how transformers (including IsotonicRegression) handle their output format based on the global configuration.
+
+The remaining files contain no relevant functions/classes.
+
+The core issue stems from the interaction between these components when the global configuration is set to output pandas DataFrames, particularly affecting how IsotonicRegression's output is handled by _CalibratedClassifier's predict_proba method.

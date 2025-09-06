@@ -1,0 +1,35 @@
+Based on the issue description, the bug is that Sphinx's autodoc cannot properly resolve `struct.Struct` type annotations, while it works fine for other standard library types like `pathlib.Path`. This suggests there's an issue with how type annotations are being stringified and resolved in Sphinx's typing utilities.
+
+Looking at the code in sphinx/util/typing.py, the issue likely stems from the fact that the stringify function doesn't properly handle types from the struct module. We need to add special handling for struct.Struct similar to how other built-in types are handled.
+
+Here's the fix:
+
+```python
+### sphinx/util/typing.py
+<<<<<<< SEARCH
+    elif (getattr(annotation, '__module__', None) == 'builtins' and
+          hasattr(annotation, '__qualname__')):
+        return annotation.__qualname__
+    elif annotation is Ellipsis:
+        return '...'
+
+    if sys.version_info >= (3, 7):  # py37+
+=======
+    elif (getattr(annotation, '__module__', None) == 'builtins' and
+          hasattr(annotation, '__qualname__')):
+        return annotation.__qualname__
+    elif (getattr(annotation, '__module__', None) == 'struct' and
+          getattr(annotation, '__name__', None) == 'Struct'):
+        return 'struct.Struct'
+    elif annotation is Ellipsis:
+        return '...'
+
+    if sys.version_info >= (3, 7):  # py37+
+>>>>>>> REPLACE
+```
+
+This fix adds a specific check for struct.Struct type annotations by looking at the `__module__` and `__name__` attributes. When it detects a struct.Struct type, it returns the fully qualified name 'struct.Struct'.
+
+The change ensures that struct.Struct type annotations are properly stringified and can be resolved by Sphinx's autodoc system, similar to how other standard library types like pathlib.Path are handled.
+
+This solution follows the pattern already established in the code for handling special cases of type annotations, and maintains consistency with how other module-qualified types are handled in the documentation.

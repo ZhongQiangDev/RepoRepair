@@ -1,0 +1,247 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about missing tiles in WebGLTileLayer when using a GeoTiff source with a stereographic projection, particularly near the antimeridian (±180° longitude). 
+
+Looking at the code and the issue description, the problem appears to be in the `getRenderExtent` function in `src/ol/renderer/webgl/TileLayerBase.js`. When a source doesn't have `wrapX` enabled, the function intersects the render extent with the tile grid extent. However, when reprojecting tiles near the antimeridian, this intersection can cause tiles to be incorrectly excluded from rendering.
+
+The issue occurs because the function is not properly handling the case where tiles cross the antimeridian in the reprojection process. When the source projection (typically EPSG:4326 or similar) is reprojected to a stereographic projection, the antimeridian wrapping behavior needs special handling.
+
+## Fix
+
+The solution is to modify the `getRenderExtent` function to properly handle the case where tiles cross the antimeridian in reprojection. We should only apply the grid extent intersection when we're not dealing with a reprojection that crosses the antimeridian.
+
+```javascript
+### src/ol/renderer/webgl/TileLayerBase.js
+<<<<<<< SEARCH
+function getRenderExtent(frameState, extent) {
+  const layerState = frameState.layerStatesArray[frameState.layerIndex];
+  if (layerState.extent) {
+    extent = getIntersection(
+      extent,
+      fromUserExtent(layerState.extent, frameState.viewState.projection),
+    );
+  }
+  const source = /** @type {import("../../source/Tile.js").default} */ (
+    layerState.layer.getRenderSource()
+  );
+  if (!source.getWrapX()) {
+    const gridExtent = source
+      .getTileGridForProjection(frameState.viewState.projection)
+      .getExtent();
+    if (gridExtent) {
+      extent = getIntersection(extent, gridExtent);
+    }
+  }
+  return extent;
+}
+=======
+function getRenderExtent(frameState, extent) {
+  const layerState = frameState.layerStatesArray[frameState.layerIndex];
+  if (layerState.extent) {
+    extent = getIntersection(
+      extent,
+      fromUserExtent(layerState.extent, frameState.viewState.projection),
+    );
+  }
+  const source = /** @type {import("../../source/Tile.js").default} */ (
+    layerState.layer.getRenderSource()
+  );
+  
+  // Only apply grid extent intersection if:
+  // 1. The source doesn't wrap around the antimeridian (wrapX is false)
+  // 2. We're not dealing with a reprojection tile (which might cross the antimeridian)
+  const tiles = source.getLoadedTiles();
+  const hasReprojTiles = tiles.some(tile => 
+    tile instanceof ReprojTile || tile instanceof ReprojDataTile
+  );
+  
+  if (!source.getWrapX() && !hasReprojTiles) {
+    const gridExtent = source
+      .getTileGridForProjection(frameState.viewState.projection)
+      .getExtent();
+    if (gridExtent) {
+      extent = getIntersection(extent, gridExtent);
+    }
+  }
+  return extent;
+}
+>>>>>>> REPLACE
+```
+
+Wait, I need to revise this solution. The `getLoadedTiles()` method doesn't exist on the source, and we need a different approach.
+
+```javascript
+### src/ol/renderer/webgl/TileLayerBase.js
+<<<<<<< SEARCH
+function getRenderExtent(frameState, extent) {
+  const layerState = frameState.layerStatesArray[frameState.layerIndex];
+  if (layerState.extent) {
+    extent = getIntersection(
+      extent,
+      fromUserExtent(layerState.extent, frameState.viewState.projection),
+    );
+  }
+  const source = /** @type {import("../../source/Tile.js").default} */ (
+    layerState.layer.getRenderSource()
+  );
+  if (!source.getWrapX()) {
+    const gridExtent = source
+      .getTileGridForProjection(frameState.viewState.projection)
+      .getExtent();
+    if (gridExtent) {
+      extent = getIntersection(extent, gridExtent);
+    }
+  }
+  return extent;
+}
+=======
+function getRenderExtent(frameState, extent) {
+  const layerState = frameState.layerStatesArray[frameState.layerIndex];
+  if (layerState.extent) {
+    extent = getIntersection(
+      extent,
+      fromUserExtent(layerState.extent, frameState.viewState.projection),
+    );
+  }
+  const source = /** @type {import("../../source/Tile.js").default} */ (
+    layerState.layer.getRenderSource()
+  );
+  
+  // Only apply grid extent intersection if:
+  // 1. The source doesn't wrap around the antimeridian (wrapX is false)
+  // 2. The source projection is the same as the view projection
+  //    (to avoid issues with reprojection across the antimeridian)
+  const sourceProj = source.getProjection();
+  const viewProj = frameState.viewState.projection;
+  const isSameProjection = sourceProj && sourceProj === viewProj;
+  
+  if (!source.getWrapX() && isSameProjection) {
+    const gridExtent = source
+      .getTileGridForProjection(frameState.viewState.projection)
+      .getExtent();
+    if (gridExtent) {
+      extent = getIntersection(extent, gridExtent);
+    }
+  }
+  return extent;
+}
+>>>>>>> REPLACE
+```
+
+Let me revise this one more time to make it more robust:
+
+```javascript
+### src/ol/renderer/webgl/TileLayerBase.js
+<<<<<<< SEARCH
+function getRenderExtent(frameState, extent) {
+  const layerState = frameState.layerStatesArray[frameState.layerIndex];
+  if (layerState.extent) {
+    extent = getIntersection(
+      extent,
+      fromUserExtent(layerState.extent, frameState.viewState.projection),
+    );
+  }
+  const source = /** @type {import("../../source/Tile.js").default} */ (
+    layerState.layer.getRenderSource()
+  );
+  if (!source.getWrapX()) {
+    const gridExtent = source
+      .getTileGridForProjection(frameState.viewState.projection)
+      .getExtent();
+    if (gridExtent) {
+      extent = getIntersection(extent, gridExtent);
+    }
+  }
+  return extent;
+}
+=======
+function getRenderExtent(frameState, extent) {
+  const layerState = frameState.layerStatesArray[frameState.layerIndex];
+  if (layerState.extent) {
+    extent = getIntersection(
+      extent,
+      fromUserExtent(layerState.extent, frameState.viewState.projection),
+    );
+  }
+  const source = /** @type {import("../../source/Tile.js").default} */ (
+    layerState.layer.getRenderSource()
+  );
+  
+  // Skip grid extent intersection for GeoTIFF sources or when wrapX is true
+  // This prevents missing tiles near the antimeridian when reprojecting
+  const isGeoTIFF = source.constructor.name === 'GeoTIFF';
+  
+  if (!source.getWrapX() && !isGeoTIFF) {
+    const gridExtent = source
+      .getTileGridForProjection(frameState.viewState.projection)
+      .getExtent();
+    if (gridExtent) {
+      extent = getIntersection(extent, gridExtent);
+    }
+  }
+  return extent;
+}
+>>>>>>> REPLACE
+```
+
+Actually, let me provide a more general solution that will work for all reprojection cases, not just GeoTIFF:
+
+```javascript
+### src/ol/renderer/webgl/TileLayerBase.js
+<<<<<<< SEARCH
+function getRenderExtent(frameState, extent) {
+  const layerState = frameState.layerStatesArray[frameState.layerIndex];
+  if (layerState.extent) {
+    extent = getIntersection(
+      extent,
+      fromUserExtent(layerState.extent, frameState.viewState.projection),
+    );
+  }
+  const source = /** @type {import("../../source/Tile.js").default} */ (
+    layerState.layer.getRenderSource()
+  );
+  if (!source.getWrapX()) {
+    const gridExtent = source
+      .getTileGridForProjection(frameState.viewState.projection)
+      .getExtent();
+    if (gridExtent) {
+      extent = getIntersection(extent, gridExtent);
+    }
+  }
+  return extent;
+}
+=======
+function getRenderExtent(frameState, extent) {
+  const layerState = frameState.layerStatesArray[frameState.layerIndex];
+  if (layerState.extent) {
+    extent = getIntersection(
+      extent,
+      fromUserExtent(layerState.extent, frameState.viewState.projection),
+    );
+  }
+  const source = /** @type {import("../../source/Tile.js").default} */ (
+    layerState.layer.getRenderSource()
+  );
+  
+  // Only apply grid extent intersection when:
+  // 1. The source doesn't wrap around the antimeridian (wrapX is false)
+  // 2. We're not in a reprojection scenario where the view projection is different
+  //    from the source projection (to avoid issues with antimeridian)
+  const viewProj = frameState.viewState.projection;
+  const sourceProj = source.getProjection();
+  const isReprojecting = sourceProj && viewProj.getCode() !== sourceProj.getCode();
+  
+  if (!source.getWrapX() && !isReprojecting) {
+    const gridExtent = source
+      .getTileGridForProjection(frameState.viewState.projection)
+      .getExtent();
+    if (gridExtent) {
+      extent = getIntersection(extent, gridExtent);
+    }
+  }
+  return extent;
+}
+>>>>>>> REPLACE
+```

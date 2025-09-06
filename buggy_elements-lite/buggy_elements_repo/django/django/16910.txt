@@ -1,0 +1,43 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The issue is that when using QuerySet.only() with select_related() on a reverse OneToOneField relation, the generated SQL query includes all fields from the related model instead of only the requested fields. Specifically, in the example, even though only 'secondary_field_1' was requested from the Secondary model, the query includes 'secondary_field_2' and 'secondary_field_3' as well.
+
+2. Cause Analysis:
+The root cause appears to be in how Django handles field selection optimization (only()) when combined with select_related() for reverse OneToOneField relationships. The field selection optimization is not being properly applied to the joined table in the SQL generation process. This suggests an issue in either the query construction or SQL compilation logic.
+
+3. Relevant Files/Functions Analysis:
+
+django/db/models/expressions.py:
+```
+django/db/models/expressions.py
+class: Col
+```
+This class is relevant as it handles column references in SQL queries, including how fields are selected and joined.
+
+django/db/models/fields/related.py:
+```
+django/db/models/fields/related.py
+class: OneToOneField
+class: ForeignObject
+```
+These classes are relevant as they define the behavior of OneToOneField relationships and how they should be handled in queries.
+
+django/db/models/query.py:
+```
+django/db/models/query.py
+class: Query
+```
+This class is relevant as it's responsible for constructing the database query, including handling only() and select_related() operations.
+
+django/db/models/sql/datastructures.py:
+```
+django/db/models/sql/datastructures.py
+class: Join
+```
+This class is relevant as it handles how tables are joined in the SQL query, which is crucial for select_related() functionality.
+
+django/db/models/sql/query.py:
+This file contains no relevant functions/classes.
+
+The issue likely stems from the interaction between these components, where the field selection optimization from only() is not being properly propagated to the joined table in the SQL generation process.

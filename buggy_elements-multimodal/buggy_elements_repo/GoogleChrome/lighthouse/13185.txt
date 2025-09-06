@@ -1,0 +1,43 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that the report currently uses `<img>` tags to hotlink images from a remote server for thumbnails. This leads to potential issues with Content Security Policy (CSP) and mixed content when the report is displayed over HTTPS. The goal is to replace these hotlinked thumbnails with full-page screenshots (fpss) to simplify CSP/mixed content issues.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior is that the current implementation of the `ScreenshotThumbnails` audit generates thumbnail images by scaling down frames from the website's loading process and embedding them directly as `<img>` tags in the report. These images are hotlinked from a remote server, which can cause CSP and mixed content issues when the report is displayed over HTTPS. The solution is to use the full-page screenshot (fpss) asset instead of the hotlinked thumbnails.
+
+### 3. Examine Each File One by One and Determine Relevant Functions/Classes
+
+#### lighthouse-core/audits/full-page-screenshot.js
+```
+lighthouse-core/audits/full-page-screenshot.js
+class: FullPageScreenshot
+```
+This file contains the `FullPageScreenshot` class, which is responsible for capturing a full-page screenshot. This class is relevant because the solution involves using the full-page screenshot asset instead of hotlinked thumbnails.
+
+#### lighthouse-core/audits/screenshot-thumbnails.js
+```
+lighthouse-core/audits/screenshot-thumbnails.js
+class: ScreenshotThumbnails
+```
+This file contains the `ScreenshotThumbnails` class, which is responsible for generating thumbnail images from the website's loading process. This class is directly related to the problem because it creates the hotlinked thumbnails that need to be replaced with full-page screenshots.
+
+#### lighthouse-core/computed/screenshots.js
+```
+This file contains no relevant functions/classes.
+```
+This file contains the `Screenshots` class, which processes trace events to extract screenshots. While it deals with screenshots, it does not directly relate to the issue of hotlinking thumbnails.
+
+#### lighthouse-core/gather/gatherers/full-page-screenshot.js
+```
+lighthouse-core/gather/gatherers/full-page-screenshot.js
+class: FullPageScreenshot
+```
+This file contains the `FullPageScreenshot` class, which is responsible for capturing a full-page screenshot. This class is relevant because it provides the full-page screenshot asset that should be used instead of hotlinked thumbnails.
+
+#### report/renderer/element-screenshot-renderer.js
+```
+report/renderer/element-screenshot-renderer.js
+class: ElementScreenshotRenderer
+```
+This file contains the `ElementScreenshotRenderer` class, which manages the rendering of element screenshots within a full-page screenshot. This class is relevant because it deals with rendering screenshots and could be involved in the transition from hotlinked thumbnails to full-page screenshots.

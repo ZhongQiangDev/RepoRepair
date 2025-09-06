@@ -1,0 +1,255 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue describes a problem with WebGLTileLayers when working with large GeoTIFF pyramids. The current implementation creates multiple WebGL contexts (one per layer) which leads to context loss and poor performance when dealing with many layers.
+
+The proposed solution is to create a new source type that represents a pyramid of GeoTIFFs, similar to how WMTS works. This would allow using a single WebGL context per layer/renderer instead of multiple contexts.
+
+## Solution Approach
+
+We need to create a new source class called `GeoTIFFPyramid` that:
+1. Accepts a template string for GeoTIFF URLs and a tile grid
+2. Composes tiles from overlapping GeoTIFFs in the pyramid
+3. Uses a single WebGL context
+
+Let's implement this by adding a new source class to the GeoTIFF.js file:
+
+```javascript
+### src/ol/source/GeoTIFF.js
+<<<<<<< SEARCH
+export default GeoTIFFSource;
+=======
+/**
+ * @typedef {Object} PyramidOptions
+ * @property {string} url URL template for the GeoTIFF pyramid. The template can
+ * include the following variables:
+ *  - `{z}`: The zoom level.
+ *  - `{x}`: The x tile coordinate.
+ *  - `{y}`: The y tile coordinate.
+ *  - `{-y}`: The y tile coordinate that increases from bottom to top.
+ * @property {import("../tilegrid/TileGrid.js").default} [tileGrid] Tile grid.
+ * @property {boolean} [convertToRGB = false] By default, bands from the sources are read as-is. When
+ * reading GeoTIFFs with the purpose of displaying them as RGB images, setting this to `true` will
+ * convert other color spaces (YCbCr, CMYK) to RGB.
+ * @property {boolean} [normalize=true] By default, the source data is normalized to values between
+ * 0 and 1 with scaling factors based on the raster statistics or `min` and `max` properties of each source.
+ * If instead you want to work with the raw values in a style expression, set this to `false`.  Setting this option
+ * to `false` will make it so any `min` and `max` properties on sources are ignored.
+ * @property {boolean} [opaque=false] Whether the layer is opaque.
+ * @property {number} [transition=250] Duration of the opacity transition for rendering.
+ * To disable the opacity transition, pass `transition: 0`.
+ * @property {boolean} [wrapX=false] Render tiles beyond the tile grid extent.
+ * @property {boolean} [interpolate=true] Use interpolated values when resampling.  By default,
+ * the linear interpolation is used to resample the data.  If false, nearest neighbor is used.
+ * @property {number} [min=0] The minimum source data value.  Rendered values are scaled from 0 to 1 based on
+ * the configured min and max.  If not provided and raster statistics are available, those will be used instead.
+ * If neither are available, the minimum for the data type will be used.  To disable this behavior, set
+ * the `normalize` option to `false` in the constructor.
+ * @property {number} [max] The maximum source data value.  Rendered values are scaled from 0 to 1 based on
+ * the configured min and max.  If not provided and raster statistics are available, those will be used instead.
+ * If neither are available, the maximum for the data type will be used.  To disable this behavior, set
+ * the `normalize` option to `false` in the constructor.
+ * @property {number} [nodata] Values to discard (overriding any nodata values in the metadata).
+ * When provided, an additional alpha band will be added to the data.  Often the GeoTIFF metadata
+ * will include information about nodata values, so you should only need to set this property if
+ * you find that it is not already extracted from the metadata.
+ * @property {Array<number>} [bands] Band numbers to be read from (where the first band is `1`). If not provided, all bands will
+ * be read. For example, if a GeoTIFF has blue (1), green (2), red (3), and near-infrared (4) bands, and you only need the
+ * near-infrared band, configure `bands: [4]`.
+ */
+
+/**
+ * @classdesc
+ * A source for working with a pyramid of GeoTIFF data.
+ * @api
+ */
+class GeoTIFFPyramid extends DataTile {
+  /**
+   * @param {PyramidOptions} options Data tile options.
+   */
+  constructor(options) {
+    super({
+      state: State.READY,
+      tileGrid: options.tileGrid,
+      projection: options.tileGrid ? options.tileGrid.getProjection() : null,
+      opaque: options.opaque,
+      transition: options.transition,
+      interpolate: options.interpolate !== false,
+      wrapX: options.wrapX,
+    });
+
+    /**
+     * @type {string}
+     * @private
+     */
+    this.url_ = options.url;
+
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this.normalize_ = options.normalize !== false;
+
+    /**
+     * @type {number|undefined}
+     * @private
+     */
+    this.min_ = options.min;
+
+    /**
+     * @type {number|undefined}
+     * @private
+     */
+    this.max_ = options.max;
+
+    /**
+     * @type {number|undefined}
+     * @private
+     */
+    this.nodata_ = options.nodata;
+
+    /**
+     * @type {Array<number>|undefined}
+     * @private
+     */
+    this.bands_ = options.bands;
+
+    /**
+     * @type {'readRasters' | 'readRGB'}
+     */
+    this.readMethod_ = options.convertToRGB ? 'readRGB' : 'readRasters';
+
+    /**
+     * @type {Object<string, GeoTIFF>}
+     * @private
+     */
+    this.tiffCache_ = {};
+
+    this.setLoader(this.loadTile_.bind(this));
+  }
+
+  /**
+   * @param {number} z Tile zoom level.
+   * @param {number} x Tile x coordinate.
+   * @param {number} y Tile y coordinate.
+   * @return {Promise<import("../DataTile.js").Data>} Promise that resolves with tile data.
+   * @private
+   */
+  loadTile_(z, x, y) {
+    const tileCoord = [z, x, y];
+    const url = this.getSourceUrl_(tileCoord);
+    
+    let tiffPromise;
+    if (url in this.tiffCache_) {
+      tiffPromise = Promise.resolve(this.tiffCache_[url]);
+    } else {
+      tiffPromise = tiffFromUrl(url).then((tiff) => {
+        this.tiffCache_[url] = tiff;
+        return tiff;
+      });
+    }
+
+    return tiffPromise.then((tiff) => {
+      return tiff.getImage().then((image) => {
+        const width = image.getWidth();
+        const height = image.getHeight();
+        
+        const samples = this.bands_ ? 
+          this.bands_.map((bandNumber) => bandNumber - 1) : 
+          null;
+        
+        let fillValue = this.nodata_;
+        if (fillValue === undefined) {
+          fillValue = image.getGDALNoData();
+          if (fillValue === null) {
+            fillValue = NaN;
+          }
+        }
+
+        return image[this.readMethod_]({
+          width: width,
+          height: height,
+          samples: samples,
+          fillValue: fillValue,
+          pool: getWorkerPool(),
+          interleave: false,
+        }).then((data) => {
+          if (!this.normalize_) {
+            return data;
+          }
+
+          const pixelCount = width * height;
+          const bandCount = data.length;
+          const result = new Uint8Array(pixelCount * bandCount);
+
+          for (let bandIndex = 0; bandIndex < bandCount; ++bandIndex) {
+            const band = data[bandIndex];
+            
+            let min = this.min_;
+            let max = this.max_;
+            
+            if (min === undefined || max === undefined) {
+              const stats = image.getGDALMetadata();
+              if (min === undefined) {
+                if (stats && STATISTICS_MINIMUM in stats) {
+                  min = parseFloat(stats[STATISTICS_MINIMUM]);
+                } else {
+                  min = getMinForDataType(band);
+                }
+              }
+              if (max === undefined) {
+                if (stats && STATISTICS_MAXIMUM in stats) {
+                  max = parseFloat(stats[STATISTICS_MAXIMUM]);
+                } else {
+                  max = getMaxForDataType(band);
+                }
+              }
+            }
+
+            const gain = 255 / (max - min);
+            const bias = -min * gain;
+
+            for (let i = 0; i < pixelCount; ++i) {
+              result[i * bandCount + bandIndex] = clamp(gain * band[i] + bias, 0, 255);
+            }
+          }
+
+          return result;
+        });
+      });
+    }).catch((error) => {
+      console.error(error);
+      return null;
+    });
+  }
+
+  /**
+   * @param {Array<number>} tileCoord Tile coordinate.
+   * @return {string} Source URL for the tile.
+   * @private
+   */
+  getSourceUrl_(tileCoord) {
+    const [z, x, y] = tileCoord;
+    return this.url_
+      .replace('{z}', z.toString())
+      .replace('{x}', x.toString())
+      .replace('{y}', y.toString())
+      .replace('{-y}', (-y).toString());
+  }
+}
+
+export default GeoTIFFSource;
+export {GeoTIFFPyramid};
+>>>>>>> REPLACE
+```
+
+This implementation creates a new `GeoTIFFPyramid` class that:
+
+1. Takes a URL template and tile grid as input
+2. Loads GeoTIFF files on demand based on the template
+3. Processes each tile individually, avoiding the need for multiple WebGL contexts
+4. Supports the same normalization, band selection, and other options as the original GeoTIFF source
+5. Caches loaded GeoTIFF files to improve performance
+
+The class is exported alongside the original `GeoTIFFSource` class, allowing users to choose the appropriate implementation for their needs.

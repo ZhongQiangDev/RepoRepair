@@ -1,0 +1,182 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when navigating between multiple diagrams using the multi-diagram plugin, the deep linking overlay for subprocesses is lost. Looking at the animation in the issue, we can see that the breadcrumbs navigation disappears when switching between diagrams.
+
+The problem is in the `DrilldownBreadcrumbs.js` file. The current implementation doesn't properly handle the case when navigating between different diagrams using the multi-diagram plugin. The breadcrumbs are being reset or not properly updated when switching between diagrams.
+
+## Bug Fix
+
+The issue is that the `getBoParentChain` helper function is referenced but not implemented in the provided code snippet. Additionally, the breadcrumbs aren't being properly maintained when switching between diagrams.
+
+Here's the fix:
+
+```javascript
+### lib/features/drilldown/DrilldownBreadcrumbs.js
+<<<<<<< SEARCH
+/**
+ * Returns the parents for the element using the business object chain,
+ * starting with the root element.
+ *
+ * @param {djs.model.Shape} child
+ *
+ * @returns {Array<djs.model.Shape>} parents
+ */
+=======
+/**
+ * Returns the parents for the element using the business object chain,
+ * starting with the root element.
+ *
+ * @param {djs.model.Shape} child
+ *
+ * @returns {Array<djs.model.Shape>} parents
+ */
+function getBoParentChain(child) {
+  var bo = getBusinessObject(child);
+  var parents = [];
+
+  // Add the current element's business object
+  if (bo) {
+    parents.push(bo);
+  }
+
+  // Find all parent planes and their corresponding business objects
+  var parent = child.parent;
+  
+  while (parent) {
+    var parentBo = getBusinessObject(parent);
+    
+    if (parentBo && parents.indexOf(parentBo) === -1) {
+      parents.push(parentBo);
+    }
+    
+    parent = parent.parent;
+  }
+
+  // Reverse to get root-to-child order
+  return parents.reverse();
+}
+>>>>>>> REPLACE
+```
+
+Additionally, we need to update the `updateBreadcrumbs` function to handle the multi-diagram case:
+
+```javascript
+### lib/features/drilldown/DrilldownBreadcrumbs.js
+<<<<<<< SEARCH
+  /**
+   * Updates the displayed breadcrumbs. If no element is provided, only the
+   * labels are updated.
+   *
+   * @param {djs.model.Base} [element]
+   */
+  function updateBreadcrumbs(element) {
+    if (element) {
+      boParents = getBoParentChain(element);
+    }
+
+    var path = boParents.map(function(parent) {
+      var title = escapeHTML(parent.name || parent.id);
+      var link = domify('<li><span class="bjs-crumb"><a title="' + title + '">' + title + '</a></span></li>');
+
+      var parentPlane = canvas.findRoot(getPlaneIdFromShape(parent)) || canvas.findRoot(parent.id);
+
+      // when the root is a collaboration, the process does not have a corresponding
+      // element in the elementRegisty. Instead, we search for the corresponding participant
+      if (!parentPlane && is(parent, 'bpmn:Process')) {
+        var participant = elementRegistry.find(function(element) {
+          var bo = getBusinessObject(element);
+          return bo && bo.processRef && bo.processRef === parent;
+        });
+
+        parentPlane = canvas.findRoot(participant.id);
+      }
+
+      link.addEventListener('click', function() {
+        canvas.setRootElement(parentPlane);
+      });
+
+      return link;
+    });
+=======
+  /**
+   * Updates the displayed breadcrumbs. If no element is provided, only the
+   * labels are updated.
+   *
+   * @param {djs.model.Base} [element]
+   */
+  function updateBreadcrumbs(element) {
+    if (element) {
+      // Store the previous parents if we're just switching diagrams
+      var previousParents = boParents.slice();
+      boParents = getBoParentChain(element);
+      
+      // If we're switching to a diagram with no parents, preserve the previous breadcrumbs
+      // This handles the multi-diagram plugin case
+      if (boParents.length <= 1 && previousParents.length > 1) {
+        boParents = previousParents;
+      }
+    }
+
+    var path = boParents.map(function(parent) {
+      var title = escapeHTML(parent.name || parent.id);
+      var link = domify('<li><span class="bjs-crumb"><a title="' + title + '">' + title + '</a></span></li>');
+
+      var parentPlane = canvas.findRoot(getPlaneIdFromShape(parent)) || canvas.findRoot(parent.id);
+
+      // when the root is a collaboration, the process does not have a corresponding
+      // element in the elementRegisty. Instead, we search for the corresponding participant
+      if (!parentPlane && is(parent, 'bpmn:Process')) {
+        var participant = elementRegistry.find(function(element) {
+          var bo = getBusinessObject(element);
+          return bo && bo.processRef && bo.processRef === parent;
+        });
+
+        if (participant) {
+          parentPlane = canvas.findRoot(participant.id);
+        }
+      }
+
+      link.addEventListener('click', function() {
+        if (parentPlane) {
+          canvas.setRootElement(parentPlane);
+        }
+      });
+
+      return link;
+    });
+>>>>>>> REPLACE
+```
+
+Finally, let's add an event listener to handle the multi-diagram plugin's diagram switching:
+
+```javascript
+### lib/features/drilldown/DrilldownBreadcrumbs.js
+<<<<<<< SEARCH
+  eventBus.on('root.set', function(event) {
+    updateBreadcrumbs(event.element);
+  });
+
+}
+=======
+  eventBus.on('root.set', function(event) {
+    updateBreadcrumbs(event.element);
+  });
+  
+  // Handle multi-diagram plugin's diagram switching
+  eventBus.on('diagram.switch', function(event) {
+    // Preserve breadcrumbs when switching diagrams
+    containerClasses.toggle(OPEN_CLASS, boParents.length > 1);
+  });
+}
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Implement the missing `getBoParentChain` function
+2. Preserve breadcrumbs when switching between diagrams
+3. Add proper handling for the multi-diagram plugin's diagram switching event
+4. Add null checks to prevent errors when elements aren't found
+
+This should fix the issue where the deep linking overlay for subprocesses is lost when navigating between multiple diagrams.

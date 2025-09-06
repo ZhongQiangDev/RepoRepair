@@ -1,0 +1,69 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that user timing marks are showing negative numbers. Specifically, the screenshot shows two marks (`mark_features_unveil_start` and `mark_features_loaded_start`) with negative timestamps (`-184.69ms` and `-184.53ms`), which is unexpected as timestamps should generally be non-negative relative to the navigation start time.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The negative timestamps likely indicate an issue with the normalization process of the user timing events. The timestamps are supposed to be adjusted relative to the `navigationStartTime`, but it seems that this adjustment is not being applied correctly, or the `navigationStartTime` is not being set properly. This could be due to:
+
+- Incorrect identification of the `navigationStart` event.
+- Incorrect calculation or assignment of `navigationStartTime`.
+- Issues in the normalization logic where the start times of the events are not being adjusted correctly relative to `navigationStartTime`.
+
+### 3. Examine Each File One by One
+
+#### lighthouse-core/audits/user-timings.js
+
+This file contains the `filterTrace` function and the `UserTimings` class, both of which are directly involved in processing and normalizing user timing events. Therefore, this file is highly relevant to the issue.
+
+```
+lighthouse-core/audits/user-timings.js
+function: filterTrace
+class: UserTimings
+```
+
+#### lighthouse-core/formatters/user-timings.js
+
+This file contains the `UserTimings` class, which is responsible for formatting the user timing events. While formatting is important for display, it is less likely to be the cause of the negative timestamps. However, it is still relevant as it processes the events after they have been normalized.
+
+```
+lighthouse-core/formatters/user-timings.js
+class: UserTimings
+```
+
+#### lighthouse-core/lib/event-helpers.js
+
+This file contains functions related to event listeners and code snippets, which are not directly related to user timing events or their normalization. Therefore, this file is not relevant to the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### lighthouse-core/lib/web-inspector.js
+
+This file sets up a mock environment for the `WebInspector` object, which is used for development and testing purposes. It does not directly process user timing events, so it is not relevant to the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### lighthouse-core/lib/traces/tracing-processor.js
+
+This file contains the `TraceProcessor` class, which handles trace data initialization and analysis. While it processes trace data, the specific issue with user timing marks is more likely related to the normalization logic in `user-timings.js`. Therefore, this file is not directly relevant to the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+### Summary of Relevant Locations
+
+The relevant locations that need inspection or editing to fix the problem are:
+
+```
+lighthouse-core/audits/user-timings.js
+function: filterTrace
+class: UserTimings
+
+lighthouse-core/formatters/user-timings.js
+class: UserTimings
+```

@@ -1,0 +1,38 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that the offline pass doesn't always correctly detect offline status. According to the issue description:
+
+1. When running Lighthouse on bhphotovideo.com, it reports that the start URL doesn't load offline but the current page does.
+2. During the offline pass, the desktop version of the page is loaded, and network requests show `fromServiceWorker` and `fromDiskCache` flags as `false`.
+3. This shouldn't be possible when offline - if truly offline, the page should either fail to load or be served from the service worker/cache.
+
+Looking at the code in `start-url.js`, the issue is in the `_attemptStartURLFetch` method. The current implementation only considers a request successful if it's served by a service worker (`response.fromServiceWorker`). However, in offline mode, content can also be served from the browser cache (`response.fromDiskCache`), which is a valid offline response.
+
+## Fix
+
+We need to modify the `_attemptStartURLFetch` method to consider responses from disk cache as valid offline responses as well:
+
+```javascript
+### lighthouse-core/gather/gatherers/start-url.js
+<<<<<<< SEARCH
+        if (!response.fromServiceWorker) {
+          return resolve({
+            statusCode: -1,
+            explanation: 'Unable to fetch start URL via service worker.',
+          });
+        }
+        // Successful SW-served fetch of the start_URL
+=======
+        if (!response.fromServiceWorker && !response.fromDiskCache) {
+          return resolve({
+            statusCode: -1,
+            explanation: 'Unable to fetch start URL via service worker or cache.',
+          });
+        }
+        // Successful SW-served or cache-served fetch of the start_URL
+>>>>>>> REPLACE
+```
+
+This change will make the test pass if the start URL is served either from a service worker or from disk cache, both of which are valid ways to serve content when offline.

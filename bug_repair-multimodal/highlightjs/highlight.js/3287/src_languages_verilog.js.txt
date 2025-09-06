@@ -1,0 +1,61 @@
+I'll analyze the issue and provide a fix.
+
+The issue is in the Verilog language definition where the `meta` scope is incorrectly defined. Currently, it treats everything from a backquote (`` ` ``) to the end of line as a `meta` scope, which prevents proper highlighting of comments and code after macros.
+
+Looking at the code, the problem is in the `meta` class definition where it has:
+```javascript
+{
+  className: 'meta',
+  begin: '`',
+  end: '$',
+  // ...
+}
+```
+
+The `end: '$'` means it captures everything until the end of the line. This is incorrect for Verilog, as backquotes are used for macro references (like `` `CONSTANT``) and should only capture the macro name, not the entire line.
+
+Here's the fix:
+
+```javascript
+### src/languages/verilog.js
+<<<<<<< SEARCH
+      {
+        className: 'meta',
+        begin: '`',
+        end: '$',
+        keywords: {
+          keyword:
+            'define __FILE__ ' +
+            '__LINE__ begin_keywords celldefine default_nettype define ' +
+            'else elsif end_keywords endcelldefine endif ifdef ifndef ' +
+            'include line nounconnected_drive pragma resetall timescale ' +
+            'unconnected_drive undef undefineall'
+        },
+        relevance: 0
+      }
+=======
+      {
+        className: 'meta',
+        begin: '`',
+        end: '\\b',
+        keywords: {
+          keyword:
+            'define __FILE__ ' +
+            '__LINE__ begin_keywords celldefine default_nettype define ' +
+            'else elsif end_keywords endcelldefine endif ifdef ifndef ' +
+            'include line nounconnected_drive pragma resetall timescale ' +
+            'unconnected_drive undef undefineall'
+        },
+        contains: [
+          hljs.C_LINE_COMMENT_MODE
+        ],
+        relevance: 0
+      }
+>>>>>>> REPLACE
+```
+
+This change:
+1. Changes the `end` pattern from `$` (end of line) to `\\b` (word boundary), so it only captures the macro name
+2. Adds `contains: [hljs.C_LINE_COMMENT_MODE]` to properly highlight comments within the meta scope
+
+This will fix the issue where comments and code after macros weren't being properly highlighted.

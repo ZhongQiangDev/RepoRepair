@@ -1,0 +1,26 @@
+Based on the GitHub problem description and the provided information, I'll analyze the wrong behaviors and their causes:
+
+### Answer 1
+**Wrong Behavior**: Application crashes with "illegal invocation" error when deleting an element during direct editing
+**Cause**: The command stack is attempting to execute an element.updateLabel action on an element that no longer exists in the diagram, creating a race condition between the deletion command and the label update command
+
+### Answer 2
+**Wrong Behavior**: Direct editing context is not properly cleaned up when element is deleted
+**Cause**: The direct editing module doesn't properly handle the case where the target element is removed while editing is active, leading to dangling references and subsequent errors
+
+### Answer 3
+**Wrong Behavior**: Command stack execution order issue
+**Cause**: The element deletion command is being processed before the label editing completion command can finish, causing the label update to fail as it tries to reference the now-deleted element
+
+### Answer 4
+**Wrong Behavior**: Missing validation check for element existence
+**Cause**: The label editing provider doesn't verify if the target element still exists in the diagram before attempting to update its label
+
+### Conclusion
+**Summary**: The core issue stems from improper handling of concurrent operations - specifically element deletion during active direct editing. This manifests in multiple related problems: command stack execution conflicts, incomplete cleanup of the direct editing context, and missing validation checks. The main fix would likely involve:
+1. Adding proper cleanup handlers for the direct editing context when elements are deleted
+2. Implementing validation checks for element existence before label updates
+3. Ensuring proper command stack execution order or adding safeguards against conflicting operations
+4. Potentially implementing a cancellation mechanism for ongoing direct edits when element deletion is initiated
+
+The solution would need to address both the timing/race condition issues and add proper error handling to prevent the application from crashing in such scenarios.

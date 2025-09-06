@@ -1,0 +1,57 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when creating a new task from an existing one, the diagram contains an illegal `waypoints` property on a `sequenceFlow` element in the XML. The waypoints are being serialized as the string "[object Object],[object Object],[object Object],[object Object]" instead of being properly handled.
+
+Looking at the code, the problem is likely in how waypoints are being processed. The `getWaypoints` function in `lib/import/BpmnImporter.js` correctly maps waypoints to objects with x and y properties, but there seems to be an issue with how these waypoints are being serialized when exporting the diagram.
+
+Since we're not seeing the export code in the provided snippets, the issue is likely that the waypoints array is being directly assigned to an attribute in the XML, causing JavaScript to convert the array of objects to a string using their default toString() method, which results in "[object Object],[object Object],...".
+
+## Fix
+
+The fix would be to ensure that waypoints are not directly serialized as an XML attribute. Instead, they should be properly handled during the export process or not included in the XML at all if they're only used for rendering purposes.
+
+Since we don't have the complete code, I'll make an educated guess about where the issue might be. The problem is likely in how connection properties are being handled during export.
+
+```javascript
+### lib/import/BpmnImporter.js
+<<<<<<< SEARCH
+function getWaypoints(bo, source, target) {
+
+  var waypoints = bo.di.waypoint;
+
+  if (!waypoints || waypoints.length < 2) {
+    return [ getMid(source), getMid(target) ];
+  }
+
+  return waypoints.map(function(p) {
+    return { x: p.x, y: p.y };
+  });
+}
+=======
+function getWaypoints(bo, source, target) {
+
+  var waypoints = bo.di.waypoint;
+
+  if (!waypoints || waypoints.length < 2) {
+    return [ getMid(source), getMid(target) ];
+  }
+
+  return waypoints.map(function(p) {
+    return { x: p.x, y: p.y };
+  });
+}
+
+// ensure waypoints is not serialized as an attribute
+getWaypoints.$$serializable = false;
+>>>>>>> REPLACE
+```
+
+However, this might not be the complete solution since we don't have the full context of how the export is implemented. The issue might be in the export code that's not shown here.
+
+Another possibility is that there's a direct assignment of waypoints to the sequenceFlow element somewhere in the codebase. Without seeing more code, it's difficult to pinpoint the exact location of the bug.
+
+The most likely scenario is that during the creation of a new task from an existing one, the waypoints array is being directly assigned to the sequenceFlow element as an attribute, rather than being properly handled as child elements or being excluded from serialization.
+
+If you could provide more code, especially related to the export functionality or how connections are created/modified, I could provide a more precise fix.

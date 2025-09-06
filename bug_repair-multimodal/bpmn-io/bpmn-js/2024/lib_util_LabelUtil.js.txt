@@ -1,0 +1,65 @@
+I'll analyze the issue and provide a fix for the vertical pool/lane label rendering problem.
+
+## Issue Analysis
+
+The issue is about incorrectly rendering labels for vertical pools in BPMN diagrams. When a pool is marked as vertical (`isHorizontal="false"`), the labels are still positioned as if the pool was horizontal, causing incorrect rendering.
+
+Looking at the code in `LabelUtil.js`, I can see that the `getExternalLabelMid` function doesn't account for the orientation of pools when calculating the label position. For vertical pools, we need to adjust the label positioning logic.
+
+## Fix
+
+We need to modify the `getExternalLabelMid` function to check if a pool/lane is vertical and adjust the label position accordingly.
+
+```javascript
+### lib/util/LabelUtil.js
+<<<<<<< SEARCH
+export function getExternalLabelMid(element) {
+
+  if (element.waypoints) {
+    return getFlowLabelPosition(element.waypoints);
+  } else if (is(element, 'bpmn:Group')) {
+    return {
+      x: element.x + element.width / 2,
+      y: element.y + DEFAULT_LABEL_SIZE.height / 2
+    };
+  } else {
+    return {
+      x: element.x + element.width / 2,
+      y: element.y + element.height + DEFAULT_LABEL_SIZE.height / 2
+    };
+  }
+}
+=======
+export function getExternalLabelMid(element) {
+
+  if (element.waypoints) {
+    return getFlowLabelPosition(element.waypoints);
+  } else if (is(element, 'bpmn:Group')) {
+    return {
+      x: element.x + element.width / 2,
+      y: element.y + DEFAULT_LABEL_SIZE.height / 2
+    };
+  } else if (is(element, 'bpmn:Participant') || is(element, 'bpmn:Lane')) {
+    // Check if the pool/lane is vertical
+    if (element.isHorizontal === false) {
+      return {
+        x: element.x - DEFAULT_LABEL_SIZE.width / 2,
+        y: element.y + element.height / 2
+      };
+    } else {
+      return {
+        x: element.x + element.width / 2,
+        y: element.y + element.height + DEFAULT_LABEL_SIZE.height / 2
+      };
+    }
+  } else {
+    return {
+      x: element.x + element.width / 2,
+      y: element.y + element.height + DEFAULT_LABEL_SIZE.height / 2
+    };
+  }
+}
+>>>>>>> REPLACE
+```
+
+This fix adds a specific check for Participants (pools) and Lanes. If they are marked as vertical (`isHorizontal === false`), it positions the label to the left of the element instead of below it. This should correctly render the labels for vertical pools and lanes.

@@ -1,0 +1,74 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is that on smaller screens, the batch actions in the DataTable component are being cut off, making the first few items inaccessible. This happens because there's no proper handling for overflow content in the batch actions area.
+
+Looking at the code, I can see that the `TableBatchActions` component renders the actions inside a `TableActionList` component, but there's no mechanism to ensure these actions are scrollable when they overflow on smaller screens.
+
+## Solution
+
+We need to add CSS styling to make the batch actions container horizontally scrollable when the content overflows. This will allow users to access all actions on smaller screens.
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/DataTable/TableBatchActions.js
+<<<<<<< SEARCH
+  return (
+    <div
+      {...rest}
+      aria-hidden={!shouldShowBatchActions}
+      className={batchActionsClasses}>
+      <div className={`${prefix}--batch-summary`}>
+        <p className={`${prefix}--batch-summary__para`}>
+          <span>
+            {totalSelected > 1 || totalSelected === 0
+              ? t('carbon.table.batch.items.selected', { totalSelected })
+              : t('carbon.table.batch.item.selected', { totalSelected })}
+          </span>
+        </p>
+      </div>
+      <TableActionList>
+        {children}
+        <Button
+          className={`${prefix}--batch-summary__cancel`}
+          tabIndex={shouldShowBatchActions ? 0 : -1}
+          onClick={onCancel}>
+          {t('carbon.table.batch.cancel')}
+        </Button>
+      </TableActionList>
+    </div>
+=======
+  return (
+    <div
+      {...rest}
+      aria-hidden={!shouldShowBatchActions}
+      className={batchActionsClasses}>
+      <div className={`${prefix}--batch-summary`}>
+        <p className={`${prefix}--batch-summary__para`}>
+          <span>
+            {totalSelected > 1 || totalSelected === 0
+              ? t('carbon.table.batch.items.selected', { totalSelected })
+              : t('carbon.table.batch.item.selected', { totalSelected })}
+          </span>
+        </p>
+      </div>
+      <div className={`${prefix}--batch-actions-wrapper`} style={{ overflowX: 'auto', display: 'flex' }}>
+        <TableActionList>
+          {children}
+          <Button
+            className={`${prefix}--batch-summary__cancel`}
+            tabIndex={shouldShowBatchActions ? 0 : -1}
+            onClick={onCancel}>
+            {t('carbon.table.batch.cancel')}
+          </Button>
+        </TableActionList>
+      </div>
+    </div>
+>>>>>>> REPLACE
+```
+
+This fix wraps the `TableActionList` in a div with the class `${prefix}--batch-actions-wrapper` and applies inline styles for `overflowX: 'auto'` and `display: 'flex'`. This ensures that when the batch actions don't fit on smaller screens, users can scroll horizontally to access all actions.
+
+The `display: 'flex'` property helps maintain the layout while allowing for horizontal scrolling. This solution addresses the issue by making all batch actions accessible on smaller screens through horizontal scrolling.

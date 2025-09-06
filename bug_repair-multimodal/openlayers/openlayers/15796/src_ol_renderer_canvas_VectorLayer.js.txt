@@ -1,0 +1,24 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that VectorLayers with both `declutter` and `opacity < 1` don't clear between renders, causing a visual artifact where previous renders remain visible when panning the map.
+
+Looking at the code, I can see that the `renderFrame` method in `CanvasVectorLayerRenderer` handles the rendering process. When opacity is less than 1, it creates a temporary canvas context in `setDrawContext_()` and then draws this onto the target context with the specified opacity in `resetDrawContext_()`.
+
+The bug appears to be that when decluttering is enabled, the `resetDrawContext_()` method isn't being called in some cases, specifically when `frameState.declutter` is truthy. This causes the temporary canvas to not be properly composited back to the main canvas with the correct opacity.
+
+## Fix
+
+```javascript
+### src/ol/renderer/canvas/VectorLayer.js
+<<<<<<< SEARCH
+    if (!frameState.declutter) {
+      this.resetDrawContext_();
+    }
+=======
+    this.resetDrawContext_();
+>>>>>>> REPLACE
+```
+
+This change ensures that `resetDrawContext_()` is always called after rendering, regardless of whether decluttering is enabled. This will properly composite the temporary canvas with the correct opacity back to the main canvas, fixing the issue where previous renders remain visible when panning the map.

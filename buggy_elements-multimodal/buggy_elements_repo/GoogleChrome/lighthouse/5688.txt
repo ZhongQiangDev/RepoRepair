@@ -1,0 +1,56 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior is that Lighthouse does not flag a BMP image (https://homepages.cae.wisc.edu/~ece533/images/sails.bmp) under the "serve images under next gen formats" audit. The expected behavior is for Lighthouse to identify BMP images and recommend serving them in a more efficient format like WebP.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause likely lies in the way Lighthouse identifies and processes image formats during its audit. Specifically, the audit may not be recognizing BMP images as a format that should be flagged for optimization. This could be due to the audit logic not including BMP in its list of legacy formats or not properly handling BMP images when calculating potential savings.
+
+### 3. Examine Each File One by One
+
+#### lighthouse-core/audits/byte-efficiency/uses-optimized-images.js
+```
+lighthouse-core/audits/byte-efficiency/uses-optimized-images.js
+class: UsesOptimizedImages
+```
+This class is relevant because it handles the audit for optimized images. The issue might be in how it processes and identifies BMP images.
+
+#### lighthouse-core/audits/byte-efficiency/uses-webp-images.js
+```
+lighthouse-core/audits/byte-efficiency/uses-webp-images.js
+class: UsesWebPImages
+```
+This class is relevant because it evaluates the efficiency of images by assessing the potential savings if they were converted to WebP format. It might not be handling BMP images correctly.
+
+#### lighthouse-core/config/config.js
+```
+This file contains no relevant functions/classes.
+```
+This file primarily deals with configuration management and validation, which is not directly related to the image audit logic.
+
+#### lighthouse-core/gather/computed/metrics/lantern-speed-index.js
+```
+This file contains no relevant functions/classes.
+```
+This file is related to computing the Lantern Speed Index metric and is not directly involved in image format audits.
+
+#### lighthouse-core/gather/gatherers/dobetterweb/optimized-images.js
+```
+lighthouse-core/gather/gatherers/dobetterweb/optimized-images.js
+function: getOptimizedNumBytes
+class: OptimizedImages
+```
+This file contains functions and a class that are relevant to identifying and optimizing images. The `getOptimizedNumBytes` function and the `OptimizedImages` class might need to be adjusted to properly handle BMP images.
+
+### Summary of Relevant Locations
+```
+lighthouse-core/audits/byte-efficiency/uses-optimized-images.js
+class: UsesOptimizedImages
+
+lighthouse-core/audits/byte-efficiency/uses-webp-images.js
+class: UsesWebPImages
+
+lighthouse-core/gather/gatherers/dobetterweb/optimized-images.js
+function: getOptimizedNumBytes
+class: OptimizedImages
+```

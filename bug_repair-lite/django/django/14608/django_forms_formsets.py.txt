@@ -1,0 +1,38 @@
+Based on the issue description, the bug is that FormSets don't add a `nonform` CSS class for non-form errors, while Forms add a `nonfield` CSS class for non-field errors. This inconsistency makes it harder to style different types of errors distinctly.
+
+The fix needs to be made in the `non_form_errors()` method of the `BaseFormSet` class, where we should initialize the `ErrorList` with a CSS class similar to how Forms handle non-field errors.
+
+Here's the *SEARCH/REPLACE* edit to fix this:
+
+```python
+### django/forms/formsets.py
+<<<<<<< SEARCH
+    def non_form_errors(self):
+        """
+        Return an ErrorList of errors that aren't associated with a particular
+        form -- i.e., from formset.clean(). Return an empty ErrorList if there
+        are none.
+        """
+        if self._non_form_errors is None:
+            self.full_clean()
+        return self._non_form_errors
+=======
+    def non_form_errors(self):
+        """
+        Return an ErrorList of errors that aren't associated with a particular
+        form -- i.e., from formset.clean(). Return an empty ErrorList if there
+        are none.
+        """
+        if self._non_form_errors is None:
+            self.full_clean()
+        return self.error_class(self._non_form_errors, error_class='nonform')
+>>>>>>> REPLACE
+```
+
+This change:
+1. Keeps the existing functionality of returning non-form errors
+2. Wraps the errors in a new `ErrorList` instance with the `nonform` CSS class
+3. Maintains consistency with how Forms handle non-field errors using the `nonfield` class
+4. Allows developers to style non-form errors distinctly using CSS
+
+The fix follows the same pattern used in Django's Form class for non-field errors, making the behavior consistent across Forms and FormSets.

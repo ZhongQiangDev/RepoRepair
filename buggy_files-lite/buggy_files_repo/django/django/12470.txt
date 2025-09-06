@@ -1,0 +1,31 @@
+I'll analyze the problem and identify the files that need to be edited to fix the issue.
+
+## Problem Analysis
+
+The GitHub problem describes an inheritance issue with model ordering in Django. When a parent model has `ordering = ["-pk"]` in its Meta class, and a child model inherits from it, the child model's query incorrectly uses `ASC` ordering instead of the expected `DESC` ordering that was defined in the parent.
+
+The specific issue is that when querying `Child.objects.all()`, the generated SQL shows:
+```sql
+ORDER BY "myapp_parent"."id" ASC
+```
+
+But since the parent model defined `ordering = ["-pk"]`, it should be:
+```sql
+ORDER BY "myapp_parent"."id" DESC
+```
+
+This suggests that somewhere in Django's inheritance handling, the ordering direction is being lost or incorrectly processed when inherited from a parent model.
+
+## Files Most Related to the Cause
+
+Based on the repository information provided, these are the most relevant files that would need to be edited:
+
+```
+django/db/models/base.py
+django/db/models/options.py
+django/db/models/sql/compiler.py
+django/db/models/query.py
+django/db/models/fields/related.py
+```
+
+The issue is most likely in the inheritance handling of model options (particularly the `ordering` attribute) or in how the SQL compiler translates the ordering specification into an actual SQL query. The `base.py` file contains the core `Model` class and `ModelBase` metaclass which handle inheritance, while `options.py` would contain the `Meta` class processing. The `compiler.py` and `query.py` files handle the translation of model queries into SQL, including ordering clauses.

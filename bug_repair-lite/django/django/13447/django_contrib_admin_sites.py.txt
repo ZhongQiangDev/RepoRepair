@@ -1,0 +1,72 @@
+Based on the issue description, the problem is that the app dictionary in the admin view doesn't include the model class, making it difficult to manipulate the app_list in custom admin views. Additionally, the `_build_app_dict` method needs to be made public since it's used by both index and app_index views.
+
+Here's the fix:
+
+1. Add model class to the model dictionary in `_build_app_dict`
+2. Rename `_build_app_dict` to `build_app_dict` (remove underscore prefix)
+
+Here are the necessary SEARCH/REPLACE edits:
+
+```python
+### django/contrib/admin/sites.py
+<<<<<<< SEARCH
+    def _build_app_dict(self, request, label=None):
+        """
+        Build the app dictionary. The optional `label` parameter filters models
+        of a specific app.
+        """
+=======
+    def build_app_dict(self, request, label=None):
+        """
+        Build the app dictionary. The optional `label` parameter filters models
+        of a specific app.
+        """
+>>>>>>> REPLACE
+```
+
+```python
+### django/contrib/admin/sites.py
+<<<<<<< SEARCH
+            model_dict = {
+                'name': capfirst(model._meta.verbose_name_plural),
+                'object_name': model._meta.object_name,
+                'perms': perms,
+                'admin_url': None,
+                'add_url': None,
+            }
+=======
+            model_dict = {
+                'name': capfirst(model._meta.verbose_name_plural),
+                'object_name': model._meta.object_name,
+                'perms': perms,
+                'admin_url': None,
+                'add_url': None,
+                'model': model,
+            }
+>>>>>>> REPLACE
+```
+
+```python
+### django/contrib/admin/sites.py
+<<<<<<< SEARCH
+        app_dict = self._build_app_dict(request)
+=======
+        app_dict = self.build_app_dict(request)
+>>>>>>> REPLACE
+```
+
+```python
+### django/contrib/admin/sites.py
+<<<<<<< SEARCH
+        app_dict = self._build_app_dict(request, app_label)
+=======
+        app_dict = self.build_app_dict(request, app_label)
+>>>>>>> REPLACE
+```
+
+These changes:
+1. Rename the `_build_app_dict` method to `build_app_dict` to make it public
+2. Add the `model` key to the model dictionary containing the actual model class
+3. Update the calls to `_build_app_dict` to use the new name `build_app_dict`
+
+This will allow custom admin views to access the model class directly through the app list and make the app dictionary building method publicly accessible.

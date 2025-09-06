@@ -1,0 +1,56 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that after drawing a polygon in OpenLayers 5.3.0, the map sometimes can't be dragged anymore. This only happens after ending a drawing (drawend event), and the behavior is inconsistent. The user mentions that rolling back to OpenLayers 4.6.5 fixes the issue.
+
+Looking at the provided code, I notice that the user is using the `altKeyOnly` condition for map dragging. The issue is likely related to how the `altKeyOnly` condition is implemented in OpenLayers 5.3.0.
+
+The problem appears to be in the `altKeyOnly` function in `src/ol/events/condition.js`. When a drawing ends, the event handling might not properly reset or check the state of modifier keys.
+
+## Fix
+
+The issue is likely that the `altKeyOnly` function doesn't properly handle touch events. In the current implementation, it's trying to access properties like `altKey`, `metaKey`, etc. on the original event, but these properties might not exist on touch events, causing unexpected behavior.
+
+Here's the fix:
+
+```javascript
+### src/ol/events/condition.js
+<<<<<<< SEARCH
+/**
+ * Return `true` if only the alt-key is pressed, `false` otherwise (e.g. when
+ * additionally the shift-key is pressed).
+ *
+ * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent Map browser event.
+ * @return {boolean} True if only the alt key is pressed.
+ * @api
+ */
+export const altKeyOnly = function(mapBrowserEvent) {
+  const originalEvent = /** @type {KeyboardEvent|MouseEvent|TouchEvent} */ (mapBrowserEvent.originalEvent);
+  return (
+    originalEvent.altKey &&
+      !(originalEvent.metaKey || originalEvent.ctrlKey) &&
+      !originalEvent.shiftKey);
+};
+=======
+/**
+ * Return `true` if only the alt-key is pressed, `false` otherwise (e.g. when
+ * additionally the shift-key is pressed).
+ *
+ * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent Map browser event.
+ * @return {boolean} True if only the alt key is pressed.
+ * @api
+ */
+export const altKeyOnly = function(mapBrowserEvent) {
+  const originalEvent = /** @type {KeyboardEvent|MouseEvent|TouchEvent} */ (mapBrowserEvent.originalEvent);
+  // Check if the properties exist before accessing them
+  // This handles touch events which may not have these properties
+  return (
+    (originalEvent.altKey === true) &&
+      !((originalEvent.metaKey === true) || (originalEvent.ctrlKey === true)) &&
+      !(originalEvent.shiftKey === true));
+};
+>>>>>>> REPLACE
+```
+
+This fix ensures that we're explicitly checking for `=== true` on each key property, which will handle the case where these properties might be undefined on touch events. This should prevent the issue where the map can't be dragged after drawing a polygon.

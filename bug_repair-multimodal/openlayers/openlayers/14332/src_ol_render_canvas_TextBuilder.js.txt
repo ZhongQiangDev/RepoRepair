@@ -1,0 +1,149 @@
+Looking at the issue description, the problem is with incorrect rendering in vector context of rotated tile layers, specifically affecting stroke width, text scale, and precision of geometry at rotations close to 90 and 270 degrees.
+
+The issue mentions that there's inconsistency between vector contexts of tile and vector layers. Looking at the code in `TextBuilder.js`, I can see potential issues in the `drawChars_` method where stroke width and scaling calculations might not be handling rotations properly.
+
+Let me examine the `drawChars_` method more closely. The issue appears to be in how the stroke width is calculated and applied:
+
+```javascript
+const strokeWidth = strokeState
+  ? (strokeState.lineWidth * Math.abs(textState.scale[0])) / 2
+  : 0;
+```
+
+This calculation uses `Math.abs(textState.scale[0])` which could be problematic when dealing with rotations near 90/270 degrees where the scaling might be applied incorrectly. The issue is that at these rotation angles, the coordinate system transformation can cause the scale to be applied in the wrong direction.
+
+Looking at the instructions being pushed, I can see that the stroke width is being multiplied by `pixelRatio` for the main instructions but not consistently handled for hit detection instructions.
+
+Here's the fix:
+
+```javascript
+### src/ol/render/canvas/TextBuilder.js
+<<<<<<< SEARCH
+  /**
+   * @private
+   * @param {number} begin Begin.
+   * @param {number} end End.
+   */
+  drawChars_(begin, end) {
+    const strokeState = this.textStrokeState_;
+    const textState = this.textState_;
+
+    const strokeKey = this.strokeKey_;
+    const textKey = this.textKey_;
+    const fillKey = this.fillKey_;
+    this.saveTextStates_();
+
+    const pixelRatio = this.pixelRatio;
+    const baseline = TEXT_ALIGN[textState.textBaseline];
+
+    const offsetY = this.textOffsetY_ * pixelRatio;
+    const text = this.text_;
+    const strokeWidth = strokeState
+      ? (strokeState.lineWidth * Math.abs(textState.scale[0])) / 2
+      : 0;
+
+    this.instructions.push([
+      CanvasInstruction.DRAW_CHARS,
+      begin,
+      end,
+      baseline,
+      textState.overflow,
+      fillKey,
+      textState.maxAngle,
+      pixelRatio,
+      offsetY,
+      strokeKey,
+      strokeWidth * pixelRatio,
+      text,
+      textKey,
+      1,
+    ]);
+    this.hitDetectionInstructions.push([
+      CanvasInstruction.DRAW_CHARS,
+      begin,
+      end,
+      baseline,
+      textState.overflow,
+      fillKey,
+      textState.maxAngle,
+      1,
+      offsetY,
+      strokeKey,
+      strokeWidth,
+      text,
+      textKey,
+      1 / pixelRatio,
+    ]);
+  }
+=======
+  /**
+   * @private
+   * @param {number} begin Begin.
+   * @param {number} end End.
+   */
+  drawChars_(begin, end) {
+    const strokeState = this.textStrokeState_;
+    const textState = this.textState_;
+
+    const strokeKey = this.strokeKey_;
+    const textKey = this.textKey_;
+    const fillKey = this.fillKey_;
+    this.saveTextStates_();
+
+    const pixelRatio = this.pixelRatio;
+    const baseline = TEXT_ALIGN[textState.textBaseline];
+
+    const offsetY = this.textOffsetY_ * pixelRatio;
+    const text = this.text_;
+    const strokeWidth = strokeState
+      ? (strokeState.lineWidth * Math.sqrt(Math.abs(textState.scale[0] * textState.scale[1]))) / 2
+      : 0;
+
+    this.instructions.push([
+      CanvasInstruction.DRAW_CHARS,
+      begin,
+      end,
+      baseline,
+      textState.overflow,
+      fillKey,
+      textState.maxAngle,
+      pixelRatio,
+      offsetY,
+      strokeKey,
+      strokeWidth * pixelRatio,
+      text,
+      textKey,
+      1,
+    ]);
+    this.hitDetectionInstructions.push([
+      CanvasInstruction.DRAW_CHARS,
+      begin,
+      end,
+      baseline,
+      textState.overflow,
+      fillKey,
+      textState.maxAngle,
+      1,
+      offsetY,
+      strokeKey,
+      strokeWidth,
+      text,
+      textKey,
+      1 / pixelRatio,
+    ]);
+  }
+>>>>>>> REPLACE
+```
+
+The key change is in the stroke width calculation:
+
+- **Before**: `(strokeState.lineWidth * Math.abs(textState.scale[0])) / 2`
+- **After**: `(strokeState.lineWidth * Math.sqrt(Math.abs(textState.scale[0] * textState.scale[1]))) / 2`
+
+This change addresses the rotation issue by:
+
+1. Using both scale components (`scale[0]` and `scale[1]`) instead of just the x-component
+2. Taking the square root of their product to get a more accurate scaling factor that works correctly at all rotation angles
+3. This ensures that the stroke width scaling is consistent regardless of the rotation angle, fixing the rendering issues at 90° and 270° rotations
+
+The square root of the product of the scale components gives us the geometric mean of the scaling, which provides a rotation-invariant scaling factor that maintains consistent stroke width appearance across all rotation angles.

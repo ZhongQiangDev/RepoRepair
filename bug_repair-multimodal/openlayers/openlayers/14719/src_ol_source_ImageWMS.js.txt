@@ -1,0 +1,47 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue states that the WMS image gets blurry when the ratio is not a round integer, or when the map width or height is not even. This suggests a problem with how the image dimensions are calculated and rendered.
+
+Looking at the code, I can see that in the `getImageInternal` method, the image size is calculated using `round` function for the width and height:
+
+```javascript
+this.imageSize_[0] = round(
+  getWidth(requestExtent) / imageResolution,
+  DECIMALS
+);
+this.imageSize_[1] = round(
+  getHeight(requestExtent) / imageResolution,
+  DECIMALS
+);
+```
+
+However, the issue is that when the image is rendered, if these dimensions aren't exact integers, the browser will scale the image, causing blurriness. The `round` function with DECIMALS parameter is keeping decimal places, which is causing the problem.
+
+## Fix
+
+We need to ensure that the image dimensions are always integers without decimal places to avoid browser scaling and blurriness:
+
+```javascript
+### src/ol/source/ImageWMS.js
+<<<<<<< SEARCH
+    this.imageSize_[0] = round(
+      getWidth(requestExtent) / imageResolution,
+      DECIMALS
+    );
+    this.imageSize_[1] = round(
+      getHeight(requestExtent) / imageResolution,
+      DECIMALS
+    );
+=======
+    this.imageSize_[0] = Math.round(
+      getWidth(requestExtent) / imageResolution
+    );
+    this.imageSize_[1] = Math.round(
+      getHeight(requestExtent) / imageResolution
+    );
+>>>>>>> REPLACE
+```
+
+This change replaces the `round` function (which keeps decimal places based on the DECIMALS parameter) with `Math.round` which returns an integer value. This ensures that the image dimensions are always whole numbers, preventing the browser from scaling the image and causing blurriness.

@@ -1,0 +1,209 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when trying to drill out (navigate back up) after changing the root element. The error message indicates that `rootElement` is required in the `Canvas.setRootElement` method, which is called when clicking on a breadcrumb item to navigate back up.
+
+Looking at the code, I can see that the `DrilldownOverlayBehavior` class handles adding overlays for drill-down functionality, but it doesn't properly handle the case when the root element changes. The issue is that when a user drills into a subprocess and then tries to drill back out, the system doesn't have a proper reference to the parent element.
+
+The problem is that the code doesn't update the drilldown overlays when the root element changes. We need to listen for the 'canvas.viewbox.changed' event, which is fired when the root element changes, and update the overlays accordingly.
+
+## Fix
+
+```javascript
+### lib/features/drilldown/DrilldownOverlayBehavior.js
+<<<<<<< SEARCH
+  eventBus.on('import.done', function() {
+    elementRegistry.filter(function(e) {
+      return self.canDrillDown(e);
+    }).map(function(el) {
+      self.addOverlay(el);
+    });
+  });
+
+}
+=======
+  eventBus.on('import.done', function() {
+    elementRegistry.filter(function(e) {
+      return self.canDrillDown(e);
+    }).map(function(el) {
+      self.addOverlay(el);
+    });
+  });
+
+  // Update overlays when root element changes
+  eventBus.on('canvas.viewbox.changed', function() {
+    elementRegistry.filter(function(e) {
+      return self.canDrillDown(e);
+    }).map(function(el) {
+      self.updateOverlayVisibility(el);
+    });
+  });
+}
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/drilldown/DrilldownOverlayBehavior.js
+<<<<<<< SEARCH
+/**
+ * Updates visibility of the drilldown overlay. If the plane has no elements,
+ * the drilldown will be only shown when the element is selected.
+ *
+ * @param {djs.model.Shape|djs.model.Root} element collapsed shape or root element
+ */
+
+
+=======
+/**
+ * Updates visibility of the drilldown overlay. If the plane has no elements,
+ * the drilldown will be only shown when the element is selected.
+ *
+ * @param {djs.model.Shape|djs.model.Root} element collapsed shape or root element
+ */
+DrilldownOverlayBehavior.prototype.updateDrilldownOverlay = function(element) {
+  if (!element) {
+    return;
+  }
+
+  if (this.canDrillDown(element)) {
+    this.updateOverlayVisibility(element);
+  }
+};
+
+/**
+ * Updates the visibility of an overlay based on whether the plane has elements
+ * 
+ * @param {djs.model.Shape} element
+ */
+DrilldownOverlayBehavior.prototype.updateOverlayVisibility = function(element) {
+  if (!element) {
+    return;
+  }
+
+  var canvas = this._canvas;
+  var overlays = this._overlays;
+  
+  var overlay = overlays.get({ element: element, type: 'drilldown' })[0];
+  
+  if (!overlay) {
+    return;
+  }
+
+  var plane = canvas.findRoot(planeId(element));
+  
+  if (!plane) {
+    return;
+  }
+  
+  // Check if plane has elements
+  var hasElements = plane.children && plane.children.length > 0;
+  
+  // Show overlay if plane has elements
+  if (hasElements) {
+    classes(overlay.html).remove(EMPTY_MARKER);
+  } else {
+    classes(overlay.html).add(EMPTY_MARKER);
+  }
+};
+
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/drilldown/DrilldownOverlayBehavior.js
+<<<<<<< SEARCH
+  button.addEventListener('click', function() {
+    canvas.setRootElement(canvas.findRoot(planeId(element)));
+  });
+=======
+  button.addEventListener('click', function() {
+    var rootElement = canvas.findRoot(planeId(element));
+    if (rootElement) {
+      canvas.setRootElement(rootElement);
+    }
+  });
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/drilldown/DrilldownOverlayBehavior.js
+<<<<<<< SEARCH
+DrilldownOverlayBehavior.prototype.addOverlay = function(element) {
+  var canvas = this._canvas;
+  var overlays = this._overlays;
+
+  var existingOverlays = overlays.get({ element: element, type: 'drilldown' });
+  if (existingOverlays.length) {
+    this.removeOverlay(element);
+  }
+
+  var button = domify('<button class="bjs-drilldown">' + ARROW_DOWN_SVG + '</button>');
+
+  button.addEventListener('click', function() {
+    canvas.setRootElement(canvas.findRoot(planeId(element)));
+  });
+
+  overlays.add(element, 'drilldown', {
+    position: {
+      bottom: -7,
+      right: -8
+    },
+    html: button
+  });
+
+  this.updateOverlayVisibility(element);
+};
+=======
+DrilldownOverlayBehavior.prototype.addOverlay = function(element) {
+  var canvas = this._canvas;
+  var overlays = this._overlays;
+
+  var existingOverlays = overlays.get({ element: element, type: 'drilldown' });
+  if (existingOverlays.length) {
+    this.removeOverlay(element);
+  }
+
+  var button = domify('<button class="bjs-drilldown">' + ARROW_DOWN_SVG + '</button>');
+
+  var self = this;
+  button.addEventListener('click', function() {
+    var rootElement = canvas.findRoot(planeId(element));
+    if (rootElement) {
+      canvas.setRootElement(rootElement);
+      self._eventBus.fire('drilldown.click', { element: element });
+    }
+  });
+
+  overlays.add(element, 'drilldown', {
+    position: {
+      bottom: -7,
+      right: -8
+    },
+    html: button
+  });
+
+  this.updateOverlayVisibility(element);
+};
+
+/**
+ * Remove drilldown overlay from element
+ *
+ * @param {djs.model.Shape} element
+ */
+DrilldownOverlayBehavior.prototype.removeOverlay = function(element) {
+  var overlays = this._overlays;
+  overlays.remove({ element: element, type: 'drilldown' });
+};
+>>>>>>> REPLACE
+```
+
+These changes:
+
+1. Add a listener for 'canvas.viewbox.changed' event to update overlays when the root element changes
+2. Implement the missing `updateDrilldownOverlay` and `updateOverlayVisibility` methods
+3. Add null checks before setting the root element to prevent errors
+4. Implement the missing `removeOverlay` method
+5. Fire a 'drilldown.click' event when a drilldown button is clicked, which can be used by other components to react to drilldown navigation
+
+The main issue was that the code didn't properly handle root element changes and was missing some key methods that were referenced but not implemented. The fix ensures that overlays are properly updated when the root element changes and adds proper error handling.

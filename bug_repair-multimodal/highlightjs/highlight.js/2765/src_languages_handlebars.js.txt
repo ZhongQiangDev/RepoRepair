@@ -1,0 +1,41 @@
+I'll analyze the issue and provide a solution.
+
+The issue is with the Handlebars syntax highlighting for block `if` statements and `else if` conditions. Looking at the screenshot and description, the problem appears to be that the `else if` part is not being properly recognized and highlighted.
+
+The current implementation has a rule for `else` but not for `else if`. When an `else if` appears in the template, only the `else` part is recognized as a keyword, and the rest is treated differently, leading to inconsistent highlighting.
+
+Here's my fix:
+
+```javascript
+### src/languages/handlebars.js
+<<<<<<< SEARCH
+      {
+        className: 'template-tag',
+        begin: /\{\{(?=else\}\})/,
+        end: /\}\}/,
+        keywords: 'else'
+      },
+=======
+      {
+        className: 'template-tag',
+        begin: /\{\{(?=else)/,
+        end: /\}\}/,
+        contains: [
+          {
+            begin: /else\s+if|else/,
+            keywords: 'else if',
+            className: 'name'
+          },
+          HELPER_PARAMETERS
+        ]
+      },
+>>>>>>> REPLACE
+```
+
+This change modifies the rule for the `else` tag to:
+1. Match any tag that starts with `else` (not just exactly `else}}`)
+2. Include proper handling for both `else` and `else if` keywords
+3. Add support for parameters after the `else if` condition
+4. Apply consistent highlighting by using the same className and parameter handling as other blocks
+
+This will ensure that `else if` statements are properly highlighted with the same styling as other Handlebars control structures, and that the parameters following them are also correctly highlighted.

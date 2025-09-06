@@ -1,0 +1,27 @@
+Let me help analyze this issue.
+
+1. Wrong Behavior:
+- The SQLCompiler is incorrectly removing one of the "order by" clauses from a query that uses multiline RawSQL expressions
+- Specifically, when multiple RawSQL expressions have similar last lines, only the first clause is being kept while others are dropped
+
+2. Cause Analysis:
+- The issue occurs in SQLCompiler.get_order_by() where it uses a regex pattern (self.ordering_parts) to detect duplicate ORDER BY clauses
+- When processing multiline SQL, the regex only matches the last line containing ASC/DESC keywords
+- Since multiple RawSQL expressions can have identical last lines (e.g., "else null end"), the compiler wrongly identifies them as duplicates
+- The core issue is that the duplicate detection is only comparing the last line rather than the entire SQL expression
+
+3. Most Related Files:
+```
+django/db/models/sql/compiler.py
+django/db/models/expressions.py
+django/db/models/query.py
+django/db/models/sql/query.py
+django/db/models/lookups.py
+```
+
+These files are ordered by relevance because:
+1. compiler.py contains the SQLCompiler class where the bug exists in get_order_by()
+2. expressions.py defines RawSQL and related expression handling
+3. query.py contains the core QuerySet functionality including ordering
+4. sql/query.py handles SQL query construction and optimization
+5. lookups.py provides support for query operations including ordering

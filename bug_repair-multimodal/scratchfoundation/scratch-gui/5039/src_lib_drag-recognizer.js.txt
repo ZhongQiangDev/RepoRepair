@@ -1,0 +1,101 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when right-clicking on a sprite and then dragging it, the duplicate menu doesn't show up. Instead, the OS's context menu appears. This happens after the sprite has been dragged to another space.
+
+Looking at the code in `drag-recognizer.js`, I can see that the issue is likely related to how right-click events are handled. The current implementation only handles left-click drag events (mouse and touch events), but doesn't properly handle or prevent the default behavior for right-click events.
+
+When a right-click happens, the browser's default context menu appears, which prevents the application's custom duplicate menu from showing. The drag recognizer needs to be updated to handle right-click events and prevent the default browser behavior.
+
+## Fix
+
+We need to modify the `_handleMove` method to prevent the default context menu behavior when right-clicking. We should also add a handler for the `contextmenu` event.
+
+```javascript
+### src/lib/drag-recognizer.js
+<<<<<<< SEARCH
+    _bindListeners () {
+        window.addEventListener('mouseup', this._handleEnd);
+        window.addEventListener('mousemove', this._handleMove);
+        window.addEventListener('touchend', this._handleEnd);
+        // touchmove must be marked as non-passive, or else it cannot prevent scrolling
+        window.addEventListener('touchmove', this._handleMove, {passive: false});
+    }
+
+    _unbindListeners () {
+        window.removeEventListener('mouseup', this._handleEnd);
+        window.removeEventListener('mousemove', this._handleMove);
+        window.removeEventListener('touchend', this._handleEnd);
+        window.removeEventListener('touchmove', this._handleMove, {passive: false});
+    }
+=======
+    _bindListeners () {
+        window.addEventListener('mouseup', this._handleEnd);
+        window.addEventListener('mousemove', this._handleMove);
+        window.addEventListener('touchend', this._handleEnd);
+        // touchmove must be marked as non-passive, or else it cannot prevent scrolling
+        window.addEventListener('touchmove', this._handleMove, {passive: false});
+        // Prevent context menu from appearing during drag operations
+        window.addEventListener('contextmenu', this._handleContextMenu);
+    }
+
+    _unbindListeners () {
+        window.removeEventListener('mouseup', this._handleEnd);
+        window.removeEventListener('mousemove', this._handleMove);
+        window.removeEventListener('touchend', this._handleEnd);
+        window.removeEventListener('touchmove', this._handleMove, {passive: false});
+        window.removeEventListener('contextmenu', this._handleContextMenu);
+    }
+>>>>>>> REPLACE
+```
+
+Now let's add the `_handleContextMenu` method and update the constructor to bind it:
+
+```javascript
+### src/lib/drag-recognizer.js
+<<<<<<< SEARCH
+        bindAll(this, [
+            'start',
+            'gestureInProgress',
+            'reset',
+            '_handleMove',
+            '_handleEnd'
+        ]);
+=======
+        bindAll(this, [
+            'start',
+            'gestureInProgress',
+            'reset',
+            '_handleMove',
+            '_handleEnd',
+            '_handleContextMenu'
+        ]);
+>>>>>>> REPLACE
+```
+
+Finally, let's add the implementation of the `_handleContextMenu` method:
+
+```javascript
+### src/lib/drag-recognizer.js
+<<<<<<< SEARCH
+    _isScroll () {
+        return this._gestureState === DragRecognizer.STATE_SCROLL;
+    }
+}
+=======
+    _isScroll () {
+        return this._gestureState === DragRecognizer.STATE_SCROLL;
+    }
+    
+    _handleContextMenu (event) {
+        // If we're in the middle of a drag operation, prevent the context menu
+        if (this.gestureInProgress() && this._isDrag()) {
+            event.preventDefault();
+        }
+    }
+}
+>>>>>>> REPLACE
+```
+
+These changes will prevent the default context menu from appearing during drag operations, allowing the application's custom duplicate menu to show up when right-clicking and dragging a sprite.

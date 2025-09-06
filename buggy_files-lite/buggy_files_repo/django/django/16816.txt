@@ -1,0 +1,22 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When setting `list_display = ["choice"]` in `QuestionAdmin`, Django raises an `AttributeError` with message "Unable to lookup 'choice' on Question or QuestionAdmin" when visiting `/admin/polls/question/`
+- The error occurs even though no validation error (E108) was raised during startup
+
+2. Cause Analysis:
+- The issue stems from Django's admin validation not catching an invalid field reference in `list_display`
+- The error E108 check is not comprehensive enough to detect when a field name in `list_display` doesn't correspond to an actual field, method, or property on the model
+- The validation should catch this during startup rather than letting it fail at runtime when rendering the admin page
+
+3. Most relevant files (ordered by importance):
+
+```
+django/contrib/admin/checks.py
+django/contrib/admin/utils.py
+django/contrib/admin/helpers.py
+django/contrib/admin/exceptions.py
+django/core/exceptions.py
+```
+
+The `checks.py` file is most important as it contains the validation logic for admin configurations, including E108. The `utils.py` file contains the actual code that raises the runtime error. The helper and exception files provide supporting functionality for admin validation and error handling.

@@ -1,0 +1,149 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about unwanted spacing between lines in multi-line text labels in OpenLayers. When using a newline character (`\n`) in a text label, there's a gap between the lines that the user would like to remove or control.
+
+Looking at the code, I notice that the `Text` class in `src/ol/style/Text.js` doesn't have any property or method to control line spacing or line height. This is a common feature in text rendering systems, but it's missing from the OpenLayers text styling options.
+
+## Solution
+
+We need to add a new property to control the line spacing in the `Text` class. This will allow users to set the spacing between lines, including setting it to 0 to remove the gap completely.
+
+```javascript
+### src/ol/style/Text.js
+<<<<<<< SEARCH
+ * @property {Array<number>} [padding=[0, 0, 0, 0]] Padding in pixels around the text for decluttering and background. The order of
+ * values in the array is `[top, right, bottom, left]`.
+ */
+=======
+ * @property {Array<number>} [padding=[0, 0, 0, 0]] Padding in pixels around the text for decluttering and background. The order of
+ * values in the array is `[top, right, bottom, left]`.
+ * @property {number} [lineHeight=1] Line height for multi-line texts. The value is a multiplier of the font size. Default is 1.
+ */
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/style/Text.js
+<<<<<<< SEARCH
+    /**
+     * @private
+     * @type {Array<number>}
+     */
+    this.padding_ = options.padding === undefined ? null : options.padding;
+=======
+    /**
+     * @private
+     * @type {Array<number>}
+     */
+    this.padding_ = options.padding === undefined ? null : options.padding;
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.lineHeight_ = options.lineHeight !== undefined ? options.lineHeight : 1;
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/style/Text.js
+<<<<<<< SEARCH
+  clone() {
+    return new Text({
+      font: this.getFont(),
+      placement: this.getPlacement(),
+      maxAngle: this.getMaxAngle(),
+      overflow: this.getOverflow(),
+      rotation: this.getRotation(),
+      rotateWithView: this.getRotateWithView(),
+      scale: this.getScale(),
+      text: this.getText(),
+      textAlign: this.getTextAlign(),
+      textBaseline: this.getTextBaseline(),
+      fill: this.getFill() ? this.getFill().clone() : undefined,
+      stroke: this.getStroke() ? this.getStroke().clone() : undefined,
+      offsetX: this.getOffsetX(),
+      offsetY: this.getOffsetY(),
+      backgroundFill: this.getBackgroundFill() ? this.getBackgroundFill().clone() : undefined,
+      backgroundStroke: this.getBackgroundStroke() ? this.getBackgroundStroke().clone() : undefined
+    });
+=======
+  clone() {
+    return new Text({
+      font: this.getFont(),
+      placement: this.getPlacement(),
+      maxAngle: this.getMaxAngle(),
+      overflow: this.getOverflow(),
+      rotation: this.getRotation(),
+      rotateWithView: this.getRotateWithView(),
+      scale: this.getScale(),
+      text: this.getText(),
+      textAlign: this.getTextAlign(),
+      textBaseline: this.getTextBaseline(),
+      fill: this.getFill() ? this.getFill().clone() : undefined,
+      stroke: this.getStroke() ? this.getStroke().clone() : undefined,
+      offsetX: this.getOffsetX(),
+      offsetY: this.getOffsetY(),
+      backgroundFill: this.getBackgroundFill() ? this.getBackgroundFill().clone() : undefined,
+      backgroundStroke: this.getBackgroundStroke() ? this.getBackgroundStroke().clone() : undefined,
+      lineHeight: this.getLineHeight()
+    });
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/style/Text.js
+<<<<<<< SEARCH
+  /**
+   * Set the padding (`[top, right, bottom, left]`).
+   *
+   * @param {!Array<number>} padding Padding.
+   * @api
+   */
+  setPadding(padding) {
+    this.padding_ = padding;
+  }
+=======
+  /**
+   * Set the padding (`[top, right, bottom, left]`).
+   *
+   * @param {!Array<number>} padding Padding.
+   * @api
+   */
+  setPadding(padding) {
+    this.padding_ = padding;
+  }
+
+  /**
+   * Get the line height for the text.
+   * @return {number} Line height.
+   * @api
+   */
+  getLineHeight() {
+    return this.lineHeight_;
+  }
+
+  /**
+   * Set the line height for multi-line texts.
+   *
+   * @param {number} lineHeight Line height.
+   * @api
+   */
+  setLineHeight(lineHeight) {
+    this.lineHeight_ = lineHeight;
+  }
+>>>>>>> REPLACE
+```
+
+These changes add a new `lineHeight` property to the `Text` class with appropriate getters and setters. The default value is 1, which should maintain the current behavior, but users can now set it to 0 to remove the gap between lines or to any other value to control the spacing.
+
+With this change, users can now control the line spacing in their text labels like this:
+
+```javascript
+text: new ol.style.Text({ 
+    text: 3.5 + '\nbar',
+    lineHeight: 0  // No gap between lines
+})
+```

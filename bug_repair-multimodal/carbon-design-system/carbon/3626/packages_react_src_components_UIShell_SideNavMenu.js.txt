@@ -1,0 +1,190 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when the side navigation rail is collapsed, any expanded submenus remain visible, causing unwanted whitespace and visual inconsistencies. According to the requirements:
+
+1. When the rail is collapsed, any expanded submenus should also collapse
+2. The submenu should not show its items when the rail is in collapsed state
+
+Looking at the `SideNavMenu.js` file, I can see that the component doesn't currently have any awareness of the rail's collapsed state. The component needs to:
+
+1. Accept a prop to know when the rail is collapsed
+2. Ensure the submenu is collapsed when the rail is collapsed
+
+## Solution
+
+I'll modify the `SideNavMenu.js` file to add a new prop `isSideNavCollapsed` and update the rendering logic to handle the collapsed state properly.
+
+```javascript
+### packages/react/src/components/UIShell/SideNavMenu.js
+<<<<<<< SEARCH
+  static propTypes = {
+    /**
+     * Provide an optional class to be applied to the containing node
+     */
+    className: PropTypes.string,
+
+    /**
+     * Provide <SideNavMenuItem>'s inside of the `SideNavMenu`
+     */
+    children: PropTypes.node,
+
+    /**
+     * Pass in a custom icon to render next to the `SideNavMenu` title
+     */
+    renderIcon: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
+
+    /**
+     * Specify whether the `SideNavMenu` is "active". `SideNavMenu` should be
+     * considered active if one of its menu items are a link for the current
+     * page.
+     */
+    isActive: PropTypes.bool,
+
+    /**
+     * Provide the text for the overall menu name
+     */
+    title: PropTypes.string.isRequired,
+
+    /**
+     * Specify whether the menu should default to expanded. By default, it will
+     * be closed.
+     */
+    defaultExpanded: PropTypes.bool,
+  };
+=======
+  static propTypes = {
+    /**
+     * Provide an optional class to be applied to the containing node
+     */
+    className: PropTypes.string,
+
+    /**
+     * Provide <SideNavMenuItem>'s inside of the `SideNavMenu`
+     */
+    children: PropTypes.node,
+
+    /**
+     * Pass in a custom icon to render next to the `SideNavMenu` title
+     */
+    renderIcon: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
+
+    /**
+     * Specify whether the `SideNavMenu` is "active". `SideNavMenu` should be
+     * considered active if one of its menu items are a link for the current
+     * page.
+     */
+    isActive: PropTypes.bool,
+
+    /**
+     * Provide the text for the overall menu name
+     */
+    title: PropTypes.string.isRequired,
+
+    /**
+     * Specify whether the menu should default to expanded. By default, it will
+     * be closed.
+     */
+    defaultExpanded: PropTypes.bool,
+
+    /**
+     * Specify if the side nav container is collapsed
+     */
+    isSideNavCollapsed: PropTypes.bool,
+  };
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/UIShell/SideNavMenu.js
+<<<<<<< SEARCH
+  static defaultProps = {
+    defaultExpanded: false,
+    isActive: false,
+  };
+=======
+  static defaultProps = {
+    defaultExpanded: false,
+    isActive: false,
+    isSideNavCollapsed: false,
+  };
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/UIShell/SideNavMenu.js
+<<<<<<< SEARCH
+  render() {
+    const {
+      buttonRef,
+      className: customClassName,
+      children,
+      renderIcon: IconElement,
+      isActive,
+      title,
+    } = this.props;
+    const { isExpanded } = this.state;
+=======
+  render() {
+    const {
+      buttonRef,
+      className: customClassName,
+      children,
+      renderIcon: IconElement,
+      isActive,
+      title,
+      isSideNavCollapsed,
+    } = this.props;
+    const { isExpanded } = this.state;
+    
+    // Force the menu to be collapsed when the side nav is collapsed
+    const menuExpanded = isSideNavCollapsed ? false : isExpanded;
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/UIShell/SideNavMenu.js
+<<<<<<< SEARCH
+        <button
+          aria-haspopup="true"
+          aria-expanded={isExpanded}
+          className={`${prefix}--side-nav__submenu`}
+          onClick={this.handleToggleExpand}
+          ref={buttonRef}
+          type="button">
+=======
+        <button
+          aria-haspopup="true"
+          aria-expanded={menuExpanded}
+          className={`${prefix}--side-nav__submenu`}
+          onClick={this.handleToggleExpand}
+          ref={buttonRef}
+          type="button">
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/UIShell/SideNavMenu.js
+<<<<<<< SEARCH
+        <ul className={`${prefix}--side-nav__menu`} role="menu">
+          {children}
+        </ul>
+=======
+        <ul 
+          className={cx(`${prefix}--side-nav__menu`, {
+            [`${prefix}--side-nav__menu--hidden`]: isSideNavCollapsed || !menuExpanded
+          })} 
+          role="menu">
+          {children}
+        </ul>
+>>>>>>> REPLACE
+```
+
+These changes will:
+
+1. Add a new `isSideNavCollapsed` prop to the component
+2. Force the menu to be collapsed when the side nav is collapsed
+3. Add a CSS class to hide the submenu items when the side nav is collapsed or the menu is not expanded
+
+Note: You'll need to ensure that the parent component passes the `isSideNavCollapsed` prop to the `SideNavMenu` component. Also, you may need to add the corresponding CSS for the `.bx--side-nav__menu--hidden` class if it doesn't already exist.

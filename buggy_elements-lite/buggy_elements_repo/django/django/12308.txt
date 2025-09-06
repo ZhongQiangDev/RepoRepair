@@ -1,0 +1,47 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- JSONField values are displayed as Python dict format instead of valid JSON format in the admin interface when they are readonly
+- For example, {"foo": "bar"} is displayed as {'foo': 'bar'}, which uses single quotes instead of double quotes and is not valid JSON
+
+2. Cause Analysis:
+- The issue appears to be in how readonly JSONFields are handled in the admin interface
+- When a field is readonly, the admin interface uses display_for_field to format the value
+- The current implementation likely directly converts the Python dict to string without proper JSON formatting
+- It should use the JSONField's prepare_value method which would properly format the value as JSON
+
+3. Examining Files for Relevant Functions/Classes:
+
+django/contrib/admin/helpers.py:
+```
+django/contrib/admin/helpers.py
+class: AdminReadonlyField
+```
+This class handles how readonly fields are displayed in the admin interface.
+
+django/contrib/admin/options.py:
+This file contains no relevant functions/classes.
+
+django/contrib/admin/utils.py:
+```
+django/contrib/admin/utils.py
+function: display_for_field
+```
+This function is responsible for formatting field values for display in the admin interface.
+
+django/contrib/postgres/fields/jsonb.py:
+```
+django/contrib/postgres/fields/jsonb.py
+class: JSONField
+```
+This class defines the behavior of JSON fields including how they should be formatted.
+
+django/contrib/postgres/forms/jsonb.py:
+```
+django/contrib/postgres/forms/jsonb.py
+class: JSONField
+function: prepare_value
+```
+This class and function handle JSON field form behavior including value preparation for display.
+
+The issue likely needs to be fixed by modifying how display_for_field handles JSONField values, potentially by calling the field's prepare_value method instead of directly converting the value to string.

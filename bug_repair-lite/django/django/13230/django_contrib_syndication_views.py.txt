@@ -1,0 +1,51 @@
+Based on the issue description, the bug is that the `comments` parameter is not supported in the `feed.add_item()` method call within the syndication framework, even though it's mentioned in the feedparser.
+
+Looking at the code, we need to modify the `Feed` class's `get_feed` method where `feed.add_item()` is called. We should add support for the `item_comments` attribute and pass it through to `add_item()`.
+
+Here's the fix:
+
+```python
+### django/contrib/syndication/views.py
+<<<<<<< SEARCH
+            feed.add_item(
+                title=title,
+                link=link,
+                description=description,
+                unique_id=self._get_dynamic_attr('item_guid', item, link),
+                unique_id_is_permalink=self._get_dynamic_attr(
+                    'item_guid_is_permalink', item),
+                enclosures=enclosures,
+                pubdate=pubdate,
+                updateddate=updateddate,
+                author_name=author_name,
+                author_email=author_email,
+                author_link=author_link,
+                categories=self._get_dynamic_attr('item_categories', item),
+                item_copyright=self._get_dynamic_attr('item_copyright', item),
+                **self.item_extra_kwargs(item)
+            )
+=======
+            feed.add_item(
+                title=title,
+                link=link,
+                description=description,
+                unique_id=self._get_dynamic_attr('item_guid', item, link),
+                unique_id_is_permalink=self._get_dynamic_attr(
+                    'item_guid_is_permalink', item),
+                enclosures=enclosures,
+                pubdate=pubdate,
+                updateddate=updateddate,
+                author_name=author_name,
+                author_email=author_email,
+                author_link=author_link,
+                categories=self._get_dynamic_attr('item_categories', item),
+                item_copyright=self._get_dynamic_attr('item_copyright', item),
+                comments=self._get_dynamic_attr('item_comments', item),
+                **self.item_extra_kwargs(item)
+            )
+>>>>>>> REPLACE
+```
+
+This change adds the `comments` parameter to the `feed.add_item()` call, which gets its value from the `item_comments` attribute through the `_get_dynamic_attr` method. This allows users to define comments directly through the `item_comments` attribute without having to use `item_extra_kwargs`.
+
+The indentation is preserved exactly as in the original file, and the change follows the same pattern as other similar attributes in the method.

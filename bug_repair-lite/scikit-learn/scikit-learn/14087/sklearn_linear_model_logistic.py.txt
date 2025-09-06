@@ -1,0 +1,33 @@
+Based on the issue description and error trace, the bug occurs in the LogisticRegressionCV class when refit=False. The error happens because the code tries to access best_indices[i] for coefs_paths indexing, but the dimensions don't match when using multinomial mode.
+
+The fix needs to handle the multinomial case properly when refit=False by adjusting how the coefficients are averaged across folds.
+
+Here's the fix:
+
+```python
+### sklearn/linear_model/logistic.py
+<<<<<<< SEARCH
+                if self.multi_class == 'ovr':
+                    w = np.mean([coefs_paths[i, best_indices[i], :]
+                                 for i in range(len(folds))], axis=0)
+                else:
+                    w = np.mean([coefs_paths[:, i, best_indices[i], :]
+                                 for i in range(len(folds))], axis=0)
+=======
+                if multi_class == 'ovr':
+                    w = np.mean([coefs_paths[i, best_indices[i], :]
+                                 for i in range(len(folds))], axis=0)
+                else:
+                    w = np.mean([coefs_paths[i, :, best_indices[i], :]
+                                 for i in range(len(folds))], axis=0)
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Changes `self.multi_class` to `multi_class` to be consistent with the rest of the code
+2. Most importantly, fixes the indexing for the multinomial case by using `coefs_paths[i, :, best_indices[i], :]` instead of `coefs_paths[:, i, best_indices[i], :]`
+
+The original code was incorrectly trying to index the first dimension with ':' which caused the "too many indices for array" error. The fix properly indexes the folds first with i, then gets all classes with ':' before applying the best_indices selection.
+
+This matches the shape of coefs_paths which is (n_folds, n_classes, n_Cs, n_features) in the multinomial case.

@@ -1,0 +1,396 @@
+I'll analyze the issue and provide a fix for the graticule display problem when the view projection crosses the dateline.
+
+Looking at the issue description, the problem occurs when the projection crosses the date line (180°/-180° longitude). In this case, most meridians don't appear, and parallels either begin at the dateline or extend too far.
+
+After examining the code, I found the issue in the `getMeridian_` and `getParallel_` methods. The problem is that when the projection crosses the dateline, the meridian and parallel lines need special handling to ensure they're properly displayed across the date line.
+
+Here's my fix:
+
+```javascript
+### src/ol/layer/Graticule.js
+<<<<<<< SEARCH
+  /**
+   * @param {number} lon Longitude.
+   * @param {number} minLat Minimal latitude.
+   * @param {number} maxLat Maximal latitude.
+   * @param {number} squaredTolerance Squared tolerance.
+   * @return {LineString} The meridian line string.
+   * @param {number} index Index.
+   * @private
+   */
+  getMeridian_(lon, minLat, maxLat, squaredTolerance, index) {
+    const flatCoordinates = meridian(lon, minLat, maxLat, this.projection_, squaredTolerance);
+    let lineString = this.meridians_[index];
+    if (!lineString) {
+      lineString = new LineString(flatCoordinates, GeometryLayout.XY);
+      this.meridians_[index] = lineString;
+    } else {
+      lineString.setFlatCoordinates(GeometryLayout.XY, flatCoordinates);
+      lineString.changed();
+    }
+    return lineString;
+  }
+=======
+  /**
+   * @param {number} lon Longitude.
+   * @param {number} minLat Minimal latitude.
+   * @param {number} maxLat Maximal latitude.
+   * @param {number} squaredTolerance Squared tolerance.
+   * @return {LineString} The meridian line string.
+   * @param {number} index Index.
+   * @private
+   */
+  getMeridian_(lon, minLat, maxLat, squaredTolerance, index) {
+    const flatCoordinates = meridian(lon, minLat, maxLat, this.projection_, squaredTolerance);
+    // Check if we have any coordinates
+    if (flatCoordinates.length === 0) {
+      return null;
+    }
+    let lineString = this.meridians_[index];
+    if (!lineString) {
+      lineString = new LineString(flatCoordinates, GeometryLayout.XY);
+      this.meridians_[index] = lineString;
+    } else {
+      lineString.setFlatCoordinates(GeometryLayout.XY, flatCoordinates);
+      lineString.changed();
+    }
+    return lineString;
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/layer/Graticule.js
+<<<<<<< SEARCH
+  /**
+   * @param {number} lat Latitude.
+   * @param {number} minLon Minimal longitude.
+   * @param {number} maxLon Maximal longitude.
+   * @param {number} squaredTolerance Squared tolerance.
+   * @return {LineString} The parallel line string.
+   * @param {number} index Index.
+   * @private
+   */
+  getParallel_(lat, minLon, maxLon, squaredTolerance, index) {
+    const flatCoordinates = parallel(lat, minLon, maxLon, this.projection_, squaredTolerance);
+    let lineString = this.parallels_[index];
+    if (!lineString) {
+      lineString = new LineString(flatCoordinates, GeometryLayout.XY);
+    } else {
+      lineString.setFlatCoordinates(GeometryLayout.XY, flatCoordinates);
+      lineString.changed();
+    }
+    return lineString;
+  }
+=======
+  /**
+   * @param {number} lat Latitude.
+   * @param {number} minLon Minimal longitude.
+   * @param {number} maxLon Maximal longitude.
+   * @param {number} squaredTolerance Squared tolerance.
+   * @return {LineString} The parallel line string.
+   * @param {number} index Index.
+   * @private
+   */
+  getParallel_(lat, minLon, maxLon, squaredTolerance, index) {
+    // When crossing the dateline, we need to use the appropriate min/max longitude
+    // Check if the projection crosses the dateline
+    if (this.projection_.canWrapX() && (maxLon > 180 || minLon < -180)) {
+      // Adjust longitude range to ensure proper rendering across dateline
+      if (maxLon - minLon > 180) {
+        if (minLon < 0) {
+          maxLon = 180;
+        } else {
+          minLon = -180;
+        }
+      }
+    }
+    
+    const flatCoordinates = parallel(lat, minLon, maxLon, this.projection_, squaredTolerance);
+    let lineString = this.parallels_[index];
+    if (!lineString) {
+      lineString = new LineString(flatCoordinates, GeometryLayout.XY);
+    } else {
+      lineString.setFlatCoordinates(GeometryLayout.XY, flatCoordinates);
+      lineString.changed();
+    }
+    return lineString;
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/layer/Graticule.js
+<<<<<<< SEARCH
+  /**
+   * @param {import("../extent.js").Extent} extent Extent.
+   * @param {import("../coordinate.js").Coordinate} center Center.
+   * @param {number} resolution Resolution.
+   * @param {number} squaredTolerance Squared tolerance.
+   * @private
+   */
+  createGraticule_(extent, center, resolution, squaredTolerance) {
+    const interval = this.getInterval_(resolution);
+    if (interval == -1) {
+      this.meridians_.length = 0;
+      this.parallels_.length = 0;
+      if (this.meridiansLabels_) {
+        this.meridiansLabels_.length = 0;
+      }
+      if (this.parallelsLabels_) {
+        this.parallelsLabels_.length = 0;
+      }
+      return;
+    }
+
+    const centerLonLat = this.toLonLatTransform_(center);
+    let centerLon = centerLonLat[0];
+    let centerLat = centerLonLat[1];
+    const maxLines = this.maxLines_;
+    let cnt, idx, lat, lon;
+
+    let validExtent = [
+      Math.max(extent[0], this.minLonP_),
+      Math.max(extent[1], this.minLatP_),
+      Math.min(extent[2], this.maxLonP_),
+      Math.min(extent[3], this.maxLatP_)
+    ];
+
+    validExtent = transformExtent(validExtent, this.projection_, 'EPSG:4326');
+    const maxLat = validExtent[3];
+    const maxLon = validExtent[2];
+    const minLat = validExtent[1];
+    const minLon = validExtent[0];
+
+    // Create meridians
+
+    centerLon = Math.floor(centerLon / interval) * interval;
+    lon = clamp(centerLon, this.minLon_, this.maxLon_);
+
+    idx = this.addMeridian_(lon, minLat, maxLat, squaredTolerance, extent, 0);
+
+    cnt = 0;
+    while (lon != this.minLon_ && cnt++ < maxLines) {
+      lon = Math.max(lon - interval, this.minLon_);
+      idx = this.addMeridian_(lon, minLat, maxLat, squaredTolerance, extent, idx);
+    }
+
+    lon = clamp(centerLon, this.minLon_, this.maxLon_);
+
+    cnt = 0;
+    while (lon != this.maxLon_ && cnt++ < maxLines) {
+      lon = Math.min(lon + interval, this.maxLon_);
+      idx = this.addMeridian_(lon, minLat, maxLat, squaredTolerance, extent, idx);
+    }
+
+    this.meridians_.length = idx;
+    if (this.meridiansLabels_) {
+      this.meridiansLabels_.length = idx;
+    }
+
+    // Create parallels
+
+    centerLat = Math.floor(centerLat / interval) * interval;
+    lat = clamp(centerLat, this.minLat_, this.maxLat_);
+
+    idx = this.addParallel_(lat, minLon, maxLon, squaredTolerance, extent, 0);
+
+    cnt = 0;
+    while (lat != this.minLat_ && cnt++ < maxLines) {
+      lat = Math.max(lat - interval, this.minLat_);
+      idx = this.addParallel_(lat, minLon, maxLon, squaredTolerance, extent, idx);
+    }
+
+    lat = clamp(centerLat, this.minLat_, this.maxLat_);
+
+    cnt = 0;
+    while (lat != this.maxLat_ && cnt++ < maxLines) {
+      lat = Math.min(lat + interval, this.maxLat_);
+      idx = this.addParallel_(lat, minLon, maxLon, squaredTolerance, extent, idx);
+    }
+
+    this.parallels_.length = idx;
+    if (this.parallelsLabels_) {
+      this.parallelsLabels_.length = idx;
+    }
+
+  }
+=======
+  /**
+   * @param {import("../extent.js").Extent} extent Extent.
+   * @param {import("../coordinate.js").Coordinate} center Center.
+   * @param {number} resolution Resolution.
+   * @param {number} squaredTolerance Squared tolerance.
+   * @private
+   */
+  createGraticule_(extent, center, resolution, squaredTolerance) {
+    const interval = this.getInterval_(resolution);
+    if (interval == -1) {
+      this.meridians_.length = 0;
+      this.parallels_.length = 0;
+      if (this.meridiansLabels_) {
+        this.meridiansLabels_.length = 0;
+      }
+      if (this.parallelsLabels_) {
+        this.parallelsLabels_.length = 0;
+      }
+      return;
+    }
+
+    const centerLonLat = this.toLonLatTransform_(center);
+    let centerLon = centerLonLat[0];
+    let centerLat = centerLonLat[1];
+    const maxLines = this.maxLines_;
+    let cnt, idx, lat, lon;
+
+    let validExtent = [
+      Math.max(extent[0], this.minLonP_),
+      Math.max(extent[1], this.minLatP_),
+      Math.min(extent[2], this.maxLonP_),
+      Math.min(extent[3], this.maxLatP_)
+    ];
+
+    validExtent = transformExtent(validExtent, this.projection_, 'EPSG:4326');
+    const maxLat = validExtent[3];
+    const maxLon = validExtent[2];
+    const minLat = validExtent[1];
+    const minLon = validExtent[0];
+
+    // Check if we're crossing the dateline
+    const crossesDateline = this.projection_.canWrapX() && 
+      ((maxLon > 180 && minLon < 180) || (maxLon > -180 && minLon < -180));
+
+    // Create meridians
+    centerLon = Math.floor(centerLon / interval) * interval;
+    lon = clamp(centerLon, this.minLon_, this.maxLon_);
+
+    idx = this.addMeridian_(lon, minLat, maxLat, squaredTolerance, extent, 0);
+
+    cnt = 0;
+    while (lon != this.minLon_ && cnt++ < maxLines) {
+      lon = Math.max(lon - interval, this.minLon_);
+      idx = this.addMeridian_(lon, minLat, maxLat, squaredTolerance, extent, idx);
+    }
+
+    lon = clamp(centerLon, this.minLon_, this.maxLon_);
+
+    cnt = 0;
+    while (lon != this.maxLon_ && cnt++ < maxLines) {
+      lon = Math.min(lon + interval, this.maxLon_);
+      idx = this.addMeridian_(lon, minLat, maxLat, squaredTolerance, extent, idx);
+    }
+
+    // If we cross the dateline, add additional meridians to ensure coverage
+    if (crossesDateline) {
+      // Add meridians on both sides of the dateline
+      lon = -180;
+      while (lon < 180 && cnt++ < maxLines) {
+        idx = this.addMeridian_(lon, minLat, maxLat, squaredTolerance, extent, idx);
+        lon += interval;
+      }
+    }
+
+    this.meridians_.length = idx;
+    if (this.meridiansLabels_) {
+      this.meridiansLabels_.length = idx;
+    }
+
+    // Create parallels
+    centerLat = Math.floor(centerLat / interval) * interval;
+    lat = clamp(centerLat, this.minLat_, this.maxLat_);
+
+    idx = this.addParallel_(lat, minLon, maxLon, squaredTolerance, extent, 0);
+
+    cnt = 0;
+    while (lat != this.minLat_ && cnt++ < maxLines) {
+      lat = Math.max(lat - interval, this.minLat_);
+      idx = this.addParallel_(lat, minLon, maxLon, squaredTolerance, extent, idx);
+    }
+
+    lat = clamp(centerLat, this.minLat_, this.maxLat_);
+
+    cnt = 0;
+    while (lat != this.maxLat_ && cnt++ < maxLines) {
+      lat = Math.min(lat + interval, this.maxLat_);
+      idx = this.addParallel_(lat, minLon, maxLon, squaredTolerance, extent, idx);
+    }
+
+    this.parallels_.length = idx;
+    if (this.parallelsLabels_) {
+      this.parallelsLabels_.length = idx;
+    }
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/layer/Graticule.js
+<<<<<<< SEARCH
+  /**
+   * @param {number} lon Longitude.
+   * @param {number} minLat Minimal latitude.
+   * @param {number} maxLat Maximal latitude.
+   * @param {number} squaredTolerance Squared tolerance.
+   * @param {import("../extent.js").Extent} extent Extent.
+   * @param {number} index Index.
+   * @return {number} Index.
+   * @private
+   */
+  addMeridian_(lon, minLat, maxLat, squaredTolerance, extent, index) {
+    const lineString = this.getMeridian_(lon, minLat, maxLat, squaredTolerance, index);
+    if (intersects(lineString.getExtent(), extent)) {
+      if (this.meridiansLabels_) {
+        const text = this.lonLabelFormatter_(lon);
+        if (index in this.meridiansLabels_) {
+          this.meridiansLabels_[index].text = text;
+        } else {
+          this.meridiansLabels_[index] = {
+            geom: new Point([]),
+            text: text
+          };
+        }
+      }
+      this.meridians_[index++] = lineString;
+    }
+    return index;
+  }
+=======
+  /**
+   * @param {number} lon Longitude.
+   * @param {number} minLat Minimal latitude.
+   * @param {number} maxLat Maximal latitude.
+   * @param {number} squaredTolerance Squared tolerance.
+   * @param {import("../extent.js").Extent} extent Extent.
+   * @param {number} index Index.
+   * @return {number} Index.
+   * @private
+   */
+  addMeridian_(lon, minLat, maxLat, squaredTolerance, extent, index) {
+    const lineString = this.getMeridian_(lon, minLat, maxLat, squaredTolerance, index);
+    if (lineString && intersects(lineString.getExtent(), extent)) {
+      if (this.meridiansLabels_) {
+        const text = this.lonLabelFormatter_(lon);
+        if (index in this.meridiansLabels_) {
+          this.meridiansLabels_[index].text = text;
+        } else {
+          this.meridiansLabels_[index] = {
+            geom: new Point([]),
+            text: text
+          };
+        }
+      }
+      this.meridians_[index++] = lineString;
+    }
+    return index;
+  }
+>>>>>>> REPLACE
+```
+
+These changes address the issue by:
+
+1. Adding a null check in `getMeridian_` to handle cases where no coordinates are returned
+2. Modifying `getParallel_` to handle dateline crossing by adjusting the longitude range
+3. Enhancing `createGraticule_` to detect when the projection crosses the dateline and add additional meridians to ensure proper coverage
+4. Updating `addMeridian_` to check if the lineString is null before trying to use it
+
+These changes will ensure that the graticule displays correctly when the view projection crosses the dateline, showing all meridians and properly handling parallels.

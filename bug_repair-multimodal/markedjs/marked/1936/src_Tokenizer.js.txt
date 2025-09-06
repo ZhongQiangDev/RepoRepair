@@ -1,0 +1,42 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about how spaces are handled in the lexer output when there's a list followed by a paragraph. Currently, the space between the list and the paragraph is being included as part of the last list item, which is not logical. Instead, the space should be a separate node at the first level of the semantic tree, between the List and the Paragraph.
+
+Looking at the code, the problem is in the `list` method of the `Tokenizer` class. When processing list items, the last item is capturing the trailing whitespace that should actually be a separate space token between the list and the following paragraph.
+
+## Solution
+
+We need to modify the `list` method to:
+1. Detect if there's trailing whitespace after the list
+2. Remove that whitespace from the list's raw content
+3. Return the whitespace as a separate token
+
+Here's the fix:
+
+```javascript
+### src/Tokenizer.js
+<<<<<<< SEARCH
+      return list;
+    }
+  }
+=======
+      // Check for trailing whitespace
+      const trailingSpace = raw.match(/\n+$/);
+      if (trailingSpace) {
+        list.raw = list.raw.slice(0, -trailingSpace[0].length);
+        const spaceToken = {
+          type: 'space',
+          raw: trailingSpace[0]
+        };
+        return [list, spaceToken];
+      }
+      
+      return list;
+    }
+  }
+>>>>>>> REPLACE
+```
+
+This change detects if there's trailing whitespace after the list, removes it from the list's raw content, and returns both the list token and a separate space token. The parser will then handle these as separate entities, placing the space between the list and the following paragraph in the semantic tree.

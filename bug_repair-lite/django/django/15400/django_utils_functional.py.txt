@@ -1,0 +1,44 @@
+Based on the issue description, the bug is that `SimpleLazyObject` is missing the `__radd__` implementation, which is needed for reverse addition operations (when the lazy object is on the right side of the + operator).
+
+The fix needs to be added to the `SimpleLazyObject` class in django/utils/functional.py. Here's the *SEARCH/REPLACE* edit to implement the `__radd__` method as suggested in the issue:
+
+```python
+### django/utils/functional.py
+<<<<<<< SEARCH
+    def __deepcopy__(self, memo):
+        if self._wrapped is empty:
+            # We have to use SimpleLazyObject, not self.__class__, because the
+            # latter is proxied.
+            result = SimpleLazyObject(self._setupfunc)
+            memo[id(self)] = result
+            return result
+        return copy.deepcopy(self._wrapped, memo)
+
+
+=======
+    def __deepcopy__(self, memo):
+        if self._wrapped is empty:
+            # We have to use SimpleLazyObject, not self.__class__, because the
+            # latter is proxied.
+            result = SimpleLazyObject(self._setupfunc)
+            memo[id(self)] = result
+            return result
+        return copy.deepcopy(self._wrapped, memo)
+
+    def __radd__(self, other):
+        if self._wrapped is empty:
+            self._setup()
+        return other + self._wrapped
+
+>>>>>>> REPLACE
+```
+
+This fix adds the `__radd__` method to the `SimpleLazyObject` class, implementing it exactly as suggested in the issue. The implementation:
+
+1. Checks if the wrapped object is not yet initialized
+2. If not initialized, calls `_setup()` to initialize it
+3. Returns the result of adding the other object to the wrapped object
+
+This allows the `SimpleLazyObject` to properly handle cases where it appears on the right side of the + operator, like in expressions such as `5 + lazy_object`.
+
+The indentation matches the class's existing method indentation (8 spaces for method definitions within the class), maintaining consistency with the codebase's style.

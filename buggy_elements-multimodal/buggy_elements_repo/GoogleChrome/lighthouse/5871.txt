@@ -1,0 +1,55 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that the user agent mentioned in the Lighthouse report's runtime settings does not match the actual user agent used in the test requests. This discrepancy is observed in the web server's access logs, where the user agent strings differ from what is reported in the Lighthouse report.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this discrepancy likely lies in how Lighthouse sets and reports the user agent. There might be a mismatch between the user agent string that Lighthouse reports in its runtime settings and the one it actually uses when making HTTP requests to the web server. This could be due to:
+
+- Incorrect configuration or reporting of the user agent in the Lighthouse runtime settings.
+- Different user agent strings being used for different parts of the audit process (e.g., gathering artifacts vs. reporting).
+- An issue with how the user agent is being set or overridden during the emulation process.
+
+### 3. Examine Each File One by One and Determine Relevant Functions/Classes
+
+#### lighthouse-core/config/config.js
+
+This file contains no relevant functions/classes.
+
+#### lighthouse-core/gather/gather-runner.js
+
+```
+lighthouse-core/gather/gather-runner.js
+class: GatherRunner
+```
+
+The `GatherRunner` class is responsible for orchestrating the collection of performance metrics and other artifacts during a Lighthouse audit. It manages the entire lifecycle of a Lighthouse pass, including browser setup, page navigation, gatherer execution, and error handling. The user agent might be set or reported within this class.
+
+#### lighthouse-core/gather/connections/extension.js
+
+This file contains no relevant functions/classes.
+
+#### lighthouse-core/gather/gatherers/chrome-console-messages.js
+
+This file contains no relevant functions/classes.
+
+#### lighthouse-core/lib/emulation.js
+
+```
+lighthouse-core/lib/emulation.js
+function: emulate
+function: enableNexus5X
+```
+
+The `emulate` function is responsible for applying device emulation settings to a web driver, including setting the user agent string. The `enableNexus5X` function configures a browser or emulated environment to mimic a Nexus 5X device, which includes setting the user agent string. These functions could be relevant to the issue of the user agent mismatch.
+
+### Summary of Relevant Locations
+
+```
+lighthouse-core/gather/gather-runner.js
+class: GatherRunner
+
+lighthouse-core/lib/emulation.js
+function: emulate
+function: enableNexus5X
+```

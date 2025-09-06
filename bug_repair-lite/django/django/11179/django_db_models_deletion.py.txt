@@ -1,0 +1,25 @@
+Based on the issue description, the bug is in the `delete()` method of the `Collector` class where it's not properly clearing primary keys for models without dependencies when using fast deletion.
+
+Looking at the code, in the `delete()` method, there's a special case for single object deletion without dependencies that doesn't update the primary key after deletion. We need to modify this section to set the PK to None after the fast deletion.
+
+Here's the fix:
+
+```python
+### django/db/models/deletion.py
+<<<<<<< SEARCH
+            if self.can_fast_delete(instance):
+                with transaction.mark_for_rollback_on_error():
+                    count = sql.DeleteQuery(model).delete_batch([instance.pk], self.using)
+                return count, {model._meta.label: count}
+=======
+            if self.can_fast_delete(instance):
+                with transaction.mark_for_rollback_on_error():
+                    count = sql.DeleteQuery(model).delete_batch([instance.pk], self.using)
+                    setattr(instance, model._meta.pk.attname, None)
+                return count, {model._meta.label: count}
+>>>>>>> REPLACE
+```
+
+This fix adds the line to set the primary key to None after the fast deletion, which matches the behavior that already exists for regular deletions (as seen later in the method where it does `setattr(instance, model._meta.pk.attname, None)` for all other cases).
+
+The fix ensures that even when using fast deletion for a single object without dependencies, the primary key is properly cleared after deletion, maintaining consistent behavior across all deletion scenarios.

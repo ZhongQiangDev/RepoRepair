@@ -1,0 +1,67 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when using stacked line charts in Chart.js, the y-axis always begins at zero, even when the `beginAtZero` option is set to `false`. This behavior is incorrect because it does not respect the `beginAtZero` setting, leading to an inaccurate representation of the data.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how the y-axis scale is configured and updated when dealing with stacked line charts. Specifically, the problem may be related to how the minimum value of the y-axis is determined when stacking is enabled. The `beginAtZero` option should allow the y-axis to start at a value other than zero if the data warrants it, but this is not happening as expected.
+
+### 3. Examine Each File One by One
+
+#### --- src/controllers/controller.line.js ---
+```
+src/controllers/controller.line.js
+function: getStartAndCountOfVisiblePoints
+class: LineController
+```
+The `LineController` class and the `getStartAndCountOfVisiblePoints` function are involved in managing the rendering of line charts. However, they do not directly handle the y-axis scale configuration or the `beginAtZero` option. Therefore, while they are part of the line chart rendering process, they are not directly relevant to the issue.
+
+#### --- src/core/core.datasetController.js ---
+```
+src/core/core.datasetController.js
+function: updateStacks
+function: applyStack
+function: isStacked
+```
+The `updateStacks` function manages the stack values for each data point, which is relevant to stacked charts. The `applyStack` function processes the stack values, and `isStacked` checks if a scale is stacked. These functions are directly involved in the stacking mechanism and could be contributing to the issue.
+
+#### --- src/core/core.scale.js ---
+```
+src/core/core.scale.js
+class: Scale
+function: getUserBounds
+function: _addGrace
+```
+The `Scale` class is responsible for managing scales, including the y-axis scale. The `getUserBounds` function retrieves the user-defined bounds for the scale, which is relevant to the `beginAtZero` option. The `_addGrace` function adjusts the range of values, which could also be relevant to the issue.
+
+#### --- src/helpers/helpers.options.js ---
+```
+This file contains no relevant functions/classes.
+```
+The functions in this file are utility functions for handling options and contexts, but they do not directly manage the y-axis scale or the stacking behavior.
+
+#### --- src/scales/scale.linear.js ---
+```
+src/scales/scale.linear.js
+class: LinearScale
+```
+The `LinearScale` class extends the base linear scale and provides methods for determining data limits and converting between data values and pixel positions. This class is directly responsible for managing the y-axis scale and could be where the issue lies.
+
+### Summary of Relevant Locations
+```
+src/controllers/controller.line.js
+class: LineController
+
+src/core/core.datasetController.js
+function: updateStacks
+function: applyStack
+function: isStacked
+
+src/core/core.scale.js
+class: Scale
+function: getUserBounds
+function: _addGrace
+
+src/scales/scale.linear.js
+class: LinearScale
+```

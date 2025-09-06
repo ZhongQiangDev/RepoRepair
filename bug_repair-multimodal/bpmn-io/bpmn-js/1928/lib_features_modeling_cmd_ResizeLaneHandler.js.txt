@@ -1,0 +1,113 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that an empty pool (which should have a fixed height) is being resized vertically when using the space tool. According to the expected behavior, empty pools should not resize vertically.
+
+Looking at the provided code, we're seeing part of the `ResizeLaneHandler.js` file, which handles resizing of lanes. The issue is likely related to this handler not properly checking if a pool is empty before allowing vertical resizing.
+
+The file is incomplete, but we can see that it's responsible for handling lane resizing. The issue is that the handler is allowing vertical resizing of empty pools, which should be prevented.
+
+## Solution
+
+We need to modify the `ResizeLaneHandler.js` file to check if a pool is empty before allowing vertical resizing. Since the file is incomplete, I'll need to make an educated guess about where to add this check.
+
+The most likely place is in the implementation of the handler's execute method, which is not shown in the provided code. We need to add a check to prevent vertical resizing of empty pools.
+
+Here's my proposed fix:
+
+```javascript
+### lib/features/modeling/cmd/ResizeLaneHandler.js
+<<<<<<< SEARCH
+import { is } from '../../../util/ModelUtil';
+
+import {
+  getLanesRoot,
+  computeLanesResize
+} from '../util/LaneUtil';
+
+import {
+  eachElement
+} from 'diagram-js/lib/util/Elements';
+
+import {
+  asTRBL
+} from 'diagram-js/lib/layout/LayoutUtil';
+
+import {
+  substractTRBL
+} from 'diagram-js/lib/features/resize/ResizeUtil';
+=======
+import { is } from '../../../util/ModelUtil';
+
+import {
+  getLanesRoot,
+  computeLanesResize
+} from '../util/LaneUtil';
+
+import {
+  eachElement
+} from 'diagram-js/lib/util/Elements';
+
+import {
+  asTRBL
+} from 'diagram-js/lib/layout/LayoutUtil';
+
+import {
+  substractTRBL
+} from 'diagram-js/lib/features/resize/ResizeUtil';
+>>>>>>> REPLACE
+```
+
+Since I don't see the actual implementation of the handler's execute method in the provided code, I need to make an educated guess about where to add the check. Let me provide a more complete solution:
+
+```javascript
+### lib/features/modeling/cmd/ResizeLaneHandler.js
+<<<<<<< SEARCH
+ResizeLaneHandler.$inject = [
+  'modeling',
+  'spaceTool'
+];
+=======
+ResizeLaneHandler.$inject = [
+  'modeling',
+  'spaceTool'
+];
+
+/**
+ * Check if the given shape is an empty pool
+ *
+ * @param {Shape} shape
+ * @return {boolean}
+ */
+ResizeLaneHandler.prototype.isEmptyPool = function(shape) {
+  return is(shape, 'bpmn:Participant') && !shape.children.length;
+};
+
+/**
+ * Execute lane resize, ensuring empty pools don't resize vertically
+ */
+ResizeLaneHandler.prototype.execute = function(context) {
+  var shape = context.shape,
+      newBounds = context.newBounds,
+      balanced = context.balanced;
+
+  // Prevent vertical resizing of empty pools
+  if (this.isEmptyPool(shape)) {
+    // Keep the original height for empty pools
+    newBounds.height = shape.height;
+    
+    // Only allow horizontal resizing
+    newBounds.y = shape.y;
+  }
+
+  if (balanced) {
+    return this.resizeBalanced(shape, newBounds);
+  } else {
+    return this.resizeMakeSpace(shape, newBounds);
+  }
+};
+>>>>>>> REPLACE
+```
+
+This solution adds a check to determine if a shape is an empty pool and prevents vertical resizing by maintaining the original height and y-coordinate when the space tool is used on an empty pool.

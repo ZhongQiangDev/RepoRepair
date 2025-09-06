@@ -1,0 +1,33 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, there's a regression in highlighting the `switch` statement in C++ code between versions 10.6.0 and 10.7.0. The `switch` statement is not being highlighted correctly like other control flow statements such as `if`, `while`, and `for`.
+
+Looking at the code, I can see the issue in the `FUNCTION_DISPATCH` section. The regex pattern explicitly excludes `if`, `for`, and `while` from being treated as function calls, but it doesn't exclude `switch`. This means that `switch` statements are being incorrectly matched by the function dispatch rule instead of being highlighted as a keyword.
+
+Here's the fix:
+
+```javascript
+### src/languages/cpp.js
+<<<<<<< SEARCH
+    begin: regex.concat(
+      /\b/,
+      /(?!decltype)/,
+      /(?!if)/,
+      /(?!for)/,
+      /(?!while)/,
+      hljs.IDENT_RE,
+      regex.lookahead(/(<[^<>]+>|)\s*\(/))
+=======
+    begin: regex.concat(
+      /\b/,
+      /(?!decltype)/,
+      /(?!if)/,
+      /(?!for)/,
+      /(?!while)/,
+      /(?!switch)/,
+      hljs.IDENT_RE,
+      regex.lookahead(/(<[^<>]+>|)\s*\(/))
+>>>>>>> REPLACE
+```
+
+This change adds a negative lookahead for `switch` in the regex pattern, ensuring that `switch` statements are not matched by the function dispatch rule and are instead properly highlighted as keywords like the other control flow statements.

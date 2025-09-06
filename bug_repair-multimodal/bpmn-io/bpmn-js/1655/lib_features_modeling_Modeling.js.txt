@@ -1,0 +1,95 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is that when setting the color of elements with external labels using the `modeling.setColor` API, the external label is set to the "fill" color instead of the "stroke" color. This makes the text appear in a light color, which is a UX concern. The expected behavior is that external labels should use the "stroke" color, just like embedded labels do.
+
+The bug is likely in the `SetColorHandler` implementation, which is imported in the provided file but not shown in the code snippet. This handler is responsible for applying the colors to the elements.
+
+Since we don't have the actual implementation of `SetColorHandler`, I'll need to make an educated guess about the fix. The issue is that external labels are being treated differently from embedded labels when applying colors.
+
+## Proposed Fix
+
+We need to modify the `SetColorHandler` to ensure that external labels always use the stroke color for their text, regardless of whether the color is applied directly to the label or to the target shape.
+
+Since we don't have the actual implementation file, I'll provide a search/replace pattern that would likely fix the issue:
+
+```javascript
+### lib/features/modeling/cmd/SetColorHandler.js
+<<<<<<< SEARCH
+  // set colors on element and its businessObject
+  element.colors = assign({}, element.colors, colors);
+
+  if (businessObject.di) {
+    assign(businessObject.di, diColors);
+
+    // set label colors if available
+    if (element.label) {
+      element.label.colors = assign({}, element.label.colors, colors);
+    }
+  }
+=======
+  // set colors on element and its businessObject
+  element.colors = assign({}, element.colors, colors);
+
+  if (businessObject.di) {
+    assign(businessObject.di, diColors);
+
+    // set label colors if available
+    if (element.label) {
+      // For external labels, always use stroke color for text
+      if (element.label.type === 'label') {
+        element.label.colors = assign({}, element.label.colors, {
+          stroke: colors.stroke || colors.fill,
+          fill: colors.fill
+        });
+      } else {
+        element.label.colors = assign({}, element.label.colors, colors);
+      }
+    }
+  }
+>>>>>>> REPLACE
+```
+
+This fix assumes that external labels have a type property set to 'label'. If that's not the case, the condition would need to be adjusted based on how external labels are identified in the codebase.
+
+Alternatively, if the issue is in how colors are applied directly to labels when they are selected:
+
+```javascript
+### lib/features/modeling/cmd/SetColorHandler.js
+<<<<<<< SEARCH
+SetColorHandler.prototype.execute = function(context) {
+  var elements = context.elements,
+      colors = context.colors;
+
+  forEach(elements, function(element) {
+    this.setColor(element, colors);
+  }, this);
+
+  return elements;
+};
+=======
+SetColorHandler.prototype.execute = function(context) {
+  var elements = context.elements,
+      colors = context.colors;
+
+  forEach(elements, function(element) {
+    // For external labels, always use stroke color
+    if (element.type === 'label' && element.labelTarget) {
+      var labelColors = assign({}, colors);
+      // Ensure text color is set to stroke color
+      labelColors.stroke = colors.stroke || colors.fill;
+      this.setColor(element, labelColors);
+    } else {
+      this.setColor(element, colors);
+    }
+  }, this);
+
+  return elements;
+};
+>>>>>>> REPLACE
+```
+
+This second approach checks if the element is an external label (has type 'label' and a labelTarget) and ensures that the stroke color is set correctly before calling the setColor method.
+
+Without seeing the actual implementation of the SetColorHandler, these are educated guesses at the fix. The core idea is to ensure that external labels use the stroke color for their text, just like embedded labels do.

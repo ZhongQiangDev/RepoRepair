@@ -1,0 +1,157 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The problem is that each WebGL TileLayer creates its own WebGL context, and browsers typically limit the number of WebGL contexts to around 16. This becomes a problem when an application needs to display multiple WebGL TileLayers, as it can hit this limit and cause the application to break down.
+
+The proposed solution is to make WebGL TileLayers within the same OpenLayers map share a single WebGL context.
+
+Looking at the `WebGLHelper` class, I can see that it creates a new WebGL context in its constructor. The issue is that each instance of this helper creates its own canvas and WebGL context. We need to modify the class to allow sharing a WebGL context between multiple instances.
+
+## Solution
+
+We need to modify the `WebGLHelper` constructor to accept an optional WebGL context parameter. If provided, the helper will use this context instead of creating a new one. This will allow multiple WebGL TileLayers to share the same context.
+
+Here's the fix:
+
+```javascript
+### src/ol/webgl/Helper.js
+<<<<<<< SEARCH
+  /**
+   * @param {Options} [opt_options] Options.
+   */
+  constructor(opt_options) {
+    super();
+    const options = opt_options || {};
+
+    /** @private */
+    this.boundHandleWebGLContextLost_ = this.handleWebGLContextLost.bind(this);
+
+    /** @private */
+    this.boundHandleWebGLContextRestored_ =
+      this.handleWebGLContextRestored.bind(this);
+
+    /**
+     * @private
+     * @type {HTMLCanvasElement}
+     */
+    this.canvas_ = document.createElement('canvas');
+    this.canvas_.style.position = 'absolute';
+    this.canvas_.style.left = '0';
+
+    /**
+     * @private
+     * @type {WebGLRenderingContext}
+     */
+    this.gl_ = getContext(this.canvas_);
+    const gl = this.getGL();
+=======
+  /**
+   * @param {Options} [opt_options] Options.
+   */
+  constructor(opt_options) {
+    super();
+    const options = opt_options || {};
+
+    /** @private */
+    this.boundHandleWebGLContextLost_ = this.handleWebGLContextLost.bind(this);
+
+    /** @private */
+    this.boundHandleWebGLContextRestored_ =
+      this.handleWebGLContextRestored.bind(this);
+
+    /**
+     * @private
+     * @type {HTMLCanvasElement}
+     */
+    this.canvas_ = options.canvas || document.createElement('canvas');
+    if (!options.canvas) {
+      this.canvas_.style.position = 'absolute';
+      this.canvas_.style.left = '0';
+    }
+
+    /**
+     * @private
+     * @type {WebGLRenderingContext}
+     */
+    this.gl_ = options.webGlContext || getContext(this.canvas_);
+    const gl = this.getGL();
+>>>>>>> REPLACE
+```
+
+Now we need to update the `Options` type definition to include the new optional parameters:
+
+```javascript
+### src/ol/webgl/Helper.js
+<<<<<<< SEARCH
+/**
+ * @typedef {Object} Options
+ * @property {Object<string,UniformValue>} [uniforms] Uniform definitions; property names must match the uniform
+ * names in the provided or default shaders.
+ * @property {Array<PostProcessesOptions>} [postProcesses] Post-processes definitions
+ */
+=======
+/**
+ * @typedef {Object} Options
+ * @property {Object<string,UniformValue>} [uniforms] Uniform definitions; property names must match the uniform
+ * names in the provided or default shaders.
+ * @property {Array<PostProcessesOptions>} [postProcesses] Post-processes definitions
+ * @property {HTMLCanvasElement} [canvas] Canvas element to use; if not provided, a new one will be created.
+ * @property {WebGLRenderingContext} [webGlContext] WebGL context to use; if not provided, a new one will be created.
+ */
+>>>>>>> REPLACE
+```
+
+Finally, we need to update the `disposeInternal` method to avoid disposing the WebGL context if it was provided externally:
+
+```javascript
+### src/ol/webgl/Helper.js
+<<<<<<< SEARCH
+  /**
+   * Clean up.
+   */
+  disposeInternal() {
+    this.canvas_.removeEventListener(
+      ContextEventType.LOST,
+      this.boundHandleWebGLContextLost_
+    );
+    this.canvas_.removeEventListener(
+      ContextEventType.RESTORED,
+      this.boundHandleWebGLContextRestored_
+    );
+
+    const extension = this.gl_.getExtension('WEBGL_lose_context');
+    if (extension) {
+      extension.loseContext();
+    }
+    delete this.gl_;
+    delete this.canvas_;
+  }
+=======
+  /**
+   * Clean up.
+   */
+  disposeInternal() {
+    this.canvas_.removeEventListener(
+      ContextEventType.LOST,
+      this.boundHandleWebGLContextLost_
+    );
+    this.canvas_.removeEventListener(
+      ContextEventType.RESTORED,
+      this.boundHandleWebGLContextRestored_
+    );
+
+    // Only dispose the WebGL context if we created it
+    if (!this.canvas_.hasAttribute('data-shared-webgl')) {
+      const extension = this.gl_.getExtension('WEBGL_lose_context');
+      if (extension) {
+        extension.loseContext();
+      }
+      delete this.gl_;
+      delete this.canvas_;
+    }
+  }
+>>>>>>> REPLACE
+```
+
+With these changes, WebGL TileLayers can now share a WebGL context by passing the same canvas and WebGL context to the `WebGLHelper` constructor. This will significantly reduce the number of WebGL contexts required and help avoid hitting the browser's limit.

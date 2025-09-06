@@ -1,0 +1,87 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when rendering to a Canvas Immediate context with a pixelRatio greater than 1, the lineDash pattern is not being scaled properly, unlike when rendering to a map. This causes dashed lines to appear differently (often blurring into continuous lines) when using Canvas Immediate rendering.
+
+Looking at the code, I can see that in the `CanvasBuilder` class, there's a method called `applyPixelRatio` that scales dash arrays by the pixelRatio. This method is used in the `createStroke` method when creating stroke instructions. However, the issue is that this scaling is not being applied in the Canvas Immediate rendering path.
+
+## Fix
+
+The fix needs to be applied to the `src/ol/render/canvas/Builder.js` file. We need to ensure that the lineDash array is properly scaled by the pixelRatio in the Canvas Immediate rendering context.
+
+```javascript
+### src/ol/render/canvas/Builder.js
+<<<<<<< SEARCH
+  /**
+   * @param {import("../canvas.js").FillStrokeState} state State.
+   * @return {Array<*>} Stroke instruction.
+   */
+  createStroke(state) {
+    return [
+      CanvasInstruction.SET_STROKE_STYLE,
+      state.strokeStyle,
+      state.lineWidth * this.pixelRatio,
+      state.lineCap,
+      state.lineJoin,
+      state.miterLimit,
+      this.applyPixelRatio(state.lineDash),
+      state.lineDashOffset * this.pixelRatio,
+    ];
+  }
+=======
+  /**
+   * @param {import("../canvas.js").FillStrokeState} state State.
+   * @return {Array<*>} Stroke instruction.
+   */
+  createStroke(state) {
+    return [
+      CanvasInstruction.SET_STROKE_STYLE,
+      state.strokeStyle,
+      state.lineWidth * this.pixelRatio,
+      state.lineCap,
+      state.lineJoin,
+      state.miterLimit,
+      this.applyPixelRatio(state.lineDash),
+      state.lineDashOffset * this.pixelRatio,
+    ];
+  }
+>>>>>>> REPLACE
+```
+
+After examining the code more carefully, I see that the `applyPixelRatio` method is already being called in the `createStroke` method. This suggests that the issue might be elsewhere or that the `applyPixelRatio` method itself isn't working correctly. Let's look at that method:
+
+```javascript
+### src/ol/render/canvas/Builder.js
+<<<<<<< SEARCH
+  /**
+   * @protected
+   * @param {Array<number>} dashArray Dash array.
+   * @return {Array<number>} Dash array with pixel ratio applied
+   */
+  applyPixelRatio(dashArray) {
+    const pixelRatio = this.pixelRatio;
+    return pixelRatio == 1
+      ? dashArray
+      : dashArray.map(function (dash) {
+          return dash * pixelRatio;
+        });
+  }
+=======
+  /**
+   * @protected
+   * @param {Array<number>} dashArray Dash array.
+   * @return {Array<number>} Dash array with pixel ratio applied
+   */
+  applyPixelRatio(dashArray) {
+    const pixelRatio = this.pixelRatio;
+    return pixelRatio == 1 || !dashArray
+      ? dashArray
+      : dashArray.map(function (dash) {
+          return dash * pixelRatio;
+        });
+  }
+>>>>>>> REPLACE
+```
+
+The issue is in the `applyPixelRatio` method. It doesn't handle the case where `dashArray` is null or undefined, which can happen when no lineDash is specified. This causes an error when trying to call `map` on a null value, preventing the proper scaling of the lineDash when it is specified.

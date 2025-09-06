@@ -1,0 +1,55 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is in the ComboBox component where the `key` attribute for ListBox.MenuItem is using `itemToString(item)` which can cause React key duplication errors when multiple items have the same string representation but different IDs.
+
+From the issue description:
+> We are using `itemToString` to be MenuItem key and the function is also using in menu option. So, if there are options with same text, the error occurs. It's better to use unique `id` to be MenuItem key.
+
+The problem is in the render method where the ListBox.MenuItem components are created with:
+```jsx
+<ListBox.MenuItem
+  key={itemToString(item)}
+  ...
+```
+
+Instead, we should prioritize using the item's unique ID if available, and fall back to the string representation only if no ID exists.
+
+## Fix
+
+```javascript
+### packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+                {this.filterItems(items, itemToString, inputValue).map(
+                  (item, index) => (
+                    <ListBox.MenuItem
+                      key={itemToString(item)}
+                      isActive={selectedItem === item}
+                      isHighlighted={
+                        highlightedIndex === index ||
+                        (selectedItem && selectedItem.id === item.id) ||
+                        false
+                      }
+                      {...getItemProps({ item, index })}>
+=======
+                {this.filterItems(items, itemToString, inputValue).map(
+                  (item, index) => (
+                    <ListBox.MenuItem
+                      key={item && item.id ? item.id : itemToString(item)}
+                      isActive={selectedItem === item}
+                      isHighlighted={
+                        highlightedIndex === index ||
+                        (selectedItem && selectedItem.id === item.id) ||
+                        false
+                      }
+                      {...getItemProps({ item, index })}>
+>>>>>>> REPLACE
+```
+
+This change modifies the key generation logic to:
+1. First check if the item has an ID property (`item.id`)
+2. If it does, use that as the key since it should be unique
+3. If not, fall back to the original behavior of using `itemToString(item)`
+
+This will prevent React key duplication errors when multiple items have the same string representation but different IDs.

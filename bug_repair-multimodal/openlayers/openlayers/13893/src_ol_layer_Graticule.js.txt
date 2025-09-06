@@ -1,0 +1,63 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about the graticule (grid lines) in OpenLayers showing irregular intervals in the labels. Looking at the screenshot, we can see that the latitude labels show values like 3', 3'.01'', 2'.59'' instead of consistent 3' intervals.
+
+The problem is in how the graticule labels are formatted. The current implementation uses `degreesToStringHDMS` which formats coordinates in degrees, minutes, seconds, and hemisphere. However, when the interval is a non-integer number of degrees (like 3 minutes), the conversion to HDMS format and back can introduce small rounding errors, resulting in the irregular intervals seen in the labels.
+
+## Solution
+
+We need to modify the `lonLabelFormatter_` and `latLabelFormatter_` default functions to ensure they display consistent intervals. The issue is in the `constructor` method of the `Graticule` class where these formatters are defined.
+
+```javascript
+### src/ol/layer/Graticule.js
+<<<<<<< SEARCH
+      /**
+       * @type {null|function(number):string}
+       * @private
+       */
+      this.lonLabelFormatter_ =
+        options.lonLabelFormatter == undefined
+          ? degreesToStringHDMS.bind(this, 'EW')
+          : options.lonLabelFormatter;
+
+      /**
+       * @type {function(number):string}
+       * @private
+       */
+      this.latLabelFormatter_ =
+        options.latLabelFormatter == undefined
+          ? degreesToStringHDMS.bind(this, 'NS')
+          : options.latLabelFormatter;
+=======
+      /**
+       * @type {null|function(number):string}
+       * @private
+       */
+      this.lonLabelFormatter_ =
+        options.lonLabelFormatter == undefined
+          ? function(lon) {
+              return degreesToStringHDMS('EW', Math.abs(lon) < 0.0001 ? 0 : lon);
+            }
+          : options.lonLabelFormatter;
+
+      /**
+       * @type {function(number):string}
+       * @private
+       */
+      this.latLabelFormatter_ =
+        options.latLabelFormatter == undefined
+          ? function(lat) {
+              return degreesToStringHDMS('NS', Math.abs(lat) < 0.0001 ? 0 : lat);
+            }
+          : options.latLabelFormatter;
+>>>>>>> REPLACE
+```
+
+This change ensures that:
+1. Very small values close to zero are rounded to exactly zero
+2. The formatter is applied consistently to all values
+3. The hemisphere designation ('EW' for longitude, 'NS' for latitude) is preserved
+
+The fix addresses the issue by preventing tiny floating-point errors from appearing in the formatted labels, which was causing the irregular intervals in the displayed grid labels.

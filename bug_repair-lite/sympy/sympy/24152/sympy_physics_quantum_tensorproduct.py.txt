@@ -1,0 +1,32 @@
+Based on the issue description, the bug is in the `_eval_expand_tensorproduct` method of the `TensorProduct` class. The issue occurs when expanding tensor products with scalar factors, where the expansion stops incomplete because it doesn't properly handle cases where the TensorProduct constructor returns a Mul of commutative factors and a TensorProduct.
+
+Here's the fix using the SEARCH/REPLACE format:
+
+```python
+### sympy/physics/quantum/tensorproduct.py
+<<<<<<< SEARCH
+                for aa in args[i].args:
+                    tp = TensorProduct(*args[:i] + (aa,) + args[i + 1:])
+                    add_args.append(tp)
+                break
+=======
+                for aa in args[i].args:
+                    tp = TensorProduct(*args[:i] + (aa,) + args[i + 1:])
+                    c_part, nc_part = tp.args_cnc()
+                    if len(nc_part)==1 and isinstance(nc_part[0], TensorProduct):
+                        nc_part = (nc_part[0]._eval_expand_tensorproduct(), )
+                    add_args.append(Mul(*c_part)*Mul(*nc_part))
+                break
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Splits the tensor product into commutative and non-commutative parts using `args_cnc()`
+2. Checks if there's exactly one non-commutative part and if it's a TensorProduct
+3. If so, recursively expands that TensorProduct
+4. Combines the commutative and non-commutative parts back together with proper multiplication
+
+This ensures that scalar factors are properly handled during expansion and prevents the incomplete expansion issue described in the bug report.
+
+The fix matches the proposed solution in the issue, addressing the case where TensorProduct constructor returns a Mul(c_factors, TensorProduct(..)) by properly handling the commutative and non-commutative parts separately.

@@ -1,0 +1,58 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about `drawFeature()` not working correctly with geographic coordinates when Null Island (coordinates 0,0) is not in view. According to the issue description, there's an incorrect extent comparison in the `drawFeature()` method that's causing this problem. The issue suggests that this comparison is redundant since it's already performed in the subsequent `drawGeometry` call.
+
+However, I don't see the implementation of `drawFeature()` in the provided code - the file only contains the abstract base class with empty method declarations. The actual implementation would be in a subclass of `VectorContext`.
+
+Since the issue mentions that replacing `drawFeature` with `setStyle`/`drawGeometry` works correctly, it suggests that the problem is in the implementation of `drawFeature` in a concrete subclass, which is likely checking the extent unnecessarily before delegating to these other methods.
+
+Without seeing the actual implementation, I can't provide a complete fix. However, based on the issue description, I can make an educated guess about what needs to be fixed.
+
+## Proposed Fix
+
+Since I don't have the actual implementation file where the bug exists, I'll provide a general fix pattern that would address the issue based on the description:
+
+```javascript
+### src/ol/render/canvas/Immediate.js
+<<<<<<< SEARCH
+  /**
+   * @param {import("../../Feature.js").default} feature Feature.
+   * @param {import("../../style/Style.js").default} style Style.
+   */
+  drawFeature(feature, style) {
+    const geometry = style.getGeometryFunction()(feature);
+    if (!geometry) {
+      return;
+    }
+    const extent = geometry.getExtent();
+    const viewExtent = this.extent_;
+    if (
+      !intersects(viewExtent, extent) &&
+      !containsExtent(extent, viewExtent)
+    ) {
+      return;
+    }
+    this.setStyle(style);
+    this.drawGeometry(geometry);
+  }
+=======
+  /**
+   * @param {import("../../Feature.js").default} feature Feature.
+   * @param {import("../../style/Style.js").default} style Style.
+   */
+  drawFeature(feature, style) {
+    const geometry = style.getGeometryFunction()(feature);
+    if (!geometry) {
+      return;
+    }
+    this.setStyle(style);
+    this.drawGeometry(geometry);
+  }
+>>>>>>> REPLACE
+```
+
+This fix removes the extent comparison from the `drawFeature` method, as it's redundant with the check that's already performed in the `drawGeometry` method. This should allow features to be drawn correctly even when Null Island is not in view.
+
+Note: The actual file path and exact implementation details might differ from what I've provided. The fix should be applied to the concrete implementation of `VectorContext` that contains the problematic extent check in its `drawFeature` method.

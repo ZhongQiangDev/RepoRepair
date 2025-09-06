@@ -1,0 +1,206 @@
+I'll analyze the issue and provide the necessary edits to implement icon-only variants for Tabs.
+
+Looking at the issue, we need to add an icon-only variant for both Line Tabs and ContainedTabs. The issue includes mockups showing how these should look.
+
+The current `Tabs.js` file doesn't have any functionality to support icon-only tabs. We need to add a new prop to the Tabs component that will allow users to specify when tabs should be displayed with icons only.
+
+Here's my solution:
+
+```javascript
+### packages/react/src/components/Tabs/next/Tabs.js
+<<<<<<< SEARCH
+import PropTypes from 'prop-types';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import classNames from 'classnames';
+import { ChevronLeft16, ChevronRight16 } from '@carbon/icons-react';
+import debounce from 'lodash.debounce';
+import { keys, match, matches } from '../../../internal/keyboard';
+import TabContent from '../../TabContent';
+import deprecate from '../../../prop-types/deprecate';
+import { usePrefix } from '../../../internal/usePrefix';
+=======
+import PropTypes from 'prop-types';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import classNames from 'classnames';
+import { ChevronLeft16, ChevronRight16 } from '@carbon/icons-react';
+import debounce from 'lodash.debounce';
+import { keys, match, matches } from '../../../internal/keyboard';
+import TabContent from '../../TabContent';
+import deprecate from '../../../prop-types/deprecate';
+import { usePrefix } from '../../../internal/usePrefix';
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Tabs/next/Tabs.js
+<<<<<<< SEARCH
+const Tabs = React.forwardRef(function Tabs(
+  {
+    children,
+    className,
+    leftOverflowButtonProps,
+    light = false,
+    onSelectionChange,
+    rightOverflowButtonProps,
+    scrollIntoView = true,
+    selected = 0,
+    selectionMode = 'automatic',
+    tabContentClassName,
+    ...other
+  },
+  ref
+) {
+=======
+const Tabs = React.forwardRef(function Tabs(
+  {
+    children,
+    className,
+    iconOnly = false,
+    leftOverflowButtonProps,
+    light = false,
+    onSelectionChange,
+    rightOverflowButtonProps,
+    scrollIntoView = true,
+    selected = 0,
+    selectionMode = 'automatic',
+    tabContentClassName,
+    ...other
+  },
+  ref
+) {
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Tabs/next/Tabs.js
+<<<<<<< SEARCH
+  const classes = {
+    tabs: classNames(className, `${prefix}--tabs`, {
+      [`${prefix}--tabs--light`]: light,
+    }),
+    tablist: classNames(`${prefix}--tabs__nav`),
+    leftOverflowButtonClasses: classNames({
+      [`${prefix}--tab--overflow-nav-button`]: horizontalOverflow,
+      [`${prefix}--tab--overflow-nav-button--hidden`]: leftOverflowNavButtonHidden,
+    }),
+    rightOverflowButtonClasses: classNames({
+      [`${prefix}--tab--overflow-nav-button`]: horizontalOverflow,
+      [`${prefix}--tab--overflow-nav-button--hidden`]: rightOverflowNavButtonHidden,
+    }),
+  };
+=======
+  const classes = {
+    tabs: classNames(className, `${prefix}--tabs`, {
+      [`${prefix}--tabs--light`]: light,
+      [`${prefix}--tabs--icon-only`]: iconOnly,
+    }),
+    tablist: classNames(`${prefix}--tabs__nav`),
+    leftOverflowButtonClasses: classNames({
+      [`${prefix}--tab--overflow-nav-button`]: horizontalOverflow,
+      [`${prefix}--tab--overflow-nav-button--hidden`]: leftOverflowNavButtonHidden,
+    }),
+    rightOverflowButtonClasses: classNames({
+      [`${prefix}--tab--overflow-nav-button`]: horizontalOverflow,
+      [`${prefix}--tab--overflow-nav-button--hidden`]: rightOverflowNavButtonHidden,
+    }),
+  };
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Tabs/next/Tabs.js
+<<<<<<< SEARCH
+  const tabsWithProps = getTabs().map((tab, index) => {
+    const tabIndex = index === isSelected ? 0 : -1;
+    const newTab = React.cloneElement(tab, {
+      index,
+      selected: index === isSelected,
+      handleTabClick: handleTabClick(onSelectionChange),
+      tabIndex,
+      ref: (e) => {
+        setTabAt(index, e);
+      },
+      handleTabKeyDown: handleTabKeyDown(onSelectionChange),
+    });
+
+    return newTab;
+  });
+=======
+  const tabsWithProps = getTabs().map((tab, index) => {
+    const tabIndex = index === isSelected ? 0 : -1;
+    const newTab = React.cloneElement(tab, {
+      index,
+      selected: index === isSelected,
+      handleTabClick: handleTabClick(onSelectionChange),
+      tabIndex,
+      ref: (e) => {
+        setTabAt(index, e);
+      },
+      handleTabKeyDown: handleTabKeyDown(onSelectionChange),
+      iconOnly,
+    });
+
+    return newTab;
+  });
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Tabs/next/Tabs.js
+<<<<<<< SEARCH
+Tabs.propTypes = {
+  /**
+   * Pass in a collection of <Tab> children to be rendered depending on the
+   * currently selected tab
+   */
+  children: PropTypes.node,
+
+  /**
+   * Provide a className that is applied to the root <div> component for the
+   * <Tabs>
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify whether the Tab content is hidden
+   */
+  hidden: PropTypes.bool,
+
+  /**
+   * Provide the props that describe the left overflow button
+   */
+  leftOverflowButtonProps: PropTypes.object,
+=======
+Tabs.propTypes = {
+  /**
+   * Pass in a collection of <Tab> children to be rendered depending on the
+   * currently selected tab
+   */
+  children: PropTypes.node,
+
+  /**
+   * Provide a className that is applied to the root <div> component for the
+   * <Tabs>
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify whether the Tab content is hidden
+   */
+  hidden: PropTypes.bool,
+
+  /**
+   * Specify whether the tabs should be rendered with icons only (no text)
+   */
+  iconOnly: PropTypes.bool,
+
+  /**
+   * Provide the props that describe the left overflow button
+   */
+  leftOverflowButtonProps: PropTypes.object,
+>>>>>>> REPLACE
+```
+
+These changes add an `iconOnly` prop to the Tabs component with a default value of `false`. When set to `true`, it adds the `${prefix}--tabs--icon-only` class to the tabs container and passes the `iconOnly` prop to each Tab child component.
+
+The CSS classes will need to be implemented in the corresponding SCSS files to style the icon-only tabs according to the mockups provided in the issue. The Tab component will also need to be updated to handle the `iconOnly` prop and adjust its rendering accordingly, but that's not part of the file we're currently editing.

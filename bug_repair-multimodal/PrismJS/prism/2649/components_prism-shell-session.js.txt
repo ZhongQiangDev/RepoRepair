@@ -1,0 +1,48 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that the `#` character is being incorrectly identified as a shell-symbol token in the output section of the shell session. Looking at the screenshot and the code snippet provided in the issue, we can see that lines starting with `#` in the output section are being highlighted as if they were commands.
+
+The problem is in the regular expression pattern for the `command` property. It's matching any line that starts with `$` or `#`, but in shell sessions, `#` is not always a command prompt - it can also appear in the output as a comment or informational message.
+
+Here's the fix:
+
+```javascript
+### components/prism-shell-session.js
+<<<<<<< SEARCH
+	'command': {
+		pattern: RegExp(/[$#](?:[^\\\r\n'"<]|\\.|<<str>>)+/.source.replace(/<<str>>/g, function () { return strings; })),
+		greedy: true,
+		inside: {
+			'bash': {
+				pattern: /(^[$#]\s*)[\s\S]+/,
+				lookbehind: true,
+				alias: 'language-bash',
+				inside: Prism.languages.bash
+			},
+			'shell-symbol': {
+				pattern: /^[$#]/,
+				alias: 'important'
+			}
+		}
+	},
+=======
+	'command': {
+		pattern: RegExp(/^[$](?:[^\\\r\n'"<]|\\.|<<str>>)+/.source.replace(/<<str>>/g, function () { return strings; })),
+		greedy: true,
+		inside: {
+			'bash': {
+				pattern: /(^[$]\s*)[\s\S]+/,
+				lookbehind: true,
+				alias: 'language-bash',
+				inside: Prism.languages.bash
+			},
+			'shell-symbol': {
+				pattern: /^[$]/,
+				alias: 'important'
+			}
+		}
+	},
+>>>>>>> REPLACE
+```
+
+This change modifies the command pattern to only match lines that start with `$` (the standard shell prompt) and not `#` (which can appear in output text). This will prevent the incorrect highlighting of lines in the output that start with `#`.

@@ -1,0 +1,92 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is that the type definition for `SourceObject` in `@react-pdf/types/image.d.ts` doesn't match the documentation. According to the documentation, an Image source object can be a function that returns a string or a Promise<string>, but the current type definition doesn't include this possibility.
+
+The error occurs when trying to use a function that returns a Promise<string> as the `src` prop for an Image component:
+```jsx
+<Image src={async (): Promise<string> => (await getDataUrl())} />
+```
+
+The issue is in the type definition file, but we need to make sure the implementation also supports this functionality.
+
+Looking at the provided code snippet from `fetchImage.js`, I notice that there's a comment for a function that resolves async src, but the actual implementation is missing. This suggests that the functionality might be implemented elsewhere or is incomplete.
+
+## Solution
+
+Since we don't have access to the type definition file directly, I'll focus on ensuring the implementation supports the functionality described in the documentation. Let's add the missing implementation for resolving async src in `fetchImage.js`:
+
+```javascript
+### packages/layout/src/image/fetchImage.js
+<<<<<<< SEARCH
+/* eslint-disable no-param-reassign */
+
+import resolveImage from '@react-pdf/image';
+
+import getSource from './getSource';
+
+/**
+ * Resolves async src if passed
+ *
+ * @param {string | Function} src
+ * @returns {object} resolved src
+ */
+
+
+/**
+ * Fetches image and append data to node
+ * Ideally this fn should be immutable.
+ *
+ * @param {Object} node
+ */
+
+
+export default fetchImage;
+=======
+/* eslint-disable no-param-reassign */
+
+import resolveImage from '@react-pdf/image';
+
+import getSource from './getSource';
+
+/**
+ * Resolves async src if passed
+ *
+ * @param {string | Function} src
+ * @returns {object} resolved src
+ */
+const resolveSource = async src => {
+  if (typeof src === 'function') {
+    return await src();
+  }
+  return src;
+};
+
+/**
+ * Fetches image and append data to node
+ * Ideally this fn should be immutable.
+ *
+ * @param {Object} node
+ */
+const fetchImage = async node => {
+  const { src, cache } = node.props;
+  const source = await resolveSource(src);
+  
+  if (!source) return;
+
+  const imageSource = getSource(source);
+  const image = await resolveImage(imageSource, { cache });
+
+  if (image) {
+    node.image = image;
+  }
+};
+
+export default fetchImage;
+>>>>>>> REPLACE
+```
+
+This implementation adds the missing `resolveSource` function that handles both string sources and function sources (including those that return Promises). It also adds the implementation for the `fetchImage` function that uses `resolveSource` to handle the async src case.
+
+Note: This solution assumes that the type definition file will be updated separately to match the implementation. The correct type definition should include a function that returns a string or Promise<string> as a valid SourceObject, as suggested in the issue.

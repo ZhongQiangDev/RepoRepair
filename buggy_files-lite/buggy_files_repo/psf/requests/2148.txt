@@ -1,0 +1,27 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The issue is that a raw socket.error exception (specifically "Connection reset by peer") is being raised directly to the user, rather than being wrapped in a more appropriate requests-specific exception like requests.exceptions.ConnectionError.
+
+2. Cause Analysis:
+The problem occurs in the request content reading chain, specifically when reading chunked HTTP responses. The low-level socket operation fails with a connection reset, but this error isn't being caught and converted to a requests-specific exception somewhere in the stack. This is likely a gap in the exception handling chain between the low-level socket operations and the high-level requests interface.
+
+3. Most Related Files:
+Based on the traceback and the repository information, here are the most relevant files ordered by importance:
+
+```
+requests/packages/urllib3/response.py
+requests/models.py
+requests/exceptions.py
+requests/packages/urllib3/connectionpool.py
+requests/packages/urllib3/exceptions.py
+```
+
+These files are critical because:
+- response.py contains the content reading logic where the error occurs
+- models.py handles the response processing
+- exceptions.py defines the exception hierarchy that should be catching this error
+- connectionpool.py manages the underlying connections
+- urllib3/exceptions.py contains lower-level exceptions that should be helping with the conversion
+
+The fix would likely involve adding proper exception handling in response.py or models.py to catch socket.error and wrap it in requests.exceptions.ConnectionError.

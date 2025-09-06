@@ -1,0 +1,97 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that typed start events can be pasted onto a subprocess, which shouldn't be allowed. According to the BPMN specification, typed start events (like message start events, timer start events, etc.) are only allowed in event subprocesses, not in regular subprocesses.
+
+Looking at the code, I can see that the repository has rules for various operations like `canAttach`, `canReplace`, etc., but there's no implementation for the `canCopy` function that's declared. This is likely where we need to add logic to prevent pasting typed start events onto subprocesses.
+
+The `canCopy` function is declared but not implemented in the provided code snippet:
+```javascript
+BpmnRules.prototype.canCopy = canCopy;
+```
+
+We need to implement this function to check if the element being copied is a typed start event and if the target is a subprocess.
+
+## Fix
+
+```javascript
+### lib/features/rules/BpmnRules.js
+<<<<<<< SEARCH
+BpmnRules.prototype.canCopy = canCopy;
+
+/**
+ * Utility functions for rule checking
+ */
+=======
+BpmnRules.prototype.canCopy = canCopy;
+
+/**
+ * Check if an element can be copied.
+ *
+ * @param  {Object} element
+ * @param  {Object} target
+ *
+ * @return {Boolean}
+ */
+function canCopy(element, target) {
+  // disallow copying typed start events to subprocesses
+  if (is(element, 'bpmn:StartEvent') && 
+      hasEventDefinition(element) && 
+      is(target, 'bpmn:SubProcess') && 
+      !isEventSubProcess(target)) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Utility functions for rule checking
+ */
+>>>>>>> REPLACE
+```
+
+Additionally, I need to implement the `hasEventDefinition` helper function if it doesn't exist elsewhere in the codebase:
+
+```javascript
+### lib/features/rules/BpmnRules.js
+<<<<<<< SEARCH
+function hasOneOfEventDefinitions(element, eventDefinitions) {
+  return eventDefinitions.some(function(definition) {
+    return hasEventDefinition(element, definition);
+  });
+}
+=======
+function hasOneOfEventDefinitions(element, eventDefinitions) {
+  return eventDefinitions.some(function(definition) {
+    return hasEventDefinition(element, definition);
+  });
+}
+
+/**
+ * Check if element has any event definition.
+ *
+ * @param {djs.model.Base} element
+ *
+ * @return {boolean}
+ */
+function hasEventDefinition(element, eventDefinition) {
+  var bo = getBusinessObject(element);
+
+  if (!bo.eventDefinitions) {
+    return false;
+  }
+
+  return eventDefinition
+    ? some(bo.eventDefinitions, function(definition) {
+      return is(definition, eventDefinition);
+    })
+    : bo.eventDefinitions.length > 0;
+}
+>>>>>>> REPLACE
+```
+
+This fix implements the `canCopy` function to check if the element being copied is a start event with event definitions (typed start event) and if the target is a subprocess that is not an event subprocess. If both conditions are true, copying is not allowed.
+
+The implementation of `hasEventDefinition` allows checking if an element has any event definition (when called without a specific event definition type) or a specific event definition type.

@@ -1,0 +1,36 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that empty block comments (`/**/`) in Dart code break syntax highlighting for the rest of the file. Looking at the code, I can see that the problem is in how the C-style block comments are defined in the language definition.
+
+The current implementation uses `hljs.C_BLOCK_COMMENT_MODE` which doesn't properly handle empty block comments. When an empty block comment is encountered, the highlighting stops working for the rest of the file.
+
+Here's my fix:
+
+```javascript
+### src/languages/dart.js
+<<<<<<< SEARCH
+      hljs.C_LINE_COMMENT_MODE,
+      hljs.C_BLOCK_COMMENT_MODE,
+=======
+      hljs.C_LINE_COMMENT_MODE,
+      {
+        className: 'comment',
+        begin: /\/\*/,
+        end: /\*\//,
+        contains: [
+          {
+            begin: /\*/,
+            relevance: 0
+          }
+        ]
+      },
+>>>>>>> REPLACE
+```
+
+This fix replaces the standard C block comment mode with a custom implementation that properly handles empty block comments. The custom implementation defines a block comment that:
+1. Starts with `/*`
+2. Ends with `*/`
+3. Can contain any characters including nested `*` characters
+4. Properly handles the empty case `/**/`
+
+This should fix the issue where empty block comments break the highlighting for the rest of the file.

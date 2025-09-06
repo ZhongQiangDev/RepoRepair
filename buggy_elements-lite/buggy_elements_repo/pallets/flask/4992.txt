@@ -1,0 +1,24 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The `flask.Config.from_file()` method only opens files in text mode, which is incompatible with certain file loaders like Python 3.11's `tomllib.load()` that require binary mode file reading. This causes a TypeError when trying to use TOML configuration files.
+
+2. Cause Analysis:
+The root cause is that `from_file()` method doesn't provide a way to specify the file opening mode. It's hardcoded to open files in text mode, while some modern configuration formats (like TOML) require binary mode file reading. This limitation prevents users from utilizing certain file loaders that require specific file modes.
+
+3. Relevant Files/Functions Analysis:
+
+In src/flask/config.py:
+```
+src/flask/config.py
+class: Config
+```
+
+The Config class is directly relevant because:
+- It contains the `from_file()` method that needs modification
+- It handles all configuration loading functionality
+- It's responsible for file operations related to configuration loading
+
+The ConfigAttribute class is not directly relevant to this issue as it deals with attribute access delegation rather than file loading operations.
+
+The fix would need to modify the `from_file()` method in the Config class to accept a mode parameter and use it when opening configuration files. This would allow users to specify binary mode when needed, such as when using `tomllib.load`.

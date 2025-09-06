@@ -1,0 +1,30 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The issue occurs when creating temporary directories in pytest when the username contains illegal characters for directory names. Specifically, when using `tmpdir`, `tmpdir_factory`, or `tmp_path_factory`, the creation fails if the username contains backslashes (e.g., "contoso\john_doe").
+
+2. Cause Analysis:
+The root cause is that pytest uses `getpass.getuser()` to get the username for creating temporary directory paths. When running through SSH on Windows, this function returns the domain username format (e.g., "contoso\john_doe") which contains backslashes. These backslashes are illegal characters for directory names, causing the directory creation to fail.
+
+3. Relevant Functions/Classes Analysis:
+
+src/_pytest/pathlib.py:
+```
+function: make_numbered_dir
+function: make_numbered_dir_with_cleanup
+```
+These functions are relevant because they handle the actual creation of numbered temporary directories and would fail when trying to create directories with illegal characters.
+
+src/_pytest/tmpdir.py:
+```
+function: get_user
+class: TempPathFactory
+class: TempdirFactory
+```
+These are relevant because:
+- `get_user` directly calls `getpass.getuser()` which is the source of the problematic username
+- `TempPathFactory` and `TempdirFactory` are responsible for managing temporary directory creation and use the username in their path construction
+
+The issue primarily stems from the `get_user` function not sanitizing the username before it's used in path construction, and the temporary directory factories not properly handling usernames containing illegal characters.
+
+The other functions in these files, while part of the temporary directory management system, are not directly related to the core issue of username handling and directory name validation.

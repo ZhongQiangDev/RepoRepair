@@ -1,0 +1,84 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a tile source is replaced using `setSource()` or when the view projection is changed, the WebGL tile layers are using incorrect cached textures. The cached tile textures are not being properly cleared or replaced.
+
+Looking at the `TileTexture.js` file, I can see that when a new tile is set via the `setTile()` method, it does clear the textures array:
+
+```javascript
+setTile(tile) {
+  if (tile !== this.tile) {
+    if (this.tile) {
+      this.tile.removeEventListener(EventType.CHANGE, this.handleTileChange_);
+    }
+    this.tile = tile;
+    this.textures.length = 0;  // This clears the textures array
+    // ...
+  }
+}
+```
+
+However, the issue is that the WebGL textures themselves are not being deleted from the GPU memory. When the textures array is cleared, the WebGL textures still exist in the GPU memory, which can lead to texture leaks and incorrect rendering.
+
+## Fix
+
+We need to properly delete the WebGL textures when a new tile is set:
+
+```javascript
+### src/ol/webgl/TileTexture.js
+<<<<<<< SEARCH
+  setTile(tile) {
+    if (tile !== this.tile) {
+      if (this.tile) {
+        this.tile.removeEventListener(EventType.CHANGE, this.handleTileChange_);
+      }
+      this.tile = tile;
+      this.textures.length = 0;
+      this.loaded = tile.getState() === TileState.LOADED;
+      if (this.loaded) {
+        this.uploadTile_();
+      } else {
+        if (tile instanceof ImageTile) {
+          const image = tile.getImage();
+          if (image instanceof Image && !image.crossOrigin) {
+            image.crossOrigin = 'anonymous';
+          }
+        }
+        tile.addEventListener(EventType.CHANGE, this.handleTileChange_);
+      }
+    }
+  }
+=======
+  setTile(tile) {
+    if (tile !== this.tile) {
+      if (this.tile) {
+        this.tile.removeEventListener(EventType.CHANGE, this.handleTileChange_);
+      }
+      
+      // Delete existing WebGL textures before clearing the array
+      const gl = this.helper_.getGL();
+      for (let i = 0; i < this.textures.length; ++i) {
+        gl.deleteTexture(this.textures[i]);
+      }
+      this.textures.length = 0;
+      
+      this.tile = tile;
+      this.loaded = tile.getState() === TileState.LOADED;
+      if (this.loaded) {
+        this.uploadTile_();
+      } else {
+        if (tile instanceof ImageTile) {
+          const image = tile.getImage();
+          if (image instanceof Image && !image.crossOrigin) {
+            image.crossOrigin = 'anonymous';
+          }
+        }
+        tile.addEventListener(EventType.CHANGE, this.handleTileChange_);
+      }
+    }
+  }
+>>>>>>> REPLACE
+```
+
+This change ensures that when a new tile is set, all the previous WebGL textures are properly deleted from the GPU memory before clearing the textures array. This prevents texture leaks and ensures that the correct textures are used when the source is replaced or the view projection is changed.

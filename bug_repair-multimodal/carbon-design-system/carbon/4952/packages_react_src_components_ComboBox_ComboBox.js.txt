@@ -1,0 +1,50 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that Chinese IME (Input Method Editor) is not working properly in the ComboBox component. When users try to type Chinese characters using an IME, they can't complete the composition process.
+
+Looking at the code, I can see that the problem is likely in the input handling within the ComboBox component. The issue is related to how the component handles input events when using IME.
+
+The key problem appears to be in the input element's event handling. The component is not properly handling IME composition events, which are necessary for languages like Chinese that require multiple keystrokes to form a single character.
+
+## Fix
+
+We need to modify the input element's event handling to properly support IME. The issue is in the `getInputProps` section where keyboard events are being handled:
+
+```javascript
+### packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+                {...getInputProps({
+                  disabled,
+                  id,
+                  placeholder,
+                  onKeyDown: event => {
+                    event.stopPropagation();
+
+                    if (match(event, keys.Enter)) {
+                      toggleMenu();
+                    }
+                  },
+                })}
+=======
+                {...getInputProps({
+                  disabled,
+                  id,
+                  placeholder,
+                  onKeyDown: event => {
+                    // Don't stop propagation for IME events
+                    // This allows Chinese and other IME inputs to work properly
+                    if (!event.isComposing) {
+                      event.stopPropagation();
+
+                      if (match(event, keys.Enter)) {
+                        toggleMenu();
+                      }
+                    }
+                  },
+                })}
+>>>>>>> REPLACE
+```
+
+This fix checks if the event is an IME composition event using the `isComposing` property. If it is a composition event, we don't stop propagation, allowing the IME to work properly. This way, when users are typing Chinese characters using an IME, the composition process can complete normally before the ComboBox component processes the input.

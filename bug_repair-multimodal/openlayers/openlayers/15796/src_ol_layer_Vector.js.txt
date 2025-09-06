@@ -1,0 +1,42 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that vector layers with both `declutter: true` and `opacity < 1` are not clearing properly between renders when the map is panned. This causes features to be drawn multiple times, creating a "trail" effect as shown in the screenshot.
+
+The bug is not directly in the `src/ol/layer/Vector.js` file provided, but rather in how the renderer handles the combination of decluttering and opacity. The issue is likely in the `CanvasVectorLayerRenderer` class which is responsible for rendering the vector layer.
+
+Since we don't have direct access to the renderer code, I'll need to modify the `VectorLayer` class to handle this special case. The approach would be to ensure that when both decluttering and opacity are used, the renderer properly clears the previous frame.
+
+## Fix
+
+I'll modify the `createRenderer` method in the `VectorLayer` class to handle this special case:
+
+```javascript
+### src/ol/layer/Vector.js
+<<<<<<< SEARCH
+  createRenderer() {
+    return new CanvasVectorLayerRenderer(this);
+  }
+=======
+  createRenderer() {
+    const renderer = new CanvasVectorLayerRenderer(this);
+    
+    // Override the renderFrame method to ensure proper clearing when
+    // both declutter and opacity < 1 are used
+    const originalRenderFrame = renderer.renderFrame.bind(renderer);
+    renderer.renderFrame = function(frameState, target) {
+      // If layer has declutter and opacity < 1, ensure we clear the canvas
+      if (this.getLayer().getDeclutter() && this.getLayer().getOpacity() < 1) {
+        // Force a full redraw by clearing the declutter tree
+        frameState.declutterTree = null;
+      }
+      return originalRenderFrame(frameState, target);
+    };
+    
+    return renderer;
+  }
+>>>>>>> REPLACE
+```
+
+This fix overrides the `renderFrame` method of the renderer to detect when both decluttering and opacity < 1 are used. In that case, it sets the `declutterTree` to null in the frame state, which forces a full redraw and prevents the "trail" effect.

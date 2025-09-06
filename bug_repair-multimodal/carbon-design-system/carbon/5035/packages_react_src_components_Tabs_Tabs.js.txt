@@ -1,0 +1,63 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about text truncation in container tabs. According to the screenshots:
+1. Container tabs are not properly truncating text with an ellipsis
+2. Default tabs have proper text truncation with a 16px margin from the edge
+
+Looking at the code, I need to find where the tab styles are defined. The issue is likely related to CSS classes applied to the tabs. The key difference is between the default tabs and container tabs, which is controlled by the `type` prop.
+
+In the `Tabs.js` file, I can see that there's a class distinction between default and container tabs:
+
+```javascript
+const classes = {
+  tabs: classNames(`${prefix}--tabs`, className, {
+    [`${prefix}--tabs--container`]: type === 'container',
+  }),
+  // ...
+}
+```
+
+However, the issue is not directly visible in this file as it's likely a CSS styling issue. The problem is that container tabs don't have the same text truncation behavior as default tabs.
+
+Since we're only looking at this file and the issue is about styling, I need to make an educated guess about what might be causing the issue. The most likely explanation is that we need to add a CSS class to container tabs to ensure they have the same text truncation behavior as default tabs.
+
+## Fix
+
+```javascript
+### packages/react/src/components/Tabs/Tabs.js
+<<<<<<< SEARCH
+    const classes = {
+      tabs: classNames(`${prefix}--tabs`, className, {
+        [`${prefix}--tabs--container`]: type === 'container',
+      }),
+      tablist: classNames(`${prefix}--tabs__nav`, {
+        [`${prefix}--tabs__nav--hidden`]: this.state.dropdownHidden,
+      }),
+    };
+=======
+    const classes = {
+      tabs: classNames(`${prefix}--tabs`, className, {
+        [`${prefix}--tabs--container`]: type === 'container',
+      }),
+      tablist: classNames(`${prefix}--tabs__nav`, {
+        [`${prefix}--tabs__nav--hidden`]: this.state.dropdownHidden,
+      }),
+    };
+>>>>>>> REPLACE
+```
+
+After examining the code more carefully, I realize that the issue is likely not in this file but in the CSS styles or in the Tab component itself. The Tabs.js file is responsible for the overall tabs container, but the individual tab styling would be in a separate file.
+
+Since we're limited to this file and the issue description mentions that container tabs need to have text truncation like default tabs, I need to look for other clues. Let me check if there's any other relevant code in this file.
+
+Looking at the code again, I notice that the individual tabs are cloned with additional props, but there's no specific styling being applied that would affect text truncation. This suggests that the issue is likely in the CSS or in the Tab component itself.
+
+Without seeing the Tab component or the CSS, I can't provide a definitive fix. However, based on the issue description, it seems that container tabs need the same text truncation behavior as default tabs, which is likely controlled by CSS classes.
+
+Since I don't have enough information to provide a specific fix for this file, I would recommend:
+
+1. Check the CSS for the container tabs to ensure they have the same text truncation properties as default tabs
+2. Look at the Tab component to see if there are any differences in how container tabs are rendered compared to default tabs
+3. Consider adding a specific class or style to container tabs to ensure they have the same text truncation behavior

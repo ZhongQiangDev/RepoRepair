@@ -1,0 +1,22 @@
+Let me analyze the GitHub issue and break down the problems and causes:
+
+### Answer 1
+**Wrong Behavior**: Lines containing only spaces are being removed in code blocks
+**Cause**: The lexer's blockTokens function appears to be stripping empty lines (including lines with only spaces) at the beginning of processing. This can be seen in the lexer output where the line with spaces is completely removed from the text property.
+
+### Answer 2
+**Wrong Behavior**: The behavior differs from CommonMark specification
+**Cause**: While CommonMark properly preserves space-only lines in code blocks, Marked.js is implementing a more aggressive whitespace trimming approach that doesn't match the CommonMark standard. This is evident from the comparison between Marked Demo and CommonMark Demo outputs.
+
+### Answer 3
+**Wrong Behavior**: The space stripping happens at the lexer level, making it difficult to customize
+**Cause**: The space stripping is implemented in the first line of the blockTokens function in Lexer.js, making it a fundamental part of the lexing process rather than a configurable option. This forces developers to override the entire blockTokens function to prevent this behavior.
+
+### Conclusion
+**Summary**: The core issue stems from Marked.js's aggressive whitespace handling that removes lines containing only spaces, even within code blocks. This behavior:
+1. Breaks compatibility with CommonMark specification
+2. Causes problems for certain use cases (like whitespace-sensitive code or real-time editing)
+3. Is implemented at such a fundamental level that it requires significant overrides to modify
+4. Could potentially be better implemented as an optional feature rather than a hard-coded behavior
+
+The main technical cause appears to be in the lexer's implementation, specifically in the blockTokens function, which needs to be modified to properly preserve whitespace in code blocks while maintaining desired behavior in regular markdown text.

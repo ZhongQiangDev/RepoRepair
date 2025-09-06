@@ -1,0 +1,142 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is that each WebGL TileLayer creates its own WebGL context, and browsers typically have a limit of 16 WebGL contexts. When this limit is reached, browsers will remove older contexts, causing applications to break or misbehave. The proposed solution is to have WebGL TileLayers within one OpenLayers map share a single WebGL context.
+
+Looking at the code, the `WebGLTileLayerRenderer` class creates a new WebGL context for each tile layer. This happens because each renderer instance creates its own WebGL helper, which in turn creates a new WebGL context.
+
+## Solution
+
+The solution is to modify the `WebGLTileLayerRenderer` class to share a WebGL context across all instances. We need to:
+
+1. Make the WebGL helper shared across all tile layer renderers for the same map
+2. Ensure that the helper is properly initialized and managed
+
+Here's the fix:
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+  constructor(tileLayer, options) {
+    super(tileLayer, {
+      uniforms: options.uniforms,
+    });
+
+    /**
+     * This transform converts tile i, j coordinates to screen coordinates.
+     * @type {import("../../transform.js").Transform}
+     * @private
+     */
+    this.tileTransform_ = createTransform();
+=======
+  constructor(tileLayer, options) {
+    // Share the WebGL context by getting it from the map if available
+    const uniforms = options.uniforms || {};
+    const mapRenderer = tileLayer.getMapInternal().getRenderer();
+    const helper = mapRenderer.getHelper ? mapRenderer.getHelper() : null;
+    
+    super(tileLayer, {
+      uniforms: uniforms,
+      helper: helper,
+    });
+
+    /**
+     * This transform converts tile i, j coordinates to screen coordinates.
+     * @type {import("../../transform.js").Transform}
+     * @private
+     */
+    this.tileTransform_ = createTransform();
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+  afterHelperCreated() {
+    this.program_ = this.helper.getProgram(
+      this.fragmentShader_,
+      this.vertexShader_
+    );
+
+    this.helper.flushBufferData(this.indices_);
+  }
+=======
+  afterHelperCreated() {
+    this.program_ = this.helper.getProgram(
+      this.fragmentShader_,
+      this.vertexShader_
+    );
+
+    this.helper.flushBufferData(this.indices_);
+    
+    // Store the helper on the map renderer for reuse
+    const mapRenderer = this.getLayer().getMapInternal().getRenderer();
+    if (!mapRenderer.getHelper && this.helper) {
+      mapRenderer.getHelper = function() {
+        return this.helper;
+      }.bind(this);
+    }
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+  disposeInternal() {
+    const helper = this.helper;
+    const gl = helper.getGL();
+
+    helper.deleteBuffer(this.indices_);
+    delete this.indices_;
+
+    gl.deleteProgram(this.program_);
+    delete this.program_;
+
+    const tileTextureCache = this.tileTextureCache_;
+    tileTextureCache.forEach(function (tileTexture) {
+      tileTexture.dispose();
+    });
+    tileTextureCache.clear();
+    delete this.tileTextureCache_;
+
+    super.disposeInternal();
+  }
+=======
+  disposeInternal() {
+    const helper = this.helper;
+    const gl = helper.getGL();
+
+    helper.deleteBuffer(this.indices_);
+    delete this.indices_;
+
+    gl.deleteProgram(this.program_);
+    delete this.program_;
+
+    const tileTextureCache = this.tileTextureCache_;
+    tileTextureCache.forEach(function (tileTexture) {
+      tileTexture.dispose();
+    });
+    tileTextureCache.clear();
+    delete this.tileTextureCache_;
+
+    // Only dispose the helper if it's not shared with other layers
+    const mapRenderer = this.getLayer().getMapInternal().getRenderer();
+    if (mapRenderer.getHelper && mapRenderer.getHelper() !== this.helper) {
+      super.disposeInternal();
+    } else {
+      // Skip helper disposal in parent class
+      WebGLLayerRenderer.prototype.disposeInternal.call(this);
+    }
+  }
+>>>>>>> REPLACE
+```
+
+These changes will:
+
+1. Check if a WebGL helper already exists on the map renderer and use it if available
+2. Store the helper on the map renderer for other tile layers to use
+3. Modify the disposal logic to avoid disposing the shared helper when a single layer is removed
+
+This implementation ensures that all WebGL TileLayers within the same map share a single WebGL context, which will significantly reduce the number of contexts required and help avoid hitting the browser's limit.

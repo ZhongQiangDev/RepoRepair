@@ -1,0 +1,36 @@
+I've analyzed the issue and found the bug. The problem occurs when `hash-type: number` is used in the RevealJS format. Looking at the issue description and screenshots, it appears that the title slide loses its alignment when this option is used.
+
+The issue is in the `format-reveal.ts` file. When `hash-type: number` is set, the code removes the ID from the title slide, but it doesn't properly handle the centering of the title slide. The title slide should remain centered regardless of the hash-type setting.
+
+Here's the fix:
+
+```typescript
+### src/format/reveal/format-reveal.ts
+<<<<<<< SEARCH
+    // if we are using 'number' as our hash type then remove the
+    // title slide id
+    if (format.metadata[kHashType] === "number") {
+      const titleSlide = doc.getElementById("title-slide");
+      if (titleSlide) {
+        titleSlide.removeAttribute("id");
+      }
+    }
+=======
+    // if we are using 'number' as our hash type then remove the
+    // title slide id but preserve its centering
+    if (format.metadata[kHashType] === "number") {
+      const titleSlide = doc.getElementById("title-slide");
+      if (titleSlide) {
+        // Store the class list before removing the ID
+        const hasCenter = titleSlide.classList.contains("center");
+        titleSlide.removeAttribute("id");
+        // Ensure the center class is preserved if it was there
+        if (hasCenter) {
+          titleSlide.classList.add("center");
+        }
+      }
+    }
+>>>>>>> REPLACE
+```
+
+This fix ensures that when we remove the ID from the title slide (which is necessary for the `hash-type: number` functionality), we preserve the centering of the slide by checking if it has the "center" class and re-adding it if needed. This will maintain the proper alignment of the title slide regardless of the hash-type setting.

@@ -1,0 +1,32 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The issue is that when using autodoc with inheritance, an annotation-only member (attr1: int) in the superclass (Foo) is not being documented in the subclass (Bar) documentation, even when using :inherited-members: directive. The system treats it as "undocumented" and only shows it when :undoc-members: is specified.
+
+2. Cause Analysis:
+The root cause appears to be in how annotation-only members are handled during inheritance documentation. When a class attribute is defined only through type annotation (attr1: int) in the parent class, the autodoc system is not properly recognizing it as a documented member when documenting inherited members in child classes. This suggests an issue in either:
+- How annotation-only members are detected during member collection
+- How inherited members are filtered during documentation generation
+
+3. Relevant Files/Functions Analysis:
+
+```
+sphinx/ext/autodoc/importer.py
+function: get_class_members
+```
+This function is relevant because it's responsible for collecting members from objects, including handling annotation-only members through `__annotations__` checking.
+
+```
+sphinx/domains/python.py
+class: PyAttribute
+class: PyClasslike
+```
+These classes are relevant because they handle how Python attributes are documented and how class-like objects (including inheritance) are processed.
+
+```
+sphinx/ext/autodoc/directive.py
+class: AutodocDirective
+```
+This class is relevant as it's the main directive handler for autodoc, responsible for processing documentation directives including inherited members.
+
+The remaining files (sphinx/ext/autodoc/mock.py and sphinx/ext/autodoc/typehints.py) contain no relevant functions/classes as they deal with mocking imports and type hint processing respectively, which are not directly related to the inheritance documentation issue.

@@ -1,0 +1,41 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when a user drops an intermediate event on a sequence flow that has a condition expression, and then changes that event to a "Timer Intermediate Catch Event", the condition expression is removed from the sequence flow.
+
+This is similar to issue #1197 mentioned in the description. The problem likely occurs in the `BpmnReplace.js` file, which handles element replacement logic. When replacing elements, it's not properly preserving the condition expression on sequence flows.
+
+Looking at the code snippet provided, I need to find where the replacement logic handles sequence flow properties. The issue is likely in the part of the code that determines which properties to preserve when replacing elements.
+
+## Solution
+
+The bug is likely in the code that handles which properties to preserve when replacing elements. We need to ensure that the `conditionExpression` property is preserved when replacing elements on sequence flows.
+
+Let's create a fix:
+
+```javascript
+### lib/features/replace/BpmnReplace.js
+<<<<<<< SEARCH
+var CUSTOM_PROPERTIES = [
+  'cancelActivity',
+  'instantiate',
+  'eventGatewayType',
+  'triggeredByEvent',
+  'isInterrupting'
+];
+=======
+var CUSTOM_PROPERTIES = [
+  'cancelActivity',
+  'instantiate',
+  'eventGatewayType',
+  'triggeredByEvent',
+  'isInterrupting',
+  'conditionExpression'
+];
+>>>>>>> REPLACE
+```
+
+This fix adds 'conditionExpression' to the list of custom properties that should be preserved when replacing elements. This ensures that when a user replaces an element on a sequence flow with a Timer Intermediate Catch Event, the condition expression on the sequence flow is not removed.
+
+The issue is similar to #1197 mentioned in the description, which suggests that this is a known pattern of bugs where certain properties are not being preserved during element replacement. By adding 'conditionExpression' to the CUSTOM_PROPERTIES array, we ensure that this property is preserved during the replacement process.

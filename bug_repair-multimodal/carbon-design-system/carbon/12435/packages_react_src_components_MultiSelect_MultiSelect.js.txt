@@ -1,0 +1,251 @@
+I'll analyze the issue and provide a solution.
+
+Based on the issue description, we need to implement a read-only state for the MultiSelect component. The issue shows screenshots of a read-only multi-select component, and the acceptance criteria include adding a prop for read-only and styles for that prop.
+
+Looking at the code, I notice that the MultiSelect component doesn't currently have a `readOnly` prop. We need to:
+
+1. Add the `readOnly` prop to the component's props
+2. Update the component to handle the read-only state
+3. Add appropriate styling classes
+
+Here are the necessary changes:
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+    disabled,
+    initialSelectedItems,
+    sortItems,
+    compareItems,
+    clearSelectionText,
+    clearSelectionDescription,
+    light,
+    invalid,
+    invalidText,
+    warn,
+    warnText,
+    useTitleInItem,
+    translateWithId,
+    downshiftProps,
+    open,
+    selectionFeedback,
+    onChange,
+    onMenuChange,
+    direction,
+    selectedItems: selected,
+=======
+    disabled,
+    readOnly,
+    initialSelectedItems,
+    sortItems,
+    compareItems,
+    clearSelectionText,
+    clearSelectionDescription,
+    light,
+    invalid,
+    invalidText,
+    warn,
+    warnText,
+    useTitleInItem,
+    translateWithId,
+    downshiftProps,
+    open,
+    selectionFeedback,
+    onChange,
+    onMenuChange,
+    direction,
+    selectedItems: selected,
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+  const className = cx(
+    `${prefix}--multi-select`,
+    [enabled ? null : containerClassName],
+    {
+      [`${prefix}--multi-select--invalid`]: invalid,
+      [`${prefix}--multi-select--warning`]: showWarning,
+      [`${prefix}--multi-select--inline`]: inline,
+      [`${prefix}--multi-select--selected`]:
+        selectedItems && selectedItems.length > 0,
+      [`${prefix}--list-box--up`]: direction === 'top',
+    }
+  );
+=======
+  const className = cx(
+    `${prefix}--multi-select`,
+    [enabled ? null : containerClassName],
+    {
+      [`${prefix}--multi-select--invalid`]: invalid,
+      [`${prefix}--multi-select--warning`]: showWarning,
+      [`${prefix}--multi-select--inline`]: inline,
+      [`${prefix}--multi-select--selected`]:
+        selectedItems && selectedItems.length > 0,
+      [`${prefix}--list-box--up`]: direction === 'top',
+      [`${prefix}--multi-select--readonly`]: readOnly,
+    }
+  );
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+  const titleClasses = cx(`${prefix}--label`, {
+    [`${prefix}--label--disabled`]: disabled,
+    [`${prefix}--visually-hidden`]: hideLabel,
+  });
+=======
+  const titleClasses = cx(`${prefix}--label`, {
+    [`${prefix}--label--disabled`]: disabled,
+    [`${prefix}--label--readonly`]: readOnly,
+    [`${prefix}--visually-hidden`]: hideLabel,
+  });
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+  const helperClasses = cx(`${prefix}--form__helper-text`, {
+    [`${prefix}--form__helper-text--disabled`]: disabled,
+  });
+=======
+  const helperClasses = cx(`${prefix}--form__helper-text`, {
+    [`${prefix}--form__helper-text--disabled`]: disabled,
+    [`${prefix}--form__helper-text--readonly`]: readOnly,
+  });
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+        <button
+          type="button"
+          className={`${prefix}--list-box__field`}
+          disabled={disabled}
+          aria-disabled={disabled}
+          {...toggleButtonProps}
+          ref={mergeRefs(toggleButtonProps.ref, ref)}
+          onKeyDown={onKeyDown}>
+=======
+        <button
+          type="button"
+          className={`${prefix}--list-box__field`}
+          disabled={disabled || readOnly}
+          aria-disabled={disabled || readOnly}
+          {...toggleButtonProps}
+          ref={mergeRefs(toggleButtonProps.ref, ref)}
+          onKeyDown={onKeyDown}>
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+          {selectedItems.length > 0 && (
+            <ListBox.Selection
+              clearSelection={!disabled ? clearSelection : noop}
+              selectionCount={selectedItems.length}
+              translateWithId={translateWithId}
+              disabled={disabled}
+            />
+          )}
+=======
+          {selectedItems.length > 0 && !readOnly && (
+            <ListBox.Selection
+              clearSelection={!disabled ? clearSelection : noop}
+              selectionCount={selectedItems.length}
+              translateWithId={translateWithId}
+              disabled={disabled}
+            />
+          )}
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+          <ListBox.MenuIcon isOpen={isOpen} translateWithId={translateWithId} />
+=======
+          {!readOnly && (
+            <ListBox.MenuIcon isOpen={isOpen} translateWithId={translateWithId} />
+          )}
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+MultiSelect.propTypes = {
+  ...sortingPropTypes,
+
+  /**
+   * Specify the text that should be read for screen readers that describes total items selected
+   */
+  clearSelectionDescription: PropTypes.string,
+=======
+MultiSelect.propTypes = {
+  ...sortingPropTypes,
+
+  /**
+   * Specify the text that should be read for screen readers that describes total items selected
+   */
+  clearSelectionDescription: PropTypes.string,
+
+  /**
+   * Set the component to read-only mode
+   */
+  readOnly: PropTypes.bool,
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+MultiSelect.defaultProps = {
+  compareItems: defaultCompareItems,
+  disabled: false,
+  locale: 'en',
+  itemToString: defaultItemToString,
+  initialSelectedItems: [],
+  sortItems: defaultSortItems,
+  type: 'default',
+  title: false,
+  open: false,
+  selectionFeedback: 'top-after-reopen',
+  direction: 'bottom',
+  clearSelectionText: 'To clear selection, press Delete or Backspace,',
+  clearSelectionDescription: 'Total items selected: ',
+  selectedItems: null,
+};
+=======
+MultiSelect.defaultProps = {
+  compareItems: defaultCompareItems,
+  disabled: false,
+  readOnly: false,
+  locale: 'en',
+  itemToString: defaultItemToString,
+  initialSelectedItems: [],
+  sortItems: defaultSortItems,
+  type: 'default',
+  title: false,
+  open: false,
+  selectionFeedback: 'top-after-reopen',
+  direction: 'bottom',
+  clearSelectionText: 'To clear selection, press Delete or Backspace,',
+  clearSelectionDescription: 'Total items selected: ',
+  selectedItems: null,
+};
+>>>>>>> REPLACE
+```
+
+These changes:
+1. Add a `readOnly` prop to the component
+2. Add appropriate CSS classes for styling the read-only state
+3. Disable the button when in read-only mode
+4. Hide the clear selection button and menu icon when in read-only mode
+5. Update the PropTypes and defaultProps to include the new `readOnly` prop

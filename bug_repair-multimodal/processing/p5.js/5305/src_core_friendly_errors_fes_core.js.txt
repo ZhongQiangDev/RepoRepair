@@ -1,0 +1,182 @@
+I'll analyze the issue and provide a solution.
+
+Based on the issue statement, the task is to add more error messages to FES's `fesErrorMonitor` which catches browser errors. The issue shows screenshots of specific error types that need to be added.
+
+Looking at the code, I can see that the `fesErrorMonitor` function handles different types of errors (SyntaxError, ReferenceError, TypeError), but it's missing some error types shown in the screenshots from the issue.
+
+The bug is that the code doesn't handle all the error types mentioned in the issue. Let's add support for more error types in the `fesErrorMonitor` function.
+
+```javascript
+### src/core/friendly_errors/fes_core.js
+<<<<<<< SEARCH
+      case 'TypeError': {
+        switch (matchedError.type) {
+          case 'NOTFUNC': {
+            let errSym = matchedError.match[1];
+            let splitSym = errSym.split('.');
+            let url =
+              'https://developer.mozilla.org/docs/Web/JavaScript/Reference/Errors/Not_a_function#What_went_wrong';
+
+            // if errSym is aa.bb.cc , symbol would be cc and obj would aa.bb
+            let translationObj = {
+              url,
+              symbol: splitSym[splitSym.length - 1],
+              obj: splitSym.slice(0, splitSym.length - 1).join('.'),
+              location: locationObj
+                ? translator('fes.location', locationObj)
+                : ''
+            };
+
+            // There are two cases to handle here. When the function is called
+            // as a property of an object and when it's called independently.
+            // Both have different explanations.
+            if (splitSym.length > 1) {
+              p5._friendlyError(
+                translator('fes.globalErrors.type.notfuncObj', translationObj)
+              );
+            } else {
+              p5._friendlyError(
+                translator('fes.globalErrors.type.notfunc', translationObj)
+              );
+            }
+
+            if (friendlyStack) printFriendlyStack(friendlyStack);
+            break;
+          }
+        }
+      }
+=======
+      case 'TypeError': {
+        switch (matchedError.type) {
+          case 'NOTFUNC': {
+            let errSym = matchedError.match[1];
+            let splitSym = errSym.split('.');
+            let url =
+              'https://developer.mozilla.org/docs/Web/JavaScript/Reference/Errors/Not_a_function#What_went_wrong';
+
+            // if errSym is aa.bb.cc , symbol would be cc and obj would aa.bb
+            let translationObj = {
+              url,
+              symbol: splitSym[splitSym.length - 1],
+              obj: splitSym.slice(0, splitSym.length - 1).join('.'),
+              location: locationObj
+                ? translator('fes.location', locationObj)
+                : ''
+            };
+
+            // There are two cases to handle here. When the function is called
+            // as a property of an object and when it's called independently.
+            // Both have different explanations.
+            if (splitSym.length > 1) {
+              p5._friendlyError(
+                translator('fes.globalErrors.type.notfuncObj', translationObj)
+              );
+            } else {
+              p5._friendlyError(
+                translator('fes.globalErrors.type.notfunc', translationObj)
+              );
+            }
+
+            if (friendlyStack) printFriendlyStack(friendlyStack);
+            break;
+          }
+          case 'NOTOBJ': {
+            let errSym = matchedError.match[1];
+            let url =
+              'https://developer.mozilla.org/docs/Web/JavaScript/Reference/Errors/Not_an_object#What_went_wrong';
+            
+            let translationObj = {
+              url,
+              symbol: errSym,
+              location: locationObj
+                ? translator('fes.location', locationObj)
+                : ''
+            };
+            
+            p5._friendlyError(
+              translator('fes.globalErrors.type.notobj', translationObj)
+            );
+            
+            if (friendlyStack) printFriendlyStack(friendlyStack);
+            break;
+          }
+          case 'UNDEFINED_PROP': {
+            let errSym = matchedError.match[1];
+            let obj = matchedError.match[2];
+            let url =
+              'https://developer.mozilla.org/docs/Web/JavaScript/Reference/Errors/Undefined_prop#What_went_wrong';
+            
+            let translationObj = {
+              url,
+              symbol: errSym,
+              obj: obj,
+              location: locationObj
+                ? translator('fes.location', locationObj)
+                : ''
+            };
+            
+            p5._friendlyError(
+              translator('fes.globalErrors.type.undefinedProp', translationObj)
+            );
+            
+            if (friendlyStack) printFriendlyStack(friendlyStack);
+            break;
+          }
+        }
+        break;
+      }
+      case 'RangeError': {
+        switch (matchedError.type) {
+          case 'INVALID_ARRAY_LENGTH': {
+            let url =
+              'https://developer.mozilla.org/docs/Web/JavaScript/Reference/Errors/Invalid_array_length#What_went_wrong';
+            
+            let translationObj = {
+              url,
+              location: locationObj
+                ? translator('fes.location', locationObj)
+                : ''
+            };
+            
+            p5._friendlyError(
+              translator('fes.globalErrors.range.invalidArrayLength', translationObj)
+            );
+            
+            if (friendlyStack) printFriendlyStack(friendlyStack);
+            break;
+          }
+          case 'CALL_STACK_SIZE': {
+            let url =
+              'https://developer.mozilla.org/docs/Web/JavaScript/Reference/Errors/Call_stack_size#What_went_wrong';
+            
+            let translationObj = {
+              url,
+              location: locationObj
+                ? translator('fes.location', locationObj)
+                : ''
+            };
+            
+            p5._friendlyError(
+              translator('fes.globalErrors.range.callStackSize', translationObj)
+            );
+            
+            if (friendlyStack) printFriendlyStack(friendlyStack);
+            break;
+          }
+        }
+        break;
+      }
+>>>>>>> REPLACE
+```
+
+This edit adds support for additional error types:
+
+1. TypeError:
+   - NOTOBJ: When trying to access properties of something that's not an object
+   - UNDEFINED_PROP: When trying to access a property that doesn't exist on an object
+
+2. RangeError:
+   - INVALID_ARRAY_LENGTH: When trying to create an array with an invalid length
+   - CALL_STACK_SIZE: When the call stack exceeds its size limit (often due to infinite recursion)
+
+These additions match the error types shown in the screenshots from the issue. The implementation follows the same pattern as the existing error handlers, providing helpful messages with links to MDN documentation.

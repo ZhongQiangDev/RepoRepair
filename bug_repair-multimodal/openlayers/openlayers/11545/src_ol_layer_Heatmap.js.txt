@@ -1,0 +1,43 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that the `className` setting in `ol.layer.HeatMap` does not work. When customizing the className of the heatmap, it doesn't work, and the default className is not displayed on the page.
+
+Looking at the code, I can see that the `Heatmap` class extends `VectorLayer`, and the `className` option is documented in the JSDoc comments. However, the issue is that while the option is documented, the code doesn't actually pass the className to the renderer.
+
+The problem is in the `createRenderer` method of the `Heatmap` class. This method creates a `WebGLPointsLayerRenderer` but doesn't pass the className to it. The renderer needs to know the className to apply it to the DOM elements it creates.
+
+## Fix
+
+```javascript
+### src/ol/layer/Heatmap.js
+<<<<<<< SEARCH
+  createRenderer() {
+    return new WebGLPointsLayerRenderer(this, {
+      attributes: [
+        {
+          name: 'weight',
+          callback: function (feature) {
+            const weight = this.weightFunction_(feature);
+            return weight !== undefined ? clamp(weight, 0, 1) : 1;
+          }.bind(this),
+        },
+      ],
+=======
+  createRenderer() {
+    return new WebGLPointsLayerRenderer(this, {
+      className: this.getClassName(),
+      attributes: [
+        {
+          name: 'weight',
+          callback: function (feature) {
+            const weight = this.weightFunction_(feature);
+            return weight !== undefined ? clamp(weight, 0, 1) : 1;
+          }.bind(this),
+        },
+      ],
+>>>>>>> REPLACE
+```
+
+This fix adds the `className` property to the options object passed to the `WebGLPointsLayerRenderer` constructor. It uses the `getClassName()` method which is inherited from the parent class to get the current className value. This ensures that the className setting will be properly applied to the heatmap layer's DOM elements.

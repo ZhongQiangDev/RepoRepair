@@ -1,0 +1,165 @@
+I'll analyze the issue and provide a solution.
+
+Based on the issue statement, we need to implement field validation errors for the RadioGroup component. The issue specifically mentions three states: Invalid (error), Warn, and Helper text. Looking at the current implementation, these features are missing from the RadioButtonGroup component.
+
+Here's my solution:
+
+```javascript
+### packages/react/src/components/RadioButtonGroup/RadioButtonGroup.js
+<<<<<<< SEARCH
+import PropTypes from 'prop-types';
+import React, { createContext, useState } from 'react';
+import classNames from 'classnames';
+import { Legend } from '../Text';
+import { usePrefix } from '../../internal/usePrefix';
+=======
+import PropTypes from 'prop-types';
+import React, { createContext, useState } from 'react';
+import classNames from 'classnames';
+import { Legend } from '../Text';
+import { usePrefix } from '../../internal/usePrefix';
+import { FormHelperText } from '../FormHelperText';
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/RadioButtonGroup/RadioButtonGroup.js
+<<<<<<< SEARCH
+  {
+    children,
+    className,
+    defaultSelected,
+    disabled,
+    labelPosition = 'right',
+    legendText,
+    name,
+    onChange = () => {},
+    orientation = 'horizontal',
+    readOnly,
+    valueSelected,
+    ...rest
+  },
+=======
+  {
+    children,
+    className,
+    defaultSelected,
+    disabled,
+    labelPosition = 'right',
+    legendText,
+    name,
+    onChange = () => {},
+    orientation = 'horizontal',
+    readOnly,
+    valueSelected,
+    invalid,
+    invalidText,
+    warn,
+    warnText,
+    helperText,
+    ...rest
+  },
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/RadioButtonGroup/RadioButtonGroup.js
+<<<<<<< SEARCH
+  const fieldsetClasses = classNames(`${prefix}--radio-button-group`, {
+    [`${prefix}--radio-button-group--${orientation}`]:
+      orientation === 'vertical',
+    [`${prefix}--radio-button-group--label-${labelPosition}`]: labelPosition,
+    [`${prefix}--radio-button-group--readonly`]: readOnly,
+  });
+
+  const wrapperClasses = classNames(`${prefix}--form-item`, className);
+=======
+  const fieldsetClasses = classNames(`${prefix}--radio-button-group`, {
+    [`${prefix}--radio-button-group--${orientation}`]:
+      orientation === 'vertical',
+    [`${prefix}--radio-button-group--label-${labelPosition}`]: labelPosition,
+    [`${prefix}--radio-button-group--readonly`]: readOnly,
+    [`${prefix}--radio-button-group--invalid`]: invalid,
+    [`${prefix}--radio-button-group--warning`]: warn,
+  });
+
+  const wrapperClasses = classNames(`${prefix}--form-item`, className);
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/RadioButtonGroup/RadioButtonGroup.js
+<<<<<<< SEARCH
+        {legendText && (
+          <Legend className={`${prefix}--label`}>{legendText}</Legend>
+        )}
+        {getRadioButtons()}
+      </fieldset>
+    </div>
+=======
+        {legendText && (
+          <Legend className={`${prefix}--label`}>{legendText}</Legend>
+        )}
+        {getRadioButtons()}
+      </fieldset>
+      {helperText && !invalid && !warn && (
+        <FormHelperText>{helperText}</FormHelperText>
+      )}
+      {invalid && invalidText && (
+        <FormHelperText invalid>{invalidText}</FormHelperText>
+      )}
+      {warn && warnText && (
+        <FormHelperText warn>{warnText}</FormHelperText>
+      )}
+    </div>
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/RadioButtonGroup/RadioButtonGroup.js
+<<<<<<< SEARCH
+  /**
+   * Specify the value that is currently selected in the group
+   */
+  valueSelected: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+=======
+  /**
+   * Specify the value that is currently selected in the group
+   */
+  valueSelected: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+
+  /**
+   * Specify whether the RadioButtonGroup is currently invalid
+   */
+  invalid: PropTypes.bool,
+
+  /**
+   * Provide the text that is displayed when the RadioButtonGroup is in an invalid state
+   */
+  invalidText: PropTypes.node,
+
+  /**
+   * Specify whether the RadioButtonGroup should be in a warning state
+   */
+  warn: PropTypes.bool,
+
+  /**
+   * Provide the text that is displayed when the RadioButtonGroup is in a warning state
+   */
+  warnText: PropTypes.node,
+
+  /**
+   * Provide helper text that is displayed below the input
+   */
+  helperText: PropTypes.node,
+>>>>>>> REPLACE
+```
+
+These changes add support for:
+1. Invalid state with error message
+2. Warning state with warning message
+3. Helper text for additional information
+4. Appropriate CSS classes for styling these states
+5. PropTypes for the new props
+
+The implementation follows the pattern shown in the spec image, where validation messages appear below the radio button group.

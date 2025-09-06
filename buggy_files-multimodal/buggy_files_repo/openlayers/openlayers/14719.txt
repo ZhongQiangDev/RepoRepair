@@ -1,0 +1,42 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the blurry WMS image issue.
+
+## Analysis of the Problem
+
+The issue described is that WMS images become blurry in version 7 when:
+1. The ratio is not a round integer
+2. The map width or map height is not even
+
+This suggests a problem with how pixel ratios are handled or how canvas dimensions are calculated for WMS images. The blurriness likely occurs because of sub-pixel rendering or improper scaling of the images.
+
+## Cause of the Problem
+
+The root cause appears to be related to how OpenLayers handles high-DPI displays (HiDPI) and pixel ratios when rendering WMS images. When dimensions aren't even or ratios aren't integers, the library might be calculating fractional pixel values, leading to anti-aliasing and blurry rendering.
+
+The issue is likely in the code that:
+1. Calculates image dimensions
+2. Handles pixel ratios for WMS sources
+3. Renders images to canvas elements
+
+## Files Most Related to the Cause
+
+```
+src/ol/Image.js
+src/ol/source/ImageWMS.js
+src/ol/render.js
+src/ol/reproj.js
+src/ol/ImageBase.js
+```
+
+These files are most critical because:
+
+1. `src/ol/Image.js` - Core class for handling images in OpenLayers, likely responsible for image rendering and dimensions.
+
+2. `src/ol/source/ImageWMS.js` - Specifically handles WMS image sources, including URL construction and pixel ratio handling.
+
+3. `src/ol/render.js` - Contains utilities for rendering, including pixel transformations that could affect image clarity.
+
+4. `src/ol/reproj.js` - Handles reprojection of images, which could introduce blurriness if not handling pixel dimensions correctly.
+
+5. `src/ol/ImageBase.js` - Base class for images that defines fundamental properties like pixel ratio and resolution.
+
+The fix would likely involve ensuring that calculated dimensions are properly rounded to whole pixels and that pixel ratios are correctly applied when rendering WMS images.

@@ -1,0 +1,43 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## 1. Identifying the Wrong Behavior
+
+The problem is that Prettier is removing a required trailing comma in generic type parameters when processing `.mts` files. Specifically, when formatting:
+
+```ts
+export const unsafeCoerce = <T,>(u: unknown): T => u as T
+```
+
+Prettier is incorrectly removing the comma after `T` to produce:
+
+```ts
+export const unsafeCoerce = <T>(u: unknown): T => u as T
+```
+
+However, this comma is actually required by the TypeScript compiler for unconstrained generic parameters, as shown in the screenshot from the issue.
+
+## 2. Analyzing the Cause
+
+The issue appears to be in Prettier's handling of TypeScript type parameters. Specifically:
+
+1. Prettier is incorrectly treating the trailing comma in unconstrained generic parameters as optional and removing it
+2. This behavior might be specific to `.mts` files (TypeScript module files)
+3. The problem is likely in the TypeScript parser or printer components of Prettier
+
+## 3. Files Most Related to the Cause
+
+Based on the repository information, these are the most relevant files that would need to be edited:
+
+```
+src/language-js/print/type-parameters.js
+src/language-js/parse/typescript.js
+src/language-js/clean.js
+src/language-js/printer-estree.js
+src/language-js/utils/index.js
+```
+
+The `src/language-js/print/type-parameters.js` file is most critical as it specifically handles the formatting of type parameters in TypeScript. The issue is likely in how it decides whether to include trailing commas in generic type parameters.
+
+The `src/language-js/parse/typescript.js` file is important because it handles the parsing of TypeScript files, which would include `.mts` files.
+
+The other files provide supporting functionality for cleaning, printing, and utility functions that might be involved in the decision to remove the trailing comma.

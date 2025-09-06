@@ -1,0 +1,143 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue occurs when drawing a textured triangle followed by an untextured square with lighting enabled. On Android devices, the square doesn't appear. This happens because:
+
+1. When drawing the textured triangle, UV information is stored in texture registers used by the lightingShader.
+2. When drawing the square later, the texture register remains valid but contains data for only 3 vertices.
+3. Since the square needs 4 vertices, this causes a mismatch.
+4. Most environments handle this gracefully, but some Android devices treat this as an error and don't render the object.
+
+The solution proposed in the issue is to disable vertex attribute arrays for attributes that aren't being used in the current draw call. This prevents the shader from trying to use stale or incomplete data from previous draw calls.
+
+## Solution
+
+We need to modify the `enableAttrib` method in `p5.Shader.js` to track which attribute arrays are enabled, and add functionality to disable attribute arrays when they're not needed.
+
+```javascript
+### src/webgl/p5.Shader.js
+<<<<<<< SEARCH
+p5.Shader.prototype.enableAttrib = function(
+  attr,
+  size,
+  type,
+  normalized,
+  stride,
+  offset
+) {
+  if (attr) {
+    if (
+      typeof IS_MINIFIED === 'undefined' &&
+      this.attributes[attr.name] !== attr
+    ) {
+      console.warn(
+        `The attribute "${
+          attr.name
+        }"passed to enableAttrib does not belong to this shader.`
+      );
+    }
+    const loc = attr.location;
+    if (loc !== -1) {
+      const gl = this._renderer.GL;
+      if (!attr.enabled) {
+        gl.enableVertexAttribArray(loc);
+        attr.enabled = true;
+      }
+      this._renderer.GL.vertexAttribPointer(
+        loc,
+        size,
+        type || gl.FLOAT,
+        normalized || false,
+        stride || 0,
+        offset || 0
+      );
+    }
+  }
+  return this;
+};
+=======
+p5.Shader.prototype.enableAttrib = function(
+  attr,
+  size,
+  type,
+  normalized,
+  stride,
+  offset
+) {
+  if (attr) {
+    if (
+      typeof IS_MINIFIED === 'undefined' &&
+      this.attributes[attr.name] !== attr
+    ) {
+      console.warn(
+        `The attribute "${
+          attr.name
+        }"passed to enableAttrib does not belong to this shader.`
+      );
+    }
+    const loc = attr.location;
+    if (loc !== -1) {
+      const gl = this._renderer.GL;
+      if (!attr.enabled) {
+        gl.enableVertexAttribArray(loc);
+        // Initialize registerEnabled array if it doesn't exist
+        if (!this._renderer.registerEnabled) {
+          this._renderer.registerEnabled = [];
+        }
+        // Record register enabled state
+        this._renderer.registerEnabled[loc] = true;
+        attr.enabled = true;
+      }
+      this._renderer.GL.vertexAttribPointer(
+        loc,
+        size,
+        type || gl.FLOAT,
+        normalized || false,
+        stride || 0,
+        offset || 0
+      );
+    }
+  }
+  return this;
+};
+
+/**
+ * Disables an attribute array that is not being used
+ * @method disableAttrib
+ * @chainable
+ * @private
+ */
+p5.Shader.prototype.disableAttrib = function(attr) {
+  if (attr) {
+    const loc = attr.location;
+    if (loc !== -1 && attr.enabled) {
+      // Only disable if the register is enabled
+      if (this._renderer.registerEnabled && this._renderer.registerEnabled[loc]) {
+        const gl = this._renderer.GL;
+        gl.disableVertexAttribArray(loc);
+        attr.enabled = false;
+        this._renderer.registerEnabled[loc] = false;
+      }
+    }
+  }
+  return this;
+};
+>>>>>>> REPLACE
+```
+
+Now we need to add code to the RendererGL class to use this new functionality in the `_prepareBuffer` method. However, since that file isn't provided in the code segments, I'll describe what needs to be done:
+
+In the `_prepareBuffer` method of the RendererGL class, we need to modify the code to check if an attribute has no data (src.length === 0) and if so, disable the attribute array using the new `disableAttrib` method. This would prevent the shader from using stale data from previous draw calls.
+
+The implementation would look something like:
+```javascript
+if (src.length > 0) {
+  // Existing code to prepare and enable the attribute
+} else {
+  // If there's no data for this attribute, disable it
+  this.curShader.disableAttrib(attr);
+}
+```
+
+This change will ensure that when drawing objects with different attribute requirements, unused attributes from previous draw calls won't interfere with the current rendering.

@@ -1,0 +1,51 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description and the GIF, the problem occurs when toggling between parallel and sequential multi-instance markers. The XML label isn't being updated correctly when switching between these options.
+
+Looking at the code in `ReplaceMenuProvider.js`, the issue is in the `toggleLoopEntry` function. When a user toggles from one multi-instance type to another, the code is not correctly updating the `isSequential` property on the existing loop characteristics object. Instead, it's checking if the entry is active and then either removing the loop characteristics entirely or creating a new one.
+
+Here's the fix:
+
+```javascript
+### lib/features/popup-menu/ReplaceMenuProvider.js
+<<<<<<< SEARCH
+  function toggleLoopEntry(event, entry) {
+    var loopCharacteristics = getBusinessObject(element).loopCharacteristics;
+
+    if (entry.active) {
+      loopCharacteristics = undefined;
+    } else {
+      if (isUndefined(entry.options.isSequential) || !loopCharacteristics) {
+        loopCharacteristics = self._moddle.create(entry.options.loopCharacteristics);
+      }
+
+      loopCharacteristics.isSequential = entry.options.isSequential;
+    }
+    self._modeling.updateProperties(element, { loopCharacteristics: loopCharacteristics });
+  }
+=======
+  function toggleLoopEntry(event, entry) {
+    var loopCharacteristics = getBusinessObject(element).loopCharacteristics;
+
+    if (entry.active) {
+      loopCharacteristics = undefined;
+    } else {
+      if (!loopCharacteristics || loopCharacteristics.$type !== entry.options.loopCharacteristics) {
+        loopCharacteristics = self._moddle.create(entry.options.loopCharacteristics);
+      }
+
+      if (!isUndefined(entry.options.isSequential)) {
+        loopCharacteristics.isSequential = entry.options.isSequential;
+      }
+    }
+    self._modeling.updateProperties(element, { loopCharacteristics: loopCharacteristics });
+  }
+>>>>>>> REPLACE
+```
+
+The fix makes two important changes:
+
+1. It checks if the existing loop characteristics are of the same type as the one we're trying to set. If not, it creates a new one.
+2. It only sets the `isSequential` property if it's defined in the options, which ensures we're not accidentally setting it to undefined when toggling the standard loop.
+
+This will ensure that when switching between parallel and sequential multi-instance markers, the XML label is correctly updated with the `isSequential` attribute.

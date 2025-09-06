@@ -1,0 +1,31 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that `0` and numbers starting with `0` (like `0123` or `0.3`) are not being properly highlighted as numbers in Elixir code. Looking at the code, the problem is in the NUMBER regex pattern which doesn't account for numbers starting with `0` unless they're explicitly binary, octal, or hexadecimal.
+
+The current regex pattern for numbers is:
+```
+(\\b0o[0-7_]+)|(\\b0b[01_]+)|(\\b0x[0-9a-fA-F_]+)|(-?\\b[1-9][0-9_]*(\\.[0-9_]+([eE][-+]?[0-9]+)?)?)'
+```
+
+Notice that the decimal integer part starts with `[1-9]`, which excludes `0`. We need to modify this to include `0` as a valid starting digit.
+
+Here's the fix:
+
+```javascript
+### src/languages/elixir.js
+<<<<<<< SEARCH
+  const NUMBER = {
+    className: 'number',
+    begin: '(\\b0o[0-7_]+)|(\\b0b[01_]+)|(\\b0x[0-9a-fA-F_]+)|(-?\\b[1-9][0-9_]*(\\.[0-9_]+([eE][-+]?[0-9]+)?)?)',
+    relevance: 0
+  };
+=======
+  const NUMBER = {
+    className: 'number',
+    begin: '(\\b0o[0-7_]+)|(\\b0b[01_]+)|(\\b0x[0-9a-fA-F_]+)|(-?\\b[0-9][0-9_]*(\\.[0-9_]+([eE][-+]?[0-9]+)?)?)',
+    relevance: 0
+  };
+>>>>>>> REPLACE
+```
+
+The key change is replacing `[1-9]` with `[0-9]` in the decimal integer pattern, which allows `0` to be recognized as a valid starting digit for numbers. This will properly highlight `0` on its own, as well as numbers starting with `0` like `0123` and `0.3`.

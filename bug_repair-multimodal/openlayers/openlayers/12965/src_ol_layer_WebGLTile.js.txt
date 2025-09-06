@@ -1,0 +1,89 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is that each WebGL TileLayer creates its own WebGL context, and browsers typically limit the number of WebGL contexts to around 16. This becomes problematic when an application needs to display multiple WebGL TileLayers, as it can hit this limit and cause the application to break down.
+
+The proposed solution is to make WebGL TileLayers within the same OpenLayers map share a single WebGL context.
+
+## Bug Localization
+
+Looking at the code, the issue is in the `WebGLTileLayer` class. Currently, each instance of this class creates its own renderer with a new WebGL context when `createRenderer()` is called. The renderer is created without any mechanism to share WebGL contexts between different layer instances.
+
+The fix would involve modifying the `createRenderer()` method to allow WebGL context sharing between layers in the same map.
+
+## Solution
+
+We need to modify the `WebGLTileLayer.js` file to enable WebGL context sharing. The key change will be in the `createRenderer()` method, where we'll need to pass a shared WebGL context from the map to the renderer.
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+  /**
+   * Create a renderer for this layer.
+   * @return {import("../renderer/Layer.js").default} A layer renderer.
+   * @protected
+   */
+  createRenderer() {
+    const source = this.getSource();
+    const parsedStyle = parseStyle(
+      this.style_,
+      'bandCount' in source ? source.bandCount : 4
+    );
+
+    return new WebGLTileLayerRenderer(this, {
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      cacheSize: this.cacheSize_,
+    });
+  }
+=======
+  /**
+   * Create a renderer for this layer.
+   * @return {import("../renderer/Layer.js").default} A layer renderer.
+   * @protected
+   */
+  createRenderer() {
+    const source = this.getSource();
+    const parsedStyle = parseStyle(
+      this.style_,
+      'bandCount' in source ? source.bandCount : 4
+    );
+
+    // Get the map associated with this layer
+    const map = this.getMapInternal();
+    
+    // Create options for the renderer
+    const options = {
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      cacheSize: this.cacheSize_,
+    };
+    
+    // If we have a map, try to get a shared WebGL context
+    if (map) {
+      // Use the map's shared WebGL context if available
+      if (!map.sharedWebGLContext) {
+        // Create a shared context on the map if it doesn't exist yet
+        map.sharedWebGLContext = {};
+      }
+      options.context = map.sharedWebGLContext;
+    }
+
+    return new WebGLTileLayerRenderer(this, options);
+  }
+>>>>>>> REPLACE
+```
+
+This change modifies the `createRenderer()` method to:
+
+1. Get the map associated with the layer
+2. Check if the map has a shared WebGL context property
+3. If not, create one
+4. Pass this shared context to the WebGLTileLayerRenderer
+
+This way, all WebGLTileLayers in the same map will use the same WebGL context, reducing the number of contexts needed and avoiding the browser limit.
+
+Note: This solution assumes that the `WebGLTileLayerRenderer` class is designed to accept and use a shared context. If that's not the case, additional changes would be needed in the renderer implementation to properly handle a shared context.

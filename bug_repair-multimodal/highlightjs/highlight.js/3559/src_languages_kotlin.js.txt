@@ -1,0 +1,42 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, there's a problem with the highlighting of brackets in Kotlin class inheritance context. The issue is specifically about the colon (`:`) and the brackets that follow it when defining class inheritance.
+
+Looking at the code, I can see that in the `class` section of the Kotlin language definition, there's a rule for handling types after a colon. The issue is likely in this part:
+
+```javascript
+{
+  className: 'type',
+  begin: /[,:]\s*/,
+  end: /[<\(,]|$/,
+  excludeBegin: true,
+  returnEnd: true
+}
+```
+
+The problem is that this rule ends at `[<\(,]|$`, which means it stops at an opening parenthesis or angle bracket. This causes the highlighting to change when a class inherits from another class and then has a method or property with parentheses.
+
+Here's my fix:
+
+```javascript
+### src/languages/kotlin.js
+<<<<<<< SEARCH
+          {
+            className: 'type',
+            begin: /[,:]\s*/,
+            end: /[<\(,]|$/,
+            excludeBegin: true,
+            returnEnd: true
+          },
+=======
+          {
+            className: 'type',
+            begin: /[,:]\s*/,
+            end: /[<\(,{]|$/,
+            excludeBegin: true,
+            returnEnd: true
+          },
+>>>>>>> REPLACE
+```
+
+This change adds the opening curly brace `{` to the end pattern, which will ensure that the type highlighting continues until the class body begins. This should fix the issue where the bracket is highlighted with a different color in class inheritance context.

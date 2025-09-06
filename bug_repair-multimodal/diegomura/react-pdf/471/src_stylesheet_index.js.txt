@@ -1,0 +1,82 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is with extending styled components in `@react-pdf/styled-components`. When a styled component is extended, the styles from the parent component aren't being properly applied to the child component. 
+
+Looking at the provided code snippet from `src/stylesheet/index.js`, I notice that two important functions are referenced but not shown in the snippet:
+1. `flatten` - which should flatten nested style objects
+2. `resolveMediaQueries` - which handles media queries
+
+The issue is likely in the `flatten` function, which should be responsible for merging styles from parent components when extending styled components.
+
+The problem is that the `flatten` function is referenced in the code but not defined in the provided snippet. Based on the issue description, it seems that when extending styled components, the styles from the parent component aren't being properly merged with the styles from the child component.
+
+## Fix
+
+I need to implement or fix the `flatten` function to properly handle style inheritance. Here's my proposed fix:
+
+```javascript
+### src/stylesheet/index.js
+<<<<<<< SEARCH
+import matchMedia from 'media-engine';
+import transformStyles from './transformStyles';
+
+
+
+
+
+
+
+const resolve = (styles, container) => {
+=======
+import matchMedia from 'media-engine';
+import transformStyles from './transformStyles';
+
+const flatten = (style) => {
+  if (!style) return {};
+  
+  if (!Array.isArray(style)) {
+    return style;
+  }
+
+  return style.reduce((result, currentStyle) => {
+    if (!currentStyle) return result;
+    
+    if (Array.isArray(currentStyle)) {
+      return { ...result, ...flatten(currentStyle) };
+    }
+    
+    return { ...result, ...currentStyle };
+  }, {});
+};
+
+const resolveMediaQueries = (styles, container) => {
+  if (!styles || !container) return styles;
+  
+  const { width, height } = container;
+  let mediaStyles = {};
+  
+  Object.keys(styles)
+    .filter(key => key.indexOf('@media') === 0)
+    .forEach(key => {
+      const query = key.replace('@media', '');
+      const isMatch = matchMedia(query, { width, height });
+      
+      if (isMatch) {
+        mediaStyles = { ...mediaStyles, ...styles[key] };
+      }
+    });
+  
+  return { ...styles, ...mediaStyles };
+};
+
+const resolve = (styles, container) => {
+>>>>>>> REPLACE
+```
+
+This implementation of the `flatten` function properly handles arrays of styles and nested arrays, which is crucial for style inheritance in styled components. It recursively flattens the style arrays and merges the style objects, ensuring that child components inherit styles from their parents.
+
+I've also added an implementation for `resolveMediaQueries` since it was referenced but not defined in the original code.
+
+This fix should ensure that when you extend a styled component like `ExampleText2 = styled(ExampleText1)`, the styles from `ExampleText1` are properly inherited and can be overridden by `ExampleText2`.

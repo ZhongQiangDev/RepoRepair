@@ -1,0 +1,60 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The GitHub problem description suggests adopting `toLocaleString` for all number outputs to ensure they are formatted consistently with thousands separators and decimal place handling. The issue is that not all number outputs in the codebase are currently using `toLocaleString`, leading to inconsistent formatting.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause is that various functions and classes in the codebase are currently using different methods to format numbers, such as `toFixed`, `Math.round`, or direct string conversion. These methods do not provide the same level of formatting consistency as `toLocaleString`, which handles thousands separators and decimal places automatically based on the locale.
+
+### 3. Examine Each File One by One
+
+#### lighthouse-core/audits/audit.js
+
+This file contains no relevant functions/classes.
+
+#### lighthouse-core/audits/dobetterweb/dom-size.js
+
+This file contains no relevant functions/classes.
+
+#### lighthouse-core/lib/traces/pwmetrics-events.js
+
+This file contains no relevant functions/classes.
+
+#### lighthouse-core/report/handlebar-helpers.js
+
+```
+lighthouse-core/report/handlebar-helpers.js
+function: formatNumber
+function: function_15
+function: function_8
+```
+
+- `formatNumber`: This function already uses `toLocaleString` with `{maximumFractionDigits: 1}`. It should be reviewed to ensure it is used consistently throughout the codebase.
+- `function_15`: This function formats a size in bytes to kilobytes using `toLocaleString` with `{maximumFractionDigits: 2}`. It should be reviewed to ensure it is used consistently.
+- `function_8`: This function uses `toFixed(2)` to format numbers. It should be replaced with `toLocaleString` for consistency.
+
+#### lighthouse-core/report/v2/renderer/report-renderer.js
+
+```
+lighthouse-core/report/v2/renderer/report-renderer.js
+function: formatNumber
+function: calculateRating
+```
+
+- `formatNumber`: This function uses `toLocaleString` with `{maximumFractionDigits: 1}`. It should be reviewed to ensure it is used consistently.
+- `calculateRating`: This function does not directly format numbers but may use formatted numbers in its logic. It should be reviewed to ensure it uses `toLocaleString` consistently.
+
+### Summary
+
+The relevant functions that need inspection or editing to fix the problem are:
+
+```
+lighthouse-core/report/handlebar-helpers.js
+function: formatNumber
+function: function_15
+function: function_8
+
+lighthouse-core/report/v2/renderer/report-renderer.js
+function: formatNumber
+function: calculateRating
+```

@@ -1,0 +1,133 @@
+I'll analyze the issue and provide a solution.
+
+The issue is about adding support for image tokens in Markdown. In Markdown, images are represented using the syntax `![alt text](url)`. Looking at the code, I can see that the current implementation has support for URLs but not specifically for images.
+
+The main difference between a URL and an image in Markdown is that an image starts with an exclamation mark (`!`) before the square brackets. While the current code does have some handling for URLs with an optional exclamation mark (`!?\[`), it doesn't properly distinguish between regular links and images.
+
+Let's add specific support for images in the Markdown parser:
+
+```javascript
+### components/prism-markdown.js
+<<<<<<< SEARCH
+	Prism.languages.insertBefore('markdown', 'prolog', {
+		'front-matter-block': {
+			pattern: /(^(?:\s*[\r\n])?)---(?!.)[\s\S]*?[\r\n]---(?!.)/,
+			lookbehind: true,
+			greedy: true,
+			inside: {
+				'punctuation': /^---|---$/,
+				'font-matter': {
+					pattern: /\S+(?:\s+\S+)*/,
+					alias: ['yaml', 'language-yaml'],
+					inside: Prism.languages.yaml
+				}
+			}
+		},
+=======
+	Prism.languages.insertBefore('markdown', 'prolog', {
+		'front-matter-block': {
+			pattern: /(^(?:\s*[\r\n])?)---(?!.)[\s\S]*?[\r\n]---(?!.)/,
+			lookbehind: true,
+			greedy: true,
+			inside: {
+				'punctuation': /^---|---$/,
+				'font-matter': {
+					pattern: /\S+(?:\s+\S+)*/,
+					alias: ['yaml', 'language-yaml'],
+					inside: Prism.languages.yaml
+				}
+			}
+		},
+		'image': {
+			// ![alt](url "title")
+			// ![alt][id]
+			pattern: createInline(/!\[(?:(?!\])<inner>)+\](?:\([^\s)]+(?:[\t ]+"(?:\\.|[^"\\])*")?\)| ?\[(?:(?!\])<inner>)+\])/.source),
+			lookbehind: true,
+			greedy: true,
+			inside: {
+				'variable': {
+					pattern: /(\[)[^\]]+(?=\]$)/,
+					lookbehind: true
+				},
+				'content': {
+					pattern: /(\!\[)[^\]]+(?=\])/,
+					lookbehind: true,
+					inside: {} // see below
+				},
+				'string': {
+					pattern: /"(?:\\.|[^"\\])*"(?=\)$)/
+				}
+			}
+		},
+>>>>>>> REPLACE
+```
+
+```javascript
+### components/prism-markdown.js
+<<<<<<< SEARCH
+	['url', 'bold', 'italic', 'strike'].forEach(function (token) {
+		['url', 'bold', 'italic', 'strike'].forEach(function (inside) {
+=======
+	['url', 'bold', 'italic', 'strike', 'image'].forEach(function (token) {
+		['url', 'bold', 'italic', 'strike', 'image'].forEach(function (inside) {
+>>>>>>> REPLACE
+```
+
+```javascript
+### components/prism-markdown.js
+<<<<<<< SEARCH
+		'url': {
+			// [example](http://example.com "Optional title")
+			// [example][id]
+			// [example] [id]
+			pattern: createInline(/!?\[(?:(?!\])<inner>)+\](?:\([^\s)]+(?:[\t ]+"(?:\\.|[^"\\])*")?\)| ?\[(?:(?!\])<inner>)+\])/.source),
+			lookbehind: true,
+			greedy: true,
+			inside: {
+				'variable': {
+					pattern: /(\[)[^\]]+(?=\]$)/,
+					lookbehind: true
+				},
+				'content': {
+					pattern: /(^!?\[)[^\]]+(?=\])/,
+					lookbehind: true,
+					inside: {} // see below
+				},
+				'string': {
+					pattern: /"(?:\\.|[^"\\])*"(?=\)$)/
+				}
+			}
+		}
+=======
+		'url': {
+			// [example](http://example.com "Optional title")
+			// [example][id]
+			// [example] [id]
+			pattern: createInline(/\[(?:(?!\])<inner>)+\](?:\([^\s)]+(?:[\t ]+"(?:\\.|[^"\\])*")?\)| ?\[(?:(?!\])<inner>)+\])/.source),
+			lookbehind: true,
+			greedy: true,
+			inside: {
+				'variable': {
+					pattern: /(\[)[^\]]+(?=\]$)/,
+					lookbehind: true
+				},
+				'content': {
+					pattern: /(^\[)[^\]]+(?=\])/,
+					lookbehind: true,
+					inside: {} // see below
+				},
+				'string': {
+					pattern: /"(?:\\.|[^"\\])*"(?=\)$)/
+				}
+			}
+		}
+>>>>>>> REPLACE
+```
+
+These changes:
+
+1. Add a specific token for images with the pattern that matches `![alt](url)` or `![alt][id]` syntax
+2. Update the URL pattern to no longer handle the exclamation mark prefix (since images now have their own token)
+3. Include the new 'image' token in the cross-reference loops so that nested tokens work properly
+
+This implementation will properly highlight image syntax in Markdown, distinguishing it from regular links.

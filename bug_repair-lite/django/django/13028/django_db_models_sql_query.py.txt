@@ -1,0 +1,42 @@
+Based on the issue description, the bug occurs when filtering on a field named "filterable" in Django's query system. The error message indicates that Django is incorrectly interpreting the field name "filterable" as a special flag rather than a regular field name.
+
+Looking at the code, the issue is in the `check_filterable()` method in django/db/models/sql/query.py. This method checks if expressions can be used in WHERE clauses by looking at a `filterable` attribute. However, it's incorrectly interpreting field names that happen to be "filterable" as this special attribute.
+
+Here's the fix:
+
+```python
+### django/db/models/sql/query.py
+<<<<<<< SEARCH
+    def check_filterable(self, expression):
+        """Raise an error if expression cannot be used in a WHERE clause."""
+        if not getattr(expression, 'filterable', True):
+            raise NotSupportedError(
+                expression.__class__.__name__ + ' is disallowed in the filter '
+                'clause.'
+            )
+        if hasattr(expression, 'get_source_expressions'):
+            for expr in expression.get_source_expressions():
+                self.check_filterable(expr)
+=======
+    def check_filterable(self, expression):
+        """Raise an error if expression cannot be used in a WHERE clause."""
+        if hasattr(expression, 'filterable') and not isinstance(expression, Field):
+            if not expression.filterable:
+                raise NotSupportedError(
+                    expression.__class__.__name__ + ' is disallowed in the filter '
+                    'clause.'
+                )
+        if hasattr(expression, 'get_source_expressions'):
+            for expr in expression.get_source_expressions():
+                self.check_filterable(expr)
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Adds a check to see if the expression is a Field instance before checking the filterable attribute
+2. Only raises the error if the expression has an explicit filterable=False attribute and is not a Field
+
+This prevents Django from misinterpreting field names that happen to be "filterable" as the special filterable flag, while maintaining the original functionality for non-Field expressions that have the filterable attribute set to False.
+
+The fix allows models to have fields named "filterable" while still maintaining Django's ability to restrict certain expressions from being used in WHERE clauses.

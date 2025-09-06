@@ -1,0 +1,33 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+When an unrecognized command line option is passed to pylint (e.g., `-Q`), it prints both a user-friendly error message AND an unwanted traceback. The traceback makes the output less user-friendly and is unnecessary for this type of error.
+
+2. Cause Analysis:
+The issue appears to be in the error handling of unrecognized options. While the code correctly detects and reports the unrecognized option with a clear message (E0015), it's not properly catching and handling the `_UnrecognizedOptionError` exception at a higher level to prevent the traceback from being displayed.
+
+3. Relevant Files/Functions Analysis:
+
+```
+pylint/config/config_initialization.py
+function: _config_initialization
+```
+This is the primary location where the issue occurs. The function processes command line arguments and raises the `_UnrecognizedOptionError` when it encounters unrecognized options, but doesn't properly handle the exception to prevent traceback display.
+
+```
+pylint/lint/run.py
+class: Run
+```
+This class is responsible for handling the command-line execution of pylint and should be involved in catching and properly handling the unrecognized option error before it results in a traceback.
+
+```
+pylint/lint/pylinter.py
+class: PyLinter
+```
+This class is involved as it handles the core linting process and option management. It should potentially be involved in the error handling chain for unrecognized options.
+
+The remaining files contain no relevant functions/classes:
+- pylint/exceptions.py
+- pylint/interfaces.py
+
+The fix would likely involve modifying the error handling in either the `Run` class or `_config_initialization` function to catch the `_UnrecognizedOptionError` and display only the user-friendly message without the traceback.

@@ -1,0 +1,51 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that after a specific sequence of template literals and comments, the syntax highlighting for subsequent template literals breaks. Specifically:
+
+- A regex containing a single quote followed by a template literal with a single quote renders correctly.
+- A comment containing a template literal also renders correctly.
+- However, after these two elements, any subsequent template literals are not highlighted correctly. The first template tag is ignored, and the highlighting for template literals is inverted for the rest of the file.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior likely lies in how the PrismJS library handles template literals and comments in its tokenization process. The issue seems to be related to the state of the tokenizer after processing the specific sequence of template literals and comments. The tokenizer might be left in an incorrect state, causing it to misinterpret subsequent template literals.
+
+### 3. Examine Each File One by One
+
+#### --- components/prism-core.js ---
+This file contains the core functionality of PrismJS, including tokenization and highlighting. The `tokenize` function is responsible for breaking down the input text into tokens based on the provided grammar rules. Given the issue described, the `tokenize` function is likely relevant as it handles the parsing of template literals and comments.
+
+```
+components/prism-core.js
+function: tokenize
+```
+
+#### --- components/prism-js-extras.js ---
+This file modifies the Prism.js language definition for JavaScript by inserting additional token patterns. While it adds support for various JavaScript constructs, it does not specifically handle template literals or comments. Therefore, it is unlikely to be directly related to the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### --- components/prism-js-templates.js ---
+This file contains the `createTemplate` function, which generates a regex pattern for matching tagged template literals. Although it deals with template literals, it is specifically for tagged templates with embedded languages. The issue described does not involve tagged templates, so this file is likely not relevant.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### --- components/prism-markup-templating.js ---
+This file handles markup templating by creating and managing placeholder tokens. It does not deal with JavaScript template literals or comments, so it is not relevant to the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+### Summary of Relevant Locations
+
+Based on the analysis, the only relevant location is:
+
+```
+components/prism-core.js
+function: tokenize
+```

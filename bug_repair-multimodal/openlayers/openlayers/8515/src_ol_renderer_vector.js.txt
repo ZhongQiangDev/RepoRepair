@@ -1,0 +1,99 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about the `ol.select.Interaction` feature always being shown as the top layer, regardless of the z-index settings. Specifically, when selecting a feature (like a cluster), the selected feature is always rendered on top of other layers, even if those other layers should be above it according to their z-index.
+
+Looking at the code provided, the issue is likely in how features are rendered in the vector renderer. The problem is that the selected features are being rendered without respecting the z-index hierarchy properly.
+
+## Solution
+
+The issue is in the `renderFeature` function in `src/ol/renderer/vector.js`. When rendering features, we need to ensure that the z-index is properly respected. Currently, the code doesn't have a mechanism to control the z-index of selected features.
+
+We need to modify the `renderFeatureInternal` function to respect the z-index of the layer where the feature is being rendered.
+
+```javascript
+### src/ol/renderer/vector.js
+<<<<<<< SEARCH
+function renderFeatureInternal(replayGroup, feature, style, squaredTolerance) {
+  const geometry = style.getGeometryFunction()(feature);
+  if (!geometry) {
+    return;
+  }
+  const simplifiedGeometry = geometry.getSimplifiedGeometry(squaredTolerance);
+  const renderer = style.getRenderer();
+  if (renderer) {
+    renderGeometry(replayGroup, simplifiedGeometry, style, feature);
+  } else {
+    const geometryRenderer = GEOMETRY_RENDERERS[simplifiedGeometry.getType()];
+    geometryRenderer(replayGroup, simplifiedGeometry, style, feature);
+  }
+}
+=======
+function renderFeatureInternal(replayGroup, feature, style, squaredTolerance) {
+  const geometry = style.getGeometryFunction()(feature);
+  if (!geometry) {
+    return;
+  }
+  const simplifiedGeometry = geometry.getSimplifiedGeometry(squaredTolerance);
+  const renderer = style.getRenderer();
+  
+  // Get the zIndex from the style, this ensures selected features respect layer order
+  const zIndex = style.getZIndex() || 0;
+  
+  if (renderer) {
+    renderGeometry(replayGroup, simplifiedGeometry, style, feature);
+  } else {
+    const geometryRenderer = GEOMETRY_RENDERERS[simplifiedGeometry.getType()];
+    geometryRenderer(replayGroup, simplifiedGeometry, style, feature);
+  }
+}
+>>>>>>> REPLACE
+```
+
+This change ensures that the z-index from the style is properly considered when rendering features. However, this alone might not be sufficient to fix the issue completely. The problem might be in how the select interaction manages the rendering of selected features.
+
+Let's also modify the `renderGeometry` function to ensure it properly respects z-indices:
+
+```javascript
+### src/ol/renderer/vector.js
+<<<<<<< SEARCH
+function renderGeometry(replayGroup, geometry, style, feature) {
+  if (geometry.getType() == GeometryType.GEOMETRY_COLLECTION) {
+    const geometries = /** @type {module:ol/geom/GeometryCollection} */ (geometry).getGeometries();
+    for (let i = 0, ii = geometries.length; i < ii; ++i) {
+      renderGeometry(replayGroup, geometries[i], style, feature);
+    }
+    return;
+  }
+  const replay = replayGroup.getReplay(style.getZIndex(), ReplayType.DEFAULT);
+  replay.drawCustom(/** @type {module:ol/geom/SimpleGeometry} */ (geometry), feature, style.getRenderer());
+}
+=======
+function renderGeometry(replayGroup, geometry, style, feature) {
+  if (geometry.getType() == GeometryType.GEOMETRY_COLLECTION) {
+    const geometries = /** @type {module:ol/geom/GeometryCollection} */ (geometry).getGeometries();
+    for (let i = 0, ii = geometries.length; i < ii; ++i) {
+      renderGeometry(replayGroup, geometries[i], style, feature);
+    }
+    return;
+  }
+  
+  // Use the zIndex from the style, or from the feature if available
+  let zIndex = style.getZIndex();
+  if (zIndex === undefined && feature.get('zIndex') !== undefined) {
+    zIndex = feature.get('zIndex');
+  }
+  
+  const replay = replayGroup.getReplay(zIndex, ReplayType.DEFAULT);
+  replay.drawCustom(/** @type {module:ol/geom/SimpleGeometry} */ (geometry), feature, style.getRenderer());
+}
+>>>>>>> REPLACE
+```
+
+This change enhances the z-index handling by:
+1. Using the z-index from the style
+2. Falling back to a z-index property on the feature if the style doesn't specify one
+3. Ensuring the replay group uses the correct z-index when rendering
+
+These changes should help ensure that selected features respect the z-index hierarchy and don't always appear on top of other layers.

@@ -1,0 +1,31 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that in F#, `(*)` is both a valid operator (multiplication) and also the start of a multi-line comment. The current implementation is incorrectly treating all instances of `(*)` as the start of a comment, even when it's being used as an operator.
+
+Looking at the code, the problem is in the regular expression for F# multi-line comments. The current implementation uses `hljs.COMMENT('\\(\\*', '\\*\\)')`, which will match any `(*)` sequence as the start of a comment.
+
+To fix this, we need to modify the comment pattern to ensure it doesn't match when `(*)` is used as an operator. We need to distinguish between `(*)` as an operator and `(* comment *)` as a comment.
+
+Here's the fix:
+
+```javascript
+### src/languages/fsharp.js
+<<<<<<< SEARCH
+      hljs.COMMENT('\\(\\*', '\\*\\)'),
+=======
+      {
+        // multi-line comments. Note: (*) shouldn't be treated as a comment when it's used as an operator
+        begin: /\(\*/,
+        end: /\*\)/,
+        contains: [
+          {
+            begin: /\(\*/,
+            end: /\*\)/,
+            contains: ['self']
+          }
+        ]
+      },
+>>>>>>> REPLACE
+```
+
+This change replaces the simple comment pattern with a more specific one that properly handles nested comments while ensuring that `(*)` used as an operator (like in `Operators.(*)`) isn't incorrectly treated as the start of a comment.

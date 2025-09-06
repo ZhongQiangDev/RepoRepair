@@ -1,0 +1,61 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue occurs when copying a Pool element in a BPMN diagram. When a Pool is copied and pasted, it retains the same ID as the original Pool, which causes problems during export/import. The XML snippet in the issue shows two processes with the same ID (`Process_17iojvx`), which is invalid.
+
+The problem is in the ID handling when elements are copied. The `IdClaimHandler` is responsible for claiming and unclaiming IDs in the moddle, but it doesn't appear to be generating new IDs for copied elements.
+
+## Solution
+
+The issue is not directly in the `IdClaimHandler.js` file shown, but rather in how copying elements works. When a Pool is copied, a new unique ID should be generated for the copied element.
+
+Since we don't have access to the copying logic, we need to ensure that the ID claiming mechanism properly handles duplicate IDs. Let's modify the `IdClaimHandler` to check if an ID is already claimed before trying to claim it, and generate a new ID if needed.
+
+```javascript
+### lib/features/modeling/cmd/IdClaimHandler.js
+<<<<<<< SEARCH
+IdClaimHandler.prototype.execute = function(context) {
+  var ids = this._moddle.ids,
+      id = context.id,
+      element = context.element,
+      claiming = context.claiming;
+
+  if (claiming) {
+    ids.claim(id, element);
+  } else {
+    ids.unclaim(id);
+  }
+};
+=======
+IdClaimHandler.prototype.execute = function(context) {
+  var ids = this._moddle.ids,
+      id = context.id,
+      element = context.element,
+      claiming = context.claiming;
+
+  if (claiming) {
+    // Check if ID is already claimed
+    if (ids.assigned(id) && ids.get(id) !== element) {
+      // Generate a new unique ID if this one is already taken
+      var newId = ids.nextPrefixed(id + '_', id);
+      context.id = newId;
+      ids.claim(newId, element);
+      
+      // Update the element's ID if it has an 'id' property
+      if (element.id) {
+        element.id = newId;
+      }
+    } else {
+      ids.claim(id, element);
+    }
+  } else {
+    ids.unclaim(id);
+  }
+};
+>>>>>>> REPLACE
+```
+
+This modification checks if the ID is already assigned to a different element before claiming it. If it is, it generates a new unique ID with the original ID as a prefix, updates the context with the new ID, and claims that instead. It also updates the element's ID property if it exists.
+
+Note: This solution assumes that the `ids` object has methods like `assigned()`, `get()`, and `nextPrefixed()`. If these methods don't exist, additional changes would be needed to the moddle IDs implementation.

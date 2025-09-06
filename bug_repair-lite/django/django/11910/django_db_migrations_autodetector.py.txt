@@ -1,0 +1,42 @@
+Based on the issue description, the bug occurs when renaming a primary key field that is referenced by a foreign key in another model. The foreign key's `to_field` parameter still points to the old field name after the rename operation.
+
+Looking at the code, the issue is in the `generate_renamed_fields()` method of `MigrationAutodetector`. When renaming fields, it needs to update any foreign key references to point to the new field name.
+
+Here's the fix:
+
+```python
+### django/db/migrations/autodetector.py
+<<<<<<< SEARCH
+                    old_field_dec = self.deep_deconstruct(old_field)
+                    old_field.set_attributes_from_name(rem_field_name)
+                    old_db_column = old_field.get_attname_column()[1]
+                    if (old_field_dec == field_dec or (
+                            # Was the field renamed and db_column equal to the
+                            # old field's column added?
+                            old_field_dec[0:2] == field_dec[0:2] and
+                            dict(old_field_dec[2], db_column=old_db_column) == field_dec[2])):
+=======
+                    old_field_dec = self.deep_deconstruct(old_field)
+                    old_field.set_attributes_from_name(rem_field_name)
+                    old_db_column = old_field.get_attname_column()[1]
+                    # Update any foreign key references to this field
+                    if old_field.primary_key:
+                        for other_model in self.new_apps.get_models():
+                            for f in other_model._meta.local_fields:
+                                if (getattr(f, 'to_field', None) == rem_field_name and 
+                                    f.remote_field and 
+                                    f.remote_field.model == field.model):
+                                    f.to_field = field_name
+                    if (old_field_dec == field_dec or (
+                            # Was the field renamed and db_column equal to the
+                            # old field's column added?
+                            old_field_dec[0:2] == field_dec[0:2] and
+                            dict(old_field_dec[2], db_column=old_db_column) == field_dec[2])):
+>>>>>>> REPLACE
+```
+
+This fix adds a check when renaming fields to see if the renamed field is a primary key. If it is, it looks through all models to find any foreign keys that reference this field via `to_field` and updates them to use the new field name.
+
+The fix ensures that when a primary key field is renamed, any foreign key references to that field are properly updated to point to the new field name rather than continuing to reference the old field name.
+
+This addresses the issue where foreign keys were keeping their `to_field` parameter pointing to the old field name after the primary key field was renamed.

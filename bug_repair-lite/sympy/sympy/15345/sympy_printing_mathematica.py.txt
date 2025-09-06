@@ -1,0 +1,27 @@
+Based on the issue description, the bug is that the `mathematica_code()` function outputs `Max(2, x)` instead of the expected Mathematica syntax `Max[x,2]` when given `Max(x,2)` as input.
+
+Looking at the code, the issue is that there's no specific handling for the `Max` function in the `known_functions` dictionary. Additionally, the default function printing in `_print_Function` uses parentheses instead of square brackets for unknown functions.
+
+Here's the fix - we need to add `Max` to the `known_functions` dictionary:
+
+```python
+### sympy/printing/mathematica.py
+<<<<<<< SEARCH
+    "conjugate": [(lambda x: True, "Conjugate")],
+
+}
+=======
+    "conjugate": [(lambda x: True, "Conjugate")],
+    "Max": [(lambda x: True, "Max")],
+}
+>>>>>>> REPLACE
+```
+
+This fix adds `Max` to the list of known functions. When the printer encounters `Max(x,2)`, it will now use the proper Mathematica syntax with square brackets: `Max[x,2]`.
+
+The fix works because:
+1. The `_print_Function` method checks if the function name is in `known_functions`
+2. When it finds `Max` in the dictionary, it uses the format `"%s[%s]"` with square brackets
+3. The arguments are properly stringified and joined with commas
+
+This will ensure that `mathematica_code(Max(x,2))` outputs `'Max[x,2]'` as expected.

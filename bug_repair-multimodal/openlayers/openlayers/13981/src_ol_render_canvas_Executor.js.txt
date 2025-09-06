@@ -1,0 +1,80 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about inconsistent rendering of offset and rotated text between vector layers and vector context. According to the issue description:
+
+1. The vector layer renderer rotates offset text around the feature from which it is offset.
+2. The immediate renderer rotates it around its offset anchor point (as defined by `textAlign` and `textBaseline` settings).
+
+Looking at the code, the problem is in the `calculateImageOrLabelDimensions_` method in `src/ol/render/canvas/Executor.js`. When calculating the transformation for rotated text, the rotation is applied around the center point (`centerX`, `centerY`), but for offset text, this center point should be adjusted differently depending on whether we're in the vector layer or immediate renderer context.
+
+## Fix
+
+The issue is in the transformation calculation. When text is offset and rotated, the rotation should be applied around the feature point, not around the offset text position. Here's the fix:
+
+```javascript
+### src/ol/render/canvas/Executor.js
+<<<<<<< SEARCH
+    let transform;
+    if (rotation !== 0) {
+      transform = composeTransform(
+        createTransform(),
+        centerX,
+        centerY,
+        1,
+        1,
+        rotation,
+        -centerX,
+        -centerY
+      );
+
+      applyTransform(transform, p1);
+      applyTransform(transform, p2);
+      applyTransform(transform, p3);
+      applyTransform(transform, p4);
+      createOrUpdate(
+        Math.min(p1[0], p2[0], p3[0], p4[0]),
+        Math.min(p1[1], p2[1], p3[1], p4[1]),
+        Math.max(p1[0], p2[0], p3[0], p4[0]),
+        Math.max(p1[1], p2[1], p3[1], p4[1]),
+        tmpExtent
+      );
+=======
+    let transform;
+    if (rotation !== 0) {
+      // For labels, we want to rotate around the center of the text
+      // For images, we rotate around the image center
+      // However, the anchor point is what determines the final position
+      // We need to adjust the rotation center based on the anchor and offset
+      const rotateX = centerX + anchorX - x;
+      const rotateY = centerY + anchorY - y;
+      
+      transform = composeTransform(
+        createTransform(),
+        rotateX,
+        rotateY,
+        1,
+        1,
+        rotation,
+        -rotateX,
+        -rotateY
+      );
+
+      applyTransform(transform, p1);
+      applyTransform(transform, p2);
+      applyTransform(transform, p3);
+      applyTransform(transform, p4);
+      createOrUpdate(
+        Math.min(p1[0], p2[0], p3[0], p4[0]),
+        Math.min(p1[1], p2[1], p3[1], p4[1]),
+        Math.max(p1[0], p2[0], p3[0], p4[0]),
+        Math.max(p1[1], p2[1], p3[1], p4[1]),
+        tmpExtent
+      );
+>>>>>>> REPLACE
+```
+
+This fix ensures that the rotation is applied around the feature point (adjusted by anchor) rather than the offset text position. The key change is calculating the correct rotation center (`rotateX`, `rotateY`) that takes into account both the anchor and the offset.
+
+The rotation center is now calculated as the original center point plus the anchor offset, minus the final position. This ensures that the text rotates around the feature point consistently in both vector layer and immediate rendering contexts.

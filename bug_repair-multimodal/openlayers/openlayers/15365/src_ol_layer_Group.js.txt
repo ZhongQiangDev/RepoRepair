@@ -1,0 +1,33 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when changing the opacity of a layer group using `setOpacity()`, it doesn't affect labels rendered for vector tile layers within that group. This only happens for vector tile labels, while other vector layer elements behave correctly.
+
+Looking at the code in `src/ol/layer/Group.js`, I can see that the `getLayerStatesArray` method is responsible for propagating properties like opacity from the group to its child layers. The method correctly multiplies the opacity of each layer state by the group's opacity, but this might not be properly applied to vector tile labels.
+
+The issue is likely that the opacity is being applied to the layer state, but vector tile labels might need additional handling to properly inherit opacity from their parent group.
+
+## Fix
+
+The fix involves ensuring that the opacity from the layer group is properly applied to all aspects of the child layers, including vector tile labels. Let's modify the `getLayerStatesArray` method:
+
+```javascript
+### src/ol/layer/Group.js
+<<<<<<< SEARCH
+      layerState.opacity *= ownLayerState.opacity;
+      layerState.visible = layerState.visible && ownLayerState.visible;
+=======
+      layerState.opacity *= ownLayerState.opacity;
+      layerState.visible = layerState.visible && ownLayerState.visible;
+      // Ensure opacity is properly applied to all layer types including vector tile labels
+      if (!layerState.properties) {
+        layerState.properties = {};
+      }
+      layerState.properties.opacity = layerState.opacity;
+>>>>>>> REPLACE
+```
+
+This change adds a `properties` object to the layer state if it doesn't exist, and explicitly sets an opacity property that can be used by the rendering code for vector tile labels. This ensures that the opacity is properly propagated to all aspects of the layer, including vector tile labels.
+
+The vector tile renderer likely checks for this property when rendering labels, and without it explicitly set, it might default to full opacity regardless of the parent group's opacity setting.

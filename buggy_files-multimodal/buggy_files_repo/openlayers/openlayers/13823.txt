@@ -1,0 +1,35 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## Understanding the Problem
+
+The problem description states that for image sources with a pixel ratio of 1, the renderer creates a canvas with a size based on the display pixel ratio instead of the image ratio. This means on HiDPI devices (like Retina displays with pixel ratio of 2), the canvas is twice as big as needed, using 4 times the memory.
+
+## Analyzing the Cause
+
+The issue appears to be in the image layer renderer, which is not properly considering the difference between:
+1. The image source's pixel ratio (which is 1 in this case)
+2. The display's pixel ratio (which is 2 on HiDPI devices)
+
+When rendering, the canvas size should be based on the image source's pixel ratio, not the display's pixel ratio. This mismatch causes unnecessary memory usage.
+
+## Files Most Related to the Cause
+
+Based on the repository information, these are the most relevant files that would need to be edited:
+
+```
+src/ol/renderer/canvas/ImageLayer.js
+src/ol/Image.js
+src/ol/render/canvas.js
+src/ol/source/ImageCanvas.js
+src/ol/render.js
+```
+
+The `src/ol/renderer/canvas/ImageLayer.js` file is likely the most important as it handles the rendering of image layers to canvas. The issue is probably in the `prepareFrame` method where it calculates dimensions for the canvas.
+
+The `src/ol/Image.js` file is also critical as it manages image loading and might be involved in determining the image's pixel ratio.
+
+The `src/ol/render/canvas.js` contains utilities for canvas rendering and might have functions related to handling pixel ratios.
+
+The `src/ol/source/ImageCanvas.js` deals with canvas-based image sources and could be involved in the pixel ratio handling.
+
+Finally, `src/ol/render.js` provides general rendering utilities that might be used in the image rendering process.

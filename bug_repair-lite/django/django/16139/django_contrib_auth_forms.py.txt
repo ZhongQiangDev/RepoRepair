@@ -1,0 +1,34 @@
+Based on the issue description, the bug is in the `UserChangeForm.__init__` method where it assumes the password change form is always accessed via "../password/". When the UserAdmin is accessed through a to_field parameter (like UUID), this relative path becomes incorrect and leads to a 404 error.
+
+The fix needs to use the instance's primary key to construct the correct absolute path to the password change form. Here's the *SEARCH/REPLACE* edit:
+
+```python
+### django/contrib/auth/forms.py
+<<<<<<< SEARCH
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        password = self.fields.get("password")
+        if password:
+            password.help_text = password.help_text.format("../password/")
+        user_permissions = self.fields.get("user_permissions")
+        if user_permissions:
+            user_permissions.queryset = user_permissions.queryset.select_related(
+                "content_type"
+            )
+=======
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        password = self.fields.get("password")
+        if password:
+            password.help_text = password.help_text.format(f"../../{self.instance.pk}/password/")
+        user_permissions = self.fields.get("user_permissions")
+        if user_permissions:
+            user_permissions.queryset = user_permissions.queryset.select_related(
+                "content_type"
+            )
+>>>>>>> REPLACE
+```
+
+This change replaces the hardcoded relative path "../password/" with a path that uses the user instance's primary key to construct an absolute path "../../{pk}/password/". This ensures the password change form link works correctly regardless of how the UserAdmin is accessed, whether through primary key or UUID field.
+
+The fix uses "../../" to go up two directory levels from the current URL path, then uses the user's primary key to construct the correct path to the password change form. This works both for regular primary key access and when accessed via to_field parameters.

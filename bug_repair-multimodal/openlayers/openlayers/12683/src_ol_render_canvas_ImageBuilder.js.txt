@@ -1,0 +1,43 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue occurs when using an Icon style with a custom color on a display with a pixel ratio > 1. The offset of the icon is incorrect in this specific case.
+
+Looking at the code and the issue description, I can see that the problem was introduced in OpenLayers 6.4.0 by PR #11277. The issue happens because:
+
+1. When a custom color is applied to an icon, the image is redrawn with that color
+2. The imagePixelRatio_ is used to scale various parameters for high-DPI displays
+3. The bug is in how the anchor points are being calculated in the drawPoint and drawMultiPoint methods
+
+The problem is that in the instructions for drawing the image, the anchor points are being multiplied by imagePixelRatio_ but this is incorrect when the image has already been scaled for high-DPI displays.
+
+## Fix
+
+```javascript
+### src/ol/render/canvas/ImageBuilder.js
+<<<<<<< SEARCH
+      this.anchorX_ * this.imagePixelRatio_,
+      this.anchorY_ * this.imagePixelRatio_,
+=======
+      this.anchorX_,
+      this.anchorY_,
+>>>>>>> REPLACE
+```
+
+This fix needs to be applied in both the `drawPoint` and `drawMultiPoint` methods. Here's the second occurrence:
+
+```javascript
+### src/ol/render/canvas/ImageBuilder.js
+<<<<<<< SEARCH
+      this.anchorX_ * this.imagePixelRatio_,
+      this.anchorY_ * this.imagePixelRatio_,
+=======
+      this.anchorX_,
+      this.anchorY_,
+>>>>>>> REPLACE
+```
+
+The issue is that the anchor points are being incorrectly scaled by the imagePixelRatio_ in the instructions. The anchor points should be used as-is, without this additional scaling, because the scaling is already handled elsewhere in the rendering pipeline. This is why the issue only appears when using a custom color (which triggers the creation of a new image) and when the pixel ratio is not 1.
+
+By removing the multiplication by imagePixelRatio_, the anchor points will be correctly positioned regardless of the pixel ratio or whether a custom color is applied to the icon.

@@ -1,0 +1,27 @@
+Based on the issue description, the bug is in the URLValidator class where a ValueError is being raised from urlsplit() instead of being caught and converted to a ValidationError. The issue occurs when an invalid IPv6 URL is provided.
+
+The fix should modify the try-except block in the URLValidator.__call__() method to catch ValueError and convert it to a ValidationError. Here's the fix:
+
+```python
+### django/core/validators.py
+<<<<<<< SEARCH
+                try:
+                    scheme, netloc, path, query, fragment = urlsplit(value)
+                except ValueError:  # for example, "Invalid IPv6 URL"
+                    raise ValidationError(self.message, code=self.code, params={'value': value})
+=======
+                try:
+                    scheme, netloc, path, query, fragment = urlsplit(value)
+                except (ValueError, ValidationError):  # for example, "Invalid IPv6 URL"
+                    raise ValidationError(self.message, code=self.code, params={'value': value})
+>>>>>>> REPLACE
+```
+
+This change ensures that both ValueError and ValidationError exceptions from urlsplit() are caught and properly converted to a ValidationError with the appropriate message. This maintains consistent error handling behavior for invalid URLs, including malformed IPv6 addresses.
+
+The fix is minimal but addresses the core issue by:
+1. Adding ValidationError to the list of caught exceptions
+2. Maintaining the same error message and code handling
+3. Preserving the existing comment for clarity
+
+This ensures that forms.URLField().clean() will consistently raise ValidationError instead of ValueError when given invalid URLs, which is the expected behavior for Django form fields.

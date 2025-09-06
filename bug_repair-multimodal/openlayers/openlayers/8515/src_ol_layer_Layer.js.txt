@@ -1,0 +1,34 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about the `ol.select.Interaction` feature always being shown as the top layer, regardless of the z-index settings. In the provided example, when a cluster is selected, the selected feature always appears above the red dots that simulate a hover effect, even though the user wants the red dots to appear on top.
+
+Looking at the code, I can see the problem in the `setMap` method of the `Layer` class. When a layer is set as unmanaged (which is what happens with selection interactions), its z-index is hardcoded to `Infinity`, making it always appear on top of other layers.
+
+## Fix
+
+The solution is to modify the `setMap` method to not hardcode the z-index to `Infinity`, but instead preserve the layer's original z-index value.
+
+```javascript
+### src/ol/layer/Layer.js
+<<<<<<< SEARCH
+      this.mapPrecomposeKey_ = listen(map, RenderEventType.PRECOMPOSE, function(evt) {
+        const layerState = this.getLayerState();
+        layerState.managed = false;
+        layerState.zIndex = Infinity;
+        evt.frameState.layerStatesArray.push(layerState);
+        evt.frameState.layerStates[getUid(this)] = layerState;
+      }, this);
+=======
+      this.mapPrecomposeKey_ = listen(map, RenderEventType.PRECOMPOSE, function(evt) {
+        const layerState = this.getLayerState();
+        layerState.managed = false;
+        // Don't override the layer's z-index, allowing proper stacking
+        evt.frameState.layerStatesArray.push(layerState);
+        evt.frameState.layerStates[getUid(this)] = layerState;
+      }, this);
+>>>>>>> REPLACE
+```
+
+This change removes the line that sets `layerState.zIndex = Infinity`, allowing the layer to use its own z-index value. This will enable proper stacking of layers based on their z-index values, even for unmanaged layers like those used by selection interactions.

@@ -1,0 +1,27 @@
+I'll analyze the GitHub problem description and identify the files most related to the issue of WebGL contexts in OpenLayers.
+
+## 1. Identifying the Wrong Behavior
+The problem is that each WebGL TileLayer in OpenLayers creates its own WebGL context. Browsers typically limit the number of WebGL contexts to around 16, which means applications can only have about 16 WebGL TileLayers simultaneously. When this limit is reached, browsers remove older contexts, causing the application to break or misbehave.
+
+## 2. Analyzing the Cause
+The root cause appears to be in how WebGL contexts are created and managed in OpenLayers. Currently, each WebGL TileLayer creates and maintains its own separate WebGL context rather than sharing a common context within a map. This is inefficient and leads to the described limitation.
+
+## 3. Files Most Related to the Cause
+
+```
+src/ol/webgl/Helper.js
+src/ol/layer/WebGLTile.js
+src/ol/renderer/webgl/TileLayer.js
+src/ol/webgl.js
+src/ol/renderer/webgl/Layer.js
+```
+
+The `src/ol/webgl/Helper.js` file is most critical as it contains the context management functions like `getOrCreateContext` that handle WebGL context creation and caching.
+
+The `src/ol/layer/WebGLTile.js` file defines the WebGLTileLayer class that uses these WebGL contexts.
+
+The `src/ol/renderer/webgl/TileLayer.js` file implements the renderer for WebGL tile layers and likely initializes or uses the WebGL contexts.
+
+The `src/ol/webgl.js` file contains core WebGL utility functions including context creation.
+
+The `src/ol/renderer/webgl/Layer.js` file provides the base WebGL layer renderer that TileLayer extends, which likely includes context management code.

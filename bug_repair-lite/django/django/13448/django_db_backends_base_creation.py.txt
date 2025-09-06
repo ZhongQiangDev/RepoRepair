@@ -1,0 +1,32 @@
+Based on the issue description, the problem occurs when using the new Django 3.1 feature "TEST": {"MIGRATE": False} setting. The error shows that the test runner is trying to serialize database contents even when migrations are disabled, which causes issues because tables like "django_admin_log" don't exist.
+
+The bug is in the `create_test_db` method of `BaseDatabaseCreation` class. The code attempts to serialize the database state even when migrations are disabled, which doesn't make sense since there are no tables to serialize in that case.
+
+Here's the fix:
+
+```python
+### django/db/backends/base/creation.py
+<<<<<<< SEARCH
+        # We then serialize the current state of the database into a string
+        # and store it on the connection. This slightly horrific process is so people
+        # who are testing on databases without transactions or who are using
+        # a TransactionTestCase still get a clean database on every test run.
+        if serialize:
+            self.connection._test_serialized_contents = self.serialize_db_to_string()
+
+        call_command('createcachetable', database=self.connection.alias)
+=======
+        # We then serialize the current state of the database into a string
+        # and store it on the connection. This slightly horrific process is so people
+        # who are testing on databases without transactions or who are using
+        # a TransactionTestCase still get a clean database on every test run.
+        if serialize and self.connection.settings_dict['TEST'].get('MIGRATE', True):
+            self.connection._test_serialized_contents = self.serialize_db_to_string()
+
+        call_command('createcachetable', database=self.connection.alias)
+>>>>>>> REPLACE
+```
+
+This fix adds a check to only serialize the database if migrations are enabled (the default) or explicitly set to True. This prevents the serialization attempt when migrations are disabled, which would fail because the tables don't exist.
+
+The change ensures that when "TEST": {"MIGRATE": False} is set, Django won't try to serialize the database state, avoiding the "relation does not exist" errors.

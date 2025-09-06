@@ -1,0 +1,55 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that the y-axis labels in the bar chart are overlapping in Chart.js version 2.9.3, whereas they are properly calculated and non-overlapping in version 2.7.3. This issue affects the readability of the chart.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of the overlapping y-axis labels likely stems from changes in how the y-axis tick labels are calculated and positioned in version 2.9.3. This could involve alterations in the spacing, sizing, or positioning logic for the y-axis labels. The issue might be related to how the scale is being updated or rendered, particularly in the context of multiple datasets.
+
+### 3. Examine Each File One by One
+
+#### --- src/controllers/controller.bar.js ---
+```
+src/controllers/controller.bar.js
+class: BarController
+function: computeFitCategoryTraits
+function: computeFlexCategoryTraits
+function: computeMinSampleSize
+function: getAllScaleValues
+```
+The `BarController` class and the functions listed are involved in the rendering and layout of bar charts. The `computeFitCategoryTraits` and `computeFlexCategoryTraits` functions handle the sizing and positioning of bars, which could indirectly affect the y-axis labels if the bar sizes are miscalculated. The `computeMinSampleSize` function calculates the minimum sample size for the scale, which could impact label spacing. The `getAllScaleValues` function retrieves values for the scale, which is relevant to label calculation.
+
+#### --- src/core/core.defaults.js ---
+```
+This file contains no relevant functions/classes.
+```
+The functions and class in this file are related to default configurations and do not directly affect the calculation or rendering of y-axis labels.
+
+#### --- src/core/core.layouts.js ---
+```
+src/core/core.layouts.js
+function: update
+function: fitBoxes
+function: placeBoxes
+function: getMargins
+function: updateDims
+```
+The `update` function manages the overall layout update process, which includes fitting and placing boxes (like axes and labels). The `fitBoxes` and `placeBoxes` functions handle the positioning of layout elements, including y-axis labels. The `getMargins` and `updateDims` functions calculate margins and dimensions, which are crucial for preventing label overlap.
+
+#### --- src/core/core.scale.js ---
+```
+src/core/core.scale.js
+function: calculateSpacing
+function: getPixelForGridLine
+function: getTickMarkLength
+function: getScaleLabelHeight
+function: skip
+```
+The `calculateSpacing` function determines the spacing between ticks, which directly affects label overlap. The `getPixelForGridLine` function calculates the pixel position for grid lines, which could influence label placement. The `getTickMarkLength` and `getScaleLabelHeight` functions calculate the length and height of tick marks and labels, respectively, which are relevant to label spacing. The `skip` function manages tick selection, which could impact label density.
+
+#### --- src/scales/scale.linear.js ---
+```
+src/scales/scale.linear.js
+class: LinearScale
+```
+The `LinearScale` class handles the linear scale, including determining data limits and computing tick limits. This class is directly involved in the calculation and rendering of y-axis labels, making it highly relevant to the issue.

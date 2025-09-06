@@ -1,0 +1,23 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, inline comments in CSS are not being highlighted correctly in version 10.6.0 and later. Looking at the expected vs. actual behavior images, it appears that CSS comments are not being properly recognized.
+
+The issue is that the CSS language definition includes `hljs.C_BLOCK_COMMENT_MODE` for handling block comments (`/* */`), but it's missing the line comment mode for handling inline comments (`//`).
+
+Here's the fix:
+
+```javascript
+### src/languages/css.js
+<<<<<<< SEARCH
+    contains: [
+      hljs.C_BLOCK_COMMENT_MODE,
+      VENDOR_PREFIX,
+=======
+    contains: [
+      hljs.C_BLOCK_COMMENT_MODE,
+      hljs.C_LINE_COMMENT_MODE,
+      VENDOR_PREFIX,
+>>>>>>> REPLACE
+```
+
+This change adds `hljs.C_LINE_COMMENT_MODE` to the list of contains, which will properly highlight inline comments (`//`) in CSS files. The C-style line comment mode is exactly what's needed to handle the `//` comments shown in the example.

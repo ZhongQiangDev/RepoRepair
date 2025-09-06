@@ -1,0 +1,33 @@
+Based on the issue description, the bug is that developers can define a `related_name` on symmetrical ManyToManyFields even though it won't have any effect, which can lead to confusion. The fix should prevent this by raising an error when a `related_name` is provided for a symmetrical ManyToManyField.
+
+The fix should be added in the `__init__` method of the `ManyToManyField` class, where the symmetrical relationship is determined and the related_name is processed. Here's the fix:
+
+```python
+### django/db/models/fields/related.py
+<<<<<<< SEARCH
+        if symmetrical is None:
+            symmetrical = (to == RECURSIVE_RELATIONSHIP_CONSTANT)
+
+        if through is not None and db_table is not None:
+            raise ValueError(
+                'Cannot specify a db_table if an intermediary model is used.'
+            )
+=======
+        if symmetrical is None:
+            symmetrical = (to == RECURSIVE_RELATIONSHIP_CONSTANT)
+
+        if symmetrical and related_name is not None:
+            raise ValueError(
+                'related_name has no effect on symmetrical ManyToManyField relationships.'
+            )
+
+        if through is not None and db_table is not None:
+            raise ValueError(
+                'Cannot specify a db_table if an intermediary model is used.'
+            )
+>>>>>>> REPLACE
+```
+
+This edit adds a validation check that raises a ValueError if a `related_name` is provided when the relationship is symmetrical. The error message clearly explains why this is not allowed, helping developers understand the limitation of symmetrical relationships.
+
+The fix maintains proper indentation and is placed right after determining if the relationship is symmetrical, but before creating the relationship object. This ensures the error is raised early in the field's initialization process.

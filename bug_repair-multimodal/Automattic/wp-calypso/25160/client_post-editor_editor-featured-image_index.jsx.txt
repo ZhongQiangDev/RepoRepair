@@ -1,0 +1,74 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a user selects a featured image from their Google library and publishes the post, the featured image isn't properly applied. The user also gets a message about unsaved changes when trying to leave the page.
+
+Looking at the code, I can see that the problem is likely in the `setImage` method of the `EditorFeaturedImage` component. When a user selects an image from the media modal, this method is called with the selected image data. However, it appears that the method doesn't properly handle images selected from Google Photos.
+
+The issue is in the `onClose` handler of the `MediaModal` component. Currently, it's set to `this.setImage`, which means when the modal is closed, it tries to set the image. However, when selecting from Google Photos, the image data might not be immediately available or might have a different structure than expected.
+
+## Fix
+
+```javascript
+### client/post-editor/editor-featured-image/index.jsx
+<<<<<<< SEARCH
+	renderMediaModal() {
+		if ( ! this.props.siteId ) {
+			return;
+		}
+
+		return (
+			<MediaLibrarySelectedData siteId={ this.props.siteId }>
+				<MediaModal
+					visible={ this.props.selecting || this.state.isSelecting }
+					onClose={ this.setImage }
+					siteId={ this.props.siteId }
+					labels={ { confirm: this.props.translate( 'Set Featured Image' ) } }
+					enabledFilters={ [ 'images' ] }
+					single
+				/>
+			</MediaLibrarySelectedData>
+		);
+	}
+=======
+	renderMediaModal() {
+		if ( ! this.props.siteId ) {
+			return;
+		}
+
+		return (
+			<MediaLibrarySelectedData siteId={ this.props.siteId }>
+				<MediaModal
+					visible={ this.props.selecting || this.state.isSelecting }
+					onClose={ this.hideMediaModal }
+					onInsert={ this.setImage }
+					siteId={ this.props.siteId }
+					labels={ { confirm: this.props.translate( 'Set Featured Image' ) } }
+					enabledFilters={ [ 'images' ] }
+					single
+				/>
+			</MediaLibrarySelectedData>
+		);
+	}
+>>>>>>> REPLACE
+```
+
+## Explanation
+
+The issue is that the `MediaModal` component was using `onClose` to handle both closing the modal and setting the image. This is problematic because:
+
+1. When selecting from Google Photos, the image data might not be immediately available when the modal is closed
+2. The `onClose` handler is called in various scenarios, not just when an image is selected
+
+The fix separates these concerns:
+
+1. `onClose` is now set to `this.hideMediaModal`, which only handles closing the modal
+2. Added `onInsert` prop set to `this.setImage`, which will be called specifically when an image is selected and inserted
+
+This ensures that:
+- The modal closes properly in all cases
+- The image setting logic is only triggered when an image is actually selected
+- The Google Photos integration will work correctly since it will use the proper insertion flow
+
+This change maintains all existing functionality while fixing the specific issue with Google Photos integration.

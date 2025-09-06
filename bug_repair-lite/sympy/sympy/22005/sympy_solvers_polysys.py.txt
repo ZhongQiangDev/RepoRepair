@@ -1,0 +1,42 @@
+Based on the issue description and the code, the bug is in the handling of polynomial systems with infinite solutions. The current code incorrectly handles cases where there are multiple variables but only one equation involving a single variable.
+
+The issue shows that `solve_poly_system((y - 1,), x, y)` returns `[(1,)]` when it should raise a NotImplementedError since this represents a system with infinite solutions (x can be any value).
+
+Looking at the diff in the issue, the fix involves modifying the condition in `_solve_reduced_system` to check both the number of univariate polynomials and the number of generators. We need to make a similar change in the main `solve_poly_system` function to catch these cases earlier.
+
+Here's the fix:
+
+```python
+### sympy/solvers/polysys.py
+<<<<<<< SEARCH
+    if len(polys) == len(opt.gens) == 2:
+        f, g = polys
+
+        if all(i <= 2 for i in f.degree_list() + g.degree_list()):
+            try:
+                return solve_biquadratic(f, g, opt)
+            except SolveFailed:
+                pass
+
+    return solve_generic(polys, opt)
+=======
+    # Check for underdetermined systems (infinite solutions)
+    if len(polys) < len(opt.gens):
+        raise NotImplementedError("only zero-dimensional systems supported (finite number of solutions)")
+
+    if len(polys) == len(opt.gens) == 2:
+        f, g = polys
+
+        if all(i <= 2 for i in f.degree_list() + g.degree_list()):
+            try:
+                return solve_biquadratic(f, g, opt)
+            except SolveFailed:
+                pass
+
+    return solve_generic(polys, opt)
+>>>>>>> REPLACE
+```
+
+This change adds a check at the beginning of the function to ensure that the number of equations (polys) is not less than the number of variables (gens). If it is, we raise a NotImplementedError since such systems would have infinite solutions.
+
+The fix ensures that cases like `solve_poly_system((y - 1,), x, y)` will properly raise a NotImplementedError instead of returning an incorrect result, as the system has fewer equations than variables.

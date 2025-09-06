@@ -1,0 +1,24 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## Identifying the Wrong Behavior
+The problem involves inconsistent rendering of offset and rotated text between vector layers and vector context (immediate renderer). Specifically:
+- In vector layer renderer: Text is rotated around the feature from which it is offset
+- In immediate renderer: Text is rotated around its offset anchor point (defined by textAlign and textBaseline)
+
+This inconsistency becomes apparent when both offset and rotation are applied to text.
+
+## Analyzing the Cause
+The issue appears to be in how rotation is applied to text in different rendering contexts. The vector layer renderer and the immediate renderer are using different reference points for rotation when text has an offset. Based on the description, the vector layer renderer's behavior is considered correct, as it would maintain proper orientation when the view is rotated.
+
+## Files Most Related to the Cause
+Looking at the repository information, these are the most relevant files that would need to be edited:
+
+```
+src/ol/render/canvas/Immediate.js
+src/ol/render/canvas/TextBuilder.js
+src/ol/render/canvas/Builder.js
+src/ol/render/canvas/Executor.js
+src/ol/render/canvas.js
+```
+
+The issue is primarily in the immediate renderer's text handling, which is why `src/ol/render/canvas/Immediate.js` is most important. The `TextBuilder.js` and `Executor.js` files handle text rendering for vector layers, and the comparison between these implementations would reveal the inconsistency. The `Builder.js` file contains base functionality that both renderers might use, and `canvas.js` has utility functions for text rendering that might be involved in the issue.

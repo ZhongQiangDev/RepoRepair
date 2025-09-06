@@ -1,0 +1,37 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The issue is that developers can currently define a related_name on symmetrical ManyToManyFields, even though this related_name will not be used since no reverse relation is created for symmetrical relationships.
+
+2. Cause Analysis:
+When a ManyToManyField is defined with symmetrical=True or when it's a self-referential relationship, Django doesn't create a reverse relation since the relationship is symmetrical (both sides use the same relation). However, the field initialization currently allows developers to specify a related_name parameter, which can be confusing since this name will never be used.
+
+3. Examining Files for Relevant Functions/Classes:
+
+django/core/serializers/base.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/db/models/constraints.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/db/models/deletion.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/forms/models.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/db/models/fields/related.py:
+```
+django/db/models/fields/related.py
+class: ManyToManyField
+```
+
+The ManyToManyField class is the primary location where this issue needs to be addressed, as it's responsible for handling the initialization and validation of many-to-many relationships, including symmetrical relationships. The field should validate during initialization that related_name is not provided when symmetrical=True or when the relationship is self-referential.

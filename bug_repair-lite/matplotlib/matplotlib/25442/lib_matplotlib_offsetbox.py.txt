@@ -1,0 +1,47 @@
+Based on the issue description, the bug occurs when using mplcursor with matplotlib 3.7.1, causing an AttributeError when the `ref_artist` becomes None but the code still tries to access its canvas property.
+
+The bug is in the `DraggableBase` class in `lib/matplotlib/offsetbox.py`. The issue happens because the canvas property tries to access `self.ref_artist.figure.canvas` directly without checking if `ref_artist` is None first.
+
+Here's the fix:
+
+```python
+### lib/matplotlib/offsetbox.py
+<<<<<<< SEARCH
+    # A property, not an attribute, to maintain picklability.
+    canvas = property(lambda self: self.ref_artist.figure.canvas)
+=======
+    # A property, not an attribute, to maintain picklability.
+    @property
+    def canvas(self):
+        if self.ref_artist is None or self.ref_artist.figure is None:
+            return None
+        return self.ref_artist.figure.canvas
+>>>>>>> REPLACE
+```
+
+This change:
+1. Converts the simple property lambda to a full property decorator
+2. Adds proper None checks before accessing nested attributes
+3. Returns None if the artist or figure is None
+
+Additionally, we should update the `_check_still_parented` method to handle the case where canvas is None:
+
+```python
+### lib/matplotlib/offsetbox.py
+<<<<<<< SEARCH
+    def _check_still_parented(self):
+        if self.ref_artist.figure is None:
+            self.disconnect()
+            return False
+        else:
+            return True
+=======
+    def _check_still_parented(self):
+        if self.ref_artist is None or self.ref_artist.figure is None or self.canvas is None:
+            self.disconnect()
+            return False
+        return True
+>>>>>>> REPLACE
+```
+
+These changes will prevent the AttributeError by properly handling cases where the reference artist becomes detached or None. The cursor will gracefully disconnect instead of throwing an error.

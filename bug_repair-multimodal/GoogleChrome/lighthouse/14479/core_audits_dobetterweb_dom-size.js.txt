@@ -1,0 +1,32 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue states that there's "Too much precision on the DOM size audit" and specifically mentions that we shouldn't need the `.0` in the values displayed, as these values will always be integers. Looking at the screenshot, we can see that the DOM statistics are showing values like "1,254.0" with a decimal point that isn't necessary.
+
+The problem is in the `dom-size.js` file where the table is being created. The issue is that the values in the table are specified with `valueType: 'numeric'`, which is causing the numbers to be displayed with decimal places even though they're integers.
+
+## Fix
+
+We need to modify the column definition in the table headings to ensure integer values are displayed without decimal places.
+
+```javascript
+### core/audits/dobetterweb/dom-size.js
+<<<<<<< SEARCH
+    /** @type {LH.Audit.Details.Table['headings']} */
+    const headings = [
+      {key: 'statistic', valueType: 'text', label: str_(UIStrings.columnStatistic)},
+      {key: 'node', valueType: 'node', label: str_(i18n.UIStrings.columnElement)},
+      {key: 'value', valueType: 'numeric', label: str_(UIStrings.columnValue)},
+    ];
+=======
+    /** @type {LH.Audit.Details.Table['headings']} */
+    const headings = [
+      {key: 'statistic', valueType: 'text', label: str_(UIStrings.columnStatistic)},
+      {key: 'node', valueType: 'node', label: str_(i18n.UIStrings.columnElement)},
+      {key: 'value', valueType: 'numeric', granularity: 1, label: str_(UIStrings.columnValue)},
+    ];
+>>>>>>> REPLACE
+```
+
+This change adds a `granularity: 1` property to the 'value' column definition, which will ensure that the numbers are displayed as integers without decimal places. The granularity property specifies the smallest unit of change that should be displayed, so setting it to 1 means we only want to show whole numbers.

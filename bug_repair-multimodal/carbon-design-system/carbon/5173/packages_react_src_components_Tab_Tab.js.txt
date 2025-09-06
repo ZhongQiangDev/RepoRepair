@@ -1,0 +1,116 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that VoiceOver is not announcing the correct tab position (e.g., "tab 2 of 4"). Instead, it always announces "1 of 1" for each tab. This is an accessibility issue that makes it difficult for screen reader users to understand their position within a tab group.
+
+Looking at the code, I can see that the Tab component is missing the `aria-posinset` and `aria-setsize` attributes, which are needed to properly communicate the tab's position within the set to screen readers.
+
+## Fix
+
+We need to add these ARIA attributes to the tab anchor element. The `index` prop already provides the position information, and we need to add a new prop to pass in the total number of tabs.
+
+```javascript
+### packages/react/src/components/Tab/Tab.js
+<<<<<<< SEARCH
+    /**
+     * The index of your Tab in your Tabs. Reserved for usage in Tabs
+     */
+    index: PropTypes.number,
+=======
+    /**
+     * The index of your Tab in your Tabs. Reserved for usage in Tabs
+     */
+    index: PropTypes.number,
+
+    /**
+     * The total number of Tabs in the Tabs component. Reserved for usage in Tabs
+     */
+    tabCount: PropTypes.number,
+>>>>>>> REPLACE
+```
+
+Now let's update the component to use this prop:
+
+```javascript
+### packages/react/src/components/Tab/Tab.js
+<<<<<<< SEARCH
+    const {
+      id,
+      className,
+      handleTabClick,
+      handleTabKeyDown,
+      disabled,
+      href,
+      index,
+      label,
+      selected,
+      tabIndex,
+      onClick,
+      onKeyDown,
+      renderAnchor,
+      renderContent, // eslint-disable-line no-unused-vars
+      ...other
+    } = this.props;
+=======
+    const {
+      id,
+      className,
+      handleTabClick,
+      handleTabKeyDown,
+      disabled,
+      href,
+      index,
+      tabCount,
+      label,
+      selected,
+      tabIndex,
+      onClick,
+      onKeyDown,
+      renderAnchor,
+      renderContent, // eslint-disable-line no-unused-vars
+      ...other
+    } = this.props;
+>>>>>>> REPLACE
+```
+
+Finally, let's add the ARIA attributes to the anchor element:
+
+```javascript
+### packages/react/src/components/Tab/Tab.js
+<<<<<<< SEARCH
+    const anchorProps = {
+      id,
+      className: `${prefix}--tabs__nav-link`,
+      href,
+      role: 'tab',
+      tabIndex: !disabled ? tabIndex : -1,
+      ['aria-selected']: selected,
+      ['aria-disabled']: disabled,
+      ['aria-controls']: id && `${id}__panel`,
+      ref: e => {
+        this.tabAnchor = e;
+      },
+    };
+=======
+    const anchorProps = {
+      id,
+      className: `${prefix}--tabs__nav-link`,
+      href,
+      role: 'tab',
+      tabIndex: !disabled ? tabIndex : -1,
+      ['aria-selected']: selected,
+      ['aria-disabled']: disabled,
+      ['aria-controls']: id && `${id}__panel`,
+      ['aria-posinset']: index !== undefined ? index + 1 : undefined,
+      ['aria-setsize']: tabCount,
+      ref: e => {
+        this.tabAnchor = e;
+      },
+    };
+>>>>>>> REPLACE
+```
+
+These changes will ensure that VoiceOver correctly announces the tab position (e.g., "tab 2 of 4") when navigating through tabs. The `aria-posinset` attribute indicates the position of the tab within the set, and `aria-setsize` indicates the total number of tabs in the set.
+
+Note that I've added `index + 1` for `aria-posinset` because array indices are typically 0-based, but ARIA positions are 1-based. I've also added a check to only set this attribute if the index is defined.

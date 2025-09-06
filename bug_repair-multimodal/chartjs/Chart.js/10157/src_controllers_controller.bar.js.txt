@@ -1,0 +1,46 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when setting `minBarLength`, `borderRadius`, and `borderSkipped: false` on a bar chart, bars with a value of 0 don't properly respect the `borderRadius` setting for the bottom corners. Instead of showing a complete circle (as expected when `borderRadius` is high), the bottom corners are flat.
+
+Looking at the code, the problem is likely in the `_calculateBarValuePixels` method. When a bar has a value of 0 and `minBarLength` is set, the method correctly sets a minimum size for the bar, but it doesn't properly handle the `enableBorderRadius` property for these zero-value bars.
+
+In the `updateElements` method, the `enableBorderRadius` property is set based on stacking conditions, but it doesn't consider the special case of zero-value bars with `minBarLength`.
+
+## Fix
+
+```javascript
+### src/controllers/controller.bar.js
+<<<<<<< SEARCH
+      const properties = {
+        horizontal,
+        base: vpixels.base,
+        enableBorderRadius: !stack || isFloatBar(parsed._custom) || (index === stack._top || index === stack._bottom),
+        x: horizontal ? vpixels.head : ipixels.center,
+        y: horizontal ? ipixels.center : vpixels.head,
+        height: horizontal ? ipixels.size : Math.abs(vpixels.size),
+        width: horizontal ? Math.abs(vpixels.size) : ipixels.size
+      };
+=======
+      const properties = {
+        horizontal,
+        base: vpixels.base,
+        enableBorderRadius: !stack || isFloatBar(parsed._custom) || (index === stack._top || index === stack._bottom) || isNullOrUndef(parsed[vScale.axis]) || parsed[vScale.axis] === 0,
+        x: horizontal ? vpixels.head : ipixels.center,
+        y: horizontal ? ipixels.center : vpixels.head,
+        height: horizontal ? ipixels.size : Math.abs(vpixels.size),
+        width: horizontal ? Math.abs(vpixels.size) : ipixels.size
+      };
+>>>>>>> REPLACE
+```
+
+## Explanation
+
+The fix adds two additional conditions to enable border radius:
+1. `isNullOrUndef(parsed[vScale.axis])` - When the value is null or undefined
+2. `parsed[vScale.axis] === 0` - When the value is exactly 0
+
+This ensures that zero-value bars will have their border radius applied to all corners, even when they're rendered with a minimum length due to the `minBarLength` setting.
+
+The issue occurs because when a bar has a value of 0 and `minBarLength` is set, the bar is still rendered with some height/width, but the code wasn't properly enabling the border radius for all corners in this specific case.

@@ -1,0 +1,65 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The issue described is that the flexbox elements in the React-PDF output do not stretch to the full page size as expected. The screenshots show that the red flexbox element only occupies a small portion of the page instead of stretching to fill the entire height of the page.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue is likely related to how the dimensions and layout properties are being calculated and applied to the flexbox elements. Specifically, the problem could be due to:
+
+- Incorrect or missing height settings for the flexbox container or its children.
+- Flexbox properties like `flex-grow`, `flex-shrink`, or `flex-basis` not being correctly applied or interpreted.
+- The layout engine (Yoga) not properly calculating the dimensions of the flexbox elements.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### `packages/layout/src/node/getDimension.js`
+```
+packages/layout/src/node/getDimension.js
+function: getDimension
+```
+This function retrieves the computed width and height from the Yoga node. If the dimensions are not being calculated correctly, this function might be returning incorrect values.
+
+#### `packages/layout/src/node/setDisplay.js`
+```
+This file contains no relevant functions/classes.
+```
+The `setDisplay` function sets the display property, which is not directly related to the height or stretching of flexbox elements.
+
+#### `packages/layout/src/node/setFlexDirection.js`
+```
+This file contains no relevant functions/classes.
+```
+The `setFlexDirection` function sets the flex direction, which is not directly related to the height or stretching of flexbox elements.
+
+#### `packages/layout/src/steps/resolveDimensions.js`
+```
+packages/layout/src/steps/resolveDimensions.js
+function: function_1
+function: function_2
+function: function_14
+```
+- `function_1` (`setNodeHeight`) sets the height of the node. If the height is not being set correctly for the flexbox container or its children, this function could be relevant.
+- `function_2` (`setYogaValues`) applies various style attributes to the Yoga node, including height and flexbox properties. If these properties are not being set correctly, this function could be relevant.
+- `function_14` (`resolveDimensions`) recursively resolves the dimensions of the node and its children. If the dimensions are not being resolved correctly, this function could be relevant.
+
+#### `packages/stylesheet/src/expand/flex.js`
+```
+packages/stylesheet/src/expand/flex.js
+function: function_1
+```
+The `expandFlex` function parses the flex property value. If the flex property is not being parsed correctly, this function could be relevant.
+
+### Summary of Relevant Locations
+
+```
+packages/layout/src/node/getDimension.js
+function: getDimension
+
+packages/layout/src/steps/resolveDimensions.js
+function: function_1
+function: function_2
+function: function_14
+
+packages/stylesheet/src/expand/flex.js
+function: function_1
+```

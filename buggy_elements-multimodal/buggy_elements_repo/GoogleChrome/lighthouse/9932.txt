@@ -1,0 +1,65 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that non-network URLs (specifically data URIs) are being treated as actual network requests, which results in incorrect server response time calculations. Data URIs should not have a server response time since they are not fetched from a server but are embedded directly in the document.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior likely stems from the fact that the code does not properly differentiate between network requests and data URIs. As a result, the timing and response time calculations are applied to data URIs as if they were network requests. This leads to incorrect metrics being reported for data URIs, such as non-zero server response times.
+
+### 3. Examine Each File One by One and Determine Relevant Functions/Classes
+
+#### lighthouse-core/computed/network-analysis.js
+
+```
+lighthouse-core/computed/network-analysis.js
+class: NetworkAnalysis
+```
+
+The `NetworkAnalysis` class contains methods that compute RTT and server response times. Since data URIs are being incorrectly treated as network requests, the methods in this class may need to be adjusted to exclude data URIs from these calculations.
+
+#### lighthouse-core/lib/minify-devtoolslog.js
+
+```
+lighthouse-core/lib/minify-devtoolslog.js
+function: cleanDataURI
+function: cleanResponse
+function: minifyDevtoolsLog
+```
+
+The `cleanDataURI` function sanitizes data URIs, but it does not prevent them from being treated as network requests. The `cleanResponse` function processes network responses and may need to be modified to handle data URIs differently. The `minifyDevtoolsLog` function processes the entire DevTools log and could be a place to filter out data URIs before further processing.
+
+#### lighthouse-core/lib/network-request.js
+
+```
+lighthouse-core/lib/network-request.js
+class: NetworkRequest
+```
+
+The `NetworkRequest` class manages network request details. It may need modifications to properly identify and handle data URIs, ensuring they are not processed as network requests.
+
+#### lighthouse-core/lib/dependency-graph/simulator/network-analyzer.js
+
+```
+lighthouse-core/lib/dependency-graph/simulator/network-analyzer.js
+class: NetworkAnalyzer
+```
+
+The `NetworkAnalyzer` class contains methods for estimating RTT and server response times. These methods may need to be adjusted to exclude data URIs from the calculations.
+
+### Summary of Relevant Locations
+
+```
+lighthouse-core/computed/network-analysis.js
+class: NetworkAnalysis
+
+lighthouse-core/lib/minify-devtoolslog.js
+function: cleanDataURI
+function: cleanResponse
+function: minifyDevtoolsLog
+
+lighthouse-core/lib/network-request.js
+class: NetworkRequest
+
+lighthouse-core/lib/dependency-graph/simulator/network-analyzer.js
+class: NetworkAnalyzer
+```

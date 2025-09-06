@@ -1,0 +1,85 @@
+I'll analyze the issue and provide a fix.
+
+The issue is related to Elixir syntax highlighting, specifically with function captures like `&letter?/1`. The problem occurs because the `/` in the function capture is being interpreted as a regex delimiter, causing the highlighting to break until the next `/` character.
+
+Looking at the code, the issue is in the regexp container section of the Elixir language definition. The current implementation doesn't properly handle function captures that use the `/` character to specify arity.
+
+Here's my fix:
+
+```javascript
+### src/languages/elixir.js
+<<<<<<< SEARCH
+    { // regexp container
+      begin: '(' + hljs.RE_STARTERS_RE + ')\\s*',
+      contains: [
+        hljs.HASH_COMMENT_MODE,
+        {
+          // to prevent false regex triggers for the division function:
+          // /:
+          begin: /\/: (?=\d+\s*[,\]])/,
+          relevance: 0,
+          contains: [NUMBER]
+        },
+        {
+          className: 'regexp',
+          illegal: '\\n',
+          contains: [
+            hljs.BACKSLASH_ESCAPE,
+            SUBST
+          ],
+          variants: [
+            {
+              begin: '/',
+              end: '/[a-z]*'
+            },
+            {
+              begin: '%r\\[',
+              end: '\\][a-z]*'
+            }
+          ]
+        }
+      ],
+      relevance: 0
+    }
+=======
+    { // regexp container
+      begin: '(' + hljs.RE_STARTERS_RE + ')\\s*',
+      contains: [
+        hljs.HASH_COMMENT_MODE,
+        {
+          // to prevent false regex triggers for the division function:
+          // /:
+          begin: /\/: (?=\d+\s*[,\]])/,
+          relevance: 0,
+          contains: [NUMBER]
+        },
+        {
+          // to prevent false captures when matching function arity
+          begin: /&\w+\/\d+/,
+          relevance: 0
+        },
+        {
+          className: 'regexp',
+          illegal: '\\n',
+          contains: [
+            hljs.BACKSLASH_ESCAPE,
+            SUBST
+          ],
+          variants: [
+            {
+              begin: '/',
+              end: '/[a-z]*'
+            },
+            {
+              begin: '%r\\[',
+              end: '\\][a-z]*'
+            }
+          ]
+        }
+      ],
+      relevance: 0
+    }
+>>>>>>> REPLACE
+```
+
+This fix adds a new rule that specifically matches Elixir function captures in the form `&function_name/arity` before the regexp rule is applied. This prevents the `/` in function captures from being interpreted as a regex delimiter, which was causing the highlighting to break.

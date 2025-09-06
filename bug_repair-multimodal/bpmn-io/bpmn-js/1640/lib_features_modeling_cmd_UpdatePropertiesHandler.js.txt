@@ -1,0 +1,91 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when changing a BPMN element from parallel multi-instance to sequential multi-instance (or vice versa), the multi-instance properties like loop cardinality are lost. This happens because the current implementation doesn't preserve these properties when updating the element type.
+
+Looking at the code, the problem is in the `UpdatePropertiesHandler.js` file. When properties are updated, the code doesn't properly handle preserving multi-instance properties during type changes.
+
+The issue is in the `setProperties` function. When updating properties, it simply sets the new properties without preserving any existing properties that might be relevant to keep across different multi-instance types.
+
+## Fix
+
+We need to modify the `setProperties` function to preserve multi-instance properties when changing between parallel and sequential multi-instance types. Here's the fix:
+
+```javascript
+### lib/features/modeling/cmd/UpdatePropertiesHandler.js
+<<<<<<< SEARCH
+function setProperties(element, properties) {
+  var businessObject = element.businessObject,
+      di = getDi(element);
+
+  forEach(properties, function(value, key) {
+
+    if (key !== DI) {
+      businessObject.set(key, value);
+    } else {
+
+      // only update, if di exists
+      if (di) {
+        setDiProperties(di, value);
+      }
+    }
+  });
+}
+=======
+function setProperties(element, properties) {
+  var businessObject = element.businessObject,
+      di = getDi(element);
+
+  // Preserve multi-instance properties when changing between
+  // parallel and sequential multi-instance
+  var loopCharacteristics = businessObject.loopCharacteristics;
+  var multiInstanceProps = {};
+  
+  if (loopCharacteristics && 
+      properties.loopCharacteristics && 
+      loopCharacteristics.$type === 'bpmn:MultiInstanceLoopCharacteristics' && 
+      properties.loopCharacteristics.$type === 'bpmn:MultiInstanceLoopCharacteristics') {
+    
+    // Store properties that should be preserved
+    ['loopCardinality', 'loopDataInputRef', 'loopDataOutputRef', 
+     'inputDataItem', 'outputDataItem', 'completionCondition'].forEach(function(prop) {
+      if (loopCharacteristics[prop] && loopCharacteristics[prop].get) {
+        multiInstanceProps[prop] = loopCharacteristics[prop];
+      } else if (loopCharacteristics[prop]) {
+        multiInstanceProps[prop] = loopCharacteristics[prop];
+      }
+    });
+  }
+
+  forEach(properties, function(value, key) {
+    if (key !== DI) {
+      businessObject.set(key, value);
+    } else {
+      // only update, if di exists
+      if (di) {
+        setDiProperties(di, value);
+      }
+    }
+  });
+
+  // Restore multi-instance properties after type change
+  if (Object.keys(multiInstanceProps).length > 0 && 
+      businessObject.loopCharacteristics && 
+      businessObject.loopCharacteristics.$type === 'bpmn:MultiInstanceLoopCharacteristics') {
+    
+    forEach(multiInstanceProps, function(value, key) {
+      businessObject.loopCharacteristics[key] = value;
+    });
+  }
+}
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Before updating properties, it checks if we're dealing with a multi-instance element
+2. If so, it stores the important multi-instance properties (like loopCardinality)
+3. After updating all properties, it restores these stored properties to the new multi-instance element
+
+This ensures that when switching between parallel and sequential multi-instance types, the important properties like loop cardinality are preserved.

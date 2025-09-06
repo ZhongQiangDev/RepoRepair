@@ -1,0 +1,58 @@
+From the issue description, the bug occurs when trying to use `pairplot` with a MultiIndex DataFrame. The error shows that the code fails when trying to access a column in `self.data[var]` because it's treating the MultiIndex column names as single strings.
+
+Looking at the code, the issue is in the `map_diag` method of `PairGrid` class where it tries to access the data using a single string column name, but with MultiIndex columns we need to use a tuple.
+
+Here's the fix:
+
+```python
+### seaborn/axisgrid.py
+<<<<<<< SEARCH
+            vector = self.data[var]
+            if self._hue_var is not None:
+                hue = self.data[self._hue_var]
+            else:
+                hue = None
+=======
+            # Handle both single string and tuple column names
+            try:
+                vector = self.data[var]
+            except KeyError:
+                # For MultiIndex columns, var will be a tuple
+                if isinstance(var, str) and any(isinstance(col, tuple) for col in self.data.columns):
+                    # Try to find matching tuple in columns
+                    matching_cols = [col for col in self.data.columns if var in col]
+                    if len(matching_cols) == 1:
+                        vector = self.data[matching_cols[0]]
+                    else:
+                        raise KeyError(f"Could not uniquely identify column for {var}")
+                else:
+                    raise
+
+            if self._hue_var is not None:
+                try:
+                    hue = self.data[self._hue_var]
+                except KeyError:
+                    # Similar handling for hue variable with MultiIndex
+                    if isinstance(self._hue_var, str) and any(isinstance(col, tuple) for col in self.data.columns):
+                        matching_cols = [col for col in self.data.columns if self._hue_var in col]
+                        if len(matching_cols) == 1:
+                            hue = self.data[matching_cols[0]]
+                        else:
+                            raise KeyError(f"Could not uniquely identify column for {self._hue_var}")
+                    else:
+                        raise
+            else:
+                hue = None
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Attempts to access the column directly first
+2. If that fails with KeyError and we have MultiIndex columns, tries to find a matching tuple column name
+3. Only matches if there's exactly one match to avoid ambiguity
+4. Applies the same logic to both the main variable and hue variable
+
+This allows pairplot to work with both regular DataFrames and MultiIndex DataFrames. For MultiIndex columns, it will match based on the presence of the variable name in the tuple column names.
+
+The fix assumes that when using MultiIndex columns, the variable names provided are unique within the column level they appear in. If there are multiple matches (e.g. if "1" appears in multiple column tuples), it will raise an error rather than making an arbitrary choice.

@@ -1,0 +1,32 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- ByteEfficiency reports no savings (100 score) for animated GIF->video conversion cases even though there was almost 5MB of potential savings.
+- The `computeWasteWithTTIGraph` reports 0 savings because there's only 1 network request affected and no long tasks touched.
+- However, the actual difference in load time is 23 seconds.
+
+2. Cause Analysis:
+- The current implementation only considers the impact on Time to Interactive (TTI) when calculating savings.
+- For single large requests like GIFs that don't affect CPU tasks, the current method fails to capture the true performance impact.
+- The suggestion is to calculate impact based on either:
+  a) End of graph timing difference
+  b) Onload timing difference
+Both would better reflect the actual savings from GIF optimization.
+
+3. Most Related Files:
+```
+lighthouse-core/lib/dependency-graph/simulator/simulator.js
+lighthouse-core/audits/byte-efficiency/efficient-animated-content.js
+lighthouse-core/lib/dependency-graph/simulator/network-analyzer.js
+lighthouse-core/lib/dependency-graph/network-node.js
+lighthouse-core/audits/byte-efficiency/byte-efficiency-audit.js
+```
+
+These files are ordered by importance because:
+1. simulator.js contains the core simulation logic that calculates timing impacts
+2. efficient-animated-content.js handles the specific GIF optimization audit
+3. network-analyzer.js analyzes network requests and their timing impacts
+4. network-node.js represents network requests in the dependency graph
+5. byte-efficiency-audit.js provides the base functionality for byte efficiency calculations
+
+The fix would likely need to modify how savings are calculated in these files to consider end-of-graph or onload timing differences rather than just TTI impact.

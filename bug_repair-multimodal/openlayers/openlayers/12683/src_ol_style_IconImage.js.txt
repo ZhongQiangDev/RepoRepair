@@ -1,0 +1,41 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The bug occurs when:
+1. An icon style has a custom color
+2. The screen has a pixel ratio > 1
+3. The icon style has an offset and size
+
+The issue was introduced in OpenLayers 6.4.0 by PR #11277. Looking at the code, I can see that when a color is applied to an icon, a new canvas is created with dimensions scaled by the pixel ratio. However, the offset calculation doesn't properly account for this scaling when a custom color is applied.
+
+The problem is in the `getPixelRatio` method of the `IconImage` class. When a color is applied, it returns the actual pixel ratio, but when no color is applied, it returns 1. This causes the offset calculation to be incorrect when a color is applied and the pixel ratio is greater than 1.
+
+## Fix
+
+```javascript
+### src/ol/style/IconImage.js
+<<<<<<< SEARCH
+  /**
+   * @param {number} pixelRatio Pixel ratio.
+   * @return {number} Image or Canvas element.
+   */
+  getPixelRatio(pixelRatio) {
+    this.replaceColor_(pixelRatio);
+    return this.canvas_[pixelRatio] ? pixelRatio : 1;
+  }
+=======
+  /**
+   * @param {number} pixelRatio Pixel ratio.
+   * @return {number} Image or Canvas element.
+   */
+  getPixelRatio(pixelRatio) {
+    this.replaceColor_(pixelRatio);
+    return 1;
+  }
+>>>>>>> REPLACE
+```
+
+This fix ensures that the `getPixelRatio` method always returns 1, regardless of whether a color is applied or not. This maintains consistent behavior for offset calculations across different pixel ratios and color settings.
+
+The issue occurs because when a color is applied, the method returns the actual pixel ratio, which causes the offset to be multiplied by the pixel ratio twice in the rendering code. By always returning 1, we ensure that the offset is only scaled once by the pixel ratio in the rendering pipeline.

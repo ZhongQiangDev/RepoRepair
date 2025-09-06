@@ -1,0 +1,51 @@
+Based on the issue description, the bug occurs when trying to combine a Q object with an Exists object using the & operator in the order `Q() & Exists(...)`. The error shows that the Q class's `_combine()` method strictly checks if the other operand is a Q instance, which prevents it from working with Exists objects.
+
+However, `Exists(...) & Q()` works because the Exists class likely has proper handling for Q objects in its `__rand__` method. To make the operation commutative, we need to modify the Q class to handle Exists objects in the `_combine()` method.
+
+Here's the fix:
+
+```python
+### django/db/models/query_utils.py
+<<<<<<< SEARCH
+    def _combine(self, other, conn):
+        if not isinstance(other, Q):
+            raise TypeError(other)
+
+        # If the other Q() is empty, ignore it and just use `self`.
+        if not other:
+            _, args, kwargs = self.deconstruct()
+            return type(self)(*args, **kwargs)
+        # Or if this Q is empty, ignore it and just use `other`.
+        elif not self:
+            _, args, kwargs = other.deconstruct()
+            return type(other)(*args, **kwargs)
+=======
+    def _combine(self, other, conn):
+        if hasattr(other, 'resolve_expression'):
+            obj = type(self)()
+            obj.connector = conn
+            obj.add(self, conn)
+            obj.add(other, conn)
+            return obj
+        elif not isinstance(other, Q):
+            raise TypeError(other)
+
+        # If the other Q() is empty, ignore it and just use `self`.
+        if not other:
+            _, args, kwargs = self.deconstruct()
+            return type(self)(*args, **kwargs)
+        # Or if this Q is empty, ignore it and just use `other`.
+        elif not self:
+            _, args, kwargs = other.deconstruct()
+            return type(other)(*args, **kwargs)
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Checks if the other operand has a `resolve_expression` method (which both Q and Exists objects have)
+2. If it does, creates a new Q object combining both operands without type checking
+3. If not, falls back to the original behavior of requiring a Q instance
+
+This change allows Q objects to be combined with Exists objects in either order while maintaining backward compatibility with existing code that combines Q objects with each other.
+
+The fix makes the & operator commutative for Q-Exists pairs by allowing any object that has a `resolve_expression` method to be combined with a Q object, which includes both Q and Exists objects.

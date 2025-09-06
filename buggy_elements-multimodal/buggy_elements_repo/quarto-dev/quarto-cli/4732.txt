@@ -1,0 +1,46 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior is that when using the `revealjs` format with the `knitr` engine, the embedded code from an external file (`code.R`) is not displayed in the generated HTML output. Instead, the HTML contains an empty `<div>` element where the code should be. However, when not using the `revealjs` format, the embedded code is displayed correctly.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how the `revealjs` format handles embedded code blocks when using the `knitr` engine. The `knitr` engine is responsible for processing R code chunks and embedding them into the document, but it seems that the `revealjs` format is interfering with this process, possibly due to specific post-processing steps or formatting rules that are not compatible with the embedded code.
+
+### 3. Examine Each File One by One
+
+#### --- src/command/render/codetools.ts ---
+```
+src/command/render/codetools.ts
+function: keepSourceBlock
+function: codeToolsPostprocessor
+function: resolveKeepSource
+```
+These functions are involved in processing and embedding source code. `keepSourceBlock` reads and processes the source code file, `codeToolsPostprocessor` handles post-processing of the HTML document, and `resolveKeepSource` determines if the source code should be retained based on the format and engine settings.
+
+#### --- src/command/render/pandoc-dependencies-html.ts ---
+```
+This file contains no relevant functions/classes.
+```
+This file deals with dependency injection and processing, which is not directly related to the embedding of code blocks.
+
+#### --- src/command/render/render.ts ---
+```
+src/command/render/render.ts
+function: renderPandoc
+function: runHtmlPostprocessors
+```
+The `renderPandoc` function orchestrates the rendering process using Pandoc, which is involved in converting the Markdown to HTML. `runHtmlPostprocessors` applies post-processing steps to the HTML, which could potentially affect how the embedded code is displayed.
+
+#### --- src/core/knitr.ts ---
+```
+This file contains no relevant functions/classes.
+```
+This file contains functions related to Knitr capabilities and messages, but does not directly handle the embedding of code blocks.
+
+#### --- src/format/reveal/format-reveal.ts ---
+```
+src/format/reveal/format-reveal.ts
+function: revealHtmlPostprocessor
+function: revealjsFormat
+```
+The `revealHtmlPostprocessor` function performs post-processing specific to Reveal.js, which could be affecting the display of embedded code. The `revealjsFormat` function sets up the Reveal.js format, including any specific configurations that might interfere with code embedding.

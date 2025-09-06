@@ -1,0 +1,50 @@
+I'll analyze the issue and provide a solution.
+
+Based on the issue description, the problem is that WebGL sketches don't have an alpha channel by default, unlike 2D mode. The issue suggests changing the default `premultipliedAlpha` setting to `true` to fix transparency issues.
+
+Looking at the code, I need to modify the WebGL renderer's blend mode handling to properly support transparency with premultiplied alpha. The issue specifically mentions that we need to:
+
+1. Set `premultipliedAlpha` to `true` by default
+2. Update the blend function to use `ONE, ONE_MINUS_SRC_ALPHA` for proper blending
+3. Update shaders to write premultiplied alpha
+
+Let's fix the blend mode function in the material.js file:
+
+```javascript
+### src/webgl/material.js
+<<<<<<< SEARCH
+p5.RendererGL.prototype._applyBlendMode = function() {
+  if (this._cachedBlendMode === this.curBlendMode) {
+    return;
+  }
+  const gl = this.GL;
+  switch (this.curBlendMode) {
+    case constants.BLEND:
+      gl.blendEquation(gl.FUNC_ADD);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      break;
+=======
+p5.RendererGL.prototype._applyBlendMode = function() {
+  if (this._cachedBlendMode === this.curBlendMode) {
+    return;
+  }
+  const gl = this.GL;
+  switch (this.curBlendMode) {
+    case constants.BLEND:
+      gl.blendEquation(gl.FUNC_ADD);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      break;
+>>>>>>> REPLACE
+```
+
+This change updates the blend function for the default BLEND mode to use `ONE` instead of `SRC_ALPHA` as the source factor, which is the correct blend function for premultiplied alpha.
+
+Now we need to make sure the WebGL context is created with premultipliedAlpha set to true by default. This would be in a different file that handles the WebGL context creation, but since it's not included in the provided code, I'll note that we would need to:
+
+1. Find where the WebGL context is created (likely in a p5.RendererGL constructor or initialization method)
+2. Set the default attributes to include `premultipliedAlpha: true`
+3. Update any shaders that handle transparency to output premultiplied alpha values
+
+The issue also mentions that we need to set `gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true)` for images to properly handle premultiplied alpha, but that would be in the texture loading code which isn't included here.
+
+Without seeing the full codebase, this change to the blend function is the first step toward fixing the issue. The complete solution would require additional changes to the WebGL context creation and shader code.

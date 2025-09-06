@@ -1,0 +1,36 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that TypeScript keywords like `infer` and `type` are being treated as keywords even when they're used as identifiers in import statements. This is happening because the regular expression for these keywords in the TypeScript language definition is incorrectly matching them in contexts where they should be treated as identifiers.
+
+Looking at the code, I can see the problem is in this regex:
+
+```javascript
+/\b(?:asserts|infer|interface|module|namespace|type)(?!\s*[^\s_${}*a-zA-Z\xA0-\uFFFF])/
+```
+
+The negative lookahead `(?!\s*[^\s_${}*a-zA-Z\xA0-\uFFFF])` is meant to ensure these keywords are only matched when not followed by certain characters, but it's not correctly handling the case where these words are used as identifiers in import statements.
+
+Here's the fix:
+
+```javascript
+### components/prism-typescript.js
+<<<<<<< SEARCH
+	// The keywords TypeScript adds to JavaScript
+	Prism.languages.typescript.keyword.push(
+		/\b(?:abstract|as|declare|implements|is|keyof|readonly|require)\b/,
+		// keywords that have to be followed by an identifier
+		// eslint-disable-next-line regexp/no-dupe-characters-character-class
+		/\b(?:asserts|infer|interface|module|namespace|type)(?!\s*[^\s_${}*a-zA-Z\xA0-\uFFFF])/
+	);
+=======
+	// The keywords TypeScript adds to JavaScript
+	Prism.languages.typescript.keyword.push(
+		/\b(?:abstract|as|declare|implements|is|keyof|readonly|require)\b/,
+		// keywords that have to be followed by an identifier
+		// eslint-disable-next-line regexp/no-dupe-characters-character-class
+		/\b(?:asserts|infer|interface|module|namespace|type)\s+(?![:}])/
+	);
+>>>>>>> REPLACE
+```
+
+This change modifies the regex to only match these keywords when they are followed by whitespace and not immediately followed by a colon or closing brace, which would indicate they're being used as identifiers in an import or destructuring statement. This should fix the issue with `infer` and `type` being incorrectly highlighted in the import statements shown in the issue.

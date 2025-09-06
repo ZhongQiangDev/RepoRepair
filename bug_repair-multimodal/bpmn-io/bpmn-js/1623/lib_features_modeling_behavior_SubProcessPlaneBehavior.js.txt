@@ -1,0 +1,222 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about the interaction between deep linking for subprocesses and a multi-diagram plugin. From the animation in the issue, we can see that when navigating between diagrams using the multi-diagram plugin, the deep linking overlay for subprocesses disappears.
+
+Looking at the code, the problem appears to be in the `SubProcessPlaneBehavior.js` file. When navigating between diagrams, the deep linking overlay is lost because the plane elements are not properly maintained when switching between diagrams.
+
+The issue is likely in the `_removeDiagram` method, which removes the diagram from the definitions but doesn't properly handle the case where the diagram might be needed again when navigating back to it.
+
+## Solution
+
+We need to modify the `_removeDiagram` method to ensure that it doesn't completely remove diagrams that might be needed again. Instead, we should check if the diagram is being used by the multi-diagram plugin.
+
+```javascript
+### lib/features/modeling/behavior/SubProcessPlaneBehavior.js
+<<<<<<< SEARCH
+/**
+ * Removes the diagram for a given root element
+ *
+ * @param {Object} rootElement
+ * @returns {Object} removed bpmndi:BPMNDiagram
+ */
+SubProcessPlaneBehavior.prototype._removeDiagram = function(rootElement) {
+  var bpmnjs = this._bpmnjs;
+
+  var diagrams = bpmnjs.getDefinitions().diagrams;
+
+  var removedDiagram = find(diagrams, function(diagram) {
+    return diagram.plane.bpmnElement.id === rootElement.id;
+  });
+
+  diagrams.splice(diagrams.indexOf(removedDiagram), 1);
+
+  return removedDiagram;
+};
+=======
+/**
+ * Removes the diagram for a given root element
+ *
+ * @param {Object} rootElement
+ * @returns {Object} removed bpmndi:BPMNDiagram
+ */
+SubProcessPlaneBehavior.prototype._removeDiagram = function(rootElement) {
+  var bpmnjs = this._bpmnjs;
+
+  var diagrams = bpmnjs.getDefinitions().diagrams;
+
+  var removedDiagram = find(diagrams, function(diagram) {
+    return diagram.plane.bpmnElement.id === rootElement.id;
+  });
+
+  // Only remove the diagram if it exists and is not a multi-diagram
+  // This prevents removing diagrams that might be needed by the multi-diagram plugin
+  if (removedDiagram && !rootElement.$type.includes('bpmn:Process')) {
+    var index = diagrams.indexOf(removedDiagram);
+    if (index !== -1) {
+      diagrams.splice(index, 1);
+    }
+  }
+
+  return removedDiagram;
+};
+>>>>>>> REPLACE
+```
+
+Additionally, we need to ensure that when switching between diagrams, the deep linking overlays are preserved. Let's modify the `_moveChildrenToShape` method to handle this case:
+
+```javascript
+### lib/features/modeling/behavior/SubProcessPlaneBehavior.js
+<<<<<<< SEARCH
+/**
+ * Moves the child elements from source to target.
+ *
+ * If the target is a plane, the children are moved to the top left corner.
+ * Otherwise, the center of the target is used.
+ *
+ * @param {Object|djs.model.Base} source
+ * @param {Object|djs.model.Base} target
+ */
+SubProcessPlaneBehavior.prototype._moveChildrenToShape = function(source, target) {
+  var modeling = this._modeling;
+
+  var children = source.children;
+  var offset;
+
+  if (!children) {
+    return;
+  }
+
+  // only change plane if there are no visible children, but don't move them
+  var visibleChildren = children.filter(function(child) {
+    return !child.hidden;
+  });
+
+  if (!visibleChildren.length) {
+    modeling.moveElements(children, { x: 0, y: 0 }, target, { autoResize: false });
+    return;
+  }
+
+  var childrenBounds = getBBox(visibleChildren);
+
+  // target is a plane
+  if (!target.x) {
+    offset = {
+      x: DEFAULT_POSITION.x - childrenBounds.x,
+      y: DEFAULT_POSITION.y - childrenBounds.y
+    };
+  }
+
+  // source is a plane
+  else {
+
+    // move relative to the center of the shape
+    var targetMid = getMid(target);
+    var childrenMid = getMid(childrenBounds);
+
+    offset = {
+      x: targetMid.x - childrenMid.x,
+      y: targetMid.y - childrenMid.y
+    };
+  }
+
+  modeling.moveElements(children, offset, target, { autoResize: false });
+};
+=======
+/**
+ * Moves the child elements from source to target.
+ *
+ * If the target is a plane, the children are moved to the top left corner.
+ * Otherwise, the center of the target is used.
+ *
+ * @param {Object|djs.model.Base} source
+ * @param {Object|djs.model.Base} target
+ */
+SubProcessPlaneBehavior.prototype._moveChildrenToShape = function(source, target) {
+  var modeling = this._modeling;
+  var eventBus = this._eventBus;
+
+  var children = source.children;
+  var offset;
+
+  if (!children) {
+    return;
+  }
+
+  // only change plane if there are no visible children, but don't move them
+  var visibleChildren = children.filter(function(child) {
+    return !child.hidden;
+  });
+
+  if (!visibleChildren.length) {
+    modeling.moveElements(children, { x: 0, y: 0 }, target, { autoResize: false });
+    return;
+  }
+
+  var childrenBounds = getBBox(visibleChildren);
+
+  // target is a plane
+  if (!target.x) {
+    offset = {
+      x: DEFAULT_POSITION.x - childrenBounds.x,
+      y: DEFAULT_POSITION.y - childrenBounds.y
+    };
+  }
+
+  // source is a plane
+  else {
+
+    // move relative to the center of the shape
+    var targetMid = getMid(target);
+    var childrenMid = getMid(childrenBounds);
+
+    offset = {
+      x: targetMid.x - childrenMid.x,
+      y: targetMid.y - childrenMid.y
+    };
+  }
+
+  modeling.moveElements(children, offset, target, { autoResize: false });
+  
+  // Notify that elements have been moved between diagrams
+  // This allows other components (like deep linking) to update
+  eventBus.fire('elements.moved', {
+    source: source,
+    target: target,
+    children: children
+  });
+};
+>>>>>>> REPLACE
+```
+
+Let's also update the constructor to ensure the event bus is properly stored:
+
+```javascript
+### lib/features/modeling/behavior/SubProcessPlaneBehavior.js
+<<<<<<< SEARCH
+  this._canvas = canvas;
+  this._eventBus = eventBus;
+  this._modeling = modeling;
+  this._elementFactory = elementFactory;
+  this._bpmnFactory = bpmnFactory;
+  this._bpmnjs = bpmnjs;
+  this._elementRegistry = elementRegistry;
+=======
+  this._canvas = canvas;
+  this._eventBus = eventBus;
+  this._modeling = modeling;
+  this._elementFactory = elementFactory;
+  this._bpmnFactory = bpmnFactory;
+  this._bpmnjs = bpmnjs;
+  this._elementRegistry = elementRegistry;
+>>>>>>> REPLACE
+```
+
+The constructor code is already correct, so no changes are needed there.
+
+These changes should ensure that:
+1. Diagrams used by the multi-diagram plugin are not completely removed
+2. When elements are moved between diagrams, an event is fired that can be used by other components (like deep linking) to update their state
+
+This should fix the issue where the deep linking overlay disappears when navigating between diagrams using the multi-diagram plugin.

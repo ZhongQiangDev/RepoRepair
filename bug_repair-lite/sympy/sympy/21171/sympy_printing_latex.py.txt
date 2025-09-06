@@ -1,0 +1,29 @@
+Based on the error message and traceback, the issue appears to be in the `_print_SingularityFunction` method of the LatexPrinter class. The error occurs because the method is being called with an unexpected `exp` keyword argument.
+
+Looking at the code, the `_print_SingularityFunction` method doesn't handle the `exp` parameter that other similar printing methods do. Let's fix this by adding the `exp` parameter and handling it properly:
+
+```python
+### sympy/printing/latex.py
+<<<<<<< SEARCH
+    def _print_SingularityFunction(self, expr):
+        shift = self._print(expr.args[0] - expr.args[1])
+        power = self._print(expr.args[2])
+        tex = r"{\left\langle %s \right\rangle}^{%s}" % (shift, power)
+        return tex
+=======
+    def _print_SingularityFunction(self, expr, exp=None):
+        shift = self._print(expr.args[0] - expr.args[1])
+        power = self._print(expr.args[2])
+        tex = r"{\left\langle %s \right\rangle}^{%s}" % (shift, power)
+        if exp is not None:
+            tex = r"\left(%s\right)^{%s}" % (tex, exp)
+        return tex
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Adds the optional `exp` parameter to match the pattern used by other printing methods
+2. Adds handling for the `exp` parameter by wrapping the expression in parentheses and adding the exponent when exp is provided
+3. Maintains the original functionality when exp is None
+
+The error occurred because the Pow class was trying to print a SingularityFunction raised to a power, which resulted in the _print_SingularityFunction method being called with an exp argument that it wasn't prepared to handle.

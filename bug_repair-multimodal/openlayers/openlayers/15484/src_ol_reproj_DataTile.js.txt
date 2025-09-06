@@ -1,0 +1,54 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about the `wrapX` option in GeoTIFF not being respected when tiles are reprojected. According to the issue description, this option is misleadingly named because it's actually used to crop the output to the tile grid extent on both x and y axes, rather than just handling wrapping on the x-axis.
+
+Looking at the code in `src/ol/reproj/DataTile.js`, I need to identify where the reprojection happens and how the tile extent cropping is handled. The issue is that when reprojection occurs, the cropping functionality is not being properly applied.
+
+The key part of the issue is in the `ReprojDataTile` constructor where the source extent is calculated and potentially limited by the max source extent. The problem is that when reprojection happens, the code doesn't properly respect the cropping option.
+
+## Fix
+
+```javascript
+### src/ol/reproj/DataTile.js
+<<<<<<< SEARCH
+    if (maxSourceExtent) {
+      if (sourceProj.canWrapX()) {
+        sourceExtent[1] = clamp(
+          sourceExtent[1],
+          maxSourceExtent[1],
+          maxSourceExtent[3],
+        );
+        sourceExtent[3] = clamp(
+          sourceExtent[3],
+          maxSourceExtent[1],
+          maxSourceExtent[3],
+        );
+      } else {
+        sourceExtent = getIntersection(sourceExtent, maxSourceExtent);
+      }
+    }
+=======
+    if (maxSourceExtent) {
+      if (sourceProj.canWrapX()) {
+        sourceExtent[1] = clamp(
+          sourceExtent[1],
+          maxSourceExtent[1],
+          maxSourceExtent[3],
+        );
+        sourceExtent[3] = clamp(
+          sourceExtent[3],
+          maxSourceExtent[1],
+          maxSourceExtent[3],
+        );
+      }
+      // Always crop to the max source extent, regardless of whether the source projection can wrap
+      sourceExtent = getIntersection(sourceExtent, maxSourceExtent);
+    }
+>>>>>>> REPLACE
+```
+
+This fix ensures that the source extent is always cropped to the max source extent, regardless of whether the source projection can wrap on the x-axis. This addresses the issue where the cropping functionality wasn't being properly applied during reprojection.
+
+The original code was only applying the intersection (cropping) when the source projection couldn't wrap on the x-axis. The fix ensures that cropping is always applied, which is what the `wrapX` option is intended to do according to the issue description.

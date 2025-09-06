@@ -1,0 +1,67 @@
+Based on the issue description, the bug appears to be in the `_check_default_pk` method of the `Model` class in `django/db/models/base.py`. The issue is that the warning about auto-created primary keys is being raised even when the primary key is inherited from a parent model.
+
+The fix should modify the check to only raise the warning when there is no explicitly defined primary key in either the current model or any of its parent models.
+
+Here's the proposed fix:
+
+```python
+### django/db/models/base.py
+<<<<<<< SEARCH
+    @classmethod
+    def _check_default_pk(cls):
+        if (
+            cls._meta.pk.auto_created and
+            not settings.is_overridden('DEFAULT_AUTO_FIELD') and
+            not cls._meta.app_config._is_default_auto_field_overridden
+        ):
+            return [
+                checks.Warning(
+                    f"Auto-created primary key used when not defining a "
+                    f"primary key type, by default "
+                    f"'{settings.DEFAULT_AUTO_FIELD}'.",
+                    hint=(
+                        f"Configure the DEFAULT_AUTO_FIELD setting or the "
+                        f"{cls._meta.app_config.__class__.__qualname__}."
+                        f"default_auto_field attribute to point to a subclass "
+                        f"of AutoField, e.g. 'django.db.models.BigAutoField'."
+                    ),
+                    obj=cls,
+                    id='models.W042',
+                ),
+            ]
+        return []
+=======
+    @classmethod
+    def _check_default_pk(cls):
+        # Don't warn if the model inherits a primary key from a parent
+        if any(not parent._meta.abstract and not parent._meta.pk.auto_created 
+              for parent in cls._meta.get_parent_list()):
+            return []
+            
+        if (
+            cls._meta.pk.auto_created and
+            not settings.is_overridden('DEFAULT_AUTO_FIELD') and
+            not cls._meta.app_config._is_default_auto_field_overridden
+        ):
+            return [
+                checks.Warning(
+                    f"Auto-created primary key used when not defining a "
+                    f"primary key type, by default "
+                    f"'{settings.DEFAULT_AUTO_FIELD}'.",
+                    hint=(
+                        f"Configure the DEFAULT_AUTO_FIELD setting or the "
+                        f"{cls._meta.app_config.__class__.__qualname__}."
+                        f"default_auto_field attribute to point to a subclass "
+                        f"of AutoField, e.g. 'django.db.models.BigAutoField'."
+                    ),
+                    obj=cls,
+                    id='models.W042',
+                ),
+            ]
+        return []
+>>>>>>> REPLACE
+```
+
+This fix adds a check at the beginning of the method that looks through the model's parent classes. If any non-abstract parent has an explicitly defined primary key (not auto-created), we skip the warning since the model is inheriting that primary key.
+
+This addresses the issue where models inheriting from a parent model with an explicitly defined primary key were incorrectly receiving the warning about using an auto-created primary key.

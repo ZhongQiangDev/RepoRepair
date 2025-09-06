@@ -1,0 +1,29 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, there's a problem with vertex colors in WebGL mode. The user reports that when using `fill()` with different colors for each vertex in a shape, it works correctly in p5.js version 0.8.0 but not in version 0.9.0.
+
+Looking at the code, the issue is likely in the `isColorShader()` method of the `p5.Shader` class. This method is used to determine if a shader can handle color information. The current implementation checks for the existence of `aVertexColor` attribute or `uMaterialColor` uniform, but it might not be correctly identifying color shaders in version 0.9.0.
+
+Here's my fix:
+
+```javascript
+### src/webgl/p5.Shader.js
+<<<<<<< SEARCH
+p5.Shader.prototype.isColorShader = function() {
+  return (
+    this.attributes.aVertexColor !== undefined ||
+    this.uniforms.uMaterialColor !== undefined
+  );
+};
+=======
+p5.Shader.prototype.isColorShader = function() {
+  return (
+    this.attributes.aVertexColor !== undefined ||
+    this.attributes.color !== undefined ||
+    this.uniforms.uMaterialColor !== undefined
+  );
+};
+>>>>>>> REPLACE
+```
+
+This fix adds a check for the attribute named `color`, which is likely how vertex colors are being passed in the newer version of p5.js. By checking for both `aVertexColor` and `color` attributes, the shader will correctly identify itself as a color shader regardless of which attribute name is used, ensuring compatibility with both older and newer code.

@@ -1,0 +1,425 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when clicking on a legend label that spans multiple lines, the click event is registered for the wrong legend item. This happens specifically when the legend is positioned on the right side of the chart. The problem gets worse as more legend items are added.
+
+Looking at the code, I found the issue in the `_fitCols` method of the `Legend` class. When calculating the hitbox positions for legend items in a column layout, the code doesn't properly account for multi-line text. The current implementation increments the `currentColHeight` by a fixed amount for each item, but when a legend item has multi-line text, the actual height is greater than what's being calculated.
+
+The issue is in the `_fitCols` method, where we need to properly calculate the height for multi-line legend items. There's also a related issue in the `draw` method where the cursor position isn't properly updated for multi-line text.
+
+## Fix
+
+```javascript
+### src/plugins/plugin.legend.js
+<<<<<<< SEARCH
+  _fitCols(titleHeight, labelFont, boxWidth, _itemHeight) {
+    const {ctx, maxHeight, options: {labels: {padding}}} = this;
+    const hitboxes = this.legendHitBoxes = [];
+    const columnSizes = this.columnSizes = [];
+    const heightLimit = maxHeight - titleHeight;
+
+    let totalWidth = padding;
+    let currentColWidth = 0;
+    let currentColHeight = 0;
+
+    let left = 0;
+    let col = 0;
+
+    this.legendItems.forEach((legendItem, i) => {
+      const {itemWidth, itemHeight} = calculateItemSize(boxWidth, labelFont, ctx, legendItem, _itemHeight);
+
+      // If too tall, go to new column
+      if (i > 0 && currentColHeight + itemHeight + 2 * padding > heightLimit) {
+        totalWidth += currentColWidth + padding;
+        columnSizes.push({width: currentColWidth, height: currentColHeight}); // previous column size
+        left += currentColWidth + padding;
+        col++;
+        currentColWidth = currentColHeight = 0;
+      }
+
+      // Store the hitbox width and height here. Final position will be updated in `draw`
+      hitboxes[i] = {left, top: currentColHeight, col, width: itemWidth, height: itemHeight};
+
+      // Get max width
+      currentColWidth = Math.max(currentColWidth, itemWidth);
+      currentColHeight += itemHeight + padding;
+    });
+
+    totalWidth += currentColWidth;
+    columnSizes.push({width: currentColWidth, height: currentColHeight}); // previous column size
+
+    return totalWidth;
+  }
+=======
+  _fitCols(titleHeight, labelFont, boxWidth, _itemHeight) {
+    const {ctx, maxHeight, options: {labels: {padding}}} = this;
+    const hitboxes = this.legendHitBoxes = [];
+    const columnSizes = this.columnSizes = [];
+    const heightLimit = maxHeight - titleHeight;
+
+    let totalWidth = padding;
+    let currentColWidth = 0;
+    let currentColHeight = 0;
+
+    let left = 0;
+    let col = 0;
+
+    this.legendItems.forEach((legendItem, i) => {
+      const {itemWidth, itemHeight} = calculateItemSize(boxWidth, labelFont, ctx, legendItem, _itemHeight);
+
+      // If too tall, go to new column
+      if (i > 0 && currentColHeight + itemHeight + 2 * padding > heightLimit) {
+        totalWidth += currentColWidth + padding;
+        columnSizes.push({width: currentColWidth, height: currentColHeight}); // previous column size
+        left += currentColWidth + padding;
+        col++;
+        currentColWidth = currentColHeight = 0;
+      }
+
+      // Store the hitbox width and height here. Final position will be updated in `draw`
+      hitboxes[i] = {left, top: currentColHeight, col, width: itemWidth, height: itemHeight};
+
+      // Get max width
+      currentColWidth = Math.max(currentColWidth, itemWidth);
+      currentColHeight += itemHeight + padding;
+    });
+
+    totalWidth += currentColWidth;
+    columnSizes.push({width: currentColWidth, height: currentColHeight}); // previous column size
+
+    return totalWidth;
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/plugins/plugin.legend.js
+<<<<<<< SEARCH
+      if (isHorizontal) {
+        cursor.x += width + padding;
+      } else if (typeof legendItem.text !== 'string') {
+        const fontLineHeight = labelFont.lineHeight;
+        cursor.y += calculateLegendItemHeight(legendItem, fontLineHeight);
+      } else {
+        cursor.y += lineHeight;
+      }
+=======
+      if (isHorizontal) {
+        cursor.x += width + padding;
+      } else if (typeof legendItem.text !== 'string') {
+        const fontLineHeight = labelFont.lineHeight;
+        cursor.y += calculateLegendItemHeight(legendItem, fontLineHeight);
+      } else {
+        cursor.y += lineHeight;
+      }
+
+      // Update the hitbox y position to match the actual position
+      if (!isHorizontal && i < this.legendHitBoxes.length) {
+        this.legendHitBoxes[i].top = cursor.y - lineHeight;
+      }
+=======
+>>>>>>> REPLACE
+```
+
+Wait, I need to add a helper function that's missing. Let me provide a more complete fix:
+
+```javascript
+### src/plugins/plugin.legend.js
+<<<<<<< SEARCH
+const fillText = function(x, y, legendItem) {
+  renderText(ctx, legendItem.text, x, y + (itemHeight / 2), labelFont, {
+    strikethrough: legendItem.hidden,
+    textAlign: rtlHelper.textAlign(legendItem.textAlign)
+  });
+};
+=======
+const fillText = function(x, y, legendItem) {
+  renderText(ctx, legendItem.text, x, y + (itemHeight / 2), labelFont, {
+    strikethrough: legendItem.hidden,
+    textAlign: rtlHelper.textAlign(legendItem.textAlign)
+  });
+};
+
+const calculateLegendItemHeight = function(legendItem, fontLineHeight) {
+  if (Array.isArray(legendItem.text)) {
+    return legendItem.text.length * fontLineHeight;
+  }
+  return itemHeight;
+};
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/plugins/plugin.legend.js
+<<<<<<< SEARCH
+      if (isHorizontal) {
+        cursor.x += width + padding;
+      } else if (typeof legendItem.text !== 'string') {
+        const fontLineHeight = labelFont.lineHeight;
+        cursor.y += calculateLegendItemHeight(legendItem, fontLineHeight);
+      } else {
+        cursor.y += lineHeight;
+      }
+=======
+      if (isHorizontal) {
+        cursor.x += width + padding;
+      } else if (typeof legendItem.text !== 'string') {
+        const fontLineHeight = labelFont.lineHeight;
+        cursor.y += calculateLegendItemHeight(legendItem, fontLineHeight);
+      } else {
+        cursor.y += lineHeight;
+      }
+
+      // Update the hitbox y position to match the actual position
+      if (!isHorizontal && i < this.legendHitBoxes.length) {
+        this.legendHitBoxes[i].top = y;
+      }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/plugins/plugin.legend.js
+<<<<<<< SEARCH
+  _getLegendItemAt(x, y) {
+    let i, hitBox, lh;
+
+    if (_isBetween(x, this.left, this.right)
+      && _isBetween(y, this.top, this.bottom)) {
+      // See if we are touching one of the dataset boxes
+      lh = this.legendHitBoxes;
+      for (i = 0; i < lh.length; ++i) {
+        hitBox = lh[i];
+
+        if (_isBetween(x, hitBox.left, hitBox.left + hitBox.width)
+          && _isBetween(y, hitBox.top, hitBox.top + hitBox.height)) {
+          // Touching an element
+          return this.legendItems[i];
+        }
+      }
+    }
+
+    return null;
+  }
+=======
+  _getLegendItemAt(x, y) {
+    let i, hitBox, lh;
+
+    if (_isBetween(x, this.left, this.right)
+      && _isBetween(y, this.top, this.bottom)) {
+      // See if we are touching one of the dataset boxes
+      lh = this.legendHitBoxes;
+      for (i = 0; i < lh.length; ++i) {
+        hitBox = lh[i];
+
+        if (_isBetween(x, hitBox.left, hitBox.left + hitBox.width)
+          && _isBetween(y, hitBox.top, hitBox.top + hitBox.height)) {
+          // Touching an element
+          return this.legendItems[i];
+        }
+      }
+    }
+
+    return null;
+  }
+>>>>>>> REPLACE
+```
+
+After reviewing the code more carefully, I see that the issue is in the `adjustHitBoxes` method. The hitboxes are calculated correctly in `_fitCols`, but they're being overwritten in `adjustHitBoxes`. Let me provide the correct fix:
+
+```javascript
+### src/plugins/plugin.legend.js
+<<<<<<< SEARCH
+  adjustHitBoxes() {
+    if (!this.options.display) {
+      return;
+    }
+    const titleHeight = this._computeTitleHeight();
+    const {legendHitBoxes: hitboxes, options: {align, labels: {padding}, rtl}} = this;
+    const rtlHelper = getRtlAdapter(rtl, this.left, this.width);
+    if (this.isHorizontal()) {
+      let row = 0;
+      let left = _alignStartEnd(align, this.left + padding, this.right - this.lineWidths[row]);
+      for (const hitbox of hitboxes) {
+        if (row !== hitbox.row) {
+          row = hitbox.row;
+          left = _alignStartEnd(align, this.left + padding, this.right - this.lineWidths[row]);
+        }
+        hitbox.top += this.top + titleHeight + padding;
+        hitbox.left = rtlHelper.leftForLtr(rtlHelper.x(left), hitbox.width);
+        left += hitbox.width + padding;
+      }
+    } else {
+      let col = 0;
+      let top = _alignStartEnd(align, this.top + titleHeight + padding, this.bottom - this.columnSizes[col].height);
+      for (const hitbox of hitboxes) {
+        if (hitbox.col !== col) {
+          col = hitbox.col;
+          top = _alignStartEnd(align, this.top + titleHeight + padding, this.bottom - this.columnSizes[col].height);
+        }
+        hitbox.top = top;
+        hitbox.left += this.left + padding;
+        hitbox.left = rtlHelper.leftForLtr(rtlHelper.x(hitbox.left), hitbox.width);
+        top += hitbox.height + padding;
+      }
+    }
+  }
+=======
+  adjustHitBoxes() {
+    if (!this.options.display) {
+      return;
+    }
+    const titleHeight = this._computeTitleHeight();
+    const {legendHitBoxes: hitboxes, options: {align, labels: {padding}, rtl}} = this;
+    const rtlHelper = getRtlAdapter(rtl, this.left, this.width);
+    if (this.isHorizontal()) {
+      let row = 0;
+      let left = _alignStartEnd(align, this.left + padding, this.right - this.lineWidths[row]);
+      for (const hitbox of hitboxes) {
+        if (row !== hitbox.row) {
+          row = hitbox.row;
+          left = _alignStartEnd(align, this.left + padding, this.right - this.lineWidths[row]);
+        }
+        hitbox.top += this.top + titleHeight + padding;
+        hitbox.left = rtlHelper.leftForLtr(rtlHelper.x(left), hitbox.width);
+        left += hitbox.width + padding;
+      }
+    } else {
+      let col = 0;
+      let top = _alignStartEnd(align, this.top + titleHeight + padding, this.bottom - this.columnSizes[col].height);
+      for (const hitbox of hitboxes) {
+        if (hitbox.col !== col) {
+          col = hitbox.col;
+          top = _alignStartEnd(align, this.top + titleHeight + padding, this.bottom - this.columnSizes[col].height);
+        }
+        hitbox.top = top;
+        hitbox.left += this.left + padding;
+        hitbox.left = rtlHelper.leftForLtr(rtlHelper.x(hitbox.left), hitbox.width);
+        top += hitbox.height + padding;
+      }
+    }
+  }
+>>>>>>> REPLACE
+```
+
+After further analysis, I see that the issue is in the `_draw` method. When drawing multi-line legend items, the cursor position is updated correctly, but the hitboxes aren't being updated to match. Let me provide the correct fix:
+
+```javascript
+### src/plugins/plugin.legend.js
+<<<<<<< SEARCH
+    this.legendItems.forEach((legendItem, i) => {
+      ctx.strokeStyle = legendItem.fontColor; // for strikethrough effect
+      ctx.fillStyle = legendItem.fontColor; // render in correct colour
+
+      const textWidth = ctx.measureText(legendItem.text).width;
+      const textAlign = rtlHelper.textAlign(legendItem.textAlign || (legendItem.textAlign = labelOpts.textAlign));
+      const width = boxWidth + halfFontSize + textWidth;
+      let x = cursor.x;
+      let y = cursor.y;
+
+      rtlHelper.setWidth(this.width);
+
+      if (isHorizontal) {
+        if (i > 0 && x + width + padding > this.right) {
+          y = cursor.y += lineHeight;
+          cursor.line++;
+          x = cursor.x = _alignStartEnd(align, this.left + padding, this.right - lineWidths[cursor.line]);
+        }
+      } else if (i > 0 && y + lineHeight > this.bottom) {
+        x = cursor.x = x + columnSizes[cursor.line].width + padding;
+        cursor.line++;
+        y = cursor.y = _alignStartEnd(align, this.top + titleHeight + padding, this.bottom - columnSizes[cursor.line].height);
+      }
+
+      const realX = rtlHelper.x(x);
+
+      drawLegendBox(realX, y, legendItem);
+
+      x = _textX(textAlign, x + boxWidth + halfFontSize, isHorizontal ? x + width : this.right, opts.rtl);
+
+      // Fill the actual label
+      fillText(rtlHelper.x(x), y, legendItem);
+
+      if (isHorizontal) {
+        cursor.x += width + padding;
+      } else if (typeof legendItem.text !== 'string') {
+        const fontLineHeight = labelFont.lineHeight;
+        cursor.y += calculateLegendItemHeight(legendItem, fontLineHeight);
+      } else {
+        cursor.y += lineHeight;
+      }
+    });
+=======
+    this.legendItems.forEach((legendItem, i) => {
+      ctx.strokeStyle = legendItem.fontColor; // for strikethrough effect
+      ctx.fillStyle = legendItem.fontColor; // render in correct colour
+
+      const textWidth = ctx.measureText(legendItem.text).width;
+      const textAlign = rtlHelper.textAlign(legendItem.textAlign || (legendItem.textAlign = labelOpts.textAlign));
+      const width = boxWidth + halfFontSize + textWidth;
+      let x = cursor.x;
+      let y = cursor.y;
+
+      rtlHelper.setWidth(this.width);
+
+      if (isHorizontal) {
+        if (i > 0 && x + width + padding > this.right) {
+          y = cursor.y += lineHeight;
+          cursor.line++;
+          x = cursor.x = _alignStartEnd(align, this.left + padding, this.right - lineWidths[cursor.line]);
+        }
+      } else if (i > 0 && y + lineHeight > this.bottom) {
+        x = cursor.x = x + columnSizes[cursor.line].width + padding;
+        cursor.line++;
+        y = cursor.y = _alignStartEnd(align, this.top + titleHeight + padding, this.bottom - columnSizes[cursor.line].height);
+      }
+
+      const realX = rtlHelper.x(x);
+
+      drawLegendBox(realX, y, legendItem);
+
+      x = _textX(textAlign, x + boxWidth + halfFontSize, isHorizontal ? x + width : this.right, opts.rtl);
+
+      // Fill the actual label
+      fillText(rtlHelper.x(x), y, legendItem);
+
+      // Update hitbox position for vertical legends
+      if (!isHorizontal && i < this.legendHitBoxes.length) {
+        this.legendHitBoxes[i].top = y;
+      }
+
+      if (isHorizontal) {
+        cursor.x += width + padding;
+      } else if (typeof legendItem.text !== 'string') {
+        const fontLineHeight = labelFont.lineHeight;
+        cursor.y += calculateLegendItemHeight(legendItem, fontLineHeight);
+      } else {
+        cursor.y += lineHeight;
+      }
+    });
+>>>>>>> REPLACE
+```
+
+I need to add the `calculateLegendItemHeight` function as well:
+
+```javascript
+### src/plugins/plugin.legend.js
+<<<<<<< SEARCH
+const calculateItemSize = (boxWidth, labelFont, ctx, legendItem, itemHeight) => {
+  const itemWidth = boxWidth + (labelFont.size / 2) + ctx.measureText(legendItem.text).width;
+  return {itemWidth, itemHeight};
+};
+=======
+const calculateItemSize = (boxWidth, labelFont, ctx, legendItem, itemHeight) => {
+  const itemWidth = boxWidth + (labelFont.size / 2) + ctx.measureText(legendItem.text).width;
+  return {itemWidth, itemHeight};
+};
+
+const calculateLegendItemHeight = function(legendItem, fontLineHeight) {
+  if (Array.isArray(legendItem.text)) {
+    return legendItem.text.length * fontLineHeight;
+  }
+  return fontLineHeight;
+};
+>>>>>>> REPLACE
+```

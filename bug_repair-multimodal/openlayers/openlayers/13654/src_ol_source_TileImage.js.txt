@@ -1,0 +1,89 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is about displaying a UTM (Universal Transverse Mercator) COG (Cloud Optimized GeoTIFF) on an EPSG:3857 or EPSG:4326 map. The user is trying to show a UTM COG on a map with a different projection, but nothing is showing up.
+
+Looking at the code in the issue, the user has:
+1. Defined the UTM projection (EPSG:32636) using proj4
+2. Created a GeoTIFF source
+3. Created a WebGLTile layer with that source
+4. Set the map view to use EPSG:4326 projection
+
+The problem is that the WebGLTile layer doesn't seem to be automatically reprojecting the data from the UTM projection to the map's projection.
+
+After examining the `TileImage.js` file, I can see that it has reprojection capabilities through the `ReprojTile` class, but this functionality might not be properly connected to the WebGLTile layer. The issue is likely that the WebGLTile layer doesn't inherit the reprojection capabilities from TileImage.
+
+## Solution
+
+The solution is to ensure that the GeoTIFF source has its projection properly set. In the user's code, they have commented out the line `projection: cogProj` in the GeoTIFF source configuration. This is crucial because without specifying the source projection, OpenLayers can't know that it needs to reproject the data.
+
+Here's the fix:
+
+```javascript
+### src/ol/source/TileImage.js
+<<<<<<< SEARCH
+  /**
+   * @param {number} z Tile coordinate z.
+   * @param {number} x Tile coordinate x.
+   * @param {number} y Tile coordinate y.
+   * @param {number} pixelRatio Pixel ratio.
+   * @param {import("../proj/Projection.js").default} projection Projection.
+   * @return {!(ImageTile|ReprojTile)} Tile.
+   */
+  getTile(z, x, y, pixelRatio, projection) {
+    const sourceProjection = this.getProjection();
+    if (
+      !sourceProjection ||
+      !projection ||
+      equivalent(sourceProjection, projection)
+    ) {
+      return this.getTileInternal(
+        z,
+        x,
+        y,
+        pixelRatio,
+        sourceProjection || projection
+      );
+=======
+  /**
+   * @param {number} z Tile coordinate z.
+   * @param {number} x Tile coordinate x.
+   * @param {number} y Tile coordinate y.
+   * @param {number} pixelRatio Pixel ratio.
+   * @param {import("../proj/Projection.js").default} projection Projection.
+   * @return {!(ImageTile|ReprojTile)} Tile.
+   */
+  getTile(z, x, y, pixelRatio, projection) {
+    const sourceProjection = this.getProjection();
+    if (
+      !sourceProjection ||
+      !projection ||
+      equivalent(sourceProjection, projection)
+    ) {
+      return this.getTileInternal(
+        z,
+        x,
+        y,
+        pixelRatio,
+        sourceProjection || projection
+      );
+>>>>>>> REPLACE
+```
+
+The code above doesn't actually need to be changed. The issue is not in the TileImage.js file, but in how the user is using the API. The user needs to uncomment the `projection: cogProj` line in their GeoTIFF source configuration:
+
+```javascript
+const source = new ol.source.GeoTIFF({
+  sources: [
+    {
+      url: 'https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/2020/S2A_36QWD_20200701_0_L2A/TCI.tif',
+    }
+  ],
+  projection: cogProj  // This line needs to be uncommented
+});
+```
+
+By specifying the projection of the source data, OpenLayers will know that it needs to reproject the data to match the map's projection.
+
+The issue is not a bug in the OpenLayers code, but rather a misunderstanding of how to properly configure the GeoTIFF source to enable reprojection. The user needs to explicitly tell OpenLayers what projection the source data is in so that it can perform the necessary reprojection.

@@ -1,0 +1,34 @@
+I'll analyze the issue and provide a fix for the incorrect highlighting in cshtml files.
+
+Looking at the issue, the problem is that the `@helper` directive is not being properly recognized and highlighted in cshtml files. The current implementation doesn't have a pattern to match helper directives, which is why they're not highlighted correctly.
+
+Here's my fix:
+
+```javascript
+### components/prism-cshtml.js
+<<<<<<< SEARCH
+		'directive': {
+			pattern: /^([ \t]*)@(?:addTagHelper|attribute|implements|inherits|inject|layout|model|namespace|page|preservewhitespace|removeTagHelper|section|tagHelperPrefix|using)(?=\s).*/m,
+			lookbehind: true,
+			greedy: true,
+			inside: {
+				'keyword': /^@\w+/,
+				'csharp': cs
+			}
+		},
+=======
+		'directive': {
+			pattern: /^([ \t]*)@(?:addTagHelper|attribute|helper|implements|inherits|inject|layout|model|namespace|page|preservewhitespace|removeTagHelper|section|tagHelperPrefix|using)(?=\s).*/m,
+			lookbehind: true,
+			greedy: true,
+			inside: {
+				'keyword': /^@\w+/,
+				'csharp': cs
+			}
+		},
+>>>>>>> REPLACE
+```
+
+This fix adds the `helper` keyword to the list of recognized directives in the regex pattern. This will ensure that `@helper` directives are properly highlighted like other Razor directives.
+
+The issue was that the `@helper` syntax was not included in the list of recognized directives, causing it to be incorrectly highlighted. By adding it to the list, we ensure that it gets the proper syntax highlighting treatment, matching how Visual Studio renders it.

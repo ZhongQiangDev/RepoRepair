@@ -1,0 +1,37 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a user hovers over the side navigation to expand it and opens a dropdown menu, then moves the mouse away, the side navigation retracts but the dropdown menu remains open. This creates a visual inconsistency.
+
+Looking at the `SideNavMenu.js` code, I can see that the component tracks the expansion state of the side navigation with `isSideNavExpanded` prop, and it has logic to close the menu when the side nav collapses. However, the current implementation only closes the menu when the side nav transitions from expanded to collapsed, but it doesn't handle the case when the user opens a dropdown and then moves the mouse away causing the side nav to retract.
+
+## Fix
+
+We need to modify the component to ensure that when `isSideNavExpanded` becomes false, the dropdown menu should always close, regardless of the previous state.
+
+```javascript
+### packages/react/src/components/UIShell/SideNavMenu.js
+<<<<<<< SEARCH
+  if (isSideNavExpanded === false && isExpanded === true) {
+    setIsExpanded(false);
+    setPrevExpanded(true);
+  } else if (isSideNavExpanded === true && prevExpanded === true) {
+    setIsExpanded(true);
+    setPrevExpanded(false);
+  }
+=======
+  // Always close the menu when side nav is collapsed
+  if (isSideNavExpanded === false) {
+    if (isExpanded === true) {
+      setIsExpanded(false);
+      setPrevExpanded(true);
+    }
+  } else if (isSideNavExpanded === true && prevExpanded === true) {
+    setIsExpanded(true);
+    setPrevExpanded(false);
+  }
+>>>>>>> REPLACE
+```
+
+This change ensures that whenever the side navigation is collapsed (`isSideNavExpanded === false`), any open dropdown menu will be closed. The previous state is still tracked so that when the side navigation expands again, the menu can be restored to its previous state if needed.

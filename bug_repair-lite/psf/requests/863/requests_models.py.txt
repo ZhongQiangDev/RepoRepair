@@ -1,0 +1,42 @@
+Based on the issue description, the bug is in the Request class's handling of hooks in the `__init__` method. Currently, when a list of hook functions is passed in the hooks dictionary, it wraps that list in another list unnecessarily, making the hooks uncallable.
+
+Looking at the code, the issue is in how hooks are registered in `__init__`. The fix needs to handle both single hook functions and lists of hook functions properly.
+
+Here's the fix:
+
+```python
+### requests/models.py
+<<<<<<< SEARCH
+        hooks = hooks or {}
+
+        for (k, v) in list(hooks.items()):
+            self.register_hook(event=k, hook=v)
+=======
+        hooks = hooks or {}
+
+        for (k, v) in list(hooks.items()):
+            if hasattr(v, '__iter__') and not isinstance(v, (str, bytes)):
+                for hook in v:
+                    self.register_hook(event=k, hook=hook)
+            else:
+                self.register_hook(event=k, hook=v)
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Checks if the hook value is iterable (like a list) but not a string/bytes
+2. If it is iterable, iterates through each hook function and registers them individually
+3. If it's not iterable (i.e. a single function), registers it directly
+
+This allows both single hook functions and lists of hook functions to work properly. For example:
+
+```python
+# This will now work:
+hooks = {
+    'response': [hook1, hook2, hook3],
+    'pre_request': single_hook
+}
+request = Request(url='...', hooks=hooks)
+```
+
+The fix maintains proper indentation and handles both single hooks and multiple hooks per event type correctly.

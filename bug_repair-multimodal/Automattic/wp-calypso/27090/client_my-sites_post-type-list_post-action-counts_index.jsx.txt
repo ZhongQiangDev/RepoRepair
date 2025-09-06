@@ -1,0 +1,204 @@
+# Bug Analysis
+
+Based on the issue statement, the problem is that view counts for blog posts are no longer being displayed in the Blog Posts list. The issue shows "before" and "after" screenshots, where the "before" image shows view counts and the "after" image does not.
+
+Looking at the provided code for `PostActionCounts` component, I can see that:
+
+1. The component has a `showViews` property that's being calculated in the `connect` function
+2. The component has methods to render comment counts and like counts
+3. However, there's no method to render view counts, despite the `showViews` property being set
+
+The bug is that while the code is determining whether to show views, it's not actually implementing the view count display functionality.
+
+# Fix
+
+```javascript
+### client/my-sites/post-type-list/post-action-counts/index.jsx
+<<<<<<< SEARCH
+import { getSiteSlug, isJetpackModuleActive, isJetpackSite } from 'state/sites/selectors';
+import { recordTracksEvent } from 'state/analytics/actions';
+import { hideActiveLikesPopover, toggleLikesPopover } from 'state/ui/post-type-list/actions';
+import { isLikesPopoverOpen } from 'state/ui/post-type-list/selectors';
+=======
+import { getSiteSlug, isJetpackModuleActive, isJetpackSite } from 'state/sites/selectors';
+import { recordTracksEvent } from 'state/analytics/actions';
+import { hideActiveLikesPopover, toggleLikesPopover } from 'state/ui/post-type-list/actions';
+import { isLikesPopoverOpen } from 'state/ui/post-type-list/selectors';
+import { getPostStat } from 'state/stats/posts/selectors';
+>>>>>>> REPLACE
+```
+
+```javascript
+### client/my-sites/post-type-list/post-action-counts/index.jsx
+<<<<<<< SEARCH
+	renderLikeCount() {
+		const {
+			likeCount: count,
+			numberFormat,
+			siteId,
+			postId,
+			showLikes,
+			siteSlug,
+			translate,
+			isCurrentLikesPopoverOpen,
+		} = this.props;
+
+		if ( count < 1 || ! showLikes ) {
+			return null;
+		}
+
+		return (
+			<li ref={ this.setLikesPopoverContext }>
+				<a href={ `/stats/post/${ postId }/${ siteSlug }` } onClick={ this.onLikesClick }>
+					{ translate( '%(count)s Like', '%(count)s Likes', {
+						count,
+						args: { count: numberFormat( count ) },
+					} ) }
+				</a>
+				{ isCurrentLikesPopoverOpen && (
+					<PostLikesPopover
+						siteId={ siteId }
+						postId={ postId }
+						showDisplayNames={ true }
+						context={ this.state.likesPopoverContext }
+						position="bottom"
+						onClose={ this.closeLikesPopover }
+					/>
+				) }
+			</li>
+		);
+	}
+=======
+	renderLikeCount() {
+		const {
+			likeCount: count,
+			numberFormat,
+			siteId,
+			postId,
+			showLikes,
+			siteSlug,
+			translate,
+			isCurrentLikesPopoverOpen,
+		} = this.props;
+
+		if ( count < 1 || ! showLikes ) {
+			return null;
+		}
+
+		return (
+			<li ref={ this.setLikesPopoverContext }>
+				<a href={ `/stats/post/${ postId }/${ siteSlug }` } onClick={ this.onLikesClick }>
+					{ translate( '%(count)s Like', '%(count)s Likes', {
+						count,
+						args: { count: numberFormat( count ) },
+					} ) }
+				</a>
+				{ isCurrentLikesPopoverOpen && (
+					<PostLikesPopover
+						siteId={ siteId }
+						postId={ postId }
+						showDisplayNames={ true }
+						context={ this.state.likesPopoverContext }
+						position="bottom"
+						onClose={ this.closeLikesPopover }
+					/>
+				) }
+			</li>
+		);
+	}
+
+	renderViewCount() {
+		const {
+			viewCount: count,
+			numberFormat,
+			postId,
+			showViews,
+			siteSlug,
+			translate,
+		} = this.props;
+
+		if ( count < 1 || ! showViews ) {
+			return null;
+		}
+
+		return (
+			<li>
+				<a
+					href={ `/stats/post/${ postId }/${ siteSlug }` }
+					onClick={ this.onActionClick( 'views' ) }
+				>
+					{ translate( '%(count)s View', '%(count)s Views', {
+						count,
+						args: { count: numberFormat( count ) },
+					} ) }
+				</a>
+			</li>
+		);
+	}
+>>>>>>> REPLACE
+```
+
+```javascript
+### client/my-sites/post-type-list/post-action-counts/index.jsx
+<<<<<<< SEARCH
+	render() {
+		return (
+			<ul className="post-action-counts">
+				{ this.renderLikeCount() }
+				{ this.renderCommentCount() }
+			</ul>
+		);
+	}
+=======
+	render() {
+		return (
+			<ul className="post-action-counts">
+				{ this.renderViewCount() }
+				{ this.renderLikeCount() }
+				{ this.renderCommentCount() }
+			</ul>
+		);
+	}
+>>>>>>> REPLACE
+```
+
+```javascript
+### client/my-sites/post-type-list/post-action-counts/index.jsx
+<<<<<<< SEARCH
+		return {
+			commentCount: get( post, 'discussion.comment_count', null ),
+			likeCount: get( post, 'like_count', null ),
+			postId,
+			showComments,
+			showLikes,
+			showViews,
+			siteId,
+			siteSlug: getSiteSlug( state, siteId ),
+			type: get( post, 'type', 'unknown' ),
+			isCurrentLikesPopoverOpen: isLikesPopoverOpen( state, globalId ),
+		};
+=======
+		return {
+			commentCount: get( post, 'discussion.comment_count', null ),
+			likeCount: get( post, 'like_count', null ),
+			viewCount: getPostStat( state, siteId, postId, 'views' ),
+			postId,
+			showComments,
+			showLikes,
+			showViews,
+			siteId,
+			siteSlug: getSiteSlug( state, siteId ),
+			type: get( post, 'type', 'unknown' ),
+			isCurrentLikesPopoverOpen: isLikesPopoverOpen( state, globalId ),
+		};
+>>>>>>> REPLACE
+```
+
+These changes:
+
+1. Import the `getPostStat` selector to retrieve view counts
+2. Add a new `renderViewCount` method that displays the view count similar to likes and comments
+3. Update the `render` method to include the view count in the rendered output
+4. Add `viewCount` to the props by using the `getPostStat` selector
+
+This implementation follows the pattern established for likes and comments, and should restore the view count functionality that was previously available.

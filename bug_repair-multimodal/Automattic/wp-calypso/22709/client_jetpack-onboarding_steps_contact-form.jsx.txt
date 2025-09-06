@@ -1,0 +1,204 @@
+I'll analyze the issue and provide the necessary fixes.
+
+## Bug Localization
+
+Based on the issue description, we need to implement a success screen for the Contact Form step in Jetpack Onboarding. The current implementation doesn't fully address the requirements:
+
+1. If users have inserted a form and connected successfully, they should see a success screen instead of the contact form tile
+2. If they haven't inserted a contact form, they should see the tile
+3. If they haven't connected, they should be led to the JPC flow when trying to reach step 4 again
+4. The actual contact form insertion should happen only after the user has connected
+
+The current code only shows a different description on the same tile when a contact form has been added, but doesn't implement a proper success screen or handle the connection state.
+
+## Fix Implementation
+
+```javascript
+### client/jetpack-onboarding/steps/contact-form.jsx
+<<<<<<< SEARCH
+import React, { Fragment } from 'react';
+import { get } from 'lodash';
+import { localize } from 'i18n-calypso';
+
+/**
+ * Internal dependencies
+ */
+import DocumentHead from 'components/data/document-head';
+import FormattedHeader from 'components/formatted-header';
+import JetpackLogo from 'components/jetpack-logo';
+import PageViewTracker from 'lib/analytics/page-view-tracker';
+import Tile from 'components/tile-grid/tile';
+import TileGrid from 'components/tile-grid';
+import { JETPACK_ONBOARDING_STEPS as STEPS } from '../constants';
+=======
+import React, { Fragment } from 'react';
+import { get } from 'lodash';
+import { localize } from 'i18n-calypso';
+
+/**
+ * Internal dependencies
+ */
+import DocumentHead from 'components/data/document-head';
+import FormattedHeader from 'components/formatted-header';
+import JetpackLogo from 'components/jetpack-logo';
+import PageViewTracker from 'lib/analytics/page-view-tracker';
+import Tile from 'components/tile-grid/tile';
+import TileGrid from 'components/tile-grid';
+import SuccessView from './success-view';
+import { JETPACK_ONBOARDING_STEPS as STEPS } from '../constants';
+>>>>>>> REPLACE
+```
+
+```javascript
+### client/jetpack-onboarding/steps/contact-form.jsx
+<<<<<<< SEARCH
+	render() {
+		const { basePath, getForwardUrl, settings, translate } = this.props;
+		const headerText = translate( "Let's grow your audience with Jetpack." );
+		const subHeaderText = (
+			<Fragment>
+				{ translate( "A great first step is adding Jetpack's contact form." ) }
+				<br />
+				{ translate(
+					'Create a Jetpack account to get started and unlock this and dozens of other features.'
+				) }
+			</Fragment>
+		);
+		const hasContactForm = !! get( settings, 'addContactForm' );
+
+		return (
+			<div className="steps__main">
+				<DocumentHead title={ translate( 'Contact Form ‹ Jetpack Start' ) } />
+				<PageViewTracker
+					path={ [ basePath, STEPS.CONTACT_FORM, ':site' ].join( '/' ) }
+					title="Contact Form ‹ Jetpack Start"
+				/>
+
+				<JetpackLogo full size={ 45 } />
+
+				<FormattedHeader headerText={ headerText } subHeaderText={ subHeaderText } />
+
+				<TileGrid>
+					<Tile
+						buttonLabel={ ! hasContactForm ? translate( 'Add a contact form' ) : null }
+						description={
+							hasContactForm ? translate( 'Your contact form has been created.' ) : null
+						}
+						image={ '/calypso/images/illustrations/contact-us.svg' }
+						onClick={ this.handleAddContactForm }
+						href={ getForwardUrl() }
+					/>
+				</TileGrid>
+			</div>
+		);
+=======
+	renderContactFormTile() {
+		const { getForwardUrl, translate } = this.props;
+		
+		return (
+			<TileGrid>
+				<Tile
+					buttonLabel={ translate( 'Add a contact form' ) }
+					image={ '/calypso/images/illustrations/contact-us.svg' }
+					onClick={ this.handleAddContactForm }
+					href={ getForwardUrl() }
+				/>
+			</TileGrid>
+		);
+	}
+
+	renderSuccessScreen() {
+		const { translate } = this.props;
+		
+		return (
+			<SuccessView
+				illustration="/calypso/images/illustrations/contact-us.svg"
+				title={ translate( 'Success! Jetpack has added a contact form to your site.' ) }
+				description={ translate( 'Customers and clients can now get in touch with you the easy way.' ) }
+				buttonText={ translate( 'Continue' ) }
+				href={ this.props.getForwardUrl() }
+			/>
+		);
+	}
+
+	render() {
+		const { basePath, isConnected, settings, translate } = this.props;
+		const hasContactForm = !! get( settings, 'addContactForm' );
+		const showSuccess = isConnected && hasContactForm;
+		
+		let headerText, subHeaderText;
+		
+		if (showSuccess) {
+			headerText = translate( 'Contact form added!' );
+			subHeaderText = translate( 'Now your visitors can get in touch with you.' );
+		} else {
+			headerText = translate( "Let's grow your audience with Jetpack." );
+			subHeaderText = (
+				<Fragment>
+					{ translate( "A great first step is adding Jetpack's contact form." ) }
+					<br />
+					{ translate(
+						'Create a Jetpack account to get started and unlock this and dozens of other features.'
+					) }
+				</Fragment>
+			);
+		}
+
+		return (
+			<div className="steps__main">
+				<DocumentHead title={ translate( 'Contact Form ‹ Jetpack Start' ) } />
+				<PageViewTracker
+					path={ [ basePath, STEPS.CONTACT_FORM, ':site' ].join( '/' ) }
+					title="Contact Form ‹ Jetpack Start"
+				/>
+
+				<JetpackLogo full size={ 45 } />
+
+				<FormattedHeader headerText={ headerText } subHeaderText={ subHeaderText } />
+
+				{ showSuccess ? this.renderSuccessScreen() : this.renderContactFormTile() }
+			</div>
+		);
+>>>>>>> REPLACE
+```
+
+```javascript
+### client/jetpack-onboarding/steps/contact-form.jsx
+<<<<<<< SEARCH
+class JetpackOnboardingContactFormStep extends React.PureComponent {
+	handleAddContactForm = () => {
+		const { siteId } = this.props;
+		this.props.recordJpoEvent( 'calypso_jpo_contact_form_clicked' );
+
+		this.props.saveJpoSettings( siteId, {
+			addContactForm: true,
+		} );
+	};
+=======
+class JetpackOnboardingContactFormStep extends React.PureComponent {
+	handleAddContactForm = () => {
+		const { siteId, isConnected } = this.props;
+		this.props.recordJpoEvent( 'calypso_jpo_contact_form_clicked' );
+
+		// Only add the contact form if the user is connected
+		if (isConnected) {
+			this.props.saveJpoSettings( siteId, {
+				addContactForm: true,
+			} );
+		}
+	};
+>>>>>>> REPLACE
+```
+
+These changes implement the requirements by:
+
+1. Adding a proper success screen component import
+2. Creating separate methods to render either the contact form tile or the success screen
+3. Adding logic to check if the user is connected before adding the contact form
+4. Updating the header text and subheader text based on the current state
+5. Conditionally rendering either the success screen or the contact form tile based on connection status and whether a form has been added
+
+Note: This implementation assumes that:
+1. The `isConnected` prop is already being passed to the component
+2. A `success-view.jsx` component exists in the same directory
+If these assumptions are incorrect, additional changes would be needed.

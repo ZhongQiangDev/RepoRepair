@@ -1,0 +1,21 @@
+Let me follow the steps:
+
+1. Wrong Behavior:
+When serializing an Enum flag field that contains a combination of flags (e.g., `re.UNICODE | re.IGNORECASE`), the serialization fails because it tries to find a single `.name` for the combined value, which doesn't exist.
+
+2. Cause Analysis:
+The EnumSerializer is trying to serialize Enum flags by looking up the `.name` attribute of a single Enum value. However, when multiple flags are combined using bitwise OR (|), there isn't a single Enum value that corresponds to the combined value. Instead, the combined value needs to be decomposed into its constituent flags using `enum._decompose` and then serialized as a combination of those flags.
+
+3. Most Related Files:
+```
+django/db/migrations/serializer.py
+django/core/serializers/base.py
+django/core/serializers/python.py
+```
+
+The files are ordered by importance because:
+1. `serializer.py` contains the EnumSerializer class that needs to be modified to handle combined flags
+2. `base.py` contains the base serialization infrastructure that the EnumSerializer builds upon
+3. `python.py` contains the Python-specific serialization logic that may need to be considered for compatibility
+
+I limited to 3 files since these would be the main ones needed to fix the serialization issue with combined Enum flags.

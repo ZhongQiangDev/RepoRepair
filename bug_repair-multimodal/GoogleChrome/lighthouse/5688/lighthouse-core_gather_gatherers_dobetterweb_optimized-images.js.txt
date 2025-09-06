@@ -1,0 +1,29 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that BMP images are not being flagged under the "serve images under next gen formats" audit. Looking at the code, I can see that in the `filterImageRequests` method, there's a regular expression that checks for optimizable image types:
+
+```javascript
+const isOptimizableImage = record.resourceType === NetworkRequest.TYPES.Image &&
+  /image\/(png|bmp|jpeg)/.test(record.mimeType);
+```
+
+This regex correctly includes `bmp` as an optimizable image type. However, the issue might be that the MIME type for BMP images is not being correctly matched. According to the issue, the BMP image has a MIME type of `x-ms-bmp`, but the regex is only looking for `image/bmp`.
+
+Let's fix this by updating the regex to include `x-ms-bmp` as a valid MIME type for BMP images.
+
+## Fix
+
+```javascript
+### lighthouse-core/gather/gatherers/dobetterweb/optimized-images.js
+<<<<<<< SEARCH
+      const isOptimizableImage = record.resourceType === NetworkRequest.TYPES.Image &&
+        /image\/(png|bmp|jpeg)/.test(record.mimeType);
+=======
+      const isOptimizableImage = record.resourceType === NetworkRequest.TYPES.Image &&
+        /image\/(png|bmp|jpeg|x-ms-bmp)/.test(record.mimeType);
+>>>>>>> REPLACE
+```
+
+This change adds `x-ms-bmp` to the list of MIME types that should be considered for optimization. With this change, BMP images with the MIME type `image/x-ms-bmp` will be properly flagged under the "serve images under next gen formats" audit.

@@ -10,12 +10,12 @@ from dashscope import get_tokenizer
 import tiktoken
 
 os.environ["OPENAI_API_KEY"] = "your-key"
-os.environ["OPENAI_BASE_URL"] = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+os.environ["OPENAI_BASE_URL"] = "your-url"
 
-tokenizer = get_tokenizer('qwen-turbo')
+tokenizer = get_tokenizer('gpt-4o')
 
 
-def qwen_chat(prompt, images, root):
+def openai_chat(prompt, images, root):
     client = OpenAI(
         api_key=os.environ.get("OPENAI_API_KEY"),
         base_url=os.environ.get("OPENAI_BASE_URL")
@@ -53,9 +53,9 @@ def qwen_chat(prompt, images, root):
             continue
     try:
         completion = client.chat.completions.create(
-            model="qwen-vl-max-0125",
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=8192,
             temperature=0,
-            presence_penalty=0,
             seed=0,
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
@@ -204,7 +204,8 @@ if __name__ == '__main__':
                     continue
                 max_try = 3
                 while max_try > 0:
-                    generated_text, prompt_tokens, completion_tokens, total_tokens = qwen_chat(prompt, image_assets, root='pic/' + repo_name + '/' + str(repo_id))
+                    generated_text, prompt_tokens, completion_tokens, total_tokens = openai_chat(prompt, image_assets, root='pic/' + repo_name + '/' + str(repo_id))
+                    # generated_text, prompt_tokens, completion_tokens, total_tokens = openai_chat(prompt, image_assets)
                     if generated_text is not None:
                         if generated_text == 'ERROR':
                             max_try -= 1

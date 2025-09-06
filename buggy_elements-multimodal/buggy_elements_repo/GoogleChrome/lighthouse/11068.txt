@@ -1,0 +1,57 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that Lighthouse is unable to automatically check the `font-display` value for several font URLs. This results in warnings being displayed in the audit report, indicating that Lighthouse cannot determine if these fonts have a valid `font-display` property.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue appears to be that the `CSSUsage` artifact, which is responsible for tracking and collecting information about CSS stylesheets, does not have any stylesheets referencing the fonts listed in the warnings. This suggests that the `CSSUsage` gatherer might not be capturing all the relevant stylesheets, particularly those that are loaded within iframes. As a result, the `FontDisplay` audit cannot find the necessary `@font-face` declarations to check the `font-display` property.
+
+### 3. Examine Each File One by One
+
+#### lighthouse-core/audits/font-display.js
+```
+lighthouse-core/audits/font-display.js
+class: FontDisplay
+```
+The `FontDisplay` class is directly related to the issue because it performs the audit that checks for the `font-display` property. The `findFontDisplayDeclarations` method analyzes CSS stylesheets to identify `@font-face` declarations, and the `audit` method generates warnings for fonts with unrecognized URLs. If the `CSSUsage` artifact does not include the relevant stylesheets, this class will not be able to find the necessary `@font-face` declarations.
+
+#### lighthouse-core/config/config.js
+```
+This file contains no relevant functions/classes.
+```
+The functions in this file are related to configuration validation and do not directly impact the `font-display` audit.
+
+#### lighthouse-core/gather/gather-runner.js
+```
+This file contains no relevant functions/classes.
+```
+The `GatherRunner` class manages the overall data collection process but does not specifically handle the collection of CSS stylesheets or font information.
+
+#### lighthouse-core/gather/gatherers/css-usage.js
+```
+lighthouse-core/gather/gatherers/css-usage.js
+class: CSSUsage
+```
+The `CSSUsage` class is responsible for collecting information about unused CSS rules. If this class does not capture all the relevant stylesheets, including those loaded within iframes, it could be the reason why the `FontDisplay` audit cannot find the necessary `@font-face` declarations.
+
+#### lighthouse-core/gather/gatherers/iframe-elements.js
+```
+lighthouse-core/gather/gatherers/iframe-elements.js
+class: IFrameElements
+```
+The `IFrameElements` class collects information about iframe elements on the page. While this class does not directly handle CSS stylesheets, it could be relevant if the stylesheets are loaded within iframes. If the `CSSUsage` gatherer is not capturing stylesheets from iframes, the `IFrameElements` gatherer might need to be integrated or modified to ensure that all relevant stylesheets are collected.
+
+### Summary of Relevant Locations
+
+1. ```
+lighthouse-core/audits/font-display.js
+class: FontDisplay
+```
+2. ```
+lighthouse-core/gather/gatherers/css-usage.js
+class: CSSUsage
+```
+3. ```
+lighthouse-core/gather/gatherers/iframe-elements.js
+class: IFrameElements
+```

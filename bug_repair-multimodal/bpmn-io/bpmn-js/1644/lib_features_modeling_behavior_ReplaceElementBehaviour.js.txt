@@ -1,0 +1,44 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when changing a task from parallel multi-instance to sequential multi-instance (or vice versa), the multi-instance properties like loop cardinality are lost. This happens during the element replacement process.
+
+Looking at the provided code from `ReplaceElementBehaviour.js`, I can see that when replacing elements, it doesn't preserve the multi-instance properties of the original element. The `replaceElement` function is called with a new element that only specifies the type, but doesn't carry over any multi-instance properties from the old element.
+
+## Fix
+
+We need to modify the `replaceElements` function to preserve multi-instance properties when replacing elements. Specifically, we need to copy properties like `loopCharacteristics` from the old element to the new element.
+
+```javascript
+### lib/features/modeling/behavior/ReplaceElementBehaviour.js
+<<<<<<< SEARCH
+    var newElement = {
+      type: replacement.newElementType
+    };
+
+    var oldElement = elementRegistry.get(replacement.oldElementId);
+
+    var idx = elements.indexOf(oldElement);
+
+    elements[idx] = bpmnReplace.replaceElement(oldElement, newElement, { select: false });
+=======
+    var newElement = {
+      type: replacement.newElementType
+    };
+
+    var oldElement = elementRegistry.get(replacement.oldElementId);
+    
+    // Preserve multi-instance properties when switching between sequential and parallel
+    if (oldElement.businessObject.loopCharacteristics &&
+        (replacement.newElementType === oldElement.type)) {
+      newElement.loopCharacteristics = oldElement.businessObject.loopCharacteristics;
+    }
+
+    var idx = elements.indexOf(oldElement);
+
+    elements[idx] = bpmnReplace.replaceElement(oldElement, newElement, { select: false });
+>>>>>>> REPLACE
+```
+
+This fix checks if the old element has loop characteristics and if we're just changing properties of the same element type (not completely changing the element type). If so, it preserves the loop characteristics when creating the new element.

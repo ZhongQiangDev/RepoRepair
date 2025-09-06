@@ -1,0 +1,93 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that the deep linking overlay for the subprocess is lost when navigating between multiple processes and subprocesses inside the same BPMN diagram. Specifically, the overlay that indicates the deep linking for the subprocess disappears, which disrupts the navigation experience.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from the way overlays are managed when navigating between different subprocesses or planes. The deep linking overlay might not be properly updated or maintained when the active subprocess changes. This could be due to a lack of synchronization between the overlay management and the navigation logic, or an issue with how overlays are added, removed, or updated during these transitions.
+
+### 3. Examine Each File One by One and Determine Relevant Functions/Classes
+
+#### --- lib/features/drilldown/DrilldownBreadcrumbs.js ---
+```
+lib/features/drilldown/DrilldownBreadcrumbs.js
+function: DrilldownBreadcrumbs
+```
+This file contains the `DrilldownBreadcrumbs` function, which manages the breadcrumb navigation system. It listens for `element.changed` and `root.set` events to update the breadcrumbs. However, it does not directly manage overlays, so it may not be directly responsible for the overlay issue. Still, it could be relevant if the breadcrumb updates interfere with overlay management.
+
+#### --- lib/features/drilldown/DrilldownCentering.js ---
+```
+lib/features/drilldown/DrilldownCentering.js
+function: DrilldownCentering
+```
+This file contains the `DrilldownCentering` function, which handles viewport adjustments when navigating between different levels of a BPMN diagram. It listens for `root.set` and `diagram.clear` events. While it manages the viewbox and zoom levels, it does not directly manage overlays. However, it could be relevant if the viewport adjustments interfere with overlay positioning.
+
+#### --- lib/features/drilldown/DrilldownOverlayBehavior.js ---
+```
+lib/features/drilldown/DrilldownOverlayBehavior.js
+function: DrilldownOverlayBehavior
+function: function_10
+function: function_11
+function: function_12
+function: function_14
+function: function_9
+```
+This file contains the `DrilldownOverlayBehavior` function and related helper functions, which are directly responsible for managing overlays on shapes that support drilldown operations. The functions `function_10` (canDrillDown), `function_11`, `function_12` (addOverlay), `function_14` (removeOverlay), and `function_9` (updateOverlayVisibility) are all relevant to the issue. These functions add, remove, and update overlays, so they are likely involved in the problem where the deep linking overlay is lost.
+
+#### --- lib/features/modeling/behavior/SubProcessPlaneBehavior.js ---
+```
+lib/features/modeling/behavior/SubProcessPlaneBehavior.js
+function: function_23
+function: function_25
+function: function_27
+function: function_28
+function: function_29
+function: SubProcessPlaneBehavior
+```
+This file contains the `SubProcessPlaneBehavior` function and related helper functions, which manage the lifecycle of BPMNPlane elements associated with collapsed subprocesses. While it does not directly manage overlays, it handles the creation, deletion, and synchronization of planes, which could indirectly affect overlay management. Therefore, it is potentially relevant.
+
+#### --- lib/util/DrilldownUtil.js ---
+```
+lib/util/DrilldownUtil.js
+function: addPlaneSuffix
+function: getPlaneIdFromShape
+function: getShapeIdFromPlane
+function: isPlane
+function: removePlaneSuffix
+function: toPlaneId
+```
+This file contains utility functions related to plane IDs and suffixes. These functions are used to manipulate IDs and determine if an element is a plane. While they do not directly manage overlays, they could be relevant if there is an issue with plane ID management that affects overlay behavior.
+
+### Summary of Relevant Locations
+
+```
+lib/features/drilldown/DrilldownBreadcrumbs.js
+function: DrilldownBreadcrumbs
+
+lib/features/drilldown/DrilldownCentering.js
+function: DrilldownCentering
+
+lib/features/drilldown/DrilldownOverlayBehavior.js
+function: DrilldownOverlayBehavior
+function: function_10
+function: function_11
+function: function_12
+function: function_14
+function: function_9
+
+lib/features/modeling/behavior/SubProcessPlaneBehavior.js
+function: function_23
+function: function_25
+function: function_27
+function: function_28
+function: function_29
+function: SubProcessPlaneBehavior
+
+lib/util/DrilldownUtil.js
+function: addPlaneSuffix
+function: getPlaneIdFromShape
+function: getShapeIdFromPlane
+function: isPlane
+function: removePlaneSuffix
+function: toPlaneId
+```

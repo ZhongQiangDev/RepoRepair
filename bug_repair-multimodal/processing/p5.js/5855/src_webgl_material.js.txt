@@ -1,0 +1,30 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the problem is that when using `MULTIPLY` blend mode with transparent textures (like text), the alpha channel is being ignored. This causes text to appear as solid rectangles instead of properly showing only the glyphs.
+
+Looking at the code in `src/webgl/material.js`, I found the issue in the `_applyBlendMode` function. For the `MULTIPLY` blend mode, the current implementation is using blend functions that don't properly handle alpha transparency.
+
+Here's my fix:
+
+```javascript
+### src/webgl/material.js
+<<<<<<< SEARCH
+    case constants.MULTIPLY:
+      gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
+      gl.blendFuncSeparate(gl.ZERO, gl.SRC_COLOR, gl.ONE, gl.ONE);
+      break;
+=======
+    case constants.MULTIPLY:
+      gl.blendEquationSeparate(gl.FUNC_ADD, gl.FUNC_ADD);
+      gl.blendFuncSeparate(gl.DST_COLOR, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
+      break;
+>>>>>>> REPLACE
+```
+
+This change modifies the blend function parameters for the `MULTIPLY` blend mode to properly respect the alpha channel of the source texture. The new blend function uses `DST_COLOR` and `ONE_MINUS_SRC_ALPHA` which will:
+
+1. Multiply the colors as expected for the MULTIPLY blend mode
+2. Properly respect the alpha channel of the source texture (like text glyphs)
+3. Ensure that transparent parts of the texture don't affect the background
+
+This should fix the issue where text appears as solid rectangles in MULTIPLY blend mode, allowing only the actual glyphs to be visible and properly blended with the background.

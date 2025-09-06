@@ -1,0 +1,71 @@
+I'll analyze the issue and provide a fix.
+
+The issue is about Ruby heredocs without interpolation not being highlighted correctly. In Ruby, a heredoc without interpolation is denoted by single quotes around the delimiter, like `<<-'MESSAGE'`. The current implementation doesn't properly handle this syntax.
+
+Looking at the code, the heredoc handling is in the STRING section, specifically in the variants array. The current implementation only handles standard heredocs but doesn't account for the non-interpolating variant with single quotes.
+
+Here's the fix:
+
+```javascript
+### src/languages/ruby.js
+<<<<<<< SEARCH
+      { // heredocs
+        begin: /<<[-~]?'?(\w+)\n(?:[^\n]*\n)*?\s*\1\b/,
+        returnBegin: true,
+        contains: [
+          {
+            begin: /<<[-~]?'?/
+          },
+          hljs.END_SAME_AS_BEGIN({
+            begin: /(\w+)/,
+            end: /(\w+)/,
+            contains: [
+              hljs.BACKSLASH_ESCAPE,
+              SUBST
+            ]
+          })
+        ]
+      }
+=======
+      { // heredocs
+        begin: /<<[-~]?'?(\w+)\n(?:[^\n]*\n)*?\s*\1\b/,
+        returnBegin: true,
+        contains: [
+          {
+            begin: /<<[-~]?'?/
+          },
+          hljs.END_SAME_AS_BEGIN({
+            begin: /(\w+)/,
+            end: /(\w+)/,
+            contains: [
+              hljs.BACKSLASH_ESCAPE,
+              SUBST
+            ]
+          })
+        ]
+      },
+      { // heredocs without interpolation (single quotes around delimiter)
+        begin: /<<[-~]?'(\w+)'\n(?:[^\n]*\n)*?\s*\1\b/,
+        returnBegin: true,
+        contains: [
+          {
+            begin: /<<[-~]?'/
+          },
+          hljs.END_SAME_AS_BEGIN({
+            begin: /(\w+)/,
+            end: /(\w+)/,
+            contains: [
+              hljs.BACKSLASH_ESCAPE
+              // No SUBST here since there's no interpolation
+            ]
+          })
+        ]
+      }
+>>>>>>> REPLACE
+```
+
+This fix adds a new variant specifically for heredocs with single quotes around the delimiter, which indicates no interpolation. The key differences are:
+1. The regex pattern now explicitly looks for single quotes around the delimiter
+2. The `contains` array for this variant doesn't include `SUBST` since interpolation isn't allowed in this type of heredoc
+
+This should properly highlight the entire heredoc as a string, including the ending delimiter.

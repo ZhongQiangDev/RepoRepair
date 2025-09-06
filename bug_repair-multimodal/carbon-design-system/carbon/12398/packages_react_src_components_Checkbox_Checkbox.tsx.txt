@@ -1,0 +1,381 @@
+I'll analyze the issue and provide the necessary edits to implement the read-only functionality for the Checkbox component.
+
+Based on the issue, we need to:
+1. Add a `readOnly` prop to the Checkbox component
+2. Add styles for the read-only state
+3. Ensure the component behaves correctly when in read-only mode
+
+Here are the required edits:
+
+```typescript
+### packages/react/src/components/Checkbox/Checkbox.tsx
+<<<<<<< SEARCH
+export interface CheckboxProps
+  extends Omit<
+    React.InputHTMLAttributes<HTMLInputElement>,
+    ExcludedAttributes
+  > {
+  /**
+   * Provide an `id` to uniquely identify the Checkbox input
+   */
+  id: string;
+
+  /**
+   * Provide a label to provide a description of the Checkbox input that you are
+   * exposing to the user
+   */
+  labelText: NonNullable<ReactNodeLike>;
+
+  /**
+   * Specify whether the underlying input should be checked by default
+   */
+  defaultChecked?: boolean;
+
+  /**
+   * Specify whether the Checkbox should be disabled
+   */
+  disabled?: boolean;
+
+  /**
+   * Specify whether the label should be hidden, or not
+   */
+  hideLabel?: boolean;
+
+  /**
+   * Specify whether the Checkbox is in an indeterminate state
+   */
+  indeterminate?: boolean;
+
+  /**
+   * Provide an optional handler that is called when the internal state of
+   * Checkbox changes. This handler is called with event and state info.
+   * `(event, { checked, id }) => void`
+   */
+  onChange?: (
+    evt: React.ChangeEvent<HTMLInputElement>,
+    data: { checked: boolean; id: string }
+  ) => void;
+}
+=======
+export interface CheckboxProps
+  extends Omit<
+    React.InputHTMLAttributes<HTMLInputElement>,
+    ExcludedAttributes
+  > {
+  /**
+   * Provide an `id` to uniquely identify the Checkbox input
+   */
+  id: string;
+
+  /**
+   * Provide a label to provide a description of the Checkbox input that you are
+   * exposing to the user
+   */
+  labelText: NonNullable<ReactNodeLike>;
+
+  /**
+   * Specify whether the underlying input should be checked by default
+   */
+  defaultChecked?: boolean;
+
+  /**
+   * Specify whether the Checkbox should be disabled
+   */
+  disabled?: boolean;
+
+  /**
+   * Specify whether the label should be hidden, or not
+   */
+  hideLabel?: boolean;
+
+  /**
+   * Specify whether the Checkbox is in an indeterminate state
+   */
+  indeterminate?: boolean;
+
+  /**
+   * Specify whether the Checkbox is read-only
+   */
+  readOnly?: boolean;
+
+  /**
+   * Provide an optional handler that is called when the internal state of
+   * Checkbox changes. This handler is called with event and state info.
+   * `(event, { checked, id }) => void`
+   */
+  onChange?: (
+    evt: React.ChangeEvent<HTMLInputElement>,
+    data: { checked: boolean; id: string }
+  ) => void;
+}
+>>>>>>> REPLACE
+```
+
+```typescript
+### packages/react/src/components/Checkbox/Checkbox.tsx
+<<<<<<< SEARCH
+const Checkbox = React.forwardRef(
+  (
+    {
+      className,
+      id,
+      labelText,
+      onChange,
+      indeterminate,
+      hideLabel,
+      title = '',
+      ...other
+    }: CheckboxProps,
+    ref
+  ) => {
+    const prefix = usePrefix();
+    const wrapperClasses = classNames(
+      `${prefix}--form-item`,
+      `${prefix}--checkbox-wrapper`,
+      [className]
+    );
+    const innerLabelClasses = classNames(`${prefix}--checkbox-label-text`, {
+      [`${prefix}--visually-hidden`]: hideLabel,
+    });
+=======
+const Checkbox = React.forwardRef(
+  (
+    {
+      className,
+      id,
+      labelText,
+      onChange,
+      indeterminate,
+      hideLabel,
+      readOnly,
+      title = '',
+      ...other
+    }: CheckboxProps,
+    ref
+  ) => {
+    const prefix = usePrefix();
+    const wrapperClasses = classNames(
+      `${prefix}--form-item`,
+      `${prefix}--checkbox-wrapper`,
+      {
+        [`${prefix}--checkbox-wrapper--readonly`]: readOnly,
+      },
+      [className]
+    );
+    const innerLabelClasses = classNames(`${prefix}--checkbox-label-text`, {
+      [`${prefix}--visually-hidden`]: hideLabel,
+    });
+>>>>>>> REPLACE
+```
+
+```typescript
+### packages/react/src/components/Checkbox/Checkbox.tsx
+<<<<<<< SEARCH
+        <input
+          {...other}
+          type="checkbox"
+          onChange={(evt) => {
+            onChange && onChange(evt, { checked: evt.target.checked, id });
+          }}
+          className={`${prefix}--checkbox`}
+          id={id}
+          ref={(el) => {
+            if (el && indeterminate) {
+              el.indeterminate = indeterminate;
+            }
+            if (typeof ref === 'function') {
+              ref(el);
+            } else if (ref && Object(ref) === ref) {
+              ref.current = el;
+            }
+          }}
+        />
+=======
+        <input
+          {...other}
+          type="checkbox"
+          onChange={(evt) => {
+            if (!readOnly && onChange) {
+              onChange(evt, { checked: evt.target.checked, id });
+            }
+          }}
+          className={`${prefix}--checkbox`}
+          id={id}
+          readOnly={readOnly}
+          ref={(el) => {
+            if (el && indeterminate) {
+              el.indeterminate = indeterminate;
+            }
+            if (typeof ref === 'function') {
+              ref(el);
+            } else if (ref && Object(ref) === ref) {
+              ref.current = el;
+            }
+          }}
+        />
+>>>>>>> REPLACE
+```
+
+```typescript
+### packages/react/src/components/Checkbox/Checkbox.tsx
+<<<<<<< SEARCH
+        <label
+          htmlFor={id}
+          className={`${prefix}--checkbox-label`}
+          title={title}>
+          <Text className={innerLabelClasses}>{labelText}</Text>
+        </label>
+=======
+        <label
+          htmlFor={id}
+          className={classNames(`${prefix}--checkbox-label`, {
+            [`${prefix}--checkbox-label--readonly`]: readOnly,
+          })}
+          title={title}>
+          <Text className={innerLabelClasses}>{labelText}</Text>
+        </label>
+>>>>>>> REPLACE
+```
+
+```typescript
+### packages/react/src/components/Checkbox/Checkbox.tsx
+<<<<<<< SEARCH
+Checkbox.propTypes = {
+  /**
+   * Specify whether the underlying input should be checked
+   */
+  checked: PropTypes.bool,
+
+  /**
+   * Specify an optional className to be applied to the <label> node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify whether the underlying input should be checked by default
+   */
+  defaultChecked: PropTypes.bool,
+
+  /**
+   * Specify whether the Checkbox should be disabled
+   */
+  disabled: PropTypes.bool,
+
+  /**
+   * Specify whether the label should be hidden, or not
+   */
+  hideLabel: PropTypes.bool,
+
+  /**
+   * Provide an `id` to uniquely identify the Checkbox input
+   */
+  id: PropTypes.string.isRequired,
+
+  /**
+   * Specify whether the Checkbox is in an indeterminate state
+   */
+  indeterminate: PropTypes.bool,
+
+  /**
+   * Provide a label to provide a description of the Checkbox input that you are
+   * exposing to the user
+   */
+  labelText: PropTypes.node.isRequired,
+
+  /**
+   * Provide an optional handler that is called when the internal state of
+   * Checkbox changes. This handler is called with event and state info.
+   * `(event, { checked, id }) => void`
+   */
+  onChange: PropTypes.func,
+
+  /**
+   * Specify a title for the <label> node for the Checkbox
+   */
+  title: PropTypes.string,
+};
+=======
+Checkbox.propTypes = {
+  /**
+   * Specify whether the underlying input should be checked
+   */
+  checked: PropTypes.bool,
+
+  /**
+   * Specify an optional className to be applied to the <label> node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify whether the underlying input should be checked by default
+   */
+  defaultChecked: PropTypes.bool,
+
+  /**
+   * Specify whether the Checkbox should be disabled
+   */
+  disabled: PropTypes.bool,
+
+  /**
+   * Specify whether the label should be hidden, or not
+   */
+  hideLabel: PropTypes.bool,
+
+  /**
+   * Provide an `id` to uniquely identify the Checkbox input
+   */
+  id: PropTypes.string.isRequired,
+
+  /**
+   * Specify whether the Checkbox is in an indeterminate state
+   */
+  indeterminate: PropTypes.bool,
+
+  /**
+   * Provide a label to provide a description of the Checkbox input that you are
+   * exposing to the user
+   */
+  labelText: PropTypes.node.isRequired,
+
+  /**
+   * Provide an optional handler that is called when the internal state of
+   * Checkbox changes. This handler is called with event and state info.
+   * `(event, { checked, id }) => void`
+   */
+  onChange: PropTypes.func,
+
+  /**
+   * Specify whether the Checkbox is read-only
+   */
+  readOnly: PropTypes.bool,
+
+  /**
+   * Specify a title for the <label> node for the Checkbox
+   */
+  title: PropTypes.string,
+};
+>>>>>>> REPLACE
+```
+
+```typescript
+### packages/react/src/components/Checkbox/Checkbox.tsx
+<<<<<<< SEARCH
+Checkbox.defaultProps = {
+
+  indeterminate: false,
+};
+=======
+Checkbox.defaultProps = {
+  indeterminate: false,
+  readOnly: false,
+};
+>>>>>>> REPLACE
+```
+
+These changes implement the read-only functionality for the Checkbox component by:
+1. Adding a `readOnly` prop to the component interface
+2. Adding appropriate CSS classes for styling the read-only state
+3. Preventing onChange events when in read-only mode
+4. Setting the readOnly attribute on the input element
+5. Adding PropTypes validation for the readOnly prop
+6. Setting a default value for the readOnly prop

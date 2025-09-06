@@ -1,0 +1,43 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is related to handling even band counts (≥ 6) in the DataTileSource class, specifically when using the last band as an alpha channel. According to the issue description:
+
+1. When requesting 5 bands from titiler, you get 6 bands (5 + alpha)
+2. When setting DataTileSource to work with 6 bands, the alpha mask doesn't work correctly
+3. The issue mentions that to fix this, they needed to generate an ol/DataTile with one more dimension when working with even bandsCount
+
+Looking at the code, I don't see any specific handling for even band counts in the DataTileSource class. The issue is likely in how the DataTile is created or how the band data is processed.
+
+The issue is in the `getTile` method of the DataTileSource class. When creating a new DataTile, it doesn't pass the bandCount to the DataTile constructor, which might be causing the alpha channel issues when working with even band counts.
+
+## Fix
+
+```javascript
+### src/ol/source/DataTile.js
+<<<<<<< SEARCH
+    const options = Object.assign(
+      {
+        tileCoord: [z, x, y],
+        loader: loader,
+        size: size,
+      },
+      this.tileOptions
+    );
+=======
+    const options = Object.assign(
+      {
+        tileCoord: [z, x, y],
+        loader: loader,
+        size: size,
+        bandCount: this.bandCount,
+      },
+      this.tileOptions
+    );
+>>>>>>> REPLACE
+```
+
+This change ensures that the bandCount property from the DataTileSource is passed to the DataTile constructor, which should allow the DataTile to properly handle the alpha channel when working with even band counts.
+
+The issue description mentions that they needed to generate a DataTile with "one more dimension" when working with even band counts. This suggests that the DataTile class might need to handle even band counts differently, but since we don't have access to the DataTile.js file, this fix focuses on ensuring the bandCount is properly passed from the DataTileSource to the DataTile.

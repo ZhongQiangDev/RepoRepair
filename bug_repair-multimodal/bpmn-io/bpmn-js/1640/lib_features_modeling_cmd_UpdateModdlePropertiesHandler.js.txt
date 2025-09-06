@@ -1,0 +1,116 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when changing a task from parallel multi-instance to sequential multi-instance (or vice versa), the multi-instance properties like loop cardinality are lost. This happens because the current implementation doesn't properly preserve these properties when updating the moddle element.
+
+Looking at the code, the `UpdateModdlePropertiesHandler` is responsible for updating properties on BPMN elements. The issue is likely in the `getModdleProperties` function which retrieves the old properties before they're updated. The current implementation doesn't seem to be capturing all the necessary multi-instance properties.
+
+## Fix
+
+We need to modify the `getModdleProperties` function to ensure it properly captures all properties of the moddle element, not just the ones being updated. This function is referenced in the code but not shown in the provided snippet. Let's add it:
+
+```javascript
+### lib/features/modeling/cmd/UpdateModdlePropertiesHandler.js
+<<<<<<< SEARCH
+function setModdleProperties(moddleElement, properties) {
+  forEach(properties, function(value, key) {
+    moddleElement.set(key, value);
+  });
+}
+
+
+=======
+/**
+ * Get properties of given moddle element.
+ *
+ * @param {ModdleElement} moddleElement
+ * @param {Array<string>} propertyNames
+ *
+ * @return {Object}
+ */
+function getModdleProperties(moddleElement, propertyNames) {
+  return reduce(propertyNames, function(result, key) {
+    result[key] = moddleElement.get(key);
+    return result;
+  }, {});
+}
+
+function setModdleProperties(moddleElement, properties) {
+  forEach(properties, function(value, key) {
+    moddleElement.set(key, value);
+  });
+}
+
+
+>>>>>>> REPLACE
+```
+
+Now, let's modify the `execute` method to ensure it preserves all multi-instance properties when changing between parallel and sequential:
+
+```javascript
+### lib/features/modeling/cmd/UpdateModdlePropertiesHandler.js
+<<<<<<< SEARCH
+UpdateModdlePropertiesHandler.prototype.execute = function(context) {
+
+  var element = context.element,
+      moddleElement = context.moddleElement,
+      properties = context.properties;
+
+  if (!moddleElement) {
+    throw new Error('<moddleElement> required');
+  }
+
+  var changed = context.changed || this.getVisualReferences(moddleElement).concat(element);
+  var oldProperties = context.oldProperties || getModdleProperties(moddleElement, keys(properties));
+
+  setModdleProperties(moddleElement, properties);
+
+  context.oldProperties = oldProperties;
+  context.changed = changed;
+
+  return changed;
+};
+=======
+UpdateModdlePropertiesHandler.prototype.execute = function(context) {
+
+  var element = context.element,
+      moddleElement = context.moddleElement,
+      properties = context.properties;
+
+  if (!moddleElement) {
+    throw new Error('<moddleElement> required');
+  }
+
+  var changed = context.changed || this.getVisualReferences(moddleElement).concat(element);
+  
+  // Preserve multi-instance properties when changing between parallel and sequential
+  var propertiesToPreserve = keys(properties);
+  
+  // If changing multi-instance type, ensure we preserve all multi-instance properties
+  if (properties.isSequential !== undefined && is(element, 'bpmn:Activity')) {
+    var multiInstanceProps = [
+      'loopCardinality',
+      'loopDataInputRef',
+      'loopDataOutputRef',
+      'inputDataItem',
+      'outputDataItem',
+      'completionCondition'
+    ];
+    
+    propertiesToPreserve = propertiesToPreserve.concat(multiInstanceProps);
+  }
+  
+  var oldProperties = context.oldProperties || getModdleProperties(moddleElement, propertiesToPreserve);
+
+  setModdleProperties(moddleElement, properties);
+
+  context.oldProperties = oldProperties;
+  context.changed = changed;
+
+  return changed;
+};
+>>>>>>> REPLACE
+```
+
+This fix ensures that when changing between parallel and sequential multi-instance (when the `isSequential` property is being updated), we preserve all the multi-instance related properties like loop cardinality, loop data references, etc.

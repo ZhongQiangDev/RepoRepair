@@ -1,0 +1,131 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a component has both `fixed` and `minPresenceAhead` properties, the `minPresenceAhead` rule is not being respected. Looking at the code, I notice that the `shouldBreak` function is missing imports for `getMinPresenceAhead`, `getPresenceAhead`, and `getBreak` functions, which are used in the function but not defined.
+
+More importantly, the issue description suggests that the `fixed` property is interfering with the `minPresenceAhead` property. This likely means that when a component is fixed, the code is not properly checking the `minPresenceAhead` condition.
+
+The problem is in the `shouldBreak.js` file where the function doesn't account for fixed elements when evaluating the `minPresenceAhead` condition. We need to modify the function to properly handle fixed elements.
+
+## Fix
+
+```javascript
+### packages/layout/src/node/shouldBreak.js
+<<<<<<< SEARCH
+/* eslint-disable no-continue */
+
+import getWrap from './getWrap';
+import getNodesHeight from './getNodesHeight';
+
+
+
+
+
+
+
+
+
+const shouldBreak = (child, futureElements, height) => {
+  const minPresenceAhead = getMinPresenceAhead(child);
+  const presenceAhead = getPresenceAhead(futureElements, height);
+  const futureHeight = getNodesHeight(futureElements);
+  const shouldSplit = height < child.box.top + child.box.height;
+  const shouldWrap = getWrap(child);
+
+  return (
+    getBreak(child) ||
+    (!shouldWrap && shouldSplit) ||
+    (minPresenceAhead < futureHeight && presenceAhead < minPresenceAhead)
+  );
+};
+=======
+/* eslint-disable no-continue */
+
+import getWrap from './getWrap';
+import getNodesHeight from './getNodesHeight';
+import getMinPresenceAhead from './getMinPresenceAhead';
+import getPresenceAhead from './getPresenceAhead';
+import getBreak from './getBreak';
+import isFixed from './isFixed';
+
+const shouldBreak = (child, futureElements, height) => {
+  const minPresenceAhead = getMinPresenceAhead(child);
+  const presenceAhead = getPresenceAhead(futureElements, height);
+  const futureHeight = getNodesHeight(futureElements);
+  const shouldSplit = height < child.box.top + child.box.height;
+  const shouldWrap = getWrap(child);
+  const fixed = isFixed(child);
+
+  return (
+    getBreak(child) ||
+    (!shouldWrap && shouldSplit) ||
+    (minPresenceAhead < futureHeight && presenceAhead < minPresenceAhead && !fixed) ||
+    (fixed && minPresenceAhead < futureHeight && presenceAhead < minPresenceAhead)
+  );
+};
+>>>>>>> REPLACE
+```
+
+Wait, I need to refine this solution. The issue is that the `minPresenceAhead` condition is not being properly applied when an element is fixed. Let me provide a better fix:
+
+```javascript
+### packages/layout/src/node/shouldBreak.js
+<<<<<<< SEARCH
+/* eslint-disable no-continue */
+
+import getWrap from './getWrap';
+import getNodesHeight from './getNodesHeight';
+
+
+
+
+
+
+
+
+
+const shouldBreak = (child, futureElements, height) => {
+  const minPresenceAhead = getMinPresenceAhead(child);
+  const presenceAhead = getPresenceAhead(futureElements, height);
+  const futureHeight = getNodesHeight(futureElements);
+  const shouldSplit = height < child.box.top + child.box.height;
+  const shouldWrap = getWrap(child);
+
+  return (
+    getBreak(child) ||
+    (!shouldWrap && shouldSplit) ||
+    (minPresenceAhead < futureHeight && presenceAhead < minPresenceAhead)
+  );
+};
+=======
+/* eslint-disable no-continue */
+
+import getWrap from './getWrap';
+import getNodesHeight from './getNodesHeight';
+import getMinPresenceAhead from './getMinPresenceAhead';
+import getPresenceAhead from './getPresenceAhead';
+import getBreak from './getBreak';
+import isFixed from './isFixed';
+
+const shouldBreak = (child, futureElements, height) => {
+  const minPresenceAhead = getMinPresenceAhead(child);
+  const presenceAhead = getPresenceAhead(futureElements, height);
+  const futureHeight = getNodesHeight(futureElements);
+  const shouldSplit = height < child.box.top + child.box.height;
+  const shouldWrap = getWrap(child);
+  const fixed = isFixed(child);
+
+  // For fixed elements, we still want to respect minPresenceAhead
+  if (fixed && minPresenceAhead && minPresenceAhead < futureHeight && presenceAhead < minPresenceAhead) {
+    return true;
+  }
+
+  return (
+    getBreak(child) ||
+    (!shouldWrap && shouldSplit) ||
+    (minPresenceAhead < futureHeight && presenceAhead < minPresenceAhead)
+  );
+};
+>>>>>>> REPLACE
+```

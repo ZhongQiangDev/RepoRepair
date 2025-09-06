@@ -1,0 +1,76 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about the NumberPicker component's behavior when it receives keyboard focus. According to the issue:
+
+1. When a user tabs to the NumberPicker, it gets focus, but when they tab again to focus on the operation buttons, the buttons remain hidden.
+2. Additionally, the NumberPicker loses its focus style when the buttons are focused.
+
+The issue suggests using `:focus-within` CSS pseudo-class to maintain the focus style when any element within the NumberPicker is focused.
+
+Looking at the code, I can see that the NumberPicker has a feature to show/hide trigger buttons, controlled by the `alwaysShowTrigger` prop. The issue is that when the user tabs to the buttons, they should be visible, but they're not.
+
+## Fix
+
+We need to modify the component to:
+1. Show the trigger buttons when any element within the NumberPicker has focus
+2. Maintain the focus style using `:focus-within`
+
+Here's the fix:
+
+```javascript
+### src/number-picker/number-picker.jsx
+<<<<<<< SEARCH
+        const cls = classNames({
+            [prefixCls]: true,
+            [`${prefixCls}-${type}`]: type,
+            [`${prefix}${size}`]: true,
+            [`${prefixCls}-show-trigger`]: alwaysShowTrigger,
+            [`${prefixCls}-no-trigger`]: !hasTrigger,
+            [`${prefix}disabled`]: disabled,
+            [className]: className,
+        });
+=======
+        const cls = classNames({
+            [prefixCls]: true,
+            [`${prefixCls}-${type}`]: type,
+            [`${prefix}${size}`]: true,
+            [`${prefixCls}-show-trigger`]: alwaysShowTrigger || this.state.hasFocused,
+            [`${prefixCls}-no-trigger`]: !hasTrigger,
+            [`${prefix}disabled`]: disabled,
+            [className]: className,
+        });
+>>>>>>> REPLACE
+```
+
+This change will make the trigger buttons visible when the NumberPicker has focus (tracked by the `hasFocused` state). 
+
+Now we need to ensure that the focus state is maintained when tabbing to the buttons:
+
+```javascript
+### src/number-picker/number-picker.jsx
+<<<<<<< SEARCH
+    setFocus(status) {
+        const { format } = this.props;
+        // Only trigger `setState` if `format` is settled to avoid unnecessary rendering
+        if (typeof format === 'function') {
+            this.setState({
+                hasFocused: status,
+            });
+        }
+    }
+=======
+    setFocus(status) {
+        const { format } = this.props;
+        // Always set hasFocused state to track focus within the component
+        this.setState({
+            hasFocused: status,
+        });
+    }
+>>>>>>> REPLACE
+```
+
+This change ensures that we always track the focus state, not just when a format function is provided.
+
+Finally, we need to add CSS support for `:focus-within` to maintain the focus style when any element within the NumberPicker has focus. This would typically be in a CSS file, but since we're only looking at the JavaScript file, we can't directly modify the CSS. The changes above should address the main functionality issue of showing the buttons when focused.

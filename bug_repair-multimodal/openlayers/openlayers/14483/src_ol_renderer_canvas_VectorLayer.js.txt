@@ -1,0 +1,297 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about rotated vector layer text styles not displaying at the correct location when the context is clipped and translated. According to the issue description:
+
+1. When using a modified spyglass that displays hidden layers in a translated area, rotated text styles appear at the original location instead of the translated location.
+2. Non-rotated text styles work correctly and appear in the translated location.
+3. Any rotation value != 0 causes the translation to fail.
+
+Looking at the code, the problem is likely in the `renderWorlds` method of the `CanvasVectorLayerRenderer` class. This method is responsible for rendering vector layers, including text styles, and it passes the rotation parameter to the `execute` method of the `executorGroup`.
+
+The issue is that when text styles are rotated, the rotation transformation is not being properly applied in the context of the translated area. The rotation parameter is being passed directly to the `execute` method, but it needs to be adjusted for the translated context.
+
+## Fix
+
+```javascript
+### src/ol/renderer/canvas/VectorLayer.js
+<<<<<<< SEARCH
+      executorGroup.execute(
+        context,
+        1,
+        transform,
+        rotation,
+        snapToPixel,
+        undefined,
+        declutterTree
+      );
+=======
+      executorGroup.execute(
+        context,
+        1,
+        transform,
+        rotation,
+        snapToPixel,
+        undefined,
+        declutterTree
+      );
+>>>>>>> REPLACE
+```
+
+After examining the code more carefully, I see that the issue is more complex. The problem is likely in how the rotation is handled in the `ExecutorGroup` class when dealing with text styles. Let's look at the issue from a different angle.
+
+The issue occurs specifically with rotated text styles when the context is clipped and translated. This suggests that the rotation transformation is being applied incorrectly in relation to the translation.
+
+Let's modify the `renderWorlds` method to ensure that the rotation is properly applied in the context of the translated area:
+
+```javascript
+### src/ol/renderer/canvas/VectorLayer.js
+<<<<<<< SEARCH
+  renderWorlds(executorGroup, frameState, declutterTree) {
+    const extent = frameState.extent;
+    const viewState = frameState.viewState;
+    const center = viewState.center;
+    const resolution = viewState.resolution;
+    const projection = viewState.projection;
+    const rotation = viewState.rotation;
+    const projectionExtent = projection.getExtent();
+    const vectorSource = this.getLayer().getSource();
+    const pixelRatio = frameState.pixelRatio;
+    const viewHints = frameState.viewHints;
+    const snapToPixel = !(
+      viewHints[ViewHint.ANIMATING] || viewHints[ViewHint.INTERACTING]
+    );
+    const context = this.compositionContext_;
+    const width = Math.round(frameState.size[0] * pixelRatio);
+    const height = Math.round(frameState.size[1] * pixelRatio);
+
+    const multiWorld = vectorSource.getWrapX() && projection.canWrapX();
+    const worldWidth = multiWorld ? getWidth(projectionExtent) : null;
+    const endWorld = multiWorld
+      ? Math.ceil((extent[2] - projectionExtent[2]) / worldWidth) + 1
+      : 1;
+    let world = multiWorld
+      ? Math.floor((extent[0] - projectionExtent[0]) / worldWidth)
+      : 0;
+    do {
+      const transform = this.getRenderTransform(
+        center,
+        resolution,
+        rotation,
+        pixelRatio,
+        width,
+        height,
+        world * worldWidth
+      );
+      executorGroup.execute(
+        context,
+        1,
+        transform,
+        rotation,
+        snapToPixel,
+        undefined,
+        declutterTree
+      );
+    } while (++world < endWorld);
+  }
+=======
+  renderWorlds(executorGroup, frameState, declutterTree) {
+    const extent = frameState.extent;
+    const viewState = frameState.viewState;
+    const center = viewState.center;
+    const resolution = viewState.resolution;
+    const projection = viewState.projection;
+    const rotation = viewState.rotation;
+    const projectionExtent = projection.getExtent();
+    const vectorSource = this.getLayer().getSource();
+    const pixelRatio = frameState.pixelRatio;
+    const viewHints = frameState.viewHints;
+    const snapToPixel = !(
+      viewHints[ViewHint.ANIMATING] || viewHints[ViewHint.INTERACTING]
+    );
+    const context = this.compositionContext_;
+    const width = Math.round(frameState.size[0] * pixelRatio);
+    const height = Math.round(frameState.size[1] * pixelRatio);
+
+    const multiWorld = vectorSource.getWrapX() && projection.canWrapX();
+    const worldWidth = multiWorld ? getWidth(projectionExtent) : null;
+    const endWorld = multiWorld
+      ? Math.ceil((extent[2] - projectionExtent[2]) / worldWidth) + 1
+      : 1;
+    let world = multiWorld
+      ? Math.floor((extent[0] - projectionExtent[0]) / worldWidth)
+      : 0;
+    do {
+      const transform = this.getRenderTransform(
+        center,
+        resolution,
+        rotation,
+        pixelRatio,
+        width,
+        height,
+        world * worldWidth
+      );
+      // Save the current context state before executing
+      if (rotation !== 0) {
+        context.save();
+      }
+      executorGroup.execute(
+        context,
+        1,
+        transform,
+        rotation,
+        snapToPixel,
+        undefined,
+        declutterTree
+      );
+      // Restore the context state after executing
+      if (rotation !== 0) {
+        context.restore();
+      }
+    } while (++world < endWorld);
+  }
+>>>>>>> REPLACE
+```
+
+After further analysis, I believe the issue is more fundamental. The problem is likely in how the rotation is applied in relation to the translation when rendering text styles. Let's try a different approach:
+
+```javascript
+### src/ol/renderer/canvas/VectorLayer.js
+<<<<<<< SEARCH
+      executorGroup.execute(
+        context,
+        1,
+        transform,
+        rotation,
+        snapToPixel,
+        undefined,
+        declutterTree
+      );
+=======
+      // For rotated text styles, we need to ensure the rotation is applied
+      // in the context of the translated area
+      executorGroup.execute(
+        context,
+        1,
+        transform,
+        rotation,
+        snapToPixel,
+        undefined,
+        declutterTree
+      );
+>>>>>>> REPLACE
+```
+
+After more careful consideration, I believe the issue is in how the rotation is handled in the `ExecutorGroup` class, which is not shown in the provided code. The problem is that when text styles are rotated and the context is translated, the rotation center is not being properly adjusted.
+
+Let's try a more comprehensive fix:
+
+```javascript
+### src/ol/renderer/canvas/VectorLayer.js
+<<<<<<< SEARCH
+  renderWorlds(executorGroup, frameState, declutterTree) {
+    const extent = frameState.extent;
+    const viewState = frameState.viewState;
+    const center = viewState.center;
+    const resolution = viewState.resolution;
+    const projection = viewState.projection;
+    const rotation = viewState.rotation;
+    const projectionExtent = projection.getExtent();
+    const vectorSource = this.getLayer().getSource();
+    const pixelRatio = frameState.pixelRatio;
+    const viewHints = frameState.viewHints;
+    const snapToPixel = !(
+      viewHints[ViewHint.ANIMATING] || viewHints[ViewHint.INTERACTING]
+    );
+    const context = this.compositionContext_;
+    const width = Math.round(frameState.size[0] * pixelRatio);
+    const height = Math.round(frameState.size[1] * pixelRatio);
+
+    const multiWorld = vectorSource.getWrapX() && projection.canWrapX();
+    const worldWidth = multiWorld ? getWidth(projectionExtent) : null;
+    const endWorld = multiWorld
+      ? Math.ceil((extent[2] - projectionExtent[2]) / worldWidth) + 1
+      : 1;
+    let world = multiWorld
+      ? Math.floor((extent[0] - projectionExtent[0]) / worldWidth)
+      : 0;
+    do {
+      const transform = this.getRenderTransform(
+        center,
+        resolution,
+        rotation,
+        pixelRatio,
+        width,
+        height,
+        world * worldWidth
+      );
+      executorGroup.execute(
+        context,
+        1,
+        transform,
+        rotation,
+        snapToPixel,
+        undefined,
+        declutterTree
+      );
+    } while (++world < endWorld);
+  }
+=======
+  renderWorlds(executorGroup, frameState, declutterTree) {
+    const extent = frameState.extent;
+    const viewState = frameState.viewState;
+    const center = viewState.center;
+    const resolution = viewState.resolution;
+    const projection = viewState.projection;
+    const rotation = viewState.rotation;
+    const projectionExtent = projection.getExtent();
+    const vectorSource = this.getLayer().getSource();
+    const pixelRatio = frameState.pixelRatio;
+    const viewHints = frameState.viewHints;
+    const snapToPixel = !(
+      viewHints[ViewHint.ANIMATING] || viewHints[ViewHint.INTERACTING]
+    );
+    const context = this.compositionContext_;
+    const width = Math.round(frameState.size[0] * pixelRatio);
+    const height = Math.round(frameState.size[1] * pixelRatio);
+
+    const multiWorld = vectorSource.getWrapX() && projection.canWrapX();
+    const worldWidth = multiWorld ? getWidth(projectionExtent) : null;
+    const endWorld = multiWorld
+      ? Math.ceil((extent[2] - projectionExtent[2]) / worldWidth) + 1
+      : 1;
+    let world = multiWorld
+      ? Math.floor((extent[0] - projectionExtent[0]) / worldWidth)
+      : 0;
+    do {
+      const transform = this.getRenderTransform(
+        center,
+        resolution,
+        rotation,
+        pixelRatio,
+        width,
+        height,
+        world * worldWidth
+      );
+      
+      // When rendering rotated text in a translated context, we need to ensure
+      // the rotation is applied correctly. We save the context state before
+      // applying the transform to ensure proper restoration afterward.
+      context.save();
+      executorGroup.execute(
+        context,
+        1,
+        transform,
+        rotation,
+        snapToPixel,
+        undefined,
+        declutterTree
+      );
+      context.restore();
+    } while (++world < endWorld);
+  }
+>>>>>>> REPLACE
+```
+
+This fix ensures that the context state is properly saved and restored for each world rendering, which should help with the rotation of text styles in translated contexts.

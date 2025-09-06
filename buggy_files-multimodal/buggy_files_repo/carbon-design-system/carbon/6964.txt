@@ -1,0 +1,27 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- The Tabs component incorrectly uses `<nav>` or `role="navigation"` which causes accessibility testing to flag the navigation landmark as needing a label
+- This leads developers to add `aria-label` as a fix, but that's not the correct solution
+- The navigation role/element shouldn't be used at all for Tabs components
+
+2. Cause Analysis:
+- The code still contains references to `<nav>` and `role="navigation"` in multiple places in the Tabs component implementation
+- These were supposed to be removed in previous PRs but some instances remained
+- The core issue is that Carbon components shouldn't add landmarks at all - landmarks need to be part of the page design, not tied to individual components
+
+3. Most Related Files:
+```
+packages/react/src/components/Tabs/Tabs.js
+packages/components/src/components/tabs/tabs.js
+packages/components/src/components/tabs/tabs.config.js
+packages/react/src/components/Tab/Tab.js
+packages/react/src/components/TabContent/TabContent.js
+```
+
+These files are most relevant because:
+- The main Tabs component implementation files contain the navigation role/element usage that needs to be removed
+- The config files may contain default role settings that need updating
+- The Tab and TabContent components are part of the tab system and may have related accessibility attributes that need to be reviewed
+
+The fix would involve removing navigation roles and nav elements from these files while ensuring proper tab-related ARIA attributes are maintained for accessibility.

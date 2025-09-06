@@ -1,0 +1,44 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The issue is that when using bulk_create with update_conflicts=True, the primary keys (IDs) are not being returned in the resulting queryset, even though PostgreSQL is capable of returning these IDs when using the RETURNING clause in an INSERT...ON CONFLICT DO UPDATE statement.
+
+2. Cause Analysis:
+The root cause appears to be that Django is removing the returning_fields parameter when constructing the SQL query for bulk_create operations with conflict handling. This happens even in cases where returning the IDs would be possible, such as when using update_conflicts=True. The issue stems from an overly broad condition that removes returning fields for any conflict handling scenario.
+
+3. Examining Files:
+
+django/db/backends/base/base.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/db/backends/postgresql/base.py:
+```
+django/db/backends/postgresql/base.py
+class: DatabaseWrapper
+```
+
+django/db/backends/postgresql/operations.py:
+```
+django/db/backends/postgresql/operations.py
+class: DatabaseOperations
+```
+
+django/db/models/query.py:
+```
+django/db/models/query.py
+class: QuerySet
+```
+
+django/db/models/fields/related.py:
+```
+This file contains no relevant functions/classes.
+```
+
+The key classes involved are:
+1. DatabaseWrapper - Handles PostgreSQL-specific database operations and query execution
+2. DatabaseOperations - Contains PostgreSQL-specific implementations of database operations, including how INSERT statements are constructed
+3. QuerySet - Contains the bulk_create method implementation and handles the construction of queries
+
+These classes work together to handle bulk insert operations. The issue specifically relates to how the RETURNING clause is handled during query construction for bulk operations with conflict handling.

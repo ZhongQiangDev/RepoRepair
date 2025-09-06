@@ -1,0 +1,39 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that vertex colors in WebGL mode are not working correctly in p5.js version 0.9.0, while they worked fine in version 0.8.0. Looking at the provided code example, when using `fill()` before each `vertex()` call, the colors should be applied to each vertex individually, creating a gradient effect across the shape. However, in version 0.9.0, this isn't happening correctly.
+
+After examining the code in `p5.RendererGL.Immediate.js`, I found the issue in the `vertex()` method. The problem is that the vertex color is being set from `this.curFillColor`, but this value isn't being updated properly when `fill()` is called before each vertex.
+
+Here's the fix:
+
+```javascript
+### src/webgl/p5.RendererGL.Immediate.js
+<<<<<<< SEARCH
+  const vert = new p5.Vector(x, y, z);
+  this.immediateMode.vertices.push(vert);
+  const vertexColor = this.curFillColor || [0.5, 0.5, 0.5, 1.0];
+  this.immediateMode.vertexColors.push(
+    vertexColor[0],
+    vertexColor[1],
+    vertexColor[2],
+    vertexColor[3]
+  );
+=======
+  const vert = new p5.Vector(x, y, z);
+  this.immediateMode.vertices.push(vert);
+  // Use the current fill color for this vertex
+  const vertexColor = this._getFillColor() || [0.5, 0.5, 0.5, 1.0];
+  this.immediateMode.vertexColors.push(
+    vertexColor[0],
+    vertexColor[1],
+    vertexColor[2],
+    vertexColor[3]
+  );
+>>>>>>> REPLACE
+```
+
+The issue is that `this.curFillColor` isn't being updated correctly when `fill()` is called before each vertex. By using `this._getFillColor()` instead, we ensure that we get the most current fill color for each vertex, which will properly reflect any `fill()` calls made before each `vertex()` call.
+
+This change will restore the expected behavior where each vertex can have its own color, creating the gradient effect across the shape as shown in the working example from version 0.8.0.

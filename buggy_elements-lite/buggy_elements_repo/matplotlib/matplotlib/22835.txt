@@ -1,0 +1,41 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+When using BoundaryNorm with imshow and mousing over the image, the program crashes with a ValueError stating "BoundaryNorm is not invertible". This prevents further interaction with the plot.
+
+2. Cause Analysis:
+The issue occurs because the format_cursor_data method in Artist class tries to use the inverse() method of BoundaryNorm, but BoundaryNorm explicitly raises a ValueError stating it's not invertible. This is happening because BoundaryNorm maps data values to discrete color indices based on boundaries, making it impossible to precisely determine the original value from a normalized value.
+
+3. Relevant Files/Functions Analysis:
+
+lib/matplotlib/artist.py:
+```
+lib/matplotlib/artist.py
+class: Artist
+```
+This class contains the format_cursor_data method that attempts to use the inverse() method of the norm, triggering the error.
+
+lib/matplotlib/colors.py:
+```
+lib/matplotlib/colors.py
+class: BoundaryNorm
+```
+This class is directly involved as it's the one raising the ValueError when its inverse() method is called.
+
+lib/matplotlib/cm.py:
+```
+lib/matplotlib/cm.py
+class: ScalarMappable
+```
+This class is relevant as it handles the conversion between data values and colors using the norm and colormap.
+
+lib/matplotlib/image.py:
+```
+lib/matplotlib/image.py
+class: AxesImage
+```
+This class is relevant as it's the specific type of image being displayed that inherits from ScalarMappable and uses the norm for color mapping.
+
+The other files contain no relevant functions/classes.
+
+The core issue stems from the interaction between Artist's cursor data formatting and BoundaryNorm's lack of inverse mapping capability. The fix would need to address how cursor data is handled for non-invertible norms.

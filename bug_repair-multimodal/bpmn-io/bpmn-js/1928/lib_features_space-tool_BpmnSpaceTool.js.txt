@@ -1,0 +1,57 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that the space tool is allowing empty pools to be resized vertically, which shouldn't happen according to the expected behavior. Empty pools should maintain a fixed height.
+
+Looking at the code, the `BpmnSpaceTool` extends the base `SpaceTool` and currently only filters out text annotations from being resized. We need to also filter out empty pools from the resizing shapes.
+
+In BPMN, an empty pool is a participant without any child lanes or elements. We need to modify the `calculateAdjustments` method to exclude empty pools from vertical resizing.
+
+## Fix
+
+```javascript
+### lib/features/space-tool/BpmnSpaceTool.js
+<<<<<<< SEARCH
+BpmnSpaceTool.prototype.calculateAdjustments = function(elements, axis, delta, start) {
+  var adjustments = SpaceTool.prototype.calculateAdjustments.call(this, elements, axis, delta, start);
+
+  // do not resize text annotations
+  adjustments.resizingShapes = adjustments.resizingShapes.filter(function(shape) {
+    return !is(shape, 'bpmn:TextAnnotation');
+  });
+
+  return adjustments;
+};
+=======
+BpmnSpaceTool.prototype.calculateAdjustments = function(elements, axis, delta, start) {
+  var adjustments = SpaceTool.prototype.calculateAdjustments.call(this, elements, axis, delta, start);
+
+  // do not resize text annotations and empty pools vertically
+  adjustments.resizingShapes = adjustments.resizingShapes.filter(function(shape) {
+    // don't resize text annotations
+    if (is(shape, 'bpmn:TextAnnotation')) {
+      return false;
+    }
+    
+    // don't resize empty pools vertically
+    if (is(shape, 'bpmn:Participant') && 
+        (!shape.children || shape.children.length === 0) && 
+        axis === 'y') {
+      return false;
+    }
+    
+    return true;
+  });
+
+  return adjustments;
+};
+>>>>>>> REPLACE
+```
+
+This fix modifies the `calculateAdjustments` method to filter out empty pools from vertical resizing. It checks if:
+1. The shape is a BPMN Participant
+2. The participant has no children (empty pool)
+3. The resize operation is happening on the y-axis (vertical)
+
+If all these conditions are met, the shape is excluded from the resizing shapes, which will prevent empty pools from being resized vertically while still allowing horizontal resizing.

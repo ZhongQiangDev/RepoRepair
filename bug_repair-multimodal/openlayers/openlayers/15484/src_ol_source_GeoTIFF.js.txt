@@ -1,0 +1,60 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about the `wrapX` option in the GeoTIFF source. According to the issue description:
+
+1. The `wrapX` option is misleadingly named - it's actually used to crop the output to the tile grid extent on both X and Y axes, not just for wrapping on the X axis.
+2. This behavior is unrelated to what reprojection expects `wrapX` to mean (which is about repeating output on adjacent worlds on the X axis when reprojected to a global projection).
+3. The issue occurs when a GeoTIFF is reprojected and a non-zero nodata value is specified.
+
+Looking at the code, I can see that the `wrapX` option is passed directly from the constructor options to the parent `DataTile` class. The issue is that the name is misleading and doesn't accurately describe what the option does in this context.
+
+## Fix
+
+I'll rename the option to something more appropriate while maintaining backward compatibility:
+
+```javascript
+### src/ol/source/GeoTIFF.js
+<<<<<<< SEARCH
+ * @property {boolean} [wrapX=false] Render tiles beyond the tile grid extent.
+=======
+ * @property {boolean} [wrapX=false] Render tiles beyond the tile grid extent. Despite the name, this actually constrains rendering to the tile grid extent on both the x and y axes.
+ * @property {boolean} [extent=false] Deprecated. Use `wrapX` instead. Render tiles beyond the tile grid extent.
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/source/GeoTIFF.js
+<<<<<<< SEARCH
+  constructor(options) {
+    super({
+      state: 'loading',
+      tileGrid: null,
+      projection: options.projection || null,
+      opaque: options.opaque,
+      transition: options.transition,
+      interpolate: options.interpolate !== false,
+      wrapX: options.wrapX,
+    });
+=======
+  constructor(options) {
+    super({
+      state: 'loading',
+      tileGrid: null,
+      projection: options.projection || null,
+      opaque: options.opaque,
+      transition: options.transition,
+      interpolate: options.interpolate !== false,
+      wrapX: options.wrapX !== undefined ? options.wrapX : options.extent,
+    });
+=======
+```
+
+This change:
+
+1. Updates the documentation to clarify what the `wrapX` option actually does
+2. Adds a deprecated `extent` option that serves the same purpose for backward compatibility
+3. Modifies the constructor to accept either `wrapX` or `extent` (with `wrapX` taking precedence if both are provided)
+
+The fix maintains backward compatibility while making the purpose of the option clearer in the documentation. In a future major release, the option could be renamed entirely, but this approach works within the constraints of the current release cycle.

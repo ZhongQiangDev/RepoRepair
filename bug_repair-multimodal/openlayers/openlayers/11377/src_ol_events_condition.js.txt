@@ -1,0 +1,43 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue reports that pointermove performance is much slower in version 6.4.0 compared to 6.3.1. This affects operations like zoom, panning, and cursor changes.
+
+Looking at the provided code, I notice that the `src/ol/events/condition.js` file is missing the implementation of the `pointerMove` condition function, which is likely used to detect pointer movement events. 
+
+The issue is likely related to how this function is implemented or how it's being used. Since the performance degradation is specifically with pointer movement, this function is a prime suspect.
+
+## Solution
+
+The problem is likely that the `pointerMove` function is missing or implemented inefficiently. Let's add an efficient implementation that simply checks if the event type is 'pointermove' without any additional overhead:
+
+```javascript
+### src/ol/events/condition.js
+<<<<<<< SEARCH
+/**
+ * Return `true` if the browser event is a `pointermove` event, `false`
+ * otherwise.
+ *
+ * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent Map browser event.
+ * @return {boolean} True if the browser event is a `pointermove` event.
+ * @api
+ */
+
+=======
+/**
+ * Return `true` if the browser event is a `pointermove` event, `false`
+ * otherwise.
+ *
+ * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent Map browser event.
+ * @return {boolean} True if the browser event is a `pointermove` event.
+ * @api
+ */
+export function pointerMove(mapBrowserEvent) {
+  return mapBrowserEvent.type === MapBrowserEventType.POINTERMOVE;
+}
+
+>>>>>>> REPLACE
+```
+
+This implementation is simple and efficient - it just checks the event type directly without any additional processing. The performance issue was likely caused by a more complex implementation that was added in version 6.4.0, or the function might be missing entirely, causing fallbacks to more expensive checks.

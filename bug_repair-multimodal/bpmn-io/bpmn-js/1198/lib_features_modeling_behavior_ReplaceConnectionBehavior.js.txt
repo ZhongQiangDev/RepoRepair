@@ -1,0 +1,45 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a Timer Intermediate Catch Event (or other catch events) is added to a non-default sequence flow, the "default" attribute on the exclusive gateway is being removed, even though the default flow is still rendered visually.
+
+Looking at the code in `ReplaceConnectionBehavior.js`, I can see that the issue is in the `postExecuted` handler for `element.updateProperties`. The problem occurs in this section:
+
+```javascript
+// remove default property from source when morphing to conditional flow
+if (properties.conditionExpression && businessObject.sourceRef.default === businessObject) {
+  modeling.updateProperties(element.source, { default: undefined });
+}
+```
+
+This code removes the default property from the source element when a condition expression is added to a sequence flow. However, it doesn't check if the sequence flow being modified is actually the default flow. It only checks if the source element's default property points to the current business object.
+
+When adding a Timer Intermediate Catch Event to a sequence flow, it likely adds a condition expression to that flow, which triggers this code and incorrectly removes the default attribute from the gateway.
+
+## Fix
+
+```javascript
+### lib/features/modeling/behavior/ReplaceConnectionBehavior.js
+<<<<<<< SEARCH
+    // remove default property from source when morphing to conditional flow
+    if (properties.conditionExpression && businessObject.sourceRef.default === businessObject) {
+      modeling.updateProperties(element.source, { default: undefined });
+    }
+=======
+    // remove default property from source when morphing to conditional flow
+    // but only if we're actually modifying the default flow
+    if (properties.conditionExpression && 
+        businessObject.sourceRef.default && 
+        businessObject.sourceRef.default.id === businessObject.id) {
+      modeling.updateProperties(element.source, { default: undefined });
+    }
+>>>>>>> REPLACE
+```
+
+This fix ensures that we only remove the default property from the source element when:
+1. A condition expression is being added to a sequence flow
+2. The source element has a default flow
+3. The sequence flow being modified is actually the default flow (by comparing IDs)
+
+This way, adding a Timer Intermediate Catch Event to a non-default flow won't affect the default flow configuration.

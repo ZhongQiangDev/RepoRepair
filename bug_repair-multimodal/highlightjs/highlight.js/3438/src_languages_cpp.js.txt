@@ -1,0 +1,30 @@
+I'll analyze the issue and provide a fix.
+
+Looking at the issue, the problem is that some C++ code is not being properly rendered by the syntax highlighter. The specific example shows code with Eigen library includes and matrix operations that aren't being highlighted correctly.
+
+After examining the C++ language definition file, I can see that the issue is likely related to the lack of recognition for template arguments with multiple levels of nesting. The current regex pattern for template arguments `<[^<>]+>` only matches a single level of template arguments, but doesn't handle nested templates like `Matrix<float,3,3>`.
+
+Here's the fix:
+
+```javascript
+### src/languages/cpp.js
+<<<<<<< SEARCH
+  const NAMESPACE_RE = '[a-zA-Z_]\\w*::';
+  const TEMPLATE_ARGUMENT_RE = '<[^<>]+>';
+  const FUNCTION_TYPE_RE = '(?!struct)(' +
+    DECLTYPE_AUTO_RE + '|' +
+    regex.optional(NAMESPACE_RE) +
+    '[a-zA-Z_]\\w*' + regex.optional(TEMPLATE_ARGUMENT_RE) +
+  ')';
+=======
+  const NAMESPACE_RE = '[a-zA-Z_]\\w*::';
+  const TEMPLATE_ARGUMENT_RE = '<(?:[^<>]|<[^<>]*>)*>';
+  const FUNCTION_TYPE_RE = '(?!struct)(' +
+    DECLTYPE_AUTO_RE + '|' +
+    regex.optional(NAMESPACE_RE) +
+    '[a-zA-Z_]\\w*' + regex.optional(TEMPLATE_ARGUMENT_RE) +
+  ')';
+>>>>>>> REPLACE
+```
+
+This change modifies the `TEMPLATE_ARGUMENT_RE` regex pattern to handle nested template arguments. The new pattern `<(?:[^<>]|<[^<>]*>)*>` will match template arguments that can contain other template arguments, which is necessary for properly highlighting complex C++ template expressions like those used with the Eigen library.

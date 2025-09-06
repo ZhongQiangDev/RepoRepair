@@ -1,0 +1,60 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about the DatePicker2 component showing "Invalid Date" when setting `timePanelProps.defaultValue`. Looking at the error screenshot and the issue description, it appears that when a default time value is set via `timePanelProps.defaultValue`, the component is displaying "Invalid Date" instead of properly formatting the date.
+
+After examining the code, I found that the issue is in the `picker.jsx` file. The problem is that there's a function reference to `fmtValue` in multiple places, but the function itself is missing from the code. There's a comment for a function that should get the input field value, but the actual implementation is missing.
+
+## Fix
+
+I need to add the missing `fmtValue` function that properly formats date values:
+
+```javascript
+### src/date-picker2/picker.jsx
+<<<<<<< SEARCH
+/**
+ * 获取输入框值
+ * @param {*} value 日期值
+ * @param {string | funtion} fmt 日期格式
+ * @returns {string | string[]}
+ */
+
+
+/**
+ * 日期检验：无效值返回 null
+=======
+/**
+ * 获取输入框值
+ * @param {*} value 日期值
+ * @param {string | funtion} fmt 日期格式
+ * @returns {string | string[]}
+ */
+function fmtValue(value, fmt) {
+    if (!fmt) {
+        return value;
+    }
+
+    if (typeof fmt === 'function') {
+        return fmt(value);
+    }
+
+    if (Array.isArray(value)) {
+        return value.map(v => (v ? v.format(fmt) : ''));
+    }
+
+    return value ? value.format(fmt) : '';
+}
+
+/**
+ * 日期检验：无效值返回 null
+>>>>>>> REPLACE
+```
+
+This implementation:
+1. Handles both single dates and date ranges (arrays)
+2. Supports both string format patterns and custom formatting functions
+3. Properly handles null/undefined values
+4. Returns formatted date strings using the dayjs format method
+
+The issue was that the function was declared in the comments but never implemented, causing "Invalid Date" to appear when trying to format dates, especially when using `timePanelProps.defaultValue`.

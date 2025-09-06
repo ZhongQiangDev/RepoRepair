@@ -1,0 +1,43 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is in the `formatBytesToKiB` method of the `I18n` class. Currently, when displaying JavaScript library sizes, decimal places are omitted for round numbers (e.g., "18 KiB" instead of "18.0 KiB"). This makes it harder for people with vision impairments to compare numbers across rows since the digit columns don't line up consistently.
+
+The problem is in the `formatBytesToKiB` method, which uses the default number formatter without specifying that it should always include at least one decimal place.
+
+## Fix
+
+We need to modify the `formatBytesToKiB` method to always display at least one decimal place, even for round numbers. This can be done by creating a specific number formatter with the appropriate options.
+
+```javascript
+### lighthouse-core/report/html/renderer/i18n.js
+<<<<<<< SEARCH
+  /**
+   * @param {number} size
+   * @param {number=} granularity Controls how coarse the displayed value is, defaults to 0.1
+   * @return {string}
+   */
+  formatBytesToKiB(size, granularity = 0.1) {
+    const kbs = this._numberFormatter.format(Math.round(size / 1024 / granularity) * granularity);
+    return `${kbs}${NBSP2}KiB`;
+  }
+=======
+  /**
+   * @param {number} size
+   * @param {number=} granularity Controls how coarse the displayed value is, defaults to 0.1
+   * @return {string}
+   */
+  formatBytesToKiB(size, granularity = 0.1) {
+    // Create a formatter that always shows at least 1 decimal place
+    const formatter = new Intl.NumberFormat(this._numberDateLocale, {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+    const kbs = formatter.format(Math.round(size / 1024 / granularity) * granularity);
+    return `${kbs}${NBSP2}KiB`;
+  }
+>>>>>>> REPLACE
+```
+
+This change creates a specific number formatter that always displays exactly one decimal place, ensuring that all size values in the "Transfer size" column will have consistent formatting, which improves accessibility by making the numbers easier to compare visually.

@@ -1,0 +1,23 @@
+Based on the issue description, the bug is in the `MessageEncoder` class where it checks for truthiness of `extra_tags` rather than checking if it's not None. This causes empty strings to be omitted during serialization, which then deserializes as None.
+
+The fix should modify the `if obj.extra_tags:` condition to explicitly check for None instead of truthiness. Here's the *SEARCH/REPLACE* edit:
+
+```python
+### django/contrib/messages/storage/cookie.py
+<<<<<<< SEARCH
+            if obj.extra_tags:
+                message.append(obj.extra_tags)
+=======
+            if obj.extra_tags is not None:
+                message.append(obj.extra_tags)
+>>>>>>> REPLACE
+```
+
+This change ensures that empty strings for `extra_tags` are properly serialized and deserialized, maintaining the distinction between `None` and empty string values. The fix addresses the specific issue where:
+
+1. A message with empty string extra_tags is created
+2. When encoded, the empty string was being skipped due to falsy evaluation
+3. When decoded, missing extra_tags defaulted to None
+4. This caused template conditions like `{% if x not in message.extra_tags %}` to fail
+
+With this fix, empty string extra_tags will be properly preserved through the serialization/deserialization process.

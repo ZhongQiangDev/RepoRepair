@@ -1,0 +1,38 @@
+Based on the issue description, the bug is in the `get_admin_url` method of the `AdminReadonlyField` class in `django/contrib/admin/helpers.py`. The issue is that when generating URLs for readonly foreign key fields in a custom admin site, it's using the default admin URL pattern ('/admin/...') instead of the custom admin site's URL pattern ('/custom-admin/...').
+
+The fix requires modifying the `reverse()` call to include the `current_app` parameter with the admin site name. Here's the *SEARCH/REPLACE* edit:
+
+```python
+### django/contrib/admin/helpers.py
+<<<<<<< SEARCH
+    def get_admin_url(self, remote_field, remote_obj):
+        url_name = 'admin:%s_%s_change' % (
+            remote_field.model._meta.app_label,
+            remote_field.model._meta.model_name,
+        )
+        try:
+            url = reverse(url_name, args=[quote(remote_obj.pk)])
+            return format_html('<a href="{}">{}</a>', url, remote_obj)
+        except NoReverseMatch:
+            return str(remote_obj)
+=======
+    def get_admin_url(self, remote_field, remote_obj):
+        url_name = 'admin:%s_%s_change' % (
+            remote_field.model._meta.app_label,
+            remote_field.model._meta.model_name,
+        )
+        try:
+            url = reverse(
+                url_name,
+                args=[quote(remote_obj.pk)],
+                current_app=self.model_admin.admin_site.name
+            )
+            return format_html('<a href="{}">{}</a>', url, remote_obj)
+        except NoReverseMatch:
+            return str(remote_obj)
+>>>>>>> REPLACE
+```
+
+This change adds the `current_app` parameter to the `reverse()` call, using the admin site name from the model admin instance. This ensures that the generated URL will use the correct admin site URL pattern, whether it's the default admin site or a custom one.
+
+The fix matches the solution proposed in the issue description and follows Django's pattern of using `current_app` for admin URL resolution, as seen in other parts of the admin interface like `ModelAdmin.response_add`.

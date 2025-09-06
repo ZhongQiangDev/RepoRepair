@@ -1,0 +1,20 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The issue is with `solve_poly_system` incorrectly handling infinite solution cases. When given `(y - 1,)` with variables `x, y`, it returns `[(1,)]` which is incorrect since there should be infinite solutions (y=1 for any x).
+
+2. Cause Analysis:
+The problem occurs in the univariate case detection logic. The current code only checks `len(univariate) == 1` without considering the number of variables (gens). This means when there's one univariate equation but multiple variables, it incorrectly treats it as a finite solution case rather than recognizing it as an infinite solution system.
+
+3. Most Related Files:
+Based on the repository information and the problem description, here are the most relevant files:
+
+```
+sympy/solvers/polysys.py
+sympy/polys/polytools.py
+sympy/solvers/solvers.py
+```
+
+The main fix needs to be in `polysys.py` which contains the core polynomial system solving logic. `polytools.py` is relevant as it provides the polynomial manipulation tools used by the solver. `solvers.py` is included as it contains general solving utilities that may interact with the polynomial system solver.
+
+The problem is primarily in `polysys.py` where the condition `len(univariate) == 1` needs to be updated to also check `len(gens) == 1` to properly handle infinite solution cases.

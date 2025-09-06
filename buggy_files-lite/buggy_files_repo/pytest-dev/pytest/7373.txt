@@ -1,0 +1,27 @@
+Let me follow the steps:
+
+1. Wrong Behavior:
+- When running two test modules with the same skipif condition string "skip" but different global variable values, both tests are being skipped when only one should be.
+- Specifically, test_module_2.py should NOT be skipped since its global 'skip' variable is False.
+
+2. Cause Analysis:
+- The issue stems from pytest caching the evaluation of skipif condition strings
+- The cache key only considers the condition string itself ("skip" in this case)
+- It doesn't take into account that the same string needs to be evaluated in different global contexts
+- This causes the first evaluation result to be incorrectly reused for subsequent evaluations
+
+3. Most Related Files:
+Based on the repository information provided and the nature of the issue, here are the most relevant files:
+
+```
+testing/python/collect.py
+testing/python/metafunc.py
+testing/python/raises.py
+```
+
+I selected these files because:
+- collect.py contains TestFunction class which handles test function behavior including markers like skipif
+- metafunc.py deals with test parametrization and markers
+- raises.py includes test condition evaluation logic
+
+Note: The actual file containing the caching logic (_pytest/mark/evaluate.py) wasn't included in the repository information provided, but would be the primary file needing modification.

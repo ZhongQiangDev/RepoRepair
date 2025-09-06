@@ -1,0 +1,45 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue states that the `setOpacity` function for image styles is not working in OpenLayers 6.2.0, while it worked in 6.1.1. Looking at the provided JSFiddle examples, the feature should blink (change opacity) but it doesn't in version 6.2.0.
+
+Looking at the code in `src/ol/style/Image.js`, I can see that the `setOpacity` method is correctly defined and updates the `opacity_` property. However, the issue might be that changing the opacity property doesn't trigger a redraw of the feature.
+
+In OpenLayers, when you modify a style property, you need to ensure that the rendering system knows that the style has changed. The issue is likely that in version 6.2.0, changing the opacity via `setOpacity` doesn't trigger a refresh of the rendered feature.
+
+## Fix
+
+The fix would be to ensure that when `setOpacity` is called, it not only updates the internal opacity value but also triggers a change event or marks the style as changed so that the rendering system knows to redraw the feature with the new opacity.
+
+Here's the fix:
+
+```javascript
+### src/ol/style/Image.js
+<<<<<<< SEARCH
+  /**
+   * Set the opacity.
+   *
+   * @param {number} opacity Opacity.
+   * @api
+   */
+  setOpacity(opacity) {
+    this.opacity_ = opacity;
+  }
+=======
+  /**
+   * Set the opacity.
+   *
+   * @param {number} opacity Opacity.
+   * @api
+   */
+  setOpacity(opacity) {
+    this.opacity_ = opacity;
+    this.changed();
+  }
+>>>>>>> REPLACE
+```
+
+This fix adds a call to `this.changed()` after updating the opacity value. The `changed()` method is typically used in OpenLayers to notify the rendering system that a property has changed and the feature needs to be redrawn. This will ensure that when the opacity is changed, the visual representation of the feature is updated accordingly.
+
+Note: If the `ImageStyle` class doesn't inherit from a class that provides the `changed()` method, you might need to implement it or use a different mechanism to trigger a redraw. However, based on the typical OpenLayers architecture, it's likely that `ImageStyle` extends from a base class that provides this functionality.

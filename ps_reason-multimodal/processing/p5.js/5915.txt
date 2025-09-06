@@ -1,0 +1,31 @@
+I'll analyze the problem description and break down the issues:
+
+### Answer 1
+**Wrong Behavior**: Stroke colors are not interpolating between vertices like fill colors do
+**Cause**: By design, p5.js only uses the last stroke() call's information for the entire shape, unlike fill() which can be applied per vertex. This is a limitation in the current WebGL implementation.
+
+### Answer 2
+**Wrong Behavior**: Line colors remain uniform across the entire line segment
+**Cause**: The current shader implementation doesn't support per-vertex color attributes for lines, only for fills. The vertex shader needs modification to accept color information for each vertex.
+
+### Answer 3
+**Wrong Behavior**: No storage mechanism for per-vertex line colors
+**Cause**: p5.Geometry class lacks the necessary array structure to store color information for line vertices. The current implementation only tracks vertex positions but not their associated colors.
+
+### Answer 4
+**Wrong Behavior**: Edge to vertex conversion doesn't preserve color information
+**Cause**: The _edgesToVertices function in p5.Geometry doesn't handle color data during the conversion process from edges to vertices, resulting in loss of color information needed for interpolation.
+
+### Answer 5
+**Wrong Behavior**: No mechanism to distinguish between uniform and per-vertex coloring
+**Cause**: The fragment shader lacks a flag system to determine whether to use uniform coloring or per-vertex interpolated coloring for lines.
+
+### Conclusion
+**Summary**: The core issues stem from p5.js's WebGL implementation lacking support for per-vertex line colors. This requires multiple components to be modified:
+1. Shader modifications to handle per-vertex color attributes
+2. New data structures in p5.Geometry to store line color information
+3. Updates to the edge-to-vertex conversion process
+4. Addition of a flag system to toggle between uniform and interpolated coloring
+5. Creation of new render buffers to handle color attributes
+
+These changes would enable line color interpolation similar to how fill colors currently work in p5.js.

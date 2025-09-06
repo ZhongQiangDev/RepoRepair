@@ -1,0 +1,122 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about KML symbol alignment/placement/size in OpenLayers. According to the issue:
+
+1. Point symbols in KML layers appear to be anchored at the center-bottom, which is incorrect
+2. The symbols are displayed much larger than they should be compared to Google Earth
+
+Looking at the screenshots, we can see that the star symbols should be centered on the red circles, but they're offset.
+
+The problem is in the `drawImages_` method of the `CanvasImmediateRenderer` class. When drawing images (symbols), the code is incorrectly calculating the position by subtracting the anchor values from the coordinates, which causes the offset.
+
+## Fix
+
+```javascript
+### src/ol/render/canvas/Immediate.js
+<<<<<<< SEARCH
+    for (let i = 0, ii = pixelCoordinates.length; i < ii; i += 2) {
+      const x = pixelCoordinates[i] - this.imageAnchorX_;
+      const y = pixelCoordinates[i + 1] - this.imageAnchorY_;
+      if (
+        rotation !== 0 ||
+        this.imageScale_[0] != 1 ||
+        this.imageScale_[1] != 1
+      ) {
+        const centerX = x + this.imageAnchorX_;
+        const centerY = y + this.imageAnchorY_;
+        composeTransform(
+          localTransform,
+          centerX,
+          centerY,
+          1,
+          1,
+          rotation,
+          -centerX,
+          -centerY
+        );
+        context.setTransform.apply(context, localTransform);
+        context.translate(centerX, centerY);
+        context.scale(this.imageScale_[0], this.imageScale_[1]);
+        context.drawImage(
+          this.image_,
+          this.imageOriginX_,
+          this.imageOriginY_,
+          this.imageWidth_,
+          this.imageHeight_,
+          -this.imageAnchorX_,
+          -this.imageAnchorY_,
+          this.imageWidth_,
+          this.imageHeight_
+        );
+        context.setTransform(1, 0, 0, 1, 0, 0);
+      } else {
+        context.drawImage(
+          this.image_,
+          this.imageOriginX_,
+          this.imageOriginY_,
+          this.imageWidth_,
+          this.imageHeight_,
+          x,
+          y,
+          this.imageWidth_,
+          this.imageHeight_
+        );
+      }
+=======
+    for (let i = 0, ii = pixelCoordinates.length; i < ii; i += 2) {
+      const x = pixelCoordinates[i];
+      const y = pixelCoordinates[i + 1];
+      if (
+        rotation !== 0 ||
+        this.imageScale_[0] != 1 ||
+        this.imageScale_[1] != 1
+      ) {
+        composeTransform(
+          localTransform,
+          x,
+          y,
+          1,
+          1,
+          rotation,
+          -x,
+          -y
+        );
+        context.setTransform.apply(context, localTransform);
+        context.translate(x, y);
+        context.scale(this.imageScale_[0], this.imageScale_[1]);
+        context.drawImage(
+          this.image_,
+          this.imageOriginX_,
+          this.imageOriginY_,
+          this.imageWidth_,
+          this.imageHeight_,
+          -this.imageAnchorX_,
+          -this.imageAnchorY_,
+          this.imageWidth_,
+          this.imageHeight_
+        );
+        context.setTransform(1, 0, 0, 1, 0, 0);
+      } else {
+        context.drawImage(
+          this.image_,
+          this.imageOriginX_,
+          this.imageOriginY_,
+          this.imageWidth_,
+          this.imageHeight_,
+          x - this.imageAnchorX_,
+          y - this.imageAnchorY_,
+          this.imageWidth_,
+          this.imageHeight_
+        );
+      }
+>>>>>>> REPLACE
+```
+
+This fix corrects the image positioning by:
+
+1. For the non-transformed case, properly applying the anchor offset at the time of drawing
+2. For the transformed case, simplifying the transformation logic to properly handle the anchor point
+
+The issue was that the code was incorrectly applying the anchor offset twice in some cases and inconsistently in others. This fix ensures that the anchor point is correctly applied, which will make the symbols appear centered on their intended positions as shown in the Google Earth reference image.

@@ -1,0 +1,52 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that for image sources with a pixel ratio of 1, the renderer creates a canvas with a size based on the display pixel ratio (DEVICE_PIXEL_RATIO) instead of the image's own ratio. This means on HiDPI devices (where DEVICE_PIXEL_RATIO is typically 2), the canvas is twice as large as needed, consuming 4 times the memory.
+
+Looking at the provided code, I don't see the complete implementation of the `toContext` function which would be responsible for setting up the canvas size. However, based on the function signature and documentation, this function should respect the pixel ratio provided in the options.
+
+The bug is likely in the implementation of the `toContext` function which is not fully shown in the provided code. The function should use the pixel ratio from the options parameter rather than always using the device pixel ratio.
+
+## Fix
+
+Since the complete implementation of `toContext` isn't provided, I'll create a search/replace edit based on what I can infer:
+
+```javascript
+### src/ol/render.js
+<<<<<<< SEARCH
+/**
+ * @param {CanvasRenderingContext2D} context Canvas context.
+ * @param {ToContextOptions} [opt_options] Options.
+ * @return {CanvasImmediateRenderer} Canvas Immediate.
+ * @api
+ */
+=======
+/**
+ * @param {CanvasRenderingContext2D} context Canvas context.
+ * @param {ToContextOptions} [opt_options] Options.
+ * @return {CanvasImmediateRenderer} Canvas Immediate.
+ * @api
+ */
+export function toContext(context, opt_options) {
+  const options = opt_options ? opt_options : {};
+  const pixelRatio = options.pixelRatio || DEVICE_PIXEL_RATIO;
+  const size = options.size;
+  if (size) {
+    const width = size[0] * pixelRatio;
+    const height = size[1] * pixelRatio;
+    context.canvas.width = width;
+    context.canvas.height = height;
+    context.canvas.style.width = size[0] + 'px';
+    context.canvas.style.height = size[1] + 'px';
+  }
+  const transform = createTransform();
+  scaleTransform(transform, pixelRatio, pixelRatio);
+  return new CanvasImmediateRenderer(context, pixelRatio, transform);
+}
+>>>>>>> REPLACE
+```
+
+This implementation ensures that the canvas size and scaling are based on the provided pixel ratio (or falls back to DEVICE_PIXEL_RATIO if not specified). The key fix is to use the pixel ratio from options rather than always using DEVICE_PIXEL_RATIO.
+
+Note: Since I don't have the complete file, this is my best guess at the implementation. The actual fix might need to be adjusted based on the existing code structure and other dependencies.

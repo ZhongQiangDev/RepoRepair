@@ -1,0 +1,35 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The new `parse_mathematica` function in SymPy v1.11 fails to parse Greek characters (like 'λ'), while the old `mathematica` function could handle them correctly. The error occurs with a SyntaxError indicating inability to create an AST for the expression.
+
+2. Cause Analysis:
+The issue appears to be in the parsing mechanism of `parse_mathematica` which likely doesn't properly handle Unicode characters like Greek letters. The old `mathematica` function must have had a different parsing approach that could handle these special characters. The error suggests the parser is failing at the AST (Abstract Syntax Tree) creation stage, indicating the new parser might be more restrictive in character handling.
+
+3. File Analysis:
+
+sympy/core/sympify.py:
+```
+sympy/core/sympify.py
+function: sympify
+class: SympifyError
+```
+This file is relevant as it contains the core sympification functionality that converts strings to SymPy expressions, which is part of the parsing process.
+
+sympy/parsing/mathematica.py:
+```
+sympy/parsing/mathematica.py
+function: mathematica
+function: parse
+```
+This file is highly relevant as it contains both the old working implementation (`mathematica`) and the parsing functionality. The `parse` function is likely involved in the character handling issue.
+
+sympy/printing/mathematica.py:
+```
+sympy/printing/mathematica.py
+function: mathematica_code
+class: MCodePrinter
+```
+This file is relevant because it handles the conversion between SymPy expressions and Mathematica code, which includes handling special characters. The MCodePrinter class might need to be updated to properly handle Greek characters in both directions.
+
+The core issue likely lies in the parsing mechanism in sympy/parsing/mathematica.py, where the new implementation needs to be updated to handle Unicode characters properly, similar to how the old `mathematica` function handled them.

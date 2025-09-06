@@ -1,0 +1,48 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the problem is that in the `TableHeader` component, when a header is sortable (`isSortable` is true), the `...rest` props are being spread on the inner button element instead of on the `th` element. This prevents attributes like `id` from being properly applied to the table header element.
+
+Looking at the code, I can see that for non-sortable headers, the `...rest` props are correctly applied to the `th` element (around line 74). However, for sortable headers, the `...rest` props are incorrectly applied to the button element (around line 116) instead of the `th` element.
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/DataTable/TableHeader.js
+<<<<<<< SEARCH
+  return (
+    <th
+      aria-sort={ariaSort}
+      className={headerClassName}
+      colSpan={colSpan}
+      ref={ref}
+      scope={scope}>
+      <div style={{ display: 'none' }} id={uniqueId}>
+        {sortDescription}
+      </div>
+      <button
+        type="button"
+        aria-describedby={uniqueId}
+        className={className}
+        onClick={onClick}
+        {...rest}>
+=======
+  return (
+    <th
+      {...rest}
+      aria-sort={ariaSort}
+      className={headerClassName}
+      colSpan={colSpan}
+      ref={ref}
+      scope={scope}>
+      <div style={{ display: 'none' }} id={uniqueId}>
+        {sortDescription}
+      </div>
+      <button
+        type="button"
+        aria-describedby={uniqueId}
+        className={className}
+        onClick={onClick}>
+>>>>>>> REPLACE
+```
+
+This change moves the `...rest` props from the button element to the `th` element for sortable headers, ensuring that attributes like `id` are properly applied to the table header element regardless of whether it's sortable or not.

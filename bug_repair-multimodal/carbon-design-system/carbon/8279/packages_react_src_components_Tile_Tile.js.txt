@@ -1,0 +1,101 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is in the `SelectableTile` component. When a user holds the shift key and clicks on a tile that was previously selected, the tile gets deselected even though the `selected` prop indicates it should remain selected.
+
+Looking at the code, the problem is in the `handleClick` method of the `SelectableTile` component. Currently, it always toggles the selected state when clicked, without considering the current value of the `selected` prop. This causes the component's internal state to get out of sync with the props when shift-clicking for multi-selection.
+
+## Fix
+
+We need to modify the `handleClick` method to respect the `selected` prop value passed in, rather than always toggling the current state.
+
+```javascript
+### packages/react/src/components/Tile/Tile.js
+<<<<<<< SEARCH
+  handleClick = (evt) => {
+    evt.preventDefault();
+    evt.persist();
+    this.setState(
+      {
+        selected: !this.state.selected,
+      },
+      () => {
+        this.props.handleClick(evt);
+        this.props.onChange(evt);
+      }
+    );
+  };
+=======
+  handleClick = (evt) => {
+    evt.preventDefault();
+    evt.persist();
+    // When the component is controlled (props.selected is defined),
+    // we should not toggle the state but use the props.selected value
+    const selected = this.props.selected !== undefined 
+      ? this.props.selected 
+      : !this.state.selected;
+    
+    this.setState(
+      {
+        selected,
+      },
+      () => {
+        this.props.handleClick(evt);
+        this.props.onChange(evt);
+      }
+    );
+  };
+>>>>>>> REPLACE
+```
+
+Similarly, we need to update the `handleKeyDown` method to maintain consistency:
+
+```javascript
+### packages/react/src/components/Tile/Tile.js
+<<<<<<< SEARCH
+  handleKeyDown = (evt) => {
+    evt.persist();
+    if (matches(evt, [keys.Enter, keys.Space])) {
+      evt.preventDefault();
+      this.setState(
+        {
+          selected: !this.state.selected,
+        },
+        () => {
+          this.props.handleKeyDown(evt);
+          this.props.onChange(evt);
+        }
+      );
+    } else {
+      this.props.handleKeyDown(evt);
+    }
+  };
+=======
+  handleKeyDown = (evt) => {
+    evt.persist();
+    if (matches(evt, [keys.Enter, keys.Space])) {
+      evt.preventDefault();
+      // When the component is controlled (props.selected is defined),
+      // we should not toggle the state but use the props.selected value
+      const selected = this.props.selected !== undefined 
+        ? this.props.selected 
+        : !this.state.selected;
+      
+      this.setState(
+        {
+          selected,
+        },
+        () => {
+          this.props.handleKeyDown(evt);
+          this.props.onChange(evt);
+        }
+      );
+    } else {
+      this.props.handleKeyDown(evt);
+    }
+  };
+>>>>>>> REPLACE
+```
+
+This fix ensures that when the `selected` prop is explicitly provided (making it a controlled component), the component respects that value rather than toggling its internal state. This will fix the issue where shift-clicking on a previously selected tile causes it to deselect when it should remain selected.

@@ -1,0 +1,70 @@
+I'll analyze the issue and provide a fix for the American Express credit card number formatting problem.
+
+## Bug Analysis
+
+The issue is that American Express credit card numbers have a different format (4-6-5 digits) compared to other card types (typically 4-4-4-4), but the current code formats all card numbers in the same way (4-4-4-4).
+
+Looking at the code in `client/lib/credit-card-details/masking.js`, I can see that the `number` field mask function always formats card numbers in groups of 4 digits, regardless of the card type. We need to modify this to detect American Express cards and format them differently.
+
+American Express card numbers start with 34 or 37 and have 15 digits (compared to 16 for most other cards).
+
+## Fix
+
+```javascript
+### client/lib/credit-card-details/masking.js
+<<<<<<< SEARCH
+fieldMasks.number = {
+	mask: function( previousValue, nextValue ) {
+		const digits = nextValue.replace( /[^0-9]/g, '' ),
+			string =
+				digits.slice( 0, 4 ) +
+				' ' +
+				digits.slice( 4, 8 ) +
+				' ' +
+				digits.slice( 8, 12 ) +
+				' ' +
+				digits.slice( 12, 16 );
+
+		return string.trim();
+	},
+
+
+};
+=======
+fieldMasks.number = {
+	mask: function( previousValue, nextValue ) {
+		const digits = nextValue.replace( /[^0-9]/g, '' );
+		
+		// Check if this is an American Express card (starts with 34 or 37)
+		const isAmex = /^3[47]/.test( digits );
+		
+		let string;
+		if ( isAmex ) {
+			// Format as 4-6-5 for American Express
+			string =
+				digits.slice( 0, 4 ) +
+				' ' +
+				digits.slice( 4, 10 ) +
+				' ' +
+				digits.slice( 10, 15 );
+		} else {
+			// Format as 4-4-4-4 for other card types
+			string =
+				digits.slice( 0, 4 ) +
+				' ' +
+				digits.slice( 4, 8 ) +
+				' ' +
+				digits.slice( 8, 12 ) +
+				' ' +
+				digits.slice( 12, 16 );
+		}
+
+		return string.trim();
+	},
+
+
+};
+>>>>>>> REPLACE
+```
+
+This fix adds detection for American Express cards by checking if the card number starts with 34 or 37. If it's an American Express card, it formats the number in groups of 4-6-5 digits as required. Otherwise, it maintains the existing 4-4-4-4 format for other card types.

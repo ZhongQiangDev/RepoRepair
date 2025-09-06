@@ -1,0 +1,95 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue shows a diagram jumping when wrapping a process in a pool. Looking at the GIF, when a process is wrapped in a participant (pool), the diagram jumps/shifts position in the viewport.
+
+The bug is likely in the `CreateParticipantBehavior.js` file, specifically in the part that handles moving elements from a process to a participant. When this happens, the viewport position isn't maintained properly.
+
+The issue is in the `postExecute` handler for both `shape.create` and `elements.create` operations. When moving elements from the process to the participant, the code doesn't account for the participant's position, which causes the visual jump.
+
+## Fix
+
+```javascript
+### lib/features/modeling/behavior/CreateParticipantBehavior.js
+<<<<<<< SEARCH
+  this.postExecute('shape.create', function(context) {
+    var process = context.process,
+        shape = context.shape;
+
+    if (process) {
+
+      // move children from process to participant
+      var processChildren = process.children.slice();
+
+      modeling.moveElements(processChildren, { x: 0, y: 0 }, shape);
+    }
+
+  }, true);
+=======
+  this.postExecute('shape.create', function(context) {
+    var process = context.process,
+        shape = context.shape;
+
+    if (process) {
+
+      // move children from process to participant
+      var processChildren = process.children.slice();
+
+      // Calculate the offset based on participant's position
+      var offset = {
+        x: 0 + HORIZONTAL_PARTICIPANT_PADDING,
+        y: 0 + VERTICAL_PARTICIPANT_PADDING + PARTICIPANT_BORDER_WIDTH
+      };
+
+      modeling.moveElements(processChildren, offset, shape);
+    }
+
+  }, true);
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/modeling/behavior/CreateParticipantBehavior.js
+<<<<<<< SEARCH
+  this.postExecute('elements.create', function(context) {
+    var elements = context.elements,
+        process = context.process,
+        participant;
+
+    if (process) {
+      participant = findParticipant(elements);
+
+      // move children from process to first participant
+      var processChildren = process.children.slice();
+
+      modeling.moveElements(processChildren, { x: 0, y: 0 }, participant);
+    }
+
+  }, true);
+=======
+  this.postExecute('elements.create', function(context) {
+    var elements = context.elements,
+        process = context.process,
+        participant;
+
+    if (process) {
+      participant = findParticipant(elements);
+
+      // move children from process to first participant
+      var processChildren = process.children.slice();
+
+      // Calculate the offset based on participant's position
+      var offset = {
+        x: 0 + HORIZONTAL_PARTICIPANT_PADDING,
+        y: 0 + VERTICAL_PARTICIPANT_PADDING + PARTICIPANT_BORDER_WIDTH
+      };
+
+      modeling.moveElements(processChildren, offset, participant);
+    }
+
+  }, true);
+>>>>>>> REPLACE
+```
+
+The fix adds proper offsets when moving elements from the process to the participant. This accounts for the participant's padding and border width, which prevents the visual jump in the diagram. The elements are now positioned correctly within the participant, maintaining their relative position in the viewport.

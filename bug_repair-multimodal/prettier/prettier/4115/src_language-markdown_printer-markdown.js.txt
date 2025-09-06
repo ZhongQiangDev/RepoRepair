@@ -1,0 +1,80 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that when saving Markdown files with nested HTML content (like tables) inside list items, Prettier keeps adding more indentation each time the file is saved. This happens because the HTML content in list items is not being handled correctly by the Markdown printer.
+
+Looking at the code, the issue is in the `html` case of the `genericPrint` function. Currently, it's just returning the HTML content as-is without considering its context within list items or other nested structures.
+
+Here's my fix:
+
+```javascript
+### src/language-markdown/printer-markdown.js
+<<<<<<< SEARCH
+    case "html": {
+      const parentNode = path.getParentNode();
+      return parentNode.type === "root" &&
+        privateUtil.getLast(parentNode.children) === node
+        ? node.value.trimRight()
+        : node.value;
+    }
+=======
+    case "html": {
+      const parentNode = path.getParentNode();
+      const isInListItem = getAncestorNode(path, "listItem") !== null;
+      
+      // If this HTML is at the end of the document, trim trailing whitespace
+      if (parentNode.type === "root" &&
+          privateUtil.getLast(parentNode.children) === node) {
+        return node.value.trimRight();
+      }
+      
+      // For HTML in list items, preserve the original indentation
+      // to prevent additional indentation on each save
+      if (isInListItem) {
+        return node.value.replace(/\n/g, hardline);
+      }
+      
+      return node.value;
+    }
+>>>>>>> REPLACE
+```
+
+I also need to add the missing `getAncestorNode` function that's used elsewhere in the code but not defined in the provided snippet:
+
+```javascript
+### src/language-markdown/printer-markdown.js
+<<<<<<< SEARCH
+function printUrl(url, dangerousCharOrChars) {
+  const dangerousChars = [" "].concat(dangerousCharOrChars || []);
+  return new RegExp(dangerousChars.map(x => `\\${x}`).join("|")).test(url)
+    ? `<${url}>`
+    : url;
+}
+=======
+function getAncestorNode(path, type) {
+  let index = 0;
+  let currentPath = path;
+  while (currentPath && index < 100) {
+    if (currentPath.getValue() && currentPath.getValue().type === type) {
+      return currentPath.getValue();
+    }
+    currentPath = currentPath.getParentNode && currentPath.getParentNode();
+    index++;
+  }
+  return null;
+}
+
+function printUrl(url, dangerousCharOrChars) {
+  const dangerousChars = [" "].concat(dangerousCharOrChars || []);
+  return new RegExp(dangerousChars.map(x => `\\${x}`).join("|")).test(url)
+    ? `<${url}>`
+    : url;
+}
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Adds a check to determine if the HTML node is inside a list item
+2. For HTML in list items, preserves the original indentation by replacing newlines with hardline nodes
+3. Adds the missing `getAncestorNode` function that's used elsewhere in the code
+
+This should prevent the HTML content in list items from getting additional indentation on each save.

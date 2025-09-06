@@ -1,0 +1,44 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that the vector layer canvas is cropped when the map is rotated. This started happening in version 9.1.0, likely introduced by PR #15652.
+
+Looking at the code, I can see that in the `prepareFrame` method of `CanvasVectorImageLayerRenderer`, when creating the `imageFrameState`, the rotation is explicitly set to 0:
+
+```javascript
+viewState: /** @type {import("../../View.js").State} */ (
+  Object.assign({}, frameState.viewState, {
+    rotation: 0,
+  })
+)
+```
+
+This is intentional because the vector layer is rendered without rotation, and then the resulting image is rotated during rendering.
+
+However, the issue appears to be that when calculating the size of the canvas, it doesn't account for the rotation. When a map is rotated, the diagonal of the map becomes longer than the width/height, so the canvas needs to be larger to accommodate the rotated content.
+
+## Fix
+
+We need to modify the calculation of width and height to account for rotation:
+
+```javascript
+### src/ol/renderer/canvas/VectorImageLayer.js
+<<<<<<< SEARCH
+    const width = getWidth(renderedExtent) / viewResolution;
+    const height = getHeight(renderedExtent) / viewResolution;
+=======
+    let width = getWidth(renderedExtent) / viewResolution;
+    let height = getHeight(renderedExtent) / viewResolution;
+    
+    // When the map is rotated, we need to use a larger canvas to avoid clipping
+    if (viewState.rotation) {
+      // Calculate the size needed to contain the rotated rectangle
+      const diagonal = Math.sqrt(width * width + height * height);
+      width = diagonal;
+      height = diagonal;
+    }
+>>>>>>> REPLACE
+```
+
+This change ensures that when the map is rotated, we use a canvas large enough to contain the entire rotated rectangle by using the diagonal length as both width and height. This prevents the vector layer from being cropped when the map is rotated.

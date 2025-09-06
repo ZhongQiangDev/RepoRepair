@@ -1,0 +1,86 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue describes a change in behavior between OpenLayers 6.1 and 7.0 where tile loading for layers in a LayerGroup has changed from concurrent to sequential. This is causing a noticeable performance degradation.
+
+Looking at the provided code from `TileQueue.js`, I can see the problem is likely in the `loadMoreTiles` method. This method controls how many tiles are loaded at once, and it appears that in version 7.0, the way tiles from different layers in a LayerGroup are prioritized has changed, causing them to load sequentially rather than concurrently.
+
+## Solution
+
+The issue is in the `loadMoreTiles` method. Currently, it's loading tiles one at a time from the priority queue, which means it's likely prioritizing all tiles from one layer before moving to the next. We need to modify this method to ensure tiles from different layers can load concurrently.
+
+Here's the fix:
+
+```javascript
+### src/ol/TileQueue.js
+<<<<<<< SEARCH
+  /**
+   * @param {number} maxTotalLoading Maximum number tiles to load simultaneously.
+   * @param {number} maxNewLoads Maximum number of new tiles to load.
+   */
+  loadMoreTiles(maxTotalLoading, maxNewLoads) {
+    let newLoads = 0;
+    let state, tile, tileKey;
+    while (
+      this.tilesLoading_ < maxTotalLoading &&
+      newLoads < maxNewLoads &&
+      this.getCount() > 0
+    ) {
+      tile = /** @type {import("./Tile.js").default} */ (this.dequeue()[0]);
+      tileKey = tile.getKey();
+      state = tile.getState();
+      if (state === TileState.IDLE && !(tileKey in this.tilesLoadingKeys_)) {
+        this.tilesLoadingKeys_[tileKey] = true;
+        ++this.tilesLoading_;
+        ++newLoads;
+        tile.load();
+      }
+    }
+  }
+=======
+  /**
+   * @param {number} maxTotalLoading Maximum number tiles to load simultaneously.
+   * @param {number} maxNewLoads Maximum number of new tiles to load.
+   */
+  loadMoreTiles(maxTotalLoading, maxNewLoads) {
+    let newLoads = 0;
+    let state, tile, tileKey;
+    
+    // Get all elements from the queue first to process them in a batch
+    const elements = [];
+    while (this.getCount() > 0 && elements.length < maxTotalLoading) {
+      elements.push(this.dequeue());
+    }
+    
+    // Process elements, potentially from different layers
+    for (let i = 0; i < elements.length; i++) {
+      if (this.tilesLoading_ >= maxTotalLoading || newLoads >= maxNewLoads) {
+        // Re-enqueue remaining elements
+        for (let j = i; j < elements.length; j++) {
+          this.enqueue(elements[j]);
+        }
+        break;
+      }
+      
+      tile = /** @type {import("./Tile.js").default} */ (elements[i][0]);
+      tileKey = tile.getKey();
+      state = tile.getState();
+      if (state === TileState.IDLE && !(tileKey in this.tilesLoadingKeys_)) {
+        this.tilesLoadingKeys_[tileKey] = true;
+        ++this.tilesLoading_;
+        ++newLoads;
+        tile.load();
+      }
+    }
+  }
+>>>>>>> REPLACE
+```
+
+This change modifies the `loadMoreTiles` method to:
+
+1. First collect a batch of tiles from the queue (up to `maxTotalLoading`)
+2. Process these tiles, which may come from different layers, allowing concurrent loading
+3. Re-enqueue any tiles that couldn't be loaded due to reaching the loading limits
+
+This approach ensures that tiles from different layers in a LayerGroup can be loaded concurrently, restoring the behavior seen in OpenLayers 6.1.

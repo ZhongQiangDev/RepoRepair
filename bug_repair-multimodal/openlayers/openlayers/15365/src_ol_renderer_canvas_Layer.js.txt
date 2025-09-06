@@ -1,0 +1,52 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when changing the opacity of a layer group using `setOpacity()`, it doesn't affect labels rendered for vector tile layers within that group, while it works correctly for vector layers. The opacity change is also correctly applied to other properties like `fill-color` in vector tile layers, but not to the labels.
+
+Looking at the provided code, I need to identify where the opacity is applied to rendered elements. The issue is likely in how the opacity is propagated from the layer group to the vector tile layer's text rendering.
+
+The problem is that the `CanvasLayerRenderer` class doesn't properly handle the opacity inheritance for vector tile labels. When rendering vector tile layers, the opacity from parent groups needs to be applied to all elements including labels.
+
+## Fix
+
+The issue is not directly visible in the provided code snippet, but based on the description, we need to ensure that the opacity from the layer group is properly applied to the vector tile layer's text rendering context.
+
+Since we don't have the exact vector tile renderer code, I'll propose a general fix approach that would address this issue:
+
+```javascript
+### src/ol/renderer/canvas/Layer.js
+<<<<<<< SEARCH
+  /**
+   * @param {CanvasRenderingContext2D} context Context.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @protected
+   */
+  preRender(context, frameState) {
+    this.frameState = frameState;
+    this.dispatchRenderEvent_(RenderEventType.PRERENDER, context, frameState);
+  }
+=======
+  /**
+   * @param {CanvasRenderingContext2D} context Context.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @protected
+   */
+  preRender(context, frameState) {
+    this.frameState = frameState;
+    
+    // Apply layer opacity to the rendering context
+    const layer = this.getLayer();
+    const opacity = layer.getOpacity();
+    if (opacity !== 1) {
+      context.globalAlpha = opacity;
+    }
+    
+    this.dispatchRenderEvent_(RenderEventType.PRERENDER, context, frameState);
+  }
+>>>>>>> REPLACE
+```
+
+This change ensures that the layer's opacity is applied to the rendering context before any rendering occurs. This should propagate the opacity to all rendered elements, including vector tile labels.
+
+However, this is a general approach. The actual fix might need to be more specific to the vector tile renderer implementation, which isn't shown in the provided code. The issue might be that the vector tile renderer is creating a separate context for label rendering that doesn't inherit the opacity property.

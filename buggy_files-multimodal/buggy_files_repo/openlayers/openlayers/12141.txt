@@ -1,0 +1,25 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## 1. Identifying the Wrong Behavior
+
+The problem is that when trying to get the extent of a VectorSource inside the `featuresloadend` callback function, the result is `[Infinity,Infinity,-Infinity,-Infinity]`, which indicates an empty extent. This is incorrect because the features have already been loaded, so the extent should reflect the actual bounds of those features.
+
+## 2. Analyzing the Cause
+
+Based on the problem description and screenshot, the issue appears to be in the timing of when features are added to the source versus when the `featuresloadend` event is triggered. The user suggests that features should be added to the source before calling the success callback in `src/ol/featureloader.js`.
+
+This indicates that the `featuresloadend` event is being triggered before the features are actually added to the vector source, causing `getExtent()` to return an empty extent when called inside the event handler.
+
+## 3. Files Most Related to the Cause
+
+```
+src/ol/featureloader.js
+src/ol/source/Vector.js
+src/ol/extent.js
+```
+
+The primary file that needs to be modified is `src/ol/featureloader.js`, which contains the logic for loading features and triggering callbacks. This is where the order of operations needs to be fixed to ensure features are added before the success callback is called.
+
+The `src/ol/source/Vector.js` file is also relevant as it handles the management of features and the calculation of extents, and it's likely where the `featuresloadend` event is dispatched.
+
+The `src/ol/extent.js` file contains utilities for working with extents, including the creation of empty extents (`[Infinity,Infinity,-Infinity,-Infinity]`), which is what's being incorrectly returned.

@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- Adding `rel="noopener"` to `mailto:` links causes them to break on Chrome for Android and iOS Safari
+- Specifically, links with `mailto:` protocol and `rel="noopener"` fail to launch the email client on mobile devices
+
+2. Cause Analysis:
+- The issue stems from the audit that enforces `rel="noopener"` on all links with `target="_blank"`
+- However, `mailto:` links are special protocol links that don't actually open new windows/tabs in the traditional sense
+- The audit is incorrectly flagging `mailto:` links as needing the `noopener` attribute, which interferes with their normal functionality on mobile devices
+
+3. Most Related Files:
+```
+lighthouse-core/audits/dobetterweb/external-anchors-use-rel-noopener.js
+lighthouse-core/gather/gatherers/dobetterweb/anchors-with-no-rel-noopener.js
+lighthouse-core/lib/url-shim.js
+lighthouse-core/audits/accessibility/link-name.js
+lighthouse-core/gather/driver.js
+```
+
+The files are ordered by importance because:
+1. `external-anchors-use-rel-noopener.js` is the main audit file that enforces the noopener requirement
+2. `anchors-with-no-rel-noopener.js` gathers the anchor elements for analysis
+3. `url-shim.js` handles URL validation and protocol checking
+4. `link-name.js` provides additional link validation functionality
+5. `driver.js` coordinates the gathering and auditing process
+
+The fix would likely need to modify these files to exclude `mailto:` protocol links from the noopener requirement.

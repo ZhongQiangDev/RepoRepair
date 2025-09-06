@@ -1,0 +1,45 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The current xarray.concat requires users to manually handle datasets with different variables by either:
+- Creating dummy variables filled with NaN in datasets that don't have certain variables
+- Dropping mismatched variables entirely
+This behavior is not user-friendly and differs from pandas.concat which automatically handles mismatched variables through outer join.
+
+2. Cause Analysis:
+The root cause appears to be in the concatenation logic where:
+- There's no automatic handling of missing variables between datasets
+- The concat operation requires strict variable matching
+- There's no built-in option to automatically create and fill missing variables with NaN values
+- The join behavior doesn't follow pandas-style outer join for variables
+
+3. Relevant Functions/Classes Analysis:
+
+xarray/core/combine.py:
+```
+xarray/core/combine.py
+function: _auto_concat
+function: concat_dim
+function: combine_nested
+```
+This file contains functions related to combining datasets, particularly _auto_concat which handles the core concatenation logic and could be modified to support automatic handling of missing variables.
+
+xarray/core/concat.py:
+```
+xarray/core/concat.py
+function: concat
+function: _dataarray_concat
+function: _dataset_concat
+```
+This file contains the main concatenation functions that would need to be modified to support automatic handling of missing variables and implement pandas-style outer join behavior.
+
+xarray/core/merge.py:
+```
+xarray/core/merge.py
+function: merge_core
+function: merge_coords
+function: merge_collected
+```
+This file contains the core merging logic that would need to be enhanced to better handle variable mismatches during concatenation operations, particularly in merge_core which could implement the outer join behavior for variables.
+
+The fix would likely require modifications across these functions to implement proper handling of missing variables during concatenation, similar to pandas' outer join behavior.

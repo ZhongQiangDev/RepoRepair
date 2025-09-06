@@ -1,0 +1,52 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a connection (SequenceFlow) is re-laid out after a connected shape is resized, labels and associations don't move with it. From the GIF, we can see that when the subprocess is resized, the connection is updated but the label stays in its original position.
+
+Looking at the provided code, I can see that `ConnectionLayoutUtil.js` has a function `getConnectionAdjustment` that calculates the new position after connection waypoints are updated. However, this function is only returning the point adjustment, not handling the actual movement of labels and associations.
+
+The issue is likely that when a connection is re-laid out, the code is not properly updating the positions of attached elements like labels and associations.
+
+## Fix
+
+The `getConnectionAdjustment` function is correctly getting the point adjustment, but it seems the issue is that this adjustment isn't being applied to labels and associations. We need to modify the function to ensure it returns all necessary information for proper adjustment.
+
+```javascript
+### lib/features/modeling/behavior/util/ConnectionLayoutUtil.js
+<<<<<<< SEARCH
+/**
+ * Calculate the new point after the connection waypoints got updated.
+ *
+ * @param {djs.model.Label} label
+ * @param {Array<Point>} newWaypoints
+ * @param {Array<Point>} oldWaypoints
+ * @param {Object} hints
+ *
+ * @return {Point} point
+ */
+export function getConnectionAdjustment(position, newWaypoints, oldWaypoints, hints) {
+  return getAnchorPointAdjustment(position, newWaypoints, oldWaypoints, hints).point;
+}
+=======
+/**
+ * Calculate the new point after the connection waypoints got updated.
+ *
+ * @param {djs.model.Label} label
+ * @param {Array<Point>} newWaypoints
+ * @param {Array<Point>} oldWaypoints
+ * @param {Object} hints
+ *
+ * @return {Object} adjustment with point and optional other properties
+ */
+export function getConnectionAdjustment(position, newWaypoints, oldWaypoints, hints) {
+  // Return the full adjustment object, not just the point
+  // This ensures all adjustment information is available for labels and associations
+  return getAnchorPointAdjustment(position, newWaypoints, oldWaypoints, hints);
+}
+>>>>>>> REPLACE
+```
+
+This change ensures that the full adjustment object from `getAnchorPointAdjustment` is returned, not just the point property. This should provide all the necessary information to properly adjust the positions of labels and associations when a connection is re-laid out.
+
+The issue appears to be that by only returning the `.point` property, we're losing additional context or adjustment information that might be needed for properly repositioning attached elements like labels and associations.

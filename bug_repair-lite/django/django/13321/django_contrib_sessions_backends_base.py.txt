@@ -1,0 +1,57 @@
+Based on the issue description, the problem occurs when trying to decode invalid session data. The error trace shows that when decoding fails, it falls back to `_legacy_decode()` which attempts to base64 decode potentially invalid data without proper error handling.
+
+The bug is in the `_legacy_decode()` method in `django/contrib/sessions/backends/base.py`. The method needs to handle base64 decoding errors gracefully by returning an empty session dictionary.
+
+Here's the fix:
+
+```python
+### django/contrib/sessions/backends/base.py
+<<<<<<< SEARCH
+    def _legacy_decode(self, session_data):
+        # RemovedInDjango40Warning: pre-Django 3.1 format will be invalid.
+        encoded_data = base64.b64decode(session_data.encode('ascii'))
+        try:
+            # could produce ValueError if there is no ':'
+            hash, serialized = encoded_data.split(b':', 1)
+            expected_hash = self._hash(serialized)
+            if not constant_time_compare(hash.decode(), expected_hash):
+                raise SuspiciousSession("Session data corrupted")
+            else:
+                return self.serializer().loads(serialized)
+        except Exception as e:
+            # ValueError, SuspiciousOperation, unpickling exceptions. If any of
+            # these happen, just return an empty dictionary (an empty session).
+            if isinstance(e, SuspiciousOperation):
+                logger = logging.getLogger('django.security.%s' % e.__class__.__name__)
+                logger.warning(str(e))
+            return {}
+=======
+    def _legacy_decode(self, session_data):
+        # RemovedInDjango40Warning: pre-Django 3.1 format will be invalid.
+        try:
+            encoded_data = base64.b64decode(session_data.encode('ascii'))
+            # could produce ValueError if there is no ':'
+            hash, serialized = encoded_data.split(b':', 1)
+            expected_hash = self._hash(serialized)
+            if not constant_time_compare(hash.decode(), expected_hash):
+                raise SuspiciousSession("Session data corrupted")
+            else:
+                return self.serializer().loads(serialized)
+        except Exception as e:
+            # ValueError, SuspiciousOperation, unpickling exceptions, base64 errors.
+            # If any of these happen, just return an empty dictionary (an empty session).
+            if isinstance(e, SuspiciousOperation):
+                logger = logging.getLogger('django.security.%s' % e.__class__.__name__)
+                logger.warning(str(e))
+            return {}
+>>>>>>> REPLACE
+```
+
+The fix moves the `base64.b64decode()` call inside the try-except block so that any base64 decoding errors (like incorrect padding) are caught and handled by returning an empty session dictionary. This prevents the crash seen in the issue while maintaining the security checks for session data integrity.
+
+The main changes are:
+1. Moving the base64 decoding inside the try block
+2. Updated the comment to explicitly mention base64 errors are handled
+3. Maintaining the same empty dictionary return behavior for all error cases
+
+This change ensures that invalid session data (whether due to corruption, tampering, or encoding issues) will result in a new empty session rather than crashing the application.

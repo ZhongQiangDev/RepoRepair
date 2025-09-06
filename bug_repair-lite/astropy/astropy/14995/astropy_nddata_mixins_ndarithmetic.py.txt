@@ -1,0 +1,57 @@
+Based on the issue description, the bug occurs in the mask propagation when one operand has a mask and the other doesn't. The issue is in the `_arithmetic_mask` method where it doesn't properly handle the case when one operand has no mask.
+
+The current code returns None when both operands have no mask, but when only one operand has a mask, it tries to apply the handle_mask function (default np.bitwise_or) between the mask and None, causing the TypeError.
+
+Here's the fix:
+
+```python
+### astropy/nddata/mixins/ndarithmetic.py
+<<<<<<< SEARCH
+        # If only one mask is present we need not bother about any type checks
+        if (
+            self.mask is None and operand is not None and operand.mask is None
+        ) or handle_mask is None:
+            return None
+        elif self.mask is None and operand is not None:
+            # Make a copy so there is no reference in the result.
+            return deepcopy(operand.mask)
+        elif operand is None:
+            return deepcopy(self.mask)
+        else:
+            # Now lets calculate the resulting mask (operation enforces copy)
+            return handle_mask(self.mask, operand.mask, **kwds)
+=======
+        # If handle_mask is None, return None
+        if handle_mask is None:
+            return None
+            
+        # For collapse operations (operand is None)
+        if operand is None:
+            return deepcopy(self.mask)
+            
+        # If neither has a mask, return None
+        if self.mask is None and operand.mask is None:
+            return None
+            
+        # If only one has a mask, return a copy of that mask
+        if self.mask is None:
+            return deepcopy(operand.mask)
+        if operand.mask is None:
+            return deepcopy(self.mask)
+            
+        # If both have masks, apply the handle_mask function
+        return handle_mask(self.mask, operand.mask, **kwds)
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. First checks if mask handling is disabled (handle_mask=None)
+2. Handles collapse operations (operand=None) 
+3. Returns None if neither operand has a mask
+4. Returns a copy of the existing mask if only one operand has a mask
+5. Only applies handle_mask function when both operands have masks
+
+This prevents the TypeError by avoiding calling bitwise_or between a mask and None. Instead, it properly propagates the existing mask when only one operand has a mask, which matches the expected behavior described in the issue.
+
+The fix maintains proper mask propagation while avoiding the TypeError that occurred when trying to perform bitwise operations between a mask and None.

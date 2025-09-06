@@ -1,0 +1,37 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## Analysis of the Problem
+
+The issue is that in p5.js WebGL mode:
+- When using `fill()` before each `vertex()` call, the colors are interpolated between vertices (each vertex can have a different color)
+- However, when using `stroke()` before each `vertex()` call, only the last stroke color is applied to the entire line/shape
+
+The desired behavior is to have stroke colors interpolate between vertices in the same way that fill colors do, allowing for gradient-colored lines.
+
+## Cause of the Issue
+
+The problem occurs because:
+1. The WebGL renderer currently only stores the last stroke color that was set
+2. It doesn't maintain per-vertex stroke color information
+3. The vertex shader needs to be modified to receive line color for each vertex
+4. The fragment shader needs to be updated to interpolate between vertex colors for lines
+5. The geometry system needs to store and pass these per-vertex stroke colors
+
+## Files That Need to Be Modified
+
+Based on the repository information and the problem description, these are the most important files that would need to be edited:
+
+```
+src/webgl/p5.Geometry.js
+src/webgl/p5.RendererGL.js
+src/webgl/p5.RendererGL.Immediate.js
+src/webgl/p5.RenderBuffer.js
+src/webgl/p5.Shader.js
+```
+
+These files are ordered by importance because:
+1. `p5.Geometry.js` needs to be modified to store line vertex colors and update the `_edgesToVertices` function
+2. `p5.RendererGL.js` needs changes to handle the new buffer and shader flags
+3. `p5.RendererGL.Immediate.js` needs updates to handle per-vertex stroke colors in immediate mode
+4. `p5.RenderBuffer.js` needs to be updated to include the new line vertex color buffer
+5. `p5.Shader.js` needs modifications to support the new vertex color attribute and fragment shader logic

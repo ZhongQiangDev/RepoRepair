@@ -1,0 +1,38 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is in the `settings_to_cmd_args_env` method of the `DatabaseClient` class. According to the issue description, PostgreSQL's `psql` command expects all options to come before the database name. However, in the current implementation, the database name is added to the arguments list before any additional parameters.
+
+The problem is in this section of the code:
+```python
+if dbname:
+    args += [dbname]
+args.extend(parameters)
+```
+
+The database name is added to the args list, and then the additional parameters are appended. This causes the additional parameters to appear after the database name, which `psql` doesn't handle correctly.
+
+## Fix
+
+We need to modify the code to add the database name after all other parameters:
+
+```python
+### django/db/backends/postgresql/client.py
+<<<<<<< SEARCH
+        if port:
+            args += ["-p", str(port)]
+        if dbname:
+            args += [dbname]
+        args.extend(parameters)
+=======
+        if port:
+            args += ["-p", str(port)]
+        args.extend(parameters)
+        if dbname:
+            args += [dbname]
+=======
+>>>>>>> REPLACE
+```
+
+This change ensures that any additional parameters passed to `dbshell` will be placed before the database name in the command, which is what PostgreSQL's `psql` expects. Now when users run commands like `./manage.py dbshell -- -c "select * from some_table;"`, the `-c` option and its argument will be properly recognized by `psql`.

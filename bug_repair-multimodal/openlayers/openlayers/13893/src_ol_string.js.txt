@@ -1,0 +1,44 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about the graticule (grid lines on a map) showing irregular intervals in the labels. Looking at the screenshot, we can see that the latitude labels show values like 42°3'0", 42°6'0", 42°9'0", etc., but with some inconsistencies where some intervals are 3'0", others are 3'1" or 2'59".
+
+The problem appears to be in the `padNumber` function in `src/ol/string.js`. This function is likely used to format the degree/minute/second values for the graticule labels. The current implementation doesn't handle decimal values correctly when padding numbers, which leads to the inconsistent display of intervals.
+
+## Fix
+
+The issue is that the `padNumber` function doesn't properly handle the padding when there's a decimal part. The function should ensure that the width includes the entire number, not just the part before the decimal point.
+
+```javascript
+### src/ol/string.js
+<<<<<<< SEARCH
+export function padNumber(number, width, opt_precision) {
+  const numberString =
+    opt_precision !== undefined ? number.toFixed(opt_precision) : '' + number;
+  let decimal = numberString.indexOf('.');
+  decimal = decimal === -1 ? numberString.length : decimal;
+  return decimal > width
+    ? numberString
+    : new Array(1 + width - decimal).join('0') + numberString;
+}
+=======
+export function padNumber(number, width, opt_precision) {
+  const numberString =
+    opt_precision !== undefined ? number.toFixed(opt_precision) : '' + number;
+  let decimal = numberString.indexOf('.');
+  decimal = decimal === -1 ? numberString.length : decimal;
+  return decimal > width
+    ? numberString
+    : new Array(1 + width - decimal).join('0') + numberString;
+}
+>>>>>>> REPLACE
+```
+
+After examining the code more carefully, I realize that the issue might not be directly in the `padNumber` function itself, but rather in how it's being used in the graticule component. The inconsistent intervals are likely due to floating-point precision issues when calculating the graticule lines.
+
+Since we don't have access to the graticule implementation code, I can't provide a direct fix. However, the issue is likely related to how the graticule calculates and rounds the coordinates for the grid lines and labels.
+
+The proper fix would involve ensuring that the graticule uses consistent intervals and properly rounds the values before displaying them. This would require changes to the graticule component code, which isn't provided in the snippets.
+
+Without seeing the graticule implementation, I can't provide a specific fix. The OpenLayers team would need to review how the graticule calculates and formats its labels to ensure consistent intervals.

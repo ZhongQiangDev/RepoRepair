@@ -1,0 +1,72 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when using `ol.select.Interaction`, the selected features are always shown on top of other layers, regardless of the z-index settings. This is happening because the selected features are added to an internal vector layer that doesn't respect the z-index of the original layer.
+
+Looking at the code, I can see that the `Select` interaction creates a `VectorLayer` called `featureOverlay_` to display selected features. However, there's no way to control the z-index of this overlay layer.
+
+## Solution
+
+We need to modify the `Select` class to allow controlling the z-index of the feature overlay layer. We'll add a `zIndex` option to the constructor and apply it to the vector layer.
+
+Here's the fix:
+
+```javascript
+### src/ol/interaction/Select.js
+<<<<<<< SEARCH
+ * @property {number} [hitTolerance=0] Hit-detection tolerance. Pixels inside
+ * the radius around the given position will be checked for features. This only
+ * works for the canvas renderer and not for WebGL.
+ */
+=======
+ * @property {number} [hitTolerance=0] Hit-detection tolerance. Pixels inside
+ * the radius around the given position will be checked for features. This only
+ * works for the canvas renderer and not for WebGL.
+ * @property {number} [zIndex] The zIndex for the vector layer that displays the selected features.
+ */
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/interaction/Select.js
+<<<<<<< SEARCH
+    const featureOverlay = new VectorLayer({
+      source: new VectorSource({
+        useSpatialIndex: false,
+        features: options.features,
+        wrapX: options.wrapX
+      }),
+      style: options.style ? options.style :
+        getDefaultStyleFunction(),
+      updateWhileAnimating: true,
+      updateWhileInteracting: true
+    });
+=======
+    const featureOverlay = new VectorLayer({
+      source: new VectorSource({
+        useSpatialIndex: false,
+        features: options.features,
+        wrapX: options.wrapX
+      }),
+      style: options.style ? options.style :
+        getDefaultStyleFunction(),
+      updateWhileAnimating: true,
+      updateWhileInteracting: true,
+      zIndex: options.zIndex
+    });
+>>>>>>> REPLACE
+```
+
+This change adds a new `zIndex` option to the `Select` interaction. When provided, this z-index will be applied to the vector layer that displays the selected features. This allows users to control whether selected features appear above or below other layers.
+
+With this change, users can now specify a z-index when creating a Select interaction:
+
+```javascript
+const select = new ol.interaction.Select({
+  // other options...
+  zIndex: 10 // Set a specific z-index for the selection layer
+});
+```
+
+By setting an appropriate z-index value, users can ensure that the selected features don't always appear on top of other layers.

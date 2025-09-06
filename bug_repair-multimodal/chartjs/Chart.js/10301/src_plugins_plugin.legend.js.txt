@@ -1,0 +1,82 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is with the legend's `onLeave` event not being triggered consistently when the mouse quickly moves outside the chart area. This causes the legend item to remain highlighted even when the cursor is no longer over it.
+
+Looking at the code, the problem is in the `handleEvent` method of the `Legend` class. The current implementation only triggers the `onLeave` event when the mouse moves from one legend item to another, but not when it moves from a legend item to outside the chart area completely.
+
+When the mouse moves quickly outside the chart, the last event received might be a `mousemove` over a legend item, but no subsequent event is received to trigger the `onLeave` callback.
+
+## Fix
+
+We need to modify the `handleEvent` method to properly handle the case when the mouse moves from a legend item to outside the legend area (when `hoveredItem` becomes null).
+
+```javascript
+### src/plugins/plugin.legend.js
+<<<<<<< SEARCH
+    if (e.type === 'mousemove') {
+      const previous = this._hoveredItem;
+      const sameItem = itemsEqual(previous, hoveredItem);
+      if (previous && !sameItem) {
+        call(opts.onLeave, [e, previous, this], this);
+      }
+
+      this._hoveredItem = hoveredItem;
+
+      if (hoveredItem && !sameItem) {
+        call(opts.onHover, [e, hoveredItem, this], this);
+      }
+=======
+    if (e.type === 'mousemove') {
+      const previous = this._hoveredItem;
+      const sameItem = itemsEqual(previous, hoveredItem);
+      
+      if (previous && !sameItem) {
+        call(opts.onLeave, [e, previous, this], this);
+      }
+
+      this._hoveredItem = hoveredItem;
+
+      if (hoveredItem && !sameItem) {
+        call(opts.onHover, [e, hoveredItem, this], this);
+      }
+    } else if (e.type === 'mouseout') {
+      // Handle mouseout event - when mouse leaves the chart area
+      if (this._hoveredItem) {
+        call(opts.onLeave, [e, this._hoveredItem, this], this);
+        this._hoveredItem = null;
+      }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/plugins/plugin.legend.js
+<<<<<<< SEARCH
+function isListened(type, opts) {
+  if (type === 'mousemove' && (opts.onHover || opts.onLeave)) {
+    return true;
+  }
+  if (opts.onClick && (type === 'click' || type === 'mouseup')) {
+    return true;
+  }
+  return false;
+}
+=======
+function isListened(type, opts) {
+  if ((type === 'mousemove' || type === 'mouseout') && (opts.onHover || opts.onLeave)) {
+    return true;
+  }
+  if (opts.onClick && (type === 'click' || type === 'mouseup')) {
+    return true;
+  }
+  return false;
+}
+>>>>>>> REPLACE
+```
+
+This fix adds handling for the `mouseout` event, which is triggered when the mouse leaves the chart area. When this happens, if there was a previously hovered item, we call the `onLeave` callback and reset the `_hoveredItem` to null.
+
+Additionally, I've updated the `isListened` function to also listen for the `mouseout` event when either `onHover` or `onLeave` callbacks are provided.
+
+This solution ensures that the `onLeave` event is properly triggered when the mouse leaves the chart area, fixing the issue where legend items remain highlighted when the cursor is outside the chart.

@@ -1,0 +1,29 @@
+Based on the issue description, the bug occurs when trying to load a pickled sympy expression containing a float from Python 2 in Python 3. The error message indicates that the problem is in the Float class's handling of pickled tuples, specifically when trying to convert a hex string to an integer using `long()` which doesn't exist in Python 3.
+
+The fix needs to be in the Float.__new__() method where it handles pickled tuples. We need to replace the use of `long()` with `int()` since Python 3 unifies int and long types.
+
+Here's the fix:
+
+```python
+### sympy/core/numbers.py
+<<<<<<< SEARCH
+                # it's a hexadecimal (coming from a pickled object)
+                # assume that it is in standard form
+                num = list(num)
+                num[1] = long(num[1], 16)
+                _mpf_ = tuple(num)
+=======
+                # it's a hexadecimal (coming from a pickled object)
+                # assume that it is in standard form
+                num = list(num)
+                num[1] = int(num[1], 16)
+                _mpf_ = tuple(num)
+>>>>>>> REPLACE
+```
+
+This change replaces `long(num[1], 16)` with `int(num[1], 16)` since in Python 3:
+1. The `long` type no longer exists - integers of any size are handled by `int`
+2. The `int` class in Python 3 can handle arbitrarily large integers, just like `long` did in Python 2
+3. This maintains compatibility with both Python 2 and 3 since in Python 2, `int` will automatically promote to `long` if needed
+
+This should fix the ValueError that occurs when trying to load pickled float-containing expressions from Python 2 in Python 3.

@@ -1,0 +1,40 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The get_FOO_display() method does not correctly display the choice value for choices added in a child model that inherits from an abstract parent model. Specifically, when a child model adds new choices to those inherited from the parent, get_FOO_display() returns the raw choice value instead of its display value for the newly added choices.
+
+2. Cause Analysis:
+The issue appears to be in how Django handles choice inheritance in model fields. When a child model inherits from an abstract parent model and extends the choices list, the get_FOO_display() method seems to only recognize the choices defined in the parent model but fails to properly process the additional choices defined in the child model. This suggests there's an issue in how the choices are being processed or cached during model inheritance.
+
+3. Relevant Files/Functions Analysis:
+
+django/db/models/base.py:
+```
+django/db/models/base.py
+class: Model
+class: ModelBase
+```
+These classes are relevant because they handle the core model functionality including field access and inheritance behavior. The Model class would contain the get_FOO_display() logic, while ModelBase handles model inheritance.
+
+django/db/models/options.py:
+```
+django/db/models/options.py
+class: Options
+```
+This class is relevant as it handles model metadata including field definitions and inheritance of field properties.
+
+django/db/models/fields/__init__.py:
+```
+django/db/models/fields/__init__.py
+class: Field
+class: CharField
+```
+These classes are relevant because they handle the basic field functionality including choices processing and display methods.
+
+django/db/models/fields/mixins.py:
+This file contains no relevant functions/classes.
+
+django/db/models/fields/proxy.py:
+This file contains no relevant functions/classes.
+
+The issue likely stems from how choices are processed during model inheritance, which would involve the interaction between Model, ModelBase, Options, and the field classes. The get_FOO_display() method would be implemented as part of the Model class, using metadata from Options and field definitions from Field/CharField.

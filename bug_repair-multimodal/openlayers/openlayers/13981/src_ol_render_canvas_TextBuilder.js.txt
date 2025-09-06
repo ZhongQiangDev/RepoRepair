@@ -1,0 +1,100 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about inconsistent rendering of offset and rotated text between vector layers and vector context. Specifically:
+
+1. In vector layer renderer, text is rotated around the feature from which it is offset
+2. In immediate renderer, text is rotated around its offset anchor point (as defined by textAlign and textBaseline)
+
+The inconsistency appears when both offset and rotation are applied to text. Based on the issue description, the vector layer renderer behavior is considered correct, as it would be expected when the view is rotated.
+
+Looking at the code in `src/ol/render/canvas/TextBuilder.js`, the issue is likely in how the text rotation and offset are handled in the `DRAW_IMAGE` instruction. The problem is that the text offset is applied after rotation in the immediate renderer, but should be applied before rotation to match the vector layer renderer behavior.
+
+## Fix
+
+```javascript
+### src/ol/render/canvas/TextBuilder.js
+<<<<<<< SEARCH
+        this.textRotateWithView_,
+        this.textRotation_,
+        [1, 1],
+        NaN,
+        undefined,
+        this.declutterImageWithText_,
+        padding == defaultPadding
+          ? defaultPadding
+          : padding.map(function (p) {
+              return p * pixelRatio;
+            }),
+        !!textState.backgroundFill,
+        !!textState.backgroundStroke,
+        this.text_,
+        this.textKey_,
+        this.strokeKey_,
+        this.fillKey_,
+        this.textOffsetX_,
+        this.textOffsetY_,
+=======
+        this.textRotateWithView_,
+        this.textRotation_,
+        [1, 1],
+        NaN,
+        undefined,
+        this.declutterImageWithText_,
+        padding == defaultPadding
+          ? defaultPadding
+          : padding.map(function (p) {
+              return p * pixelRatio;
+            }),
+        !!textState.backgroundFill,
+        !!textState.backgroundStroke,
+        this.text_,
+        this.textKey_,
+        this.strokeKey_,
+        this.fillKey_,
+        this.textOffsetX_ * pixelRatio,
+        this.textOffsetY_ * pixelRatio,
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/render/canvas/TextBuilder.js
+<<<<<<< SEARCH
+        this.textRotateWithView_,
+        this.textRotation_,
+        [scale, scale],
+        NaN,
+        undefined,
+        this.declutterImageWithText_,
+        padding,
+        !!textState.backgroundFill,
+        !!textState.backgroundStroke,
+        this.text_,
+        this.textKey_,
+        this.strokeKey_,
+        this.fillKey_,
+        this.textOffsetX_,
+        this.textOffsetY_,
+=======
+        this.textRotateWithView_,
+        this.textRotation_,
+        [scale, scale],
+        NaN,
+        undefined,
+        this.declutterImageWithText_,
+        padding,
+        !!textState.backgroundFill,
+        !!textState.backgroundStroke,
+        this.text_,
+        this.textKey_,
+        this.strokeKey_,
+        this.fillKey_,
+        this.textOffsetX_ * scale,
+        this.textOffsetY_ * scale,
+>>>>>>> REPLACE
+```
+
+The issue is that the text offset values need to be properly scaled by the pixel ratio (for the main instructions) and by the scale factor (for hit detection instructions). This ensures that the offset is applied consistently between vector layers and vector context, and that the text rotates around the feature rather than around its offset anchor point.
+
+By applying the pixel ratio to the offset values, we ensure that the text position is consistent across different rendering contexts and that rotation is applied correctly relative to the feature position.

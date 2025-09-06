@@ -1,0 +1,93 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about pasting multiple shapes onto a connection (sequence flow) resulting in unexpected connections. Based on the GIF in the issue, when multiple shapes are pasted onto a flow, they're not properly connected in sequence.
+
+The problem is likely in the `DropOnFlowBehavior.js` file mentioned in the issue description, which handles the behavior when elements are dropped onto a flow. However, it seems this behavior doesn't properly handle multiple shapes being pasted at once.
+
+Since we don't have direct access to the `DropOnFlowBehavior.js` file in the provided code segments, I need to look at the related functionality in the `Modeling.js` file. The issue is likely related to how connections are created when multiple elements are pasted onto a flow.
+
+## Solution
+
+The issue is that when multiple shapes are pasted onto a flow, the system needs to connect them in sequence. The current implementation in `DropOnFlowBehavior.js` probably only handles single shape drops.
+
+Let's modify the `connect` method in `Modeling.js` to better handle this case:
+
+```javascript
+### lib/features/modeling/Modeling.js
+<<<<<<< SEARCH
+Modeling.prototype.connect = function(source, target, attrs, hints) {
+
+  var bpmnRules = this._bpmnRules;
+
+  if (!attrs) {
+    attrs = bpmnRules.canConnect(source, target);
+  }
+
+  if (!attrs) {
+    return;
+  }
+
+  return this.createConnection(source, target, attrs, source.parent, hints);
+};
+=======
+Modeling.prototype.connect = function(source, target, attrs, hints) {
+
+  var bpmnRules = this._bpmnRules;
+
+  if (!attrs) {
+    attrs = bpmnRules.canConnect(source, target);
+  }
+
+  if (!attrs) {
+    return;
+  }
+
+  return this.createConnection(source, target, attrs, source.parent, hints);
+};
+
+/**
+ * Create a connection between a source and target element.
+ *
+ * @param {Array<djs.model.Base>} sources
+ * @param {Array<djs.model.Base>} targets
+ * @param {Object|Object[]} attrs
+ * @param {djs.model.Base} parent
+ * @param {Object} hints
+ *
+ * @return {Array<djs.model.Connection>} the created connections
+ */
+Modeling.prototype.connectSequence = function(sources, targets, attrs, parent, hints) {
+  if (!sources || !targets || !sources.length || !targets.length) {
+    return [];
+  }
+
+  // If we have multiple sources and targets, connect them in sequence
+  // This is used when pasting multiple shapes onto a connection
+  var connections = [];
+  var elements = sources.concat(targets);
+  
+  // Sort elements by their position to ensure proper sequence
+  elements.sort(function(a, b) {
+    return a.x - b.x;
+  });
+  
+  // Connect elements in sequence
+  for (var i = 0; i < elements.length - 1; i++) {
+    var connection = this.connect(elements[i], elements[i + 1], attrs, hints);
+    if (connection) {
+      connections.push(connection);
+    }
+  }
+  
+  return connections;
+};
+>>>>>>> REPLACE
+```
+
+This adds a new `connectSequence` method that can handle connecting multiple elements in sequence. The method sorts the elements by their x-coordinate to ensure they're connected in the correct order from left to right.
+
+However, this is only part of the solution. The actual issue is in the `DropOnFlowBehavior.js` file which needs to use this new method when multiple shapes are dropped on a flow. Since we don't have access to that file in the provided code segments, I'll provide guidance on what needs to be changed there:
+
+In `DropOnFlowBehavior.js`, you would need to modify the code that handles dropping elements on a flow to use the new `connectSequence` method when multiple elements are being dropped. The existing code likely only handles a single element drop.

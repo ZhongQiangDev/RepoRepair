@@ -1,0 +1,39 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the problem is that message flows targeting intermediate message catch boundary events are currently disallowed, but according to the BPMN 2.0 specification, they should be allowed. The issue is in the `isMessageFlowTarget` function, which currently excludes all boundary events with this check: `!is(element, 'bpmn:BoundaryEvent')`.
+
+According to the BPMN 2.0 specification, message catch boundary events should be allowed as targets for message flows. Let's modify the `isMessageFlowTarget` function to allow message catch boundary events.
+
+```javascript
+### lib/features/rules/BpmnRules.js
+<<<<<<< SEARCH
+function isMessageFlowTarget(element) {
+  return (
+    is(element, 'bpmn:InteractionNode') &&
+    !is(element, 'bpmn:BoundaryEvent') &&
+    !isForCompensation(element) && (
+      !is(element, 'bpmn:Event') || (
+        is(element, 'bpmn:CatchEvent') &&
+        hasEventDefinitionOrNone(element, 'bpmn:MessageEventDefinition')
+      )
+    )
+  );
+}
+=======
+function isMessageFlowTarget(element) {
+  return (
+    is(element, 'bpmn:InteractionNode') &&
+    !(is(element, 'bpmn:BoundaryEvent') && 
+      !hasEventDefinition(element, 'bpmn:MessageEventDefinition')) &&
+    !isForCompensation(element) && (
+      !is(element, 'bpmn:Event') || (
+        is(element, 'bpmn:CatchEvent') &&
+        hasEventDefinitionOrNone(element, 'bpmn:MessageEventDefinition')
+      )
+    )
+  );
+}
+>>>>>>> REPLACE
+```
+
+This change modifies the condition to only exclude boundary events that don't have a message event definition. In other words, it allows boundary events that do have a message event definition to be targets for message flows, which aligns with the BPMN 2.0 specification.

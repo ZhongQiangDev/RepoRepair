@@ -1,0 +1,161 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when a boundary event is copied along with its attached task, the copied boundary event is not properly attached to the copied task. This means the attachment relationship between the boundary event and its host element is lost during the copy-paste operation.
+
+Looking at the code, I notice that the `BpmnCopyPaste` class handles copying and pasting BPMN elements, but there's no specific logic to maintain the attachment relationship between boundary events and their host elements.
+
+The problem is likely in the `copyPaste.pasteElement` event handler, which doesn't preserve the attachment relationship. We need to add code to handle boundary events specifically and ensure they remain attached to their copied host elements.
+
+## Fix
+
+```javascript
+### lib/features/copy-paste/BpmnCopyPaste.js
+<<<<<<< SEARCH
+  eventBus.on('copyPaste.pasteElement', function(context) {
+    var cache = context.cache,
+        descriptor = context.descriptor,
+        oldBusinessObject = descriptor.oldBusinessObject,
+        newBusinessObject;
+
+    // do NOT copy business object if external label
+    if (isLabel(descriptor)) {
+      descriptor.businessObject = getBusinessObject(cache[ descriptor.labelTarget ]);
+
+      return;
+    }
+
+    newBusinessObject = bpmnFactory.create(oldBusinessObject.$type);
+
+    descriptor.businessObject = moddleCopy.copyElement(
+      oldBusinessObject,
+      newBusinessObject
+    );
+
+    // resolve references e.g. default sequence flow
+    resolveReferences(descriptor);
+
+    copyProperties(descriptor, newBusinessObject, [
+      'isExpanded',
+      'name'
+    ]);
+
+    removeProperties(descriptor, 'oldBusinessObject');
+  });
+=======
+  eventBus.on('copyPaste.pasteElement', function(context) {
+    var cache = context.cache,
+        descriptor = context.descriptor,
+        oldBusinessObject = descriptor.oldBusinessObject,
+        newBusinessObject;
+
+    // do NOT copy business object if external label
+    if (isLabel(descriptor)) {
+      descriptor.businessObject = getBusinessObject(cache[ descriptor.labelTarget ]);
+
+      return;
+    }
+
+    newBusinessObject = bpmnFactory.create(oldBusinessObject.$type);
+
+    descriptor.businessObject = moddleCopy.copyElement(
+      oldBusinessObject,
+      newBusinessObject
+    );
+
+    // resolve references e.g. default sequence flow
+    resolveReferences(descriptor);
+
+    copyProperties(descriptor, newBusinessObject, [
+      'isExpanded',
+      'name'
+    ]);
+
+    // handle boundary event attachments
+    if (descriptor.host && cache[descriptor.host]) {
+      descriptor.attachedToRef = cache[descriptor.host];
+    }
+
+    removeProperties(descriptor, 'oldBusinessObject');
+  });
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/copy-paste/BpmnCopyPaste.js
+<<<<<<< SEARCH
+  eventBus.on('copyPaste.copyElement', LOW_PRIORITY, function(context) {
+    var descriptor = context.descriptor,
+        element = context.element;
+
+    var businessObject = descriptor.oldBusinessObject = getBusinessObject(element);
+
+    descriptor.type = element.type;
+
+    copyProperties(businessObject, descriptor, 'name');
+
+    descriptor.di = {};
+
+    // fill and stroke will be set to DI
+    copyProperties(businessObject.di, descriptor.di, [
+      'fill',
+      'stroke'
+    ]);
+
+    copyProperties(businessObject.di, descriptor, 'isExpanded');
+
+    if (isLabel(descriptor)) {
+      return descriptor;
+    }
+
+    // default sequence flow
+    if (businessObject.default) {
+      descriptor.default = businessObject.default.id;
+    }
+  });
+=======
+  eventBus.on('copyPaste.copyElement', LOW_PRIORITY, function(context) {
+    var descriptor = context.descriptor,
+        element = context.element;
+
+    var businessObject = descriptor.oldBusinessObject = getBusinessObject(element);
+
+    descriptor.type = element.type;
+
+    copyProperties(businessObject, descriptor, 'name');
+
+    descriptor.di = {};
+
+    // fill and stroke will be set to DI
+    copyProperties(businessObject.di, descriptor.di, [
+      'fill',
+      'stroke'
+    ]);
+
+    copyProperties(businessObject.di, descriptor, 'isExpanded');
+
+    if (isLabel(descriptor)) {
+      return descriptor;
+    }
+
+    // default sequence flow
+    if (businessObject.default) {
+      descriptor.default = businessObject.default.id;
+    }
+    
+    // preserve host relationship for boundary events
+    if (element.host) {
+      descriptor.host = element.host.id;
+    }
+  });
+>>>>>>> REPLACE
+```
+
+The fix consists of two parts:
+
+1. In the `copyPaste.copyElement` event handler, I added code to preserve the host relationship for boundary events by storing the host element's ID in the descriptor.
+
+2. In the `copyPaste.pasteElement` event handler, I added code to handle boundary event attachments by setting the `attachedToRef` property to the cached host element if it exists.
+
+This ensures that when a boundary event is copied along with its host element, the attachment relationship is preserved in the copied elements.

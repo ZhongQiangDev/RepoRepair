@@ -1,0 +1,106 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a connection (SequenceFlow) is re-laid out after a connected shape is resized, labels and associations don't move with it. Looking at the code, I can see that while there's a handler for `connection.layout` and `connection.updateWaypoints` events that moves labels, there are missing implementations for some helper functions that are declared but not defined:
+
+1. `getReferencePoint` function is called but not implemented
+2. `asEdges` function is called but not implemented
+
+These functions are needed in the `shape.resize` event handler to properly calculate the new position for external labels.
+
+## Fix
+
+```javascript
+### lib/features/modeling/behavior/LabelBehavior.js
+<<<<<<< SEARCH
+/**
+ * Generates the nearest point (reference point) for a given point
+ * onto given set of lines
+ *
+ * @param {Array<Point, Point>} lines
+ * @param {Point} point
+ *
+ * @param {Point}
+ */
+
+
+/**
+ * Convert the given bounds to a lines array containing all edges
+ *
+ * @param {Bounds|Point} bounds
+ *
+ * @return Array<Point>
+ */
+
+
+/**
+ * Returns the nearest line for a given point by distance
+ * @param {Point} point
+ * @param Array<Point> lines
+ *
+ * @return Array<Point>
+ */
+
+=======
+/**
+ * Generates the nearest point (reference point) for a given point
+ * onto given set of lines
+ *
+ * @param {Point} point
+ * @param {Array<Array<Point>>} lines
+ *
+ * @return {Point}
+ */
+function getReferencePoint(point, lines) {
+  var nearestLine = getNearestLine(point, lines);
+
+  return perpendicularFoot(point, nearestLine);
+}
+
+/**
+ * Convert the given bounds to a lines array containing all edges
+ *
+ * @param {Bounds|Point} bounds
+ *
+ * @return {Array<Array<Point>>}
+ */
+function asEdges(bounds) {
+  return [
+    [ { x: bounds.x, y: bounds.y }, { x: bounds.x + bounds.width, y: bounds.y } ],
+    [ { x: bounds.x + bounds.width, y: bounds.y }, { x: bounds.x + bounds.width, y: bounds.y + bounds.height } ],
+    [ { x: bounds.x + bounds.width, y: bounds.y + bounds.height }, { x: bounds.x, y: bounds.y + bounds.height } ],
+    [ { x: bounds.x, y: bounds.y + bounds.height }, { x: bounds.x, y: bounds.y } ]
+  ];
+}
+
+/**
+ * Returns the nearest line for a given point by distance
+ * @param {Point} point
+ * @param {Array<Array<Point>>} lines
+ *
+ * @return {Array<Point>}
+ */
+function getNearestLine(point, lines) {
+  var distances = lines.map(function(l) {
+    return {
+      line: l,
+      distance: getDistancePointLine(point, l)
+    };
+  });
+
+  var sorted = sortBy(distances, 'distance');
+
+  return sorted[0].line;
+}
+
+>>>>>>> REPLACE
+```
+
+This fix implements the missing helper functions:
+
+1. `getReferencePoint` - Finds the nearest point on a set of lines to a given point
+2. `asEdges` - Converts bounds to an array of lines representing the edges
+3. `getNearestLine` - Finds the nearest line to a point from a set of lines
+
+These functions work together to properly calculate the new position for labels when a connected shape is resized, ensuring that labels and associations move with the connection.

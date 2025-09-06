@@ -1,0 +1,31 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When replacing a message flow with a sequence flow, the new sequence flow is not placed in the correct parent container
+- The modeler crashes when the previous connection source is a Participant
+- The sequence flow should be part of the second participant/process but isn't
+
+2. Cause Analysis:
+- The issue appears to be related to parent container management when replacing connections
+- When a message flow (which can cross participants) is replaced with a sequence flow (which must stay within one participant), the parent container assignment logic fails
+- The crash occurs because the code doesn't properly handle the transition from a participant source to a new connection type
+
+3. Most Related Files:
+Based on the repository information, these files are most relevant to fixing the connection replacement and parent container issues:
+
+```
+lib/features/modeling/behavior/ReplaceConnectionBehavior.js
+lib/features/modeling/BpmnFactory.js
+lib/features/modeling/cmd/UpdateSemanticParentHandler.js
+lib/features/rules/BpmnRules.js
+lib/features/replace/BpmnReplace.js
+```
+
+These files are ordered by importance because:
+- ReplaceConnectionBehavior.js directly handles connection replacement behavior
+- BpmnFactory.js manages the creation of new BPMN elements and their relationships
+- UpdateSemanticParentHandler.js handles parent container updates
+- BpmnRules.js contains rules about valid connections and their containers
+- BpmnReplace.js provides core replacement functionality
+
+The fix would likely need to focus on ReplaceConnectionBehavior.js to ensure proper parent container assignment when replacing message flows with sequence flows.

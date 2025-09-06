@@ -1,0 +1,87 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about an Ad Hoc Collapsed Subprocess getting weird dimensions when:
+1. A subprocess is created and expanded with child elements
+2. The subprocess is collapsed
+3. The subprocess is converted to an Ad Hoc subprocess
+
+Looking at the code, I can see that the `ToggleElementCollapseBehaviour` class handles the collapsing/expanding of elements, but there's a bug in the implementation. The main issue is that the `filterVisible` function is being used in the `expandedBounds` function, but it's not defined anywhere in the file. This would cause an error when trying to expand a subprocess.
+
+Additionally, the `$inject` array is missing the `resize` service that is declared in the constructor parameters.
+
+## Fix
+
+```javascript
+### lib/features/modeling/behavior/ToggleElementCollapseBehaviour.js
+<<<<<<< SEARCH
+import inherits from 'inherits';
+
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+
+import {
+  getBusinessObject,
+  is
+} from '../../../util/ModelUtil';
+
+import {
+  computeChildrenBBox
+} from 'diagram-js/lib/features/resize/ResizeUtil';
+
+
+var LOW_PRIORITY = 500;
+
+=======
+import inherits from 'inherits';
+
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+
+import {
+  getBusinessObject,
+  is
+} from '../../../util/ModelUtil';
+
+import {
+  computeChildrenBBox
+} from 'diagram-js/lib/features/resize/ResizeUtil';
+
+
+var LOW_PRIORITY = 500;
+
+function filterVisible(elements) {
+  return elements.filter(function(element) {
+    return !element.hidden;
+  });
+}
+
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/modeling/behavior/ToggleElementCollapseBehaviour.js
+<<<<<<< SEARCH
+ToggleElementCollapseBehaviour.$inject = [
+  'eventBus',
+  'elementFactory',
+  'modeling'
+];
+
+
+=======
+ToggleElementCollapseBehaviour.$inject = [
+  'eventBus',
+  'elementFactory',
+  'modeling',
+  'resize'
+];
+
+
+>>>>>>> REPLACE
+```
+
+The first change adds the missing `filterVisible` function that's used to filter out hidden elements when computing the bounding box for visible elements.
+
+The second change adds the `resize` service to the `$inject` array to match the constructor parameters, ensuring proper dependency injection.
+
+These changes will fix the issue with the Ad Hoc Collapsed Subprocess getting weird dimensions by ensuring that the bounding box calculations work correctly when toggling between collapsed and expanded states.

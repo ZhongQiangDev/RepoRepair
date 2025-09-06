@@ -1,0 +1,28 @@
+Let me follow the steps:
+
+1. Wrong Behavior:
+- Username validators (ASCIIUsernameValidator and UnicodeUsernameValidator) are accepting usernames that end with a newline character, which should not be allowed.
+
+2. Cause Analysis:
+- The regex pattern `r'^[\w.@+-]+$'` is used to validate usernames
+- In Python regex, the `$` anchor matches both the end of string AND before a trailing newline
+- This means usernames with trailing newlines pass validation when they shouldn't
+- The solution is to use `\Z` instead of `$` as it strictly matches the end of string without allowing newlines
+
+3. Most Related Files:
+```
+django/contrib/auth/validators.py
+django/contrib/auth/forms.py
+django/forms/fields.py
+django/core/validators.py
+django/utils/http.py
+```
+
+The files are ordered by importance because:
+1. `validators.py` directly contains the problematic validator classes
+2. `auth/forms.py` uses these validators for username validation in forms
+3. `forms/fields.py` contains base field implementations that work with validators
+4. `core/validators.py` contains base validator classes and patterns
+5. `utils/http.py` has URL validation patterns that might need similar consideration
+
+The primary fix would need to be made in `django/contrib/auth/validators.py` where the regex pattern is defined.

@@ -1,0 +1,91 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+Based on the issue description and screenshots, the problem appears to be that WebGLTile layers are rendering error images outside the original extent of the tile grid. This suggests that the tile grid is not properly respecting its defined extent when determining which tiles to render.
+
+Looking at the code, the issue is likely in the `createForExtent` function in `src/ol/tilegrid.js`. This function creates a TileGrid instance with an extent, but the extent is not being properly enforced when rendering tiles.
+
+The problem is that when a TileGrid is created with an extent, that extent should be used to limit which tiles are rendered. However, it appears that tiles outside the extent are still being rendered, showing error images.
+
+## Fix
+
+The issue is that when creating a TileGrid with an extent, we need to ensure that the extent is properly respected. In the current implementation, the extent is passed to the TileGrid constructor, but it might not be properly enforced during rendering.
+
+Let's modify the `createForExtent` function to ensure the extent is properly respected:
+
+```javascript
+### src/ol/tilegrid.js
+<<<<<<< SEARCH
+export function createForExtent(extent, opt_maxZoom, opt_tileSize, opt_corner) {
+  const corner = opt_corner !== undefined ? opt_corner : Corner.TOP_LEFT;
+
+  const resolutions = resolutionsFromExtent(extent, opt_maxZoom, opt_tileSize);
+
+  return new TileGrid({
+    extent: extent,
+    origin: getCorner(extent, corner),
+    resolutions: resolutions,
+    tileSize: opt_tileSize,
+  });
+}
+=======
+export function createForExtent(extent, opt_maxZoom, opt_tileSize, opt_corner) {
+  const corner = opt_corner !== undefined ? opt_corner : Corner.TOP_LEFT;
+
+  const resolutions = resolutionsFromExtent(extent, opt_maxZoom, opt_tileSize);
+
+  // Create a tile grid with the specified extent
+  // The extent will be used to limit which tiles are created and rendered
+  return new TileGrid({
+    extent: extent,
+    origin: getCorner(extent, corner),
+    resolutions: resolutions,
+    tileSize: opt_tileSize,
+  });
+}
+>>>>>>> REPLACE
+```
+
+This change doesn't actually modify the functionality, as the issue is likely in how the TileGrid is used elsewhere in the codebase. However, without seeing the WebGLTile layer implementation, I can't provide a more specific fix.
+
+Let me provide a more likely fix based on the issue description. The problem might be in how the extent is handled when determining which tiles to render. Let's modify the `extentFromProjection` function to ensure the extent is properly calculated:
+
+```javascript
+### src/ol/tilegrid.js
+<<<<<<< SEARCH
+export function extentFromProjection(projection) {
+  projection = getProjection(projection);
+  let extent = projection.getExtent();
+  if (!extent) {
+    const half =
+      (180 * METERS_PER_UNIT[Units.DEGREES]) / projection.getMetersPerUnit();
+    extent = createOrUpdate(-half, -half, half, half);
+  }
+  return extent;
+}
+=======
+export function extentFromProjection(projection) {
+  projection = getProjection(projection);
+  let extent = projection.getExtent();
+  if (!extent) {
+    const half =
+      (180 * METERS_PER_UNIT[Units.DEGREES]) / projection.getMetersPerUnit();
+    extent = createOrUpdate(-half, -half, half, half);
+  }
+  
+  // Ensure the extent is valid and finite to prevent rendering outside bounds
+  if (!isFinite(getWidth(extent)) || !isFinite(getHeight(extent))) {
+    const half = 
+      (180 * METERS_PER_UNIT[Units.DEGREES]) / projection.getMetersPerUnit();
+    extent = createOrUpdate(-half, -half, half, half);
+  }
+  
+  return extent;
+}
+>>>>>>> REPLACE
+```
+
+This change adds a check to ensure the extent has finite width and height. If not, it falls back to a default global extent. This should help prevent rendering tiles outside the valid extent.
+
+Note: Without seeing more of the codebase, especially the WebGLTile layer implementation, it's difficult to provide a more precise fix. The issue might be in how the TileGrid's extent is used during tile rendering in the WebGL implementation.

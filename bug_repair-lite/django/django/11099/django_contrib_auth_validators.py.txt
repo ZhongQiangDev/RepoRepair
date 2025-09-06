@@ -1,0 +1,43 @@
+Based on the issue description, the bug is in the regex patterns used in both `ASCIIUsernameValidator` and `UnicodeUsernameValidator` classes. The current patterns use `^` and `$` as line anchors, which allows trailing newlines. The fix is to replace these with `\A` and `\Z` to properly anchor the pattern to the start and end of the string.
+
+Here are the *SEARCH/REPLACE* edits to fix this issue:
+
+```python
+### django/contrib/auth/validators.py
+<<<<<<< SEARCH
+    regex = r'^[\w.@+-]+$'
+    message = _(
+        'Enter a valid username. This value may contain only English letters, '
+        'numbers, and @/./+/-/_ characters.'
+    )
+    flags = re.ASCII
+=======
+    regex = r'\A[\w.@+-]+\Z'
+    message = _(
+        'Enter a valid username. This value may contain only English letters, '
+        'numbers, and @/./+/-/_ characters.'
+    )
+    flags = re.ASCII
+>>>>>>> REPLACE
+```
+
+```python
+### django/contrib/auth/validators.py
+<<<<<<< SEARCH
+    regex = r'^[\w.@+-]+$'
+    message = _(
+        'Enter a valid username. This value may contain only letters, '
+        'numbers, and @/./+/-/_ characters.'
+    )
+    flags = 0
+=======
+    regex = r'\A[\w.@+-]+\Z'
+    message = _(
+        'Enter a valid username. This value may contain only letters, '
+        'numbers, and @/./+/-/_ characters.'
+    )
+    flags = 0
+>>>>>>> REPLACE
+```
+
+These changes replace the line anchors `^` and `$` with `\A` and `\Z` respectively in both validator classes. This ensures that usernames with trailing newlines will be rejected, as `\Z` matches only the absolute end of the string, not a newline character followed by the end of the string.

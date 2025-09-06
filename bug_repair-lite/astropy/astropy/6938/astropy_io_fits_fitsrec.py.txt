@@ -1,0 +1,22 @@
+Based on the issue description, I can locate the bug in the `_scale_back_ascii` method of the `FITS_rec` class. The issue is that the `replace` operation on the output field is not being assigned back since `replace` returns a new array rather than modifying in-place.
+
+Here's the fix:
+
+```python
+### astropy/io/fits/fitsrec.py
+<<<<<<< SEARCH
+        # Replace exponent separator in floating point numbers
+        if 'D' in format:
+            output_field.replace(encode_ascii('E'), encode_ascii('D'))
+=======
+        # Replace exponent separator in floating point numbers
+        if 'D' in format:
+            output_field[:] = output_field.replace(encode_ascii('E'), encode_ascii('D'))
+>>>>>>> REPLACE
+```
+
+The fix assigns the result of `replace()` back to `output_field` using slice assignment `[:]` to modify the array in-place. This ensures that the exponent separator replacement actually takes effect.
+
+The original code just called `replace()` but didn't store the result anywhere, effectively discarding the modified array. The `replace()` method returns a new array with the replacements made rather than modifying the original array in-place.
+
+This matches the issue description which noted that the `replace` operation is not in-place for `chararray` and returns a copy instead. The fix ensures the replaced values are properly stored back in the original array.

@@ -1,0 +1,20 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The issue occurs when pytest encounters an exception in both `__getattribute__` and `__repr__` methods of a class. Instead of properly handling and reporting the exception, pytest encounters an "INTERNALERROR" with "RuntimeError: No active exception to reraise".
+
+2. Cause Analysis:
+The root cause appears to be in pytest's exception handling and reporting mechanism. When trying to generate a safe representation of the test object for error reporting, pytest's saferepr functionality encounters a bare `raise` statement in `__repr__`, which attempts to re-raise an exception when there isn't one active in the current context. This creates a problematic situation where pytest's internal error reporting mechanism itself fails.
+
+3. Most Related Files:
+Based on the traceback and repository information, here are the most relevant files ordered by importance:
+
+```
+testing/python/raises.py
+testing/python/collect.py
+testing/python/fixtures.py
+```
+
+The `raises.py` file is most important as it handles pytest's exception handling and reporting mechanisms. The `collect.py` file is relevant as it deals with test collection and representation. The `fixtures.py` file may be involved as it handles test setup and execution context.
+
+These files would need to be modified to properly handle cases where object representation methods raise exceptions, particularly ensuring proper exception context is maintained throughout the reporting chain.

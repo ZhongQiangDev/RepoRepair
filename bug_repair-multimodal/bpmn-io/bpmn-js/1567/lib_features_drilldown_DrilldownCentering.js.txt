@@ -1,0 +1,24 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when trying to drill out (navigate back up) after changing the root element. The error message indicates that `rootElement` is required in the `Canvas.setRootElement` method, which is being called from `DrilldownBreadcrumbs.js`.
+
+Looking at the provided code in `DrilldownCentering.js`, I notice a problem in the `positionMap` implementation. The error occurs when trying to remove an element from the map using `positionMap.remove(event.element)`, but the standard JavaScript Map API uses `delete` method, not `remove`. This is causing the map to not properly clear entries when roots are removed.
+
+## Fix
+
+```javascript
+### lib/features/drilldown/DrilldownCentering.js
+<<<<<<< SEARCH
+  eventBus.on('root.remove', function(event) {
+    positionMap.remove(event.element);
+  });
+=======
+  eventBus.on('root.remove', function(event) {
+    positionMap.delete(event.element);
+  });
+>>>>>>> REPLACE
+```
+
+This fix changes the incorrect `positionMap.remove()` call to the correct `positionMap.delete()` method, which is the standard way to remove entries from a JavaScript Map. This ensures that when a root element is removed, its entry in the position map is properly deleted, preventing issues when drilling out of a subprocess.

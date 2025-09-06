@@ -1,0 +1,49 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about performance degradation when upgrading from OpenLayers 4.4.2 to 4.6.2, specifically when using vector rendering with `renderMode: 'image'` which replaced the deprecated `ol.source.ImageVector`.
+
+The key problem appears to be in the `canvasFunctionInternal_` method of the `ol.source.ImageVector` class. Based on the issue description and the provided code, the performance degradation is likely related to how features are rendered in the new version.
+
+Looking at the code, I notice that the `declutterTree_` is being cleared on every render, which could be causing unnecessary recomputation. Additionally, there might be inefficiencies in how the replay group is handling the rendering.
+
+## Fix
+
+```javascript
+### src/ol/source/imagevector.js
+<<<<<<< SEARCH
+  this.declutterTree_.clear();
+
+  var transform = this.getTransform_(ol.extent.getCenter(extent),
+      resolution, pixelRatio, size);
+  replayGroup.replay(this.canvasContext_, transform, 0, {});
+
+  this.replayGroup_ = replayGroup;
+=======
+  // Only clear the declutter tree if it exists
+  if (this.declutterTree_) {
+    this.declutterTree_.clear();
+  }
+
+  var transform = this.getTransform_(ol.extent.getCenter(extent),
+      resolution, pixelRatio, size);
+  
+  // Use a more efficient replay with proper parameters
+  var context = this.canvasContext_;
+  replayGroup.replay(context, transform, 0, {}, null,
+      this.renderBuffer_ ? 
+      function(feature) {
+        return feature.getGeometry().getExtent();
+      } : null);
+
+  this.replayGroup_ = replayGroup;
+>>>>>>> REPLACE
+```
+
+This fix makes two important changes:
+
+1. It adds a check before clearing the declutter tree to avoid unnecessary operations if it doesn't exist.
+2. It modifies the replay call to include additional parameters that can improve rendering performance, particularly by providing a function to get feature extents when a render buffer is defined.
+
+The performance issue is likely related to how the vector features are being rendered in the image mode. The modified replay call should help optimize the rendering process, especially when dealing with many features as shown in the test case.

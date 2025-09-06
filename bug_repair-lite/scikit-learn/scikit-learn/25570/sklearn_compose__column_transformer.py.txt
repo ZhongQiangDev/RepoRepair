@@ -1,0 +1,85 @@
+Based on the issue description, the bug occurs in the `_add_prefix_for_feature_names_out` method of ColumnTransformer when handling transformers with no features. The issue arises because transformers with 0 features are not fitted and don't appear in `self._iter(fitted=True)`, which leads to a mismatch when trying to set column names.
+
+The fix needs to handle the case where a transformer has no features by checking for empty feature names before trying to concatenate them.
+
+Here's the fix:
+
+```python
+### sklearn/compose/_column_transformer.py
+<<<<<<< SEARCH
+    def _add_prefix_for_feature_names_out(self, transformer_with_feature_names_out):
+        """Add prefix for feature names out that includes the transformer names.
+
+        Parameters
+        ----------
+        transformer_with_feature_names_out : list of tuples of (str, array-like of str)
+            The tuple consistent of the transformer's name and its feature names out.
+
+        Returns
+        -------
+        feature_names_out : ndarray of shape (n_features,), dtype=str
+            Transformed feature names.
+        """
+        if self.verbose_feature_names_out:
+            # Prefix the feature names out with the transformers name
+            names = list(
+                chain.from_iterable(
+                    (f"{name}__{i}" for i in feature_names_out)
+                    for name, feature_names_out in transformer_with_feature_names_out
+                )
+            )
+            return np.asarray(names, dtype=object)
+
+        # verbose_feature_names_out is False
+        # Check that names are all unique without a prefix
+        feature_names_count = Counter(
+            chain.from_iterable(s for _, s in transformer_with_feature_names_out)
+        )
+=======
+    def _add_prefix_for_feature_names_out(self, transformer_with_feature_names_out):
+        """Add prefix for feature names out that includes the transformer names.
+
+        Parameters
+        ----------
+        transformer_with_feature_names_out : list of tuples of (str, array-like of str)
+            The tuple consistent of the transformer's name and its feature names out.
+
+        Returns
+        -------
+        feature_names_out : ndarray of shape (n_features,), dtype=str
+            Transformed feature names.
+        """
+        # Filter out empty feature names
+        transformer_with_feature_names_out = [
+            (name, feat_names) for name, feat_names in transformer_with_feature_names_out
+            if len(feat_names) > 0
+        ]
+        
+        if not transformer_with_feature_names_out:
+            return np.array([], dtype=object)
+
+        if self.verbose_feature_names_out:
+            # Prefix the feature names out with the transformers name
+            names = list(
+                chain.from_iterable(
+                    (f"{name}__{i}" for i in feature_names_out)
+                    for name, feature_names_out in transformer_with_feature_names_out
+                )
+            )
+            return np.asarray(names, dtype=object)
+
+        # verbose_feature_names_out is False
+        # Check that names are all unique without a prefix
+        feature_names_count = Counter(
+            chain.from_iterable(s for _, s in transformer_with_feature_names_out)
+        )
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Filters out any transformers that have empty feature names before processing
+2. Returns an empty array if there are no features after filtering
+3. Continues with the original logic for non-empty transformers
+
+This prevents the error when trying to concatenate empty feature names and handles the case of transformers with no features gracefully.

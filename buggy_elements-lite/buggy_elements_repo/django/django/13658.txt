@@ -1,0 +1,35 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- ManagementUtility computes a custom prog_name from argv but doesn't pass it to CommandParser
+- When CommandParser uses %(prog)s in its usage string, it pulls from sys.argv[0] instead of using the computed prog_name
+- This causes issues in embedded environments where sys.argv[0] might be None
+
+2. Cause Analysis:
+- The root cause is that ManagementUtility calculates a custom program name (prog_name) but fails to pass it to CommandParser when creating the parser instance
+- CommandParser then defaults to using sys.argv[0] for %(prog)s substitution since no prog name was explicitly provided
+- This creates an inconsistency between the computed prog_name and what's actually displayed in usage/help messages
+
+3. Relevant Files/Functions Analysis:
+
+django/core/management/base.py:
+```
+django/core/management/base.py
+class: CommandParser
+class: BaseCommand
+```
+These classes are relevant because:
+- CommandParser handles the argument parsing and usage string formatting
+- BaseCommand uses CommandParser and could be affected by this prog name issue
+
+django/core/management/commands/runserver.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/core/management/commands/shell.py:
+```
+This file contains no relevant functions/classes.
+```
+
+The issue appears to be primarily contained within the ManagementUtility class (which isn't shown in the provided files) and its interaction with CommandParser. The BaseCommand class is also relevant since it creates and uses CommandParser instances. The specific command files (runserver.py and shell.py) don't appear to be directly related to this prog name handling issue.

@@ -1,0 +1,60 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is about WebGL tile layers using incorrect cached textures when:
+1. The source is replaced using `setSource()`
+2. The view projection is changed
+
+The problem is that when these changes occur, the cached tile textures become invalid but they're not properly cleared from the cache. This causes old (incorrect) tiles to be displayed when panning back or zooming out.
+
+Looking at the `LRUCache.js` file, I can see that this is the caching mechanism used by OpenLayers. The issue is that there's no mechanism to selectively invalidate cache entries based on source or projection changes.
+
+## Solution
+
+We need to modify the `LRUCache` class to properly handle cache invalidation when the source or projection changes. The `expireCache` method is designed to allow selective cache expiration, but it's not being used effectively.
+
+Currently, the `expireCache` method only removes entries when the cache size exceeds the high water mark. We need to enhance it to properly use the `keep` parameter to selectively keep or discard cache entries.
+
+Here's the fix:
+
+```javascript
+### src/ol/structs/LRUCache.js
+<<<<<<< SEARCH
+  /**
+   * Expire the cache.
+   * @param {!Object<string, boolean>} [keep] Keys to keep. To be implemented by subclasses.
+   */
+  expireCache(keep) {
+    while (this.canExpireCache()) {
+      this.pop();
+    }
+  }
+=======
+  /**
+   * Expire the cache.
+   * @param {!Object<string, boolean>} [keep] Keys to keep.
+   */
+  expireCache(keep) {
+    if (keep) {
+      // Remove entries that are not to be kept
+      const keys = this.getKeys();
+      for (let i = 0, ii = keys.length; i < ii; ++i) {
+        const key = keys[i];
+        if (!keep[key]) {
+          this.remove(key);
+        }
+      }
+    } else {
+      // Just expire based on cache size
+      while (this.canExpireCache()) {
+        this.pop();
+      }
+    }
+  }
+>>>>>>> REPLACE
+```
+
+This change enhances the `expireCache` method to properly handle the `keep` parameter. When a `keep` object is provided, it will remove all cache entries whose keys are not in the `keep` object. This allows the tile layer to selectively invalidate cache entries when the source or projection changes.
+
+The implementation now properly uses the `keep` parameter that was previously only documented as "To be implemented by subclasses." With this change, when a source is replaced or the projection changes, the tile layer can call `expireCache` with a `keep` object that only includes keys for tiles that are still valid, ensuring that invalid cached textures are properly cleared.

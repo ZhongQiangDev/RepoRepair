@@ -1,0 +1,104 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when copying and pasting elements onto flows, the `AdaptiveLabelPositioningBehavior` is not being applied. This behavior should automatically align labels based on the flow direction (vertical or horizontal).
+
+From the provided code snippet, we can see part of the `BpmnCopyPaste.js` file, which handles copy-paste functionality. However, the issue is that after pasting, the adaptive label positioning behavior isn't being triggered.
+
+The most likely cause is that the `BpmnCopyPaste` module isn't properly triggering an event or applying the behavior after pasting elements. We need to modify the code to ensure that after pasting, the adaptive label positioning behavior is applied to the newly pasted elements.
+
+## Solution
+
+We need to modify the `BpmnCopyPaste.js` file to trigger the appropriate behavior after pasting. The fix would involve adding code to apply the `AdaptiveLabelPositioningBehavior` to the pasted elements.
+
+```javascript
+### lib/features/copy-paste/BpmnCopyPaste.js
+<<<<<<< SEARCH
+BpmnCopyPaste.$inject = [
+  'bpmnFactory',
+  'eventBus',
+  'moddleCopy'
+];
+=======
+BpmnCopyPaste.$inject = [
+  'bpmnFactory',
+  'eventBus',
+  'moddleCopy',
+  'modeling'
+];
+>>>>>>> REPLACE
+```
+
+Now we need to update the constructor to use the modeling module and add code to trigger label adjustment after paste:
+
+```javascript
+### lib/features/copy-paste/BpmnCopyPaste.js
+<<<<<<< SEARCH
+function BpmnCopyPaste(
+    bpmnFactory,
+    eventBus,
+    moddleCopy
+) {
+=======
+function BpmnCopyPaste(
+    bpmnFactory,
+    eventBus,
+    moddleCopy,
+    modeling
+) {
+>>>>>>> REPLACE
+```
+
+Finally, we need to add an event listener for the paste event to apply the adaptive label positioning:
+
+```javascript
+### lib/features/copy-paste/BpmnCopyPaste.js
+<<<<<<< SEARCH
+  // register priority for copying root elements
+  eventBus.on('copyPaste.copyElement', LOW_PRIORITY, function(context) {
+    var descriptor = context.descriptor,
+        element = context.element;
+
+    if (is(element, 'bpmn:FlowNode') ||
+        is(element, 'bpmn:SequenceFlow') ||
+        is(element, 'bpmn:Participant') ||
+        is(element, 'bpmn:Lane') ||
+        is(element, 'bpmn:DataOutputAssociation') ||
+        is(element, 'bpmn:DataInputAssociation')) {
+
+      descriptor.isExpanded = element.isExpanded;
+    }
+  });
+=======
+  // register priority for copying root elements
+  eventBus.on('copyPaste.copyElement', LOW_PRIORITY, function(context) {
+    var descriptor = context.descriptor,
+        element = context.element;
+
+    if (is(element, 'bpmn:FlowNode') ||
+        is(element, 'bpmn:SequenceFlow') ||
+        is(element, 'bpmn:Participant') ||
+        is(element, 'bpmn:Lane') ||
+        is(element, 'bpmn:DataOutputAssociation') ||
+        is(element, 'bpmn:DataInputAssociation')) {
+
+      descriptor.isExpanded = element.isExpanded;
+    }
+  });
+  
+  // apply adaptive label positioning after paste
+  eventBus.on('copyPaste.pasteElements', function(context) {
+    var elements = context.elements;
+    
+    // Trigger label adjustment for all pasted elements
+    elements.forEach(function(element) {
+      if (element.labels && element.labels.length) {
+        modeling.updateLabel(element, element.labels[0].text);
+      }
+    });
+  });
+>>>>>>> REPLACE
+```
+
+This solution adds the modeling module to the dependencies and adds an event listener for the 'copyPaste.pasteElements' event. When elements are pasted, it iterates through them and uses the modeling.updateLabel method to trigger the label positioning behavior for any elements with labels.

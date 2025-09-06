@@ -1,0 +1,34 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## 1. Identifying the Wrong Behavior
+
+The issue is that when a standalone image in a RevealJS presentation has a hyperlink (using Markdown's `[![](image-url)](link-url)` syntax), the link doesn't work. However, if the same linked image is preceded by text on the slide, the link works correctly.
+
+## 2. Analyzing the Cause
+
+The problem likely occurs because RevealJS has special handling for standalone images to optimize their display (possibly for centering or sizing), but this process is inadvertently stripping or ignoring the link wrapper around the image.
+
+Based on the description, the issue happens specifically when:
+1. The format is RevealJS
+2. An image is the only content in a slide section
+3. The image has a link wrapper
+
+This suggests the problem is in how RevealJS processes standalone images during rendering, where it's not preserving the link structure.
+
+## 3. Most Related Files
+
+After analyzing the repository information, these are the most relevant files that would need to be edited to fix the issue:
+
+```
+src/format/reveal/format-reveal.ts
+src/command/render/render.ts
+src/command/render/render-shared.ts
+src/command/render/render-info.ts
+src/command/render/cleanup.ts
+```
+
+The `format-reveal.ts` file is most critical as it contains the RevealJS-specific post-processing functions, including `revealHtmlPostprocessor` which handles various slide-specific transformations. This is likely where standalone images are being processed in a way that breaks their link wrappers.
+
+The `render.ts` file contains core rendering logic including the `renderPandoc` function which orchestrates the document conversion process.
+
+The other files provide supporting functionality for the rendering pipeline and may be involved in how images and links are processed during the conversion from markdown to HTML in RevealJS presentations.

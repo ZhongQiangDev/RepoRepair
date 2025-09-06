@@ -1,0 +1,43 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue has two parts:
+1. When the rail is collapsed, submenus remain expanded, causing visual issues
+2. When a user tabs into a collapsed rail with a submenu, the rail should expand
+
+Looking at the code, I can see that the `SideNav` component handles expansion/collapse behavior, but it doesn't properly handle the submenu state when the rail is collapsed. The issue is that when the rail is collapsed, we need to ensure that any expanded submenus are also collapsed.
+
+## Solution
+
+We need to modify the `SideNav` component to:
+1. Pass the `expanded` state to its children so they can respond accordingly
+2. Ensure that when the rail is collapsed, submenus are also collapsed
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/UIShell/SideNav.js
+<<<<<<< SEARCH
+        onFocus={event => handleToggle(event, true)}
+        onBlur={event => handleToggle(event, false)}
+        onMouseEnter={() => handleToggle(true)}
+        onMouseLeave={() => handleToggle(false)}>
+        {children}
+=======
+        onFocus={event => handleToggle(event, true)}
+        onBlur={event => handleToggle(event, false)}
+        onMouseEnter={() => handleToggle(true)}
+        onMouseLeave={() => handleToggle(false)}>
+        {React.Children.map(children, child => {
+          // Clone the child to pass expanded prop to allow submenu items to respond to rail state
+          return React.isValidElement(child)
+            ? React.cloneElement(child, { isExpanded: expanded })
+            : child;
+        })}
+>>>>>>> REPLACE
+```
+
+This change clones each child element and passes the `isExpanded` prop to them. This allows submenu components to know when the rail is expanded or collapsed, so they can adjust their own state accordingly. When the rail is collapsed, submenu items will know to collapse as well.
+
+The submenu components will need to use this `isExpanded` prop to determine whether they should show their items, but that would be in a different file that wasn't provided. This change ensures the necessary information is passed down to those components.

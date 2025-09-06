@@ -1,0 +1,87 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about the graticule example in OpenLayers where the labels show irregular intervals (3', 3'.01'', 2'.59'') while the grid appears regular. Looking at the screenshot, we can see that the seconds part of the coordinates is showing values like 60" which is incorrect - seconds should range from 0 to 59.
+
+The bug is in the `degreesToStringHDMS` function in `src/ol/coordinate.js`. When rounding the seconds value, if it reaches 60, it should increment the minutes and reset seconds to 0. However, the current implementation has a logic issue where it correctly adjusts the values but then formats the original calculated values rather than the adjusted ones.
+
+## Fix
+
+```javascript
+### src/ol/coordinate.js
+<<<<<<< SEARCH
+  let deg = Math.floor(x / 3600);
+  let min = Math.floor((x - deg * 3600) / 60);
+  let sec = x - deg * 3600 - min * 60;
+  sec = Math.ceil(sec * precision) / precision;
+
+  if (sec >= 60) {
+    sec = 0;
+    min += 1;
+  }
+
+  if (min >= 60) {
+    min = 0;
+    deg += 1;
+  }
+=======
+  let deg = Math.floor(x / 3600);
+  let min = Math.floor((x - deg * 3600) / 60);
+  let sec = x - deg * 3600 - min * 60;
+  sec = Math.ceil(sec * precision) / precision;
+
+  if (sec >= 60) {
+    sec = 0;
+    min += 1;
+  }
+
+  if (min >= 60) {
+    min = 0;
+    deg += 1;
+  }
+>>>>>>> REPLACE
+```
+
+The issue is more subtle than I initially thought. Let me analyze it more carefully.
+
+```javascript
+### src/ol/coordinate.js
+<<<<<<< SEARCH
+  let deg = Math.floor(x / 3600);
+  let min = Math.floor((x - deg * 3600) / 60);
+  let sec = x - deg * 3600 - min * 60;
+  sec = Math.ceil(sec * precision) / precision;
+
+  if (sec >= 60) {
+    sec = 0;
+    min += 1;
+  }
+
+  if (min >= 60) {
+    min = 0;
+    deg += 1;
+  }
+=======
+  let deg = Math.floor(x / 3600);
+  let min = Math.floor((x - deg * 3600) / 60);
+  let sec = x - deg * 3600 - min * 60;
+  
+  // Round seconds according to the desired precision
+  sec = Math.round(sec * precision) / precision;
+
+  // Handle carry to minutes when seconds round to 60
+  if (sec >= 60) {
+    sec = 0;
+    min += 1;
+  }
+
+  // Handle carry to degrees when minutes reach 60
+  if (min >= 60) {
+    min = 0;
+    deg += 1;
+  }
+>>>>>>> REPLACE
+```
+
+The key change is using `Math.round()` instead of `Math.ceil()` for the seconds value. This will provide more consistent and expected rounding behavior, which should fix the irregular intervals in the labels. The ceiling function was causing seconds to be rounded up, which could lead to the observed irregular intervals.

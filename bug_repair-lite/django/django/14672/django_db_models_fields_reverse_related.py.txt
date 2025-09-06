@@ -1,0 +1,33 @@
+Based on the issue description, the bug is in the `ManyToManyRel` class where the `through_fields` property needs to be made hashable using `make_hashable()` in the `identity` property. This is needed because `through_fields` can be a list, which is not hashable by default.
+
+Here's the fix:
+
+```python
+### django/db/models/fields/reverse_related.py
+<<<<<<< SEARCH
+    @property
+    def identity(self):
+        return super().identity + (
+            self.through,
+            self.through_fields,
+            self.db_constraint,
+        )
+=======
+    @property
+    def identity(self):
+        return super().identity + (
+            self.through,
+            make_hashable(self.through_fields) if self.through_fields else None,
+            self.db_constraint,
+        )
+>>>>>>> REPLACE
+```
+
+The fix:
+1. Adds `make_hashable()` call to `self.through_fields` to ensure it's hashable
+2. Handles the case where `through_fields` is None by returning None in that case
+3. Maintains proper indentation of the code
+
+This matches the issue description which states that `make_hashable` needs to be called on `through_fields` in `ManyToManyRel`, similar to how it's already being called on `limit_choices_to` in the parent class `ForeignObjectRel`.
+
+The fix will resolve the `TypeError: unhashable type: 'list'` error that occurs when Django tries to hash the identity tuple containing the list-type `through_fields`.

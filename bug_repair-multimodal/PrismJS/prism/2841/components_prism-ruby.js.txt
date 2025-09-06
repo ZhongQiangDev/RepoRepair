@@ -1,0 +1,29 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that interpolation in regex literals using the `/foo#{bar}/` syntax is not being highlighted correctly in Ruby, while it works fine with the `%r{foo#{bar}}` syntax.
+
+Looking at the code, I can see that the problem is in the regex pattern definition. The second regex pattern (for `/.../ syntax`) doesn't include the interpolation handling that's present in the first regex pattern (for `%r` syntax).
+
+Here's the fix:
+
+```javascript
+### components/prism-ruby.js
+<<<<<<< SEARCH
+			{
+				pattern: /(^|[^/])\/(?!\/)(?:\[[^\r\n\]]+\]|\\.|[^[/\\\r\n])+\/[gim]{0,3}(?=\s*(?:$|[\r\n,.;})]))/,
+				lookbehind: true,
+				greedy: true
+			}
+=======
+			{
+				pattern: /(^|[^/])\/(?!\/)(?:\[[^\r\n\]]+\]|\\.|[^[/\\\r\n])+\/[gim]{0,3}(?=\s*(?:$|[\r\n,.;})]))/,
+				lookbehind: true,
+				greedy: true,
+				inside: {
+					'interpolation': interpolation
+				}
+			}
+>>>>>>> REPLACE
+```
+
+This fix adds the `inside: { 'interpolation': interpolation }` property to the second regex pattern, which handles the standard `/.../ syntax` for regular expressions in Ruby. This will allow the interpolation to be properly highlighted in both regex syntaxes.

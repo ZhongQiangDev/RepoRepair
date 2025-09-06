@@ -1,0 +1,34 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+When using `@pytest.mark.skip` or `skipif` markers to skip a test, and running pytest with the `--runxfail` option, the skip location reported in the output points to pytest's internal file (`src/_pytest/skipping.py:238`) instead of the actual test file location (`test_it.py:3`).
+
+2. Cause Analysis:
+The issue appears to be in the `pytest_runtest_makereport` hook within `src/_pytest/skipping.py`. When `--runxfail` is enabled, it's incorrectly affecting the skip location reporting, even though `--runxfail` should only modify the behavior of xfail markers, not skip markers.
+
+3. Relevant Files/Functions Analysis:
+
+testing/python/collect.py:
+```
+This file contains no relevant functions/classes.
+```
+
+testing/python/integration.py:
+```
+This file contains no relevant functions/classes.
+```
+
+src/_pytest/skipping.py:
+```
+src/_pytest/skipping.py
+function: pytest_runtest_makereport
+function: pytest_configure
+function: pytest_addoption
+```
+
+The key functions are in `src/_pytest/skipping.py` because:
+- `pytest_runtest_makereport` is directly mentioned in the bug hint and handles report generation, including skip locations
+- `pytest_configure` is relevant as it handles the `--runxfail` option configuration
+- `pytest_addoption` is relevant as it defines the `--runxfail` option
+
+The issue likely stems from `pytest_runtest_makereport` not properly preserving the original skip location when `--runxfail` is enabled. The function probably needs to maintain the original test location even when processing xfail-related logic.

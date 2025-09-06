@@ -1,0 +1,84 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states "[Field]不能对传入的数据做改动" which translates to "[Field] should not modify the input data".
+
+Looking at the screenshot and the code, I can see that the problem is in the `setValues` method. When setting values, the code is directly modifying the input object (`fieldsValue`) by merging it with the existing values. This is problematic because it's changing data that was passed in from outside, which can lead to unexpected side effects.
+
+The issue is specifically in the `setValues` method where it does:
+```javascript
+this.values = Object.assign({}, this.values, fieldsValue);
+```
+
+This modifies the original `fieldsValue` object when using `parseName: true`. We need to make a deep copy of the input data instead of directly using it.
+
+## Fix
+
+```javascript
+### src/field/index.js
+<<<<<<< SEARCH
+    setValues(fieldsValue = {}, reRender = true) {
+        if (!this.options.parseName) {
+            Object.keys(fieldsValue).forEach(name => {
+                this.setValue(name, fieldsValue[name], false);
+            });
+        } else {
+            // NOTE: this is a shallow merge
+            // Ex. we have two values a.b.c=1 ; a.b.d=2, and use setValues({a:{b:{c:3}}}) , then because of shallow merge a.b.d will be lost, we will get only {a:{b:{c:3}}}
+            this.values = Object.assign({}, this.values, fieldsValue);
+            const fields = this.getNames();
+            fields.forEach(name => {
+                const value = getIn(this.values, name);
+                if (value !== undefined) {
+                    // copy over values that are in this.values
+                    this.fieldsMeta[name].value = value;
+                } else {
+                    // if no value then copy values from fieldsMeta to keep initialized component data
+                    this.values = setIn(
+                        this.values,
+                        name,
+                        this.fieldsMeta[name].value
+                    );
+                }
+            });
+        }
+        reRender && this._reRender();
+    }
+=======
+    setValues(fieldsValue = {}, reRender = true) {
+        // Create a deep copy of the input data to avoid modifying it
+        const fieldsValueCopy = JSON.parse(JSON.stringify(fieldsValue));
+        
+        if (!this.options.parseName) {
+            Object.keys(fieldsValueCopy).forEach(name => {
+                this.setValue(name, fieldsValueCopy[name], false);
+            });
+        } else {
+            // NOTE: this is a shallow merge
+            // Ex. we have two values a.b.c=1 ; a.b.d=2, and use setValues({a:{b:{c:3}}}) , then because of shallow merge a.b.d will be lost, we will get only {a:{b:{c:3}}}
+            this.values = Object.assign({}, this.values, fieldsValueCopy);
+            const fields = this.getNames();
+            fields.forEach(name => {
+                const value = getIn(this.values, name);
+                if (value !== undefined) {
+                    // copy over values that are in this.values
+                    this.fieldsMeta[name].value = value;
+                } else {
+                    // if no value then copy values from fieldsMeta to keep initialized component data
+                    this.values = setIn(
+                        this.values,
+                        name,
+                        this.fieldsMeta[name].value
+                    );
+                }
+            });
+        }
+        reRender && this._reRender();
+    }
+>>>>>>> REPLACE
+```
+
+This fix creates a deep copy of the input data using `JSON.parse(JSON.stringify(fieldsValue))` before using it. This ensures that the original object passed to `setValues` is not modified, which aligns with the principle that a component should not modify its input props.
+
+Note: While `JSON.parse(JSON.stringify())` is not the most efficient way to deep clone objects and has limitations (doesn't handle circular references, functions, etc.), it's a simple solution for this case where we're dealing with plain data objects. If more complex objects need to be handled, a more robust deep cloning solution might be needed.

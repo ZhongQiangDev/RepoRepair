@@ -1,0 +1,66 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that `WebGLPointsLayer` doesn't work correctly with `useGeographic()`. When `useGeographic()` is enabled, the WebGL points are rendered at incorrect locations (near Africa).
+
+Looking at the code, the problem is that the `WebGLPointsLayer` doesn't properly handle the feature projection. When `useGeographic()` is enabled, the map uses EPSG:4326 (geographic coordinates), but the WebGL renderer is still assuming EPSG:3857 (web mercator).
+
+The issue is in the `WebGLPointsLayer.js` file. The renderer needs to be created with awareness of the projection being used.
+
+## Fix
+
+We need to modify the `createRenderer` method to pass the source's projection information to the WebGL renderer:
+
+```javascript
+### src/ol/layer/WebGLPoints.js
+<<<<<<< SEARCH
+  createRenderer() {
+    const attributes = Object.keys(this.parseResult_.attributes).map(
+      (name) => ({
+        name,
+        ...this.parseResult_.attributes[name],
+      })
+    );
+    return new WebGLPointsLayerRenderer(this, {
+      vertexShader: this.parseResult_.builder.getSymbolVertexShader(),
+      fragmentShader: this.parseResult_.builder.getSymbolFragmentShader(),
+      hitDetectionEnabled: !this.hitDetectionDisabled_,
+      uniforms: this.parseResult_.uniforms,
+      attributes:
+        /** @type {Array<import('../renderer/webgl/PointsLayer.js').CustomAttribute>} */ (
+          attributes
+        ),
+    });
+  }
+=======
+  createRenderer() {
+    const attributes = Object.keys(this.parseResult_.attributes).map(
+      (name) => ({
+        name,
+        ...this.parseResult_.attributes[name],
+      })
+    );
+    return new WebGLPointsLayerRenderer(this, {
+      vertexShader: this.parseResult_.builder.getSymbolVertexShader(),
+      fragmentShader: this.parseResult_.builder.getSymbolFragmentShader(),
+      hitDetectionEnabled: !this.hitDetectionDisabled_,
+      uniforms: this.parseResult_.uniforms,
+      attributes:
+        /** @type {Array<import('../renderer/webgl/PointsLayer.js').CustomAttribute>} */ (
+          attributes
+        ),
+    });
+  }
+>>>>>>> REPLACE
+```
+
+After examining the code more carefully, I see that the issue is likely in the WebGLPointsLayerRenderer class, not in the WebGLPointsLayer class itself. The renderer needs to respect the projection of the source.
+
+Since we don't have access to the renderer code in the provided snippets, I'll need to make an educated guess about what needs to be fixed. The most likely solution is to modify the WebGLPointsLayerRenderer to respect the view projection when rendering points.
+
+Let me provide a more general recommendation:
+
+The issue is that the WebGLPointsLayerRenderer needs to transform the coordinates from the source projection (EPSG:4326 when useGeographic is enabled) to the view projection. This transformation is likely missing in the renderer implementation.
+
+To fix this, the WebGLPointsLayerRenderer should check the source projection and the view projection, and apply the necessary transformation to the point coordinates before rendering them.

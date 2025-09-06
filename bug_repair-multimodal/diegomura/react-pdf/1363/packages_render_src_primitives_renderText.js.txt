@@ -1,0 +1,87 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about RGBA colors not working correctly in the Text component compared to the View component. Looking at the screenshot, it appears that when using RGBA colors with transparency (alpha channel), the Text component doesn't render the transparency correctly.
+
+The problem is in the `renderText.js` file, but the provided code snippet is incomplete. The actual rendering function that handles colors is missing from the snippet. Based on the issue description, the Text component is not properly handling RGBA color values, particularly the alpha (transparency) component.
+
+Looking at the file, I notice that there's no implementation of the `renderText` function shown in the snippet, which is exported at the bottom. This function likely needs to be modified to properly handle RGBA colors.
+
+## Solution
+
+Since the complete implementation of `renderText` is not provided in the snippet, I'll need to make an educated guess about what's missing. The issue is likely that the alpha channel of RGBA colors is not being properly applied when rendering text.
+
+Let's add a function to properly handle RGBA colors in the Text component:
+
+```javascript
+### packages/render/src/primitives/renderText.js
+<<<<<<< SEARCH
+import renderGlyphs from './renderGlyphs';
+
+const DEST_REGEXP = /^#.+/;
+
+const isSrcId = src => src.match(DEST_REGEXP);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export default R.curryN(2, renderText);
+=======
+import renderGlyphs from './renderGlyphs';
+
+const DEST_REGEXP = /^#.+/;
+
+const isSrcId = src => src.match(DEST_REGEXP);
+
+/**
+ * Renders text on a document
+ *
+ * @param {Object} ctx document context
+ * @param {Object} node text node
+ * @returns {undefined}
+ */
+const renderText = (ctx, node) => {
+  const { fill, stroke, opacity } = node.style;
+
+  // Apply opacity to the fill and stroke colors if they exist
+  if (fill) {
+    if (typeof fill === 'string' && opacity !== undefined) {
+      ctx.fillColor(fill, opacity);
+    } else {
+      ctx.fillColor(fill);
+    }
+  }
+
+  if (stroke) {
+    if (typeof stroke === 'string' && opacity !== undefined) {
+      ctx.strokeColor(stroke, opacity);
+    } else {
+      ctx.strokeColor(stroke);
+    }
+  }
+
+  // Render the text glyphs
+  renderGlyphs(ctx, node);
+};
+
+export default R.curryN(2, renderText);
+>>>>>>> REPLACE
+```
+
+This implementation adds a proper `renderText` function that handles opacity correctly for both fill and stroke colors. It checks if the fill or stroke is a string (which would be the case for color values) and if an opacity value is defined, then applies that opacity to the color.
+
+Note: This is a simplified solution based on the limited information provided. The actual implementation might need to be more complex depending on how colors are handled in the rest of the codebase. If the actual `renderText` function already exists but is just not handling RGBA colors correctly, the fix would need to be adjusted accordingly.

@@ -1,0 +1,48 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The issue is that a socket.error exception (specifically "Connection reset by peer") is being raised directly to the user code, rather than being wrapped in a more appropriate requests exception like ConnectionError.
+
+2. Cause Analysis:
+The root cause appears to be that somewhere in the request handling chain, particularly during response content reading, a raw socket error is not being properly caught and converted into a requests-specific exception. This is happening in the response content reading path, specifically when trying to read chunked data from the socket.
+
+3. Relevant Files/Functions Analysis:
+
+requests/exceptions.py:
+```
+requests/exceptions.py
+class: ConnectionError
+```
+This is relevant as it's the exception type that should be wrapping the socket error.
+
+requests/models.py:
+```
+requests/models.py
+class: Response
+```
+This is relevant as the error occurs during response content reading in this class's methods.
+
+requests/packages/urllib3/connectionpool.py:
+```
+requests/packages/urllib3/connectionpool.py
+class: HTTPConnectionPool
+class: HTTPSConnectionPool
+```
+These are relevant as they handle the low-level connection management and could be involved in socket error handling.
+
+requests/packages/urllib3/exceptions.py:
+```
+requests/packages/urllib3/exceptions.py
+class: PoolError
+class: HTTPError
+```
+These are relevant as they are part of the exception hierarchy that should be handling connection errors.
+
+requests/packages/urllib3/response.py:
+```
+requests/packages/urllib3/response.py
+class: HTTPResponse
+```
+This is relevant as it handles the low-level response reading where the socket error occurs.
+
+The issue likely needs to be fixed by adding proper exception handling in either the urllib3 HTTPResponse class or the requests Response class to catch socket.error and wrap it in ConnectionError.

@@ -1,0 +1,69 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that `VectorLayer`s with `declutter` enabled and `opacity` set to less than 1 do not clear the canvas between renders. This results in a visual artifact where previous frames are not cleared, leading to overlapping and incorrect rendering of vector features as the map is panned.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from a combination of how `declutter` and `opacity` are handled during the rendering process. When `declutter` is enabled, the rendering engine attempts to manage overlapping features by rendering them in a specific order. However, when `opacity` is less than 1, the canvas may not be cleared properly between frames, leading to the accumulation of previous renderings.
+
+### 3. Examine Each File One by One
+
+#### `src/ol/render.js`
+
+This file contains functions that are fundamental to the rendering process, including setting up the canvas context and executing rendering instructions. The `toContext` function initializes the canvas context, but it does not directly handle clearing the canvas between renders. The `renderDeclutterItems` function manages the rendering of decluttered items but does not handle canvas clearing. Therefore, this file does not contain the direct cause of the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `src/ol/layer/Vector.js`
+
+This file contains the `VectorLayer` class, which is responsible for rendering vector data. The `createRenderer` method creates a renderer for the layer, which is likely where the rendering logic is implemented. The issue may be related to how the renderer handles clearing the canvas between renders.
+
+```
+src/ol/layer/Vector.js
+class: VectorLayer
+```
+
+#### `src/ol/render/canvas/Executor.js`
+
+This file contains the `Executor` class, which executes rendering instructions on a canvas context. The `execute` method is responsible for rendering geometries, images, and text labels. The issue may be related to how the executor handles clearing the canvas between renders.
+
+```
+src/ol/render/canvas/Executor.js
+class: Executor
+```
+
+#### `src/ol/render/canvas/ExecutorGroup.js`
+
+This file contains the `ExecutorGroup` class, which manages the execution of rendering instructions for various geometries and layers. The `execute` method is the main rendering method and may be responsible for clearing the canvas between renders. The `clip` method ensures that only the visible portion of the geometries is rendered, but it does not handle clearing the canvas.
+
+```
+src/ol/render/canvas/ExecutorGroup.js
+class: ExecutorGroup
+```
+
+#### `src/ol/renderer/canvas/VectorLayer.js`
+
+This file contains the `CanvasVectorLayerRenderer` class, which specializes in rendering vector layers. The `renderFrame` method resizes and clears the canvas, applies transformations, and executes rendering instructions for features. This method is likely where the issue lies, as it is responsible for clearing the canvas between renders.
+
+```
+src/ol/renderer/canvas/VectorLayer.js
+class: CanvasVectorLayerRenderer
+```
+
+### Summary of Relevant Locations
+
+```
+src/ol/layer/Vector.js
+class: VectorLayer
+
+src/ol/render/canvas/Executor.js
+class: Executor
+
+src/ol/render/canvas/ExecutorGroup.js
+class: ExecutorGroup
+
+src/ol/renderer/canvas/VectorLayer.js
+class: CanvasVectorLayerRenderer
+```

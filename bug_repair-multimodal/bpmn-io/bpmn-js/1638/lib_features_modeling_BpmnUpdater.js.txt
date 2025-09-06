@@ -1,0 +1,63 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when a label is cleared from a task, the `di.label` property still exists but is set to `null`. According to the issue description, this causes problems with linting tools. The expected behavior is that the `di.label` property should not exist at all when a label is cleared.
+
+The problem is likely in the `BpmnUpdater.js` file, specifically in how it handles label updates. The issue was introduced when support for embedded label DIs was added.
+
+Looking at the provided code, I can see the `_getLabel` method which creates a label if it doesn't exist, but there doesn't seem to be a method to properly remove the label when it's cleared.
+
+## Fix
+
+We need to modify the code to properly remove the `label` property from the DI object when a label is cleared. Let's add a method to handle this:
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+BpmnUpdater.prototype._getLabel = function(di) {
+  if (!di.label) {
+    di.label = this._bpmnFactory.createDiLabel();
+  }
+
+  return di.label;
+};
+
+=======
+BpmnUpdater.prototype._getLabel = function(di) {
+  if (!di.label) {
+    di.label = this._bpmnFactory.createDiLabel();
+  }
+
+  return di.label;
+};
+
+BpmnUpdater.prototype._removeLabel = function(di) {
+  if (di.label) {
+    delete di.label;
+  }
+};
+
+>>>>>>> REPLACE
+```
+
+Now we need to find where the label updates are handled in the file. Since the complete file isn't provided, I'll make an educated guess based on the issue description and the code pattern. We need to find where the label is updated when it's cleared, and call our new `_removeLabel` method instead of setting it to null.
+
+Since we don't have the complete file, I'll provide a general pattern to look for and replace:
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+  // somewhere in the file where labels are updated
+  if (!label || !label.text) {
+    di.label = null;
+  }
+=======
+  // somewhere in the file where labels are updated
+  if (!label || !label.text) {
+    this._removeLabel(di);
+  }
+>>>>>>> REPLACE
+```
+
+If you can provide the complete file or the specific section where labels are updated, I can give a more precise fix. The key is to find where `di.label = null` is set and replace it with `this._removeLabel(di)`.

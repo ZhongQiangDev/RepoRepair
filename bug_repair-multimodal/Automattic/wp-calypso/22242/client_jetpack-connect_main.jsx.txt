@@ -1,0 +1,34 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when users enter a site URL with `/wp-admin` appended (like `example.com/wp-admin`), Jetpack Connect doesn't handle this correctly. Instead, it tries to install Jetpack and redirects to a malformed URL with a double `/wp-admin/wp-admin/` path, resulting in a 404 error.
+
+Looking at the code, the problem is in the `cleanUrl` method. It trims and adds `http://` if needed, but it doesn't handle URLs with `/wp-admin` at the end. We need to modify this method to strip `/wp-admin` from the URL before processing it.
+
+## Fix
+
+```javascript
+### client/jetpack-connect/main.jsx
+<<<<<<< SEARCH
+	cleanUrl( inputUrl ) {
+		let url = inputUrl.trim().toLowerCase();
+		if ( url && url.substr( 0, 4 ) !== 'http' ) {
+			url = 'http://' + url;
+		}
+		return untrailingslashit( url );
+	}
+=======
+	cleanUrl( inputUrl ) {
+		let url = inputUrl.trim().toLowerCase();
+		// Remove /wp-admin from the end of the URL if present
+		url = url.replace( /\/wp-admin\/?$/, '' );
+		if ( url && url.substr( 0, 4 ) !== 'http' ) {
+			url = 'http://' + url;
+		}
+		return untrailingslashit( url );
+	}
+>>>>>>> REPLACE
+```
+
+This fix adds a regular expression to detect and remove `/wp-admin` or `/wp-admin/` from the end of the URL before proceeding with the rest of the URL cleaning process. This way, when a user enters a site URL with `/wp-admin` appended, Jetpack Connect will strip it off and use the base site URL, preventing the double `/wp-admin/wp-admin/` issue and ensuring proper Jetpack detection and installation.

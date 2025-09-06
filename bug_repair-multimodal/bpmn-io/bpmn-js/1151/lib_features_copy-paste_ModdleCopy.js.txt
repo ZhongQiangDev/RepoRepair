@@ -1,0 +1,28 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that labels are lost when extracting pool contents in a BPMN diagram. Based on the issue description and the code provided, the problem appears to be in the `ModdleCopy.js` file.
+
+Looking at the code, I found a bug in the `copyElement` method. When checking if a copied property can be set, the code uses an undefined variable `parent` instead of `targetElement`. This causes the event to fire with incorrect parameters, potentially causing labels to be lost during the copy/paste operation.
+
+Here's the fix:
+
+```javascript
+### lib/features/copy-paste/ModdleCopy.js
+<<<<<<< SEARCH
+    var canSetProperty = self._eventBus.fire('moddleCopy.canSetCopiedProperty', {
+      parent: parent,
+      property: copiedProperty,
+      propertyName: propertyName
+    });
+=======
+    var canSetProperty = self._eventBus.fire('moddleCopy.canSetCopiedProperty', {
+      parent: targetElement,
+      property: copiedProperty,
+      propertyName: propertyName
+    });
+>>>>>>> REPLACE
+```
+
+This fix changes the incorrect variable `parent` to the correct variable `targetElement`, which is the element we're copying properties to. This ensures that the event is fired with the correct parent element, allowing labels to be properly copied during the pool extraction process.

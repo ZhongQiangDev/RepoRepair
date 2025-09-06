@@ -1,0 +1,44 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the Box component breaks when using both `border="between"` and a gap size in pixels (like `gap="10px"`). The error message indicates that there's a problem with trying to read a `match` property of an undefined value.
+
+Looking at the code, the issue is likely in the `gapStyle` function where it handles the border between elements. The problem occurs when parsing the metric value for a pixel-based gap.
+
+Let's examine the `parseMetricToNum` function usage in the `gapStyle` function. When a pixel value like "10px" is passed, the code tries to calculate border offsets, but it seems the parsing is failing.
+
+Here's the fix:
+
+```javascript
+### src/js/components/Box/StyledBox.js
+<<<<<<< SEARCH
+    const borderOffset = `${
+      parseMetricToNum(metric) / 2 - parseMetricToNum(borderMetric) / 2
+    }px`;
+    const responsiveBorderMetric =
+      responsive &&
+      breakpoint &&
+      (breakpoint.borderSize[borderSize] || borderSize);
+    const responsiveBorderOffset =
+      responsiveBorderMetric &&
+      `${
+        parseMetricToNum(responsiveMetric) / 2 -
+        parseMetricToNum(responsiveBorderMetric) / 2
+      }px`;
+=======
+    const borderOffset = `${
+      parseMetricToNum(metric || '0px') / 2 - parseMetricToNum(borderMetric || '0px') / 2
+    }px`;
+    const responsiveBorderMetric =
+      responsive &&
+      breakpoint &&
+      (breakpoint.borderSize[borderSize] || borderSize);
+    const responsiveBorderOffset =
+      responsiveBorderMetric && responsiveMetric &&
+      `${
+        parseMetricToNum(responsiveMetric || '0px') / 2 -
+        parseMetricToNum(responsiveBorderMetric || '0px') / 2
+      }px`;
+>>>>>>> REPLACE
+```
+
+This fix adds null checks to ensure that when `parseMetricToNum` is called, it always has a value to work with, even if the original values are undefined. The default '0px' ensures that the function has a valid string to parse, preventing the "Cannot read properties of undefined (reading 'match')" error.

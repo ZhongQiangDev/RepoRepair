@@ -1,0 +1,149 @@
+I'll analyze the issue and provide a solution for better Python type hints support.
+
+The issue is about improving Python type hints support in the syntax highlighter. Currently, the highlighter doesn't properly handle type annotations like `# type: Dict[int, Any]` or function return type annotations like `-> List[float]`.
+
+Looking at the code, I can see that while there is some support for the arrow syntax (`->`) in function definitions, it doesn't properly handle the type hint annotations. We need to add support for:
+
+1. Type comments (like `# type: Dict[int, Any]`)
+2. Better handling of type annotations in function signatures
+
+Here's my solution:
+
+```javascript
+### src/languages/python.js
+<<<<<<< SEARCH
+  const KEYWORDS = {
+    keyword: RESERVED_WORDS,
+    built_in: BUILT_INS,
+    literal: LITERALS
+  };
+=======
+  // Common type annotation types
+  const TYPE_HINTS = [
+    'Any',
+    'Callable',
+    'Dict',
+    'List',
+    'Literal',
+    'Optional',
+    'Tuple',
+    'Union',
+    'TypeVar',
+    'Generic',
+    'Set',
+    'FrozenSet',
+    'Iterable',
+    'Iterator',
+    'Sequence',
+    'Mapping',
+    'TypedDict',
+    'ClassVar',
+    'Final',
+    'Protocol',
+    'NamedTuple',
+    'NoReturn'
+  ];
+
+  const KEYWORDS = {
+    keyword: RESERVED_WORDS,
+    built_in: BUILT_INS,
+    literal: LITERALS,
+    type: TYPE_HINTS
+  };
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/languages/python.js
+<<<<<<< SEARCH
+      {
+        begin: /->/, endsWithParent: true,
+        keywords: 'None'
+      }
+=======
+      {
+        begin: /->/, endsWithParent: true,
+        keywords: {
+          built_in: BUILT_INS,
+          literal: LITERALS,
+          type: TYPE_HINTS
+        },
+        contains: [
+          {
+            className: 'meta',
+            begin: /\[/, end: /\]/,
+            contains: [
+              {
+                className: 'meta',
+                begin: /\[/, end: /\]/,
+                contains: ['self', NUMBER, STRING]
+              },
+              NUMBER, 
+              STRING, 
+              'self'
+            ]
+          }
+        ]
+      }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/languages/python.js
+<<<<<<< SEARCH
+    contains: [
+      PROMPT,
+      NUMBER,
+      // eat "if" prior to string so that it won't accidentally be
+      // labeled as an f-string as in:
+      { begin: /\bself\b/, }, // very common convention
+      { beginKeywords: "if", relevance: 0 },
+      STRING,
+      hljs.HASH_COMMENT_MODE,
+=======
+    contains: [
+      PROMPT,
+      NUMBER,
+      // eat "if" prior to string so that it won't accidentally be
+      // labeled as an f-string as in:
+      { begin: /\bself\b/, }, // very common convention
+      { beginKeywords: "if", relevance: 0 },
+      STRING,
+      // Type comments
+      {
+        className: 'comment',
+        begin: /#\s*type:/, end: /$/,
+        keywords: {
+          built_in: BUILT_INS,
+          literal: LITERALS,
+          type: TYPE_HINTS
+        },
+        contains: [
+          {
+            className: 'meta',
+            begin: /\[/, end: /\]/,
+            contains: [
+              {
+                className: 'meta',
+                begin: /\[/, end: /\]/,
+                contains: ['self', NUMBER, STRING]
+              },
+              NUMBER, 
+              STRING, 
+              'self'
+            ]
+          }
+        ]
+      },
+      hljs.HASH_COMMENT_MODE,
+>>>>>>> REPLACE
+```
+
+These changes will:
+
+1. Add a list of common Python type hint classes
+2. Create a new 'type' category in the keywords object
+3. Enhance the arrow (`->`) syntax to properly handle type annotations with nested brackets
+4. Add support for type comments like `# type: Dict[int, Any]`
+
+This implementation will provide better highlighting for Python type hints, similar to what Magic Python offers, making type annotations visually distinct in the code.

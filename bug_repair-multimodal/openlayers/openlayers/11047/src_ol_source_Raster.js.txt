@@ -1,0 +1,79 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that raster web workers created by the `RasterSource` class are not being terminated when they're no longer needed, causing memory leaks. According to the issue report, users have to manually track and terminate these workers as a workaround.
+
+Looking at the code, I can see that:
+
+1. The `RasterSource` class creates a `Processor` instance from the `pixelworks` library in the `setOperation` method
+2. This processor creates web workers to perform operations
+3. However, there's no code to terminate these workers when the source is disposed or when a new operation is set
+
+The fix should involve:
+1. Terminating any existing workers when setting a new operation
+2. Ensuring workers are terminated when the source is disposed
+
+## Solution
+
+```javascript
+### src/ol/source/Raster.js
+<<<<<<< SEARCH
+  /**
+   * Set the operation.
+   * @param {Operation} operation New operation.
+   * @param {Object=} opt_lib Functions that will be available to operations run
+   *     in a worker.
+   * @api
+   */
+  setOperation(operation, opt_lib) {
+    this.worker_ = new Processor({
+      operation: operation,
+      imageOps: this.operationType_ === RasterOperationType.IMAGE,
+      queue: 1,
+      lib: opt_lib,
+      threads: this.threads_,
+    });
+    this.changed();
+  }
+=======
+  /**
+   * Set the operation.
+   * @param {Operation} operation New operation.
+   * @param {Object=} opt_lib Functions that will be available to operations run
+   *     in a worker.
+   * @api
+   */
+  setOperation(operation, opt_lib) {
+    if (this.worker_) {
+      this.worker_.dispose();
+    }
+    this.worker_ = new Processor({
+      operation: operation,
+      imageOps: this.operationType_ === RasterOperationType.IMAGE,
+      queue: 1,
+      lib: opt_lib,
+      threads: this.threads_,
+    });
+    this.changed();
+  }
+
+  /**
+   * Clean up resources created by this source.
+   */
+  disposeInternal() {
+    if (this.worker_) {
+      this.worker_.dispose();
+    }
+    super.disposeInternal();
+  }
+>>>>>>> REPLACE
+```
+
+This fix adds two important changes:
+
+1. In the `setOperation` method, it checks if there's an existing worker and disposes of it before creating a new one. This prevents accumulation of workers when the operation changes.
+
+2. It adds a `disposeInternal` method that properly cleans up the worker when the source is disposed. This method overrides the parent class's method and calls it after doing its own cleanup.
+
+The `dispose` method in the `Processor` class from pixelworks will handle terminating all the web workers it created, which addresses the memory leak issue described in the bug report.

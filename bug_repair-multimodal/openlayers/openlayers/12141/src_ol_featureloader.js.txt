@@ -1,0 +1,32 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when trying to get the extent of a VectorSource inside the `featuresloadend` callback function, the result is `[Infinity,Infinity,-Infinity,-Infinity]`, which is incorrect. 
+
+Looking at the code in `src/ol/featureloader.js`, I can see that in the `xhr` function, the success callback is called before the features are added to the source. This means that when the `featuresloadend` event is triggered, the features haven't been added to the source yet, so the extent calculation returns the default empty extent.
+
+The fix is to change the order of operations in the `xhr` function so that features are added to the source before calling the success callback.
+
+## Fix
+
+```javascript
+### src/ol/featureloader.js
+<<<<<<< SEARCH
+      function (features, dataProjection) {
+        if (success !== undefined) {
+          success(features);
+        }
+        source.addFeatures(features);
+      },
+=======
+      function (features, dataProjection) {
+        source.addFeatures(features);
+        if (success !== undefined) {
+          success(features);
+        }
+      },
+>>>>>>> REPLACE
+```
+
+This change ensures that the features are added to the source before the success callback is called. When the success callback triggers the `featuresloadend` event, the source will already have the features, so `getExtent()` will return the correct extent.

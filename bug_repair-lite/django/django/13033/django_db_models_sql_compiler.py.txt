@@ -1,0 +1,61 @@
+Based on the issue description, the bug appears to be in the ordering behavior when using self-referencing foreign keys. The issue manifests when using `order_by("record__root_id")` where the default model ordering is incorrectly applied to the joined table.
+
+The fix needs to ensure that explicit ordering takes precedence over model default ordering when dealing with self-referencing foreign keys.
+
+Looking at the code, the issue is in the `get_order_by()` method of SQLCompiler where it processes the ordering. Here's the fix:
+
+```python
+### django/db/models/sql/compiler.py
+<<<<<<< SEARCH
+            if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name and name != 'pk':
+                # Firstly, avoid infinite loops.
+                already_seen = already_seen or set()
+                join_tuple = tuple(getattr(self.query.alias_map[j], 'join_cols', None) for j in joins)
+                if join_tuple in already_seen:
+                    raise FieldError('Infinite loop caused by ordering.')
+                already_seen.add(join_tuple)
+
+                results = []
+                for item in opts.ordering:
+                    if hasattr(item, 'resolve_expression') and not isinstance(item, OrderBy):
+                        item = item.desc() if descending else item.asc()
+                    if isinstance(item, OrderBy):
+                        results.append((item, False))
+                        continue
+                    results.extend(self.find_ordering_name(item, opts, alias,
+                                                       order, already_seen))
+                return results
+=======
+            if field.is_relation and opts.ordering and getattr(field, 'attname', None) != name and name != 'pk':
+                # Don't apply default ordering for self-referential foreign keys when explicit ordering is specified
+                if field.remote_field and field.remote_field.model == field.model and name.endswith('_id'):
+                    return [(OrderBy(transform_function(t, alias), descending=descending), False) for t in targets]
+                    
+                # Firstly, avoid infinite loops.
+                already_seen = already_seen or set()
+                join_tuple = tuple(getattr(self.query.alias_map[j], 'join_cols', None) for j in joins)
+                if join_tuple in already_seen:
+                    raise FieldError('Infinite loop caused by ordering.')
+                already_seen.add(join_tuple)
+
+                results = []
+                for item in opts.ordering:
+                    if hasattr(item, 'resolve_expression') and not isinstance(item, OrderBy):
+                        item = item.desc() if descending else item.asc()
+                    if isinstance(item, OrderBy):
+                        results.append((item, False))
+                        continue
+                    results.extend(self.find_ordering_name(item, opts, alias,
+                                                       order, already_seen))
+                return results
+>>>>>>> REPLACE
+```
+
+This fix adds a special case for self-referential foreign keys. When an explicit ordering is specified for a self-referential foreign key field (detected by checking if the field references its own model and the ordering is on the ID field), it skips applying the model's default ordering and just uses the explicitly requested order.
+
+This addresses the issue by:
+1. Detecting self-referential foreign key ordering
+2. Preventing default model ordering from being applied in this case
+3. Using the explicitly requested ordering direction
+
+The fix will make `order_by("record__root_id")` work as expected without being affected by the default ordering of the model.

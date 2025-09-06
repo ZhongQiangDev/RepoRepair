@@ -1,0 +1,73 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that member functions in ES6 classes are not being highlighted properly. Looking at the screenshot provided in the issue, we can see that methods like `constructor` and `render` in the ES6 class are not highlighted, while other JavaScript syntax elements are.
+
+Looking at the JavaScript language definition in `src/languages/javascript.js`, I notice that while there are specific rules for handling class declarations and constructors, there's no specific rule for highlighting regular class methods.
+
+## Solution
+
+We need to add a rule to highlight class methods. The best place to add this is in the class definition section, where we already have rules for `constructor`, `get`, and `set` methods. We need to add a rule that matches regular class methods.
+
+Here's the fix:
+
+```javascript
+### src/languages/javascript.js
+<<<<<<< SEARCH
+      {
+        beginKeywords: 'constructor',
+        end: /[\{;]/,
+        excludeEnd: true,
+        contains: [
+          'self',
+          PARAMS
+        ]
+      },
+      {
+        begin: '(get|set)\\s+(?=' + IDENT_RE + '\\()',
+        end: /{/,
+        keywords: "get set",
+        contains: [
+          hljs.inherit(hljs.TITLE_MODE, { begin: IDENT_RE }),
+          { begin: /\(\)/ }, // eat to avoid empty params
+          PARAMS
+        ]
+      },
+=======
+      {
+        beginKeywords: 'constructor',
+        end: /[\{;]/,
+        excludeEnd: true,
+        contains: [
+          'self',
+          PARAMS
+        ]
+      },
+      {
+        begin: '(get|set)\\s+(?=' + IDENT_RE + '\\()',
+        end: /{/,
+        keywords: "get set",
+        contains: [
+          hljs.inherit(hljs.TITLE_MODE, { begin: IDENT_RE }),
+          { begin: /\(\)/ }, // eat to avoid empty params
+          PARAMS
+        ]
+      },
+      {
+        // Class method
+        className: 'function',
+        begin: IDENT_RE + '\\s*\\(',
+        end: /[\{;]/,
+        excludeEnd: true,
+        keywords: KEYWORDS,
+        contains: [
+          'self',
+          PARAMS
+        ],
+        relevance: 0
+      },
+>>>>>>> REPLACE
+```
+
+This adds a new rule that matches class methods by looking for an identifier followed by parentheses, which is the pattern for method declarations in classes. The rule assigns the "function" class name to these methods, which should highlight them properly. I've added a low relevance to avoid conflicts with other rules.

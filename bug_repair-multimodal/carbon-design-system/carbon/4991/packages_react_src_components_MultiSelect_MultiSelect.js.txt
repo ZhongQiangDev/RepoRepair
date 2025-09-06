@@ -1,0 +1,95 @@
+I'll analyze the issue and provide a fix for the DAP (Digital Accessibility Platform) violations in the React MultiSelect component.
+
+## Issue Analysis
+
+Based on the issue description and screenshots, there are two main accessibility problems:
+
+1. The "X" (clear selection button) is missing a proper label, causing a DAP violation
+2. When the menu is expanded, there are multiple DAP violations
+
+Looking at the code, I can see that the `ListBox.Selection` component is being used to render the "X" button, but it doesn't have an appropriate aria-label. The component is receiving a `translateWithId` prop, but it needs additional accessibility attributes.
+
+## Solution
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+                    {selectedItem.length > 0 && (
+                      <ListBox.Selection
+                        clearSelection={!disabled ? clearSelection : noop}
+                        selectionCount={selectedItem.length}
+                        translateWithId={translateWithId}
+                        disabled={disabled}
+                      />
+                    )}
+=======
+                    {selectedItem.length > 0 && (
+                      <ListBox.Selection
+                        clearSelection={!disabled ? clearSelection : noop}
+                        selectionCount={selectedItem.length}
+                        translateWithId={translateWithId}
+                        disabled={disabled}
+                        aria-label={
+                          selectedItem.length === 1
+                            ? `Clear selected item`
+                            : `Clear ${selectedItem.length} selected items`
+                        }
+                      />
+                    )}
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+                  {isOpen && (
+                    <ListBox.Menu aria-label={ariaLabel} id={id}>
+=======
+                  {isOpen && (
+                    <ListBox.Menu 
+                      aria-label={ariaLabel || `${label} options`} 
+                      id={id}
+                      role="listbox"
+                      aria-multiselectable="true">
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+                          <ListBox.MenuItem
+                            key={itemProps.id}
+                            isActive={isChecked}
+                            isHighlighted={highlightedIndex === index}
+                            {...itemProps}>
+=======
+                          <ListBox.MenuItem
+                            key={itemProps.id}
+                            isActive={isChecked}
+                            isHighlighted={highlightedIndex === index}
+                            role="option"
+                            aria-selected={isChecked}
+                            {...itemProps}>
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/MultiSelect/MultiSelect.js
+<<<<<<< SEARCH
+                              tabIndex="-1"
+                              labelText={itemText}
+=======
+                              tabIndex="-1"
+                              labelText={itemText}
+                              aria-label={itemText}
+>>>>>>> REPLACE
+```
+
+These changes address the accessibility issues by:
+
+1. Adding an appropriate `aria-label` to the clear selection button (X) that describes its purpose and includes the number of selected items
+2. Ensuring the dropdown menu has proper ARIA attributes including `role="listbox"` and `aria-multiselectable="true"`
+3. Adding proper ARIA attributes to each menu item with `role="option"` and `aria-selected` state
+4. Adding an `aria-label` to each checkbox to ensure screen readers can properly announce the item
+
+These changes will fix the DAP violations shown in the screenshots while maintaining the component's functionality.

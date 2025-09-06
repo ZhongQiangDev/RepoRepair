@@ -1,0 +1,43 @@
+Based on the issue description, the bug appears to be in the migration autodetector's handling of unique_together constraints when converting a ForeignKey field to a ManyToManyField. The error occurs because the unique_together constraint needs to be removed before changing the field type.
+
+The fix needs to be in the `generate_altered_fields()` method of `MigrationAutodetector` class, where we should handle the unique_together removal before field type changes.
+
+Here's the fix:
+
+```python
+### django/db/migrations/autodetector.py
+<<<<<<< SEARCH
+                    # We cannot alter between m2m and concrete fields
+                    self._generate_removed_field(app_label, model_name, field_name)
+                    self._generate_added_field(app_label, model_name, field_name)
+=======
+                    # We cannot alter between m2m and concrete fields
+                    # First remove any unique_together containing this field
+                    old_model_state = self.from_state.models[app_label, old_model_name]
+                    unique_together = old_model_state.options.get("unique_together", None)
+                    if unique_together:
+                        for unique_fields in unique_together:
+                            if field_name in unique_fields:
+                                self.add_operation(
+                                    app_label,
+                                    operations.AlterUniqueTogether(
+                                        name=model_name,
+                                        unique_together=None,
+                                    ),
+                                )
+                                break
+                    # Then handle the field change
+                    self._generate_removed_field(app_label, model_name, field_name)
+                    self._generate_added_field(app_label, model_name, field_name)
+>>>>>>> REPLACE
+```
+
+This change:
+
+1. Checks if there's a unique_together constraint containing the field being altered
+2. If found, adds an operation to remove the unique_together constraint before changing the field
+3. Then proceeds with the field type change operations
+
+The fix ensures that unique_together constraints are properly removed before attempting to change a field from ForeignKey to ManyToManyField, which prevents the "Found wrong number of constraints" error.
+
+This matches the workaround described in the issue where removing unique_together first, then changing the field type worked. But now it's handled automatically in a single migration.

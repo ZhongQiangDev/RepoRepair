@@ -1,0 +1,40 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about broken connection layout when reconnecting to create a loop. When a connection with more than 2 waypoints is reconnected to form a loop (connecting back to the source), the layout is incorrect.
+
+Looking at the code, the problem is in the `BpmnLayouter.prototype.layoutConnection` method. When a connection is made from an element back to itself (a loop), the code sets `manhattanOptions` with a preferred layout of `'b:l'` (bottom to left). However, this doesn't take into account the existing waypoints of the connection when it's being reconnected to form a loop.
+
+The issue is that when reconnecting an existing connection with multiple waypoints to form a loop, the layout algorithm doesn't properly handle the existing waypoints and forces a specific layout pattern.
+
+## Fix
+
+We need to modify the code to preserve the existing waypoints when reconnecting to form a loop, rather than forcing a specific layout:
+
+```javascript
+### lib/features/modeling/BpmnLayouter.js
+<<<<<<< SEARCH
+    if (source === target) {
+      manhattanOptions = {
+        preferredLayouts: [ 'b:l' ]
+      };
+    } else
+=======
+    if (source === target) {
+      // When reconnecting to create a loop and we have existing waypoints,
+      // preserve them instead of forcing a specific layout
+      if (waypoints && waypoints.length > 2) {
+        return [].concat([ start ], waypoints.slice(1, -1), [ end ]);
+      } else {
+        manhattanOptions = {
+          preferredLayouts: [ 'b:l' ]
+        };
+      }
+    } else
+>>>>>>> REPLACE
+```
+
+This change checks if we're dealing with a loop (source === target) and if the connection already has more than 2 waypoints. If both conditions are true, it preserves the existing waypoints and just updates the start and end points. Otherwise, it applies the default loop layout (bottom to left).
+
+This should fix the issue by maintaining the existing connection layout when reconnecting to form a loop, rather than forcing a new layout.

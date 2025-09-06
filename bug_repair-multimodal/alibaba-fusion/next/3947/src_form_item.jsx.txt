@@ -1,0 +1,85 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about the Form component in a React application. The problem is that when users wrap the Form component with additional DOM structure for styling purposes, the `useLabelForErrorMessage` API doesn't work properly. 
+
+The issue requests adding a new API called `getLabel` that would work with `useLabelForErrorMessage` to provide the label text for error messages even when the DOM structure is modified.
+
+Looking at the code, I can see that there's already a method called `getLabelForErrorMessage()` that handles this functionality, but it's only used internally. The issue is requesting to expose this functionality so it can be used externally.
+
+## Solution
+
+We need to add a new method called `getLabel` that can be used to get the label text for error messages. This method should be exposed as part of the API.
+
+```javascript
+### src/form/item.jsx
+<<<<<<< SEARCH
+    static _typeMark = 'form_item';
+
+    /**
+     * 从子元素里面提取表单组件. TODO: 2.x 中改为只获取一个元素
+     */
+=======
+    static _typeMark = 'form_item';
+
+    /**
+     * 获取 label
+     * @returns {String} label
+     */
+    getLabel() {
+        let label = this.props.label;
+
+        if (!label || typeof label !== 'string') {
+            return null;
+        }
+
+        return label.replace(':', '').replace('：', '');
+    }
+
+    /**
+     * 从子元素里面提取表单组件. TODO: 2.x 中改为只获取一个元素
+     */
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/form/item.jsx
+<<<<<<< SEARCH
+    getLabelForErrorMessage() {
+        let label = this.props.label;
+
+        if (!label || typeof label !== 'string') {
+            return null;
+        }
+
+        label = label.replace(':', '').replace('：', '');
+
+        const labelForErrorMessage =
+            'useLabelForErrorMessage' in this.props
+                ? this.props.useLabelForErrorMessage
+                : this.context._formLabelForErrorMessage;
+        if (labelForErrorMessage && label) {
+            return label;
+        }
+
+        return null;
+    }
+=======
+    getLabelForErrorMessage() {
+        const label = this.getLabel();
+
+        const labelForErrorMessage =
+            'useLabelForErrorMessage' in this.props
+                ? this.props.useLabelForErrorMessage
+                : this.context._formLabelForErrorMessage;
+        if (labelForErrorMessage && label) {
+            return label;
+        }
+
+        return null;
+    }
+>>>>>>> REPLACE
+```
+
+This change adds a new `getLabel()` method that extracts the label text from the props and removes any colons. Then, it modifies the existing `getLabelForErrorMessage()` method to use this new method instead of duplicating the logic. This way, the label text can be accessed externally through the `getLabel()` method, and it will work consistently with the internal error message handling.

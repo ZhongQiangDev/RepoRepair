@@ -1,0 +1,76 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that in Scala code, when a comment follows a class declaration but is on the same line before the opening curly brace, the comment is incorrectly rendered as part of the class title. This happens because the CLASS rule's `end` pattern doesn't properly account for comments.
+
+Looking at the code, the problem is in the CLASS definition. The `end` pattern is `/[:={\[\n;]/`, which means it will continue capturing content until it finds one of these characters. When a comment appears before the opening curly brace, it gets captured as part of the class title.
+
+Here's my fix:
+
+```javascript
+### src/languages/scala.js
+<<<<<<< SEARCH
+  var CLASS = {
+    className: 'class',
+    beginKeywords: 'class object trait type',
+    end: /[:={\[\n;]/,
+    excludeEnd: true,
+    contains: [
+      {
+        beginKeywords: 'extends with',
+        relevance: 10
+      },
+      {
+        begin: /\[/,
+        end: /\]/,
+        excludeBegin: true,
+        excludeEnd: true,
+        relevance: 0,
+        contains: [TYPE]
+      },
+      {
+        className: 'params',
+        begin: /\(/,
+        end: /\)/,
+        excludeBegin: true,
+        excludeEnd: true,
+        relevance: 0,
+        contains: [TYPE]
+      },
+      NAME
+    ]
+  };
+=======
+  var CLASS = {
+    className: 'class',
+    beginKeywords: 'class object trait type',
+    end: /[:={\[\n;]|\s+(?=\/\/)/,
+    excludeEnd: true,
+    contains: [
+      {
+        beginKeywords: 'extends with',
+        relevance: 10
+      },
+      {
+        begin: /\[/,
+        end: /\]/,
+        excludeBegin: true,
+        excludeEnd: true,
+        relevance: 0,
+        contains: [TYPE]
+      },
+      {
+        className: 'params',
+        begin: /\(/,
+        end: /\)/,
+        excludeBegin: true,
+        excludeEnd: true,
+        relevance: 0,
+        contains: [TYPE]
+      },
+      NAME
+    ]
+  };
+>>>>>>> REPLACE
+```
+
+This change modifies the `end` pattern to also match whitespace followed by a comment (`\s+(?=\/\/)`). This way, when a comment appears after the class name but before the opening brace, the class title highlighting will end before the comment starts, and the comment will be properly highlighted as a comment.

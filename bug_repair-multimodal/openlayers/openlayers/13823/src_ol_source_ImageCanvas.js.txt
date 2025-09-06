@@ -1,0 +1,63 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue states that for image sources with a pixel ratio of 1, the renderer creates a canvas with the size for the display pixel ratio instead of the image ratio of the source. This means on HiDPI devices (where the display pixel ratio is typically 2), the canvas is twice as big as needed, using 4 times the memory.
+
+Looking at the code, the problem is in the `getImageInternal` method of the `ImageCanvasSource` class. When creating the canvas, it's calculating the size based on both the resolution and the pixel ratio:
+
+```javascript
+const size = [width * pixelRatio, height * pixelRatio];
+```
+
+Then it passes this size along with the pixel ratio to the canvas function:
+
+```javascript
+const canvasElement = this.canvasFunction_.call(
+  this,
+  extent,
+  resolution,
+  pixelRatio,
+  size,
+  projection
+);
+```
+
+The issue is that the size already includes the pixel ratio adjustment, but then the pixel ratio is also passed separately to the canvas function. This likely causes double-counting of the pixel ratio in the rendering process.
+
+## Fix
+
+```javascript
+### src/ol/source/ImageCanvas.js
+<<<<<<< SEARCH
+    const width = getWidth(extent) / resolution;
+    const height = getHeight(extent) / resolution;
+    const size = [width * pixelRatio, height * pixelRatio];
+
+    const canvasElement = this.canvasFunction_.call(
+      this,
+      extent,
+      resolution,
+      pixelRatio,
+      size,
+      projection
+    );
+=======
+    const width = getWidth(extent) / resolution;
+    const height = getHeight(extent) / resolution;
+    const size = [width, height];
+
+    const canvasElement = this.canvasFunction_.call(
+      this,
+      extent,
+      resolution,
+      pixelRatio,
+      size,
+      projection
+    );
+>>>>>>> REPLACE
+```
+
+This fix removes the pixel ratio multiplication from the size calculation. The size now represents the dimensions in map units divided by the resolution, without the pixel ratio adjustment. The pixel ratio is still passed separately to the canvas function, which can then decide how to handle it appropriately based on the source's requirements.
+
+This way, for image sources with a pixel ratio of 1, the canvas will be created with the correct size rather than being unnecessarily large on HiDPI devices.

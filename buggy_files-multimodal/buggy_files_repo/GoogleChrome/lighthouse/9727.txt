@@ -1,0 +1,29 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When Lighthouse runs against a page containing an iframe, the iframe's performance impact is not adequately reflected in the report
+- A page with a slow iframe gets a better performance score (70) than the slow page itself (40), even though the iframe page contains all the problematic content
+- This leads to misleading performance reports when iframes are involved
+
+2. Cause Analysis:
+- Lighthouse is not properly considering the performance metrics of content within iframes when calculating the overall page performance score
+- The performance calculation seems to treat iframe content differently from direct page content
+- The simulation and metric gathering needs to account for iframe resources and their impact on the main thread
+
+3. Most Related Files:
+```
+lighthouse-core/computed/metrics/lantern-metric.js
+lighthouse-core/lib/dependency-graph/simulator/simulator.js
+lighthouse-core/lib/tracehouse/main-thread-tasks.js
+lighthouse-core/computed/metrics/lantern-estimated-input-latency.js
+lighthouse-core/lib/dependency-graph/simulator/network-analyzer.js
+```
+
+These files are most relevant because:
+- lantern-metric.js handles the core performance metric calculations
+- simulator.js manages the simulation of page load including resource loading
+- main-thread-tasks.js tracks main thread activities which should include iframe impact
+- lantern-estimated-input-latency.js measures input latency which can be affected by iframe performance
+- network-analyzer.js analyzes network requests which should include iframe resources
+
+The fix would likely involve modifying these files to properly account for iframe resources and their performance impact in the overall metrics calculation.

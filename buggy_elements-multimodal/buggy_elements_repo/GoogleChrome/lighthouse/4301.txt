@@ -1,0 +1,74 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that Lighthouse hangs indefinitely on the "Loading page & waiting for onload" step when performing a "Progressive Web App" audit on the specified URL. This indicates that the audit process is not progressing past the initial page load phase.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from one of the following causes:
+- **Page Load Issues**: The webpage might be taking an unusually long time to load, possibly due to network issues, server-side delays, or complex client-side scripts.
+- **Service Worker Interference**: If the site uses a service worker, it might be interfering with the page load process, causing the `onload` event to never fire.
+- **Chrome Debugging Protocol Issues**: There could be a problem with the Chrome debugging protocol, preventing Lighthouse from detecting when the page has fully loaded.
+- **Configuration or Flags**: The flags or configuration settings used in the Lighthouse audit might be causing the issue.
+
+### 3. Examine Each File One by One
+
+#### `lighthouse-cli/run.js`
+
+```
+lighthouse-cli/run.js
+function: runLighthouse
+function: getDebuggableChrome
+function: handleError
+```
+
+- **`runLighthouse`**: This function is responsible for setting up the audit process, launching Chrome, and running Lighthouse. If there's an issue with launching Chrome or connecting to it, this function could be relevant.
+- **`getDebuggableChrome`**: This function launches a debuggable Chrome instance. If there's a problem with launching Chrome, this function could be the cause.
+- **`handleError`**: This function handles errors during the audit process. If an error occurs during the page load, this function might be relevant.
+
+#### `lighthouse-core/index.js`
+
+```
+lighthouse-core/index.js
+function: lighthouse
+function: generateConfig
+```
+
+- **`lighthouse`**: This function executes the Lighthouse audit. If there's an issue with the audit configuration or the connection to Chrome, this function could be relevant.
+- **`generateConfig`**: This function generates the Lighthouse configuration. If there's a problem with the configuration, this function could be the cause.
+
+#### `lighthouse-core/runner.js`
+
+```
+lighthouse-core/runner.js
+class: Runner
+```
+
+- **`Runner`**: This class orchestrates the entire auditing process. If there's an issue with the audit execution or artifact gathering, this class could be relevant.
+
+#### `lighthouse-core/gather/computed/critical-request-chains.js`
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### `lighthouse-core/gather/gatherers/html-without-javascript.js`
+
+```
+This file contains no relevant functions/classes.
+```
+
+### Summary of Relevant Locations
+
+```
+lighthouse-cli/run.js
+function: runLighthouse
+function: getDebuggableChrome
+function: handleError
+
+lighthouse-core/index.js
+function: lighthouse
+function: generateConfig
+
+lighthouse-core/runner.js
+class: Runner
+```

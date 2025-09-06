@@ -1,0 +1,34 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The issue occurs when using mplcursor with matplotlib 3.7.1. After clicking a few data points, an AttributeError is raised stating "'NoneType' object has no attribute 'canvas'". This error prevents further data point selection.
+
+2. Cause Analysis:
+The error occurs in the offsetbox.py file during the disconnect operation. The traceback shows that when trying to access `self.ref_artist.figure.canvas`, `ref_artist` is None. This suggests that the reference to the artist is being lost or improperly cleaned up during cursor interactions.
+
+The issue appears to be related to event handling and cleanup in the cursor/selection functionality, specifically around how references to artists and their canvases are maintained.
+
+3. Examining Relevant Files:
+
+```
+lib/matplotlib/offsetbox.py
+class: DraggableBase
+class: AnnotationBbox
+```
+This file contains the core functionality where the error occurs. The DraggableBase class handles event connections and disconnections, while AnnotationBbox manages the annotation box that's likely being used by mplcursor.
+
+```
+lib/matplotlib/artist.py
+class: Artist
+```
+The Artist class is relevant as it's the base class that provides the canvas and figure references that are being accessed when the error occurs.
+
+```
+lib/matplotlib/widgets.py
+class: AxesWidget
+```
+The AxesWidget class is relevant as it handles widget interactions and event management, which could be related to how the cursor maintains references to artists and canvases.
+
+The remaining files do not contain directly relevant functions/classes for this specific issue, as they deal with other widget types and selection behaviors not involved in the cursor functionality where the error occurs.
+
+The error likely stems from a reference management issue between these classes, where the artist reference is being lost before the disconnect operation is completed, possibly due to changes in how matplotlib 3.7.1 handles cleanup of widget references.

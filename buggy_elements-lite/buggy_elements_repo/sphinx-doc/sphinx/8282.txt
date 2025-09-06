@@ -1,0 +1,44 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The autodoc_typehints configuration setting (set to 'none') is not being respected for overloaded functions. The type hints are still being shown in the documentation despite being configured not to show them.
+
+2. Cause Analysis:
+The issue appears to be in how Sphinx's autodoc extension handles type hints for overloaded functions. The type hint processing logic likely doesn't properly check or respect the autodoc_typehints configuration when dealing with @overload decorated functions. This suggests the problem lies in either the type hint recording/processing logic or how overloaded functions are handled during documentation generation.
+
+3. Relevant Files Analysis:
+
+sphinx/domains/python.py:
+```
+sphinx/domains/python.py
+class PyFunction
+class PyObject
+```
+These classes are relevant as they handle Python function documentation, including how signatures and type hints are processed.
+
+sphinx/ext/autodoc/directive.py:
+```
+sphinx/ext/autodoc/directive.py
+class AutodocDirective
+```
+This class is relevant as it's the main directive handling autodoc functionality and would be involved in processing the function documentation.
+
+sphinx/ext/autodoc/typehints.py:
+```
+sphinx/ext/autodoc/typehints.py
+function: record_typehints
+function: merge_typehints
+```
+These functions are directly responsible for processing and merging type hints in the documentation, making them highly relevant to the issue.
+
+sphinx/ext/autodoc/mock.py:
+This file contains no relevant functions/classes.
+
+sphinx/util/typing.py:
+```
+sphinx/util/typing.py
+function: stringify
+```
+This function is relevant as it's responsible for converting type annotations into strings for documentation.
+
+The issue likely stems from either the type hint recording process in record_typehints not properly handling overloaded functions, or the merge_typehints function not respecting the autodoc_typehints configuration when processing overloaded functions. The PyFunction class in the Python domain may also need to be modified to properly handle overloaded function signatures.

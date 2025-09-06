@@ -1,0 +1,34 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that when using the `itemRender` prop in the Upload component, the delete functionality is missing. Looking at the code, I can see that in the `Card` component, the `itemRender` prop is passed to the `List` component, but there's no mechanism to ensure that the delete functionality is preserved when a custom `itemRender` is provided.
+
+The problem is that when a user provides a custom `itemRender`, they need to have access to the delete functionality that would normally be included in the default rendering. The component should pass the delete handler to the custom `itemRender` function.
+
+## Fix
+
+We need to modify the code to ensure that when `itemRender` is passed to the `List` component, it also includes the delete functionality. The fix involves wrapping the original `itemRender` function to include the delete handler.
+
+```javascript
+### src/upload/card.jsx
+<<<<<<< SEARCH
+                onPreview={onPreview}
+                itemRender={itemRender}
+                isPreview={isPreview}
+                uploader={this.state.uploaderRef}
+=======
+                onPreview={onPreview}
+                itemRender={
+                    itemRender
+                        ? (file, fileList, actions) => {
+                              return itemRender(file, fileList, { ...actions, remove: onRemoveFunc });
+                          }
+                        : itemRender
+                }
+                isPreview={isPreview}
+                uploader={this.state.uploaderRef}
+>>>>>>> REPLACE
+```
+
+This change wraps the original `itemRender` function (if provided) with a new function that passes along the original actions plus the `remove` function. This ensures that even when using a custom `itemRender`, the delete functionality is still available through the `actions.remove` property.

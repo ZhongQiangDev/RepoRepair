@@ -1,0 +1,54 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that `WebGLPointsLayer` doesn't work correctly with `useGeographic()`. When `useGeographic()` is enabled, the points are plotted at incorrect locations (near Africa).
+
+Looking at the code, I notice that the `EPSG3857Projection` class is referenced in the `PROJECTIONS` array, but it's not defined in the file. This is likely causing issues with the projection system, particularly when using `WebGLPointsLayer` with geographic coordinates.
+
+The bug is in the `src/ol/proj/epsg3857.js` file where the `EPSG3857Projection` class is referenced but not defined before use.
+
+## Fix
+
+```javascript
+### src/ol/proj/epsg3857.js
+<<<<<<< SEARCH
+/**
+ * @classdesc
+ * Projection object for web/spherical Mercator (EPSG:3857).
+ */
+
+
+/**
+ * Projections equal to EPSG:3857.
+=======
+/**
+ * @classdesc
+ * Projection object for web/spherical Mercator (EPSG:3857).
+ */
+class EPSG3857Projection extends Projection {
+  /**
+   * @param {string} code Code.
+   */
+  constructor(code) {
+    super({
+      code: code,
+      units: 'm',
+      extent: EXTENT,
+      global: true,
+      worldExtent: WORLD_EXTENT,
+      getPointResolution: function (resolution, point) {
+        return resolution / Math.cosh(point[1] / RADIUS);
+      },
+    });
+  }
+}
+
+/**
+ * Projections equal to EPSG:3857.
+>>>>>>> REPLACE
+```
+
+This fix adds the missing `EPSG3857Projection` class definition that was referenced but not defined in the file. The class extends `Projection` and includes the necessary configuration for the EPSG:3857 projection, including units, extent, and a method to calculate point resolution.
+
+The issue was that without this class definition, the projection system couldn't properly handle the conversion between geographic coordinates (EPSG:4326) and web mercator (EPSG:3857) when using `WebGLPointsLayer`, causing the points to be displayed at incorrect locations.

@@ -1,0 +1,50 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that VoiceOver doesn't announce the On/Off labels for the Toggle component. According to the issue description, this is because the labels have `aria-hidden="true"` attributes, which prevents screen readers from reading them.
+
+Looking at the code, I can see that both label spans have `aria-hidden="true"`:
+
+```javascript
+<span className={`${prefix}--toggle__text--left`} aria-hidden="true">
+  {labelA}
+</span>
+...
+<span className={`${prefix}--toggle__text--right`} aria-hidden="true">
+  {labelB}
+</span>
+```
+
+This is preventing VoiceOver from announcing the labels. The fix is to remove these `aria-hidden="true"` attributes or provide an alternative way for screen readers to access this information.
+
+## Fix
+
+The best approach is to remove the `aria-hidden="true"` attributes from these spans so that screen readers can announce the labels. Here's the fix:
+
+```javascript
+### packages/react/src/components/Toggle/Toggle.js
+<<<<<<< SEARCH
+            <span
+              className={`${prefix}--toggle__text--left`}
+              aria-hidden="true">
+              {labelA}
+            </span>
+            <span className={`${prefix}--toggle__appearance`} />
+            <span
+              className={`${prefix}--toggle__text--right`}
+              aria-hidden="true">
+              {labelB}
+            </span>
+=======
+            <span className={`${prefix}--toggle__text--left`}>
+              {labelA}
+            </span>
+            <span className={`${prefix}--toggle__appearance`} />
+            <span className={`${prefix}--toggle__text--right`}>
+              {labelB}
+            </span>
+>>>>>>> REPLACE
+```
+
+This change removes the `aria-hidden="true"` attributes from both label spans, allowing VoiceOver to announce the labels when the toggle component is focused and activated.

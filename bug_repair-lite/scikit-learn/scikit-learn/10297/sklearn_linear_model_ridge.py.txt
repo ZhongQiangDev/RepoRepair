@@ -1,0 +1,29 @@
+Based on the issue description, the bug is that `RidgeClassifierCV` doesn't support the `store_cv_values` parameter even though it's documented in its attributes section. The issue occurs because while `_BaseRidgeCV` has the `store_cv_values` parameter, `RidgeClassifierCV` doesn't pass it through in its `__init__` method.
+
+Here's the fix:
+
+```python
+### sklearn/linear_model/ridge.py
+<<<<<<< SEARCH
+    def __init__(self, alphas=(0.1, 1.0, 10.0), fit_intercept=True,
+                 normalize=False, scoring=None, cv=None, class_weight=None):
+        super(RidgeClassifierCV, self).__init__(
+            alphas=alphas, fit_intercept=fit_intercept, normalize=normalize,
+            scoring=scoring, cv=cv)
+        self.class_weight = class_weight
+=======
+    def __init__(self, alphas=(0.1, 1.0, 10.0), fit_intercept=True,
+                 normalize=False, scoring=None, cv=None, class_weight=None,
+                 store_cv_values=False):
+        super(RidgeClassifierCV, self).__init__(
+            alphas=alphas, fit_intercept=fit_intercept, normalize=normalize,
+            scoring=scoring, cv=cv, store_cv_values=store_cv_values)
+        self.class_weight = class_weight
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Adds the `store_cv_values` parameter to `RidgeClassifierCV.__init__` with default value `False`
+2. Passes the parameter through to the parent class `_BaseRidgeCV` via `super().__init__`
+
+This will allow users to use the `store_cv_values` parameter as documented in the class attributes section, making it consistent with the documentation and fixing the TypeError.

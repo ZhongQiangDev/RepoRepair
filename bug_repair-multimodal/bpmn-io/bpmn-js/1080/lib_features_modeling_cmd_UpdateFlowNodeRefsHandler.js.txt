@@ -1,0 +1,59 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue occurs when trying to connect a message flow to a pool that previously had multiple lanes but now has only one. After removing a lane, it's only possible to connect to the pool's header, not to the body of the pool.
+
+Looking at the code, the problem is likely in the `UpdateFlowNodeRefsHandler.js` file, specifically in the `computeUpdates` function. When a lane is removed, the function doesn't properly update the flow node references, which affects the ability to connect message flows to the pool's body.
+
+The issue appears to be in the handling of removed lanes. When a lane is removed, the code checks if the lane shape has no parent (`!laneShape.parent`), but it doesn't properly handle the case where a pool previously had multiple lanes and now has only one.
+
+## Fix
+
+```javascript
+### lib/features/modeling/cmd/UpdateFlowNodeRefsHandler.js
+<<<<<<< SEARCH
+  laneShapes.forEach(function(laneShape) {
+
+    var lane = laneShape.businessObject;
+
+    // lane got removed XX-)
+    if (!laneShape.parent) {
+      lane.get(FLOW_NODE_REFS_ATTR).forEach(function(flowNode) {
+        updates.push({ flowNode: flowNode, remove: [ lane ], add: [] });
+      });
+    }
+  });
+=======
+  laneShapes.forEach(function(laneShape) {
+
+    var lane = laneShape.businessObject;
+
+    // lane got removed XX-)
+    if (!laneShape.parent) {
+      var flowNodeRefs = lane.get(FLOW_NODE_REFS_ATTR) || [];
+      
+      flowNodeRefs.forEach(function(flowNode) {
+        // Find new lanes for the flow node if it's still in the diagram
+        var newLanes = [];
+        var flowNodeShape = elementRegistry.get(flowNode.id);
+        
+        if (flowNodeShape && flowNodeShape.parent) {
+          newLanes = getNewLanes(flowNodeShape);
+        }
+        
+        updates.push({ flowNode: flowNode, remove: [ lane ], add: newLanes });
+      });
+    }
+  });
+>>>>>>> REPLACE
+```
+
+This fix makes the following changes:
+
+1. Adds a check to handle the case where `FLOW_NODE_REFS_ATTR` might be undefined by using `|| []`
+2. For each flow node that was in the removed lane, it tries to find the flow node shape in the element registry
+3. If the flow node is still in the diagram, it calculates the new lanes it should be in using the `getNewLanes` function
+4. Updates the flow node references to include these new lanes, ensuring that connections can still be made to the pool body
+
+The fix ensures that when a lane is removed, the flow nodes that were in that lane are properly reassigned to their new containing lanes, which allows message flows to connect to the pool body as expected.

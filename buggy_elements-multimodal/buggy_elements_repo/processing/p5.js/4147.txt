@@ -1,0 +1,58 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The issue described is that the vertex colors in a WebGL sketch are not being rendered as expected in p5.js version 0.9.0. Specifically, the gradient effect created by setting different colors for each vertex in the `beginShape()` and `endShape()` functions is not working correctly. Instead of displaying a gradient, the output appears as a single color or an incorrect gradient.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The problem likely stems from changes in how vertex colors are handled between p5.js versions 0.8.0 and 0.9.0. The issue could be related to how the WebGL renderer processes vertex colors, how the vertex data is passed to the shaders, or how the shaders themselves handle the color data. The gradient effect relies on the WebGL renderer correctly interpolating the vertex colors across the shape, and any disruption in this process would result in the observed incorrect rendering.
+
+### 3. Examine Each File One by One
+
+#### `src/color/p5.Color.js`
+
+This file contains no relevant functions/classes.
+
+#### `src/core/shape/vertex.js`
+
+This file contains no relevant functions/classes.
+
+#### `src/webgl/p5.RendererGL.Immediate.js`
+
+```
+src/webgl/p5.RendererGL.Immediate.js
+function: function_2
+function: function_3
+function: function_4
+```
+
+- `function_2`: This function handles the `vertex` method in immediate mode, which is responsible for setting vertex positions and colors. It may need to be inspected to ensure it correctly handles vertex colors.
+- `function_3`: This function finalizes the shape drawing in immediate mode and may need to be checked to ensure it correctly processes vertex colors.
+- `function_4`: This function sets up the shader for filling shapes in immediate mode and may need to be inspected to ensure it correctly handles vertex colors.
+
+#### `src/webgl/p5.RendererGL.js`
+
+```
+src/webgl/p5.RendererGL.js
+function: function_9
+function: function_46
+```
+
+- `function_9`: This function sets the fill color for 3D geometry and may need to be inspected to ensure it correctly handles vertex colors.
+- `function_46`: This function configures the shader used for filling shapes and may need to be checked to ensure it correctly handles vertex colors.
+
+#### `src/webgl/p5.Shader.js`
+
+```
+src/webgl/p5.Shader.js
+function: function_13
+function: function_16
+function: function_18
+```
+
+- `function_13`: This function checks if the shader is a light shader and may need to be inspected to ensure it correctly handles vertex colors.
+- `function_16`: This function checks if the shader is a color shader and may need to be checked to ensure it correctly handles vertex colors.
+- `function_18`: This function checks if the shader is a stroke shader and may need to be inspected to ensure it correctly handles vertex colors.
+
+### Summary
+
+The identified functions and classes are likely involved in the incorrect rendering of vertex colors in WebGL mode. Inspecting and potentially modifying these functions could resolve the issue.

@@ -1,0 +1,55 @@
+Based on the issue description, the bug is that viewcode creates pages for epub even when `viewcode_enable_epub=False`. Looking at the code, I found that the check for epub builder and the config flag is only done in `doctree_read()` function, but not in `collect_pages()` function which actually generates the pages.
+
+We need to add a helper function to check if we should generate module pages for the current builder, and use it in both places. Here's the fix:
+
+```python
+### sphinx/ext/viewcode.py
+<<<<<<< SEARCH
+def doctree_read(app: Sphinx, doctree: Node) -> None:
+    env = app.builder.env
+    if not hasattr(env, '_viewcode_modules'):
+        env._viewcode_modules = {}  # type: ignore
+    if app.builder.name == "singlehtml":
+        return
+    if app.builder.name.startswith("epub") and not env.config.viewcode_enable_epub:
+        return
+=======
+def should_generate_viewcode(app: Sphinx) -> bool:
+    if app.builder.name == "singlehtml":
+        return False
+    if app.builder.name.startswith("epub") and not app.builder.env.config.viewcode_enable_epub:
+        return False
+    return True
+
+def doctree_read(app: Sphinx, doctree: Node) -> None:
+    env = app.builder.env
+    if not hasattr(env, '_viewcode_modules'):
+        env._viewcode_modules = {}  # type: ignore
+    if not should_generate_viewcode(app):
+        return
+>>>>>>> REPLACE
+```
+
+```python
+### sphinx/ext/viewcode.py
+<<<<<<< SEARCH
+def collect_pages(app: Sphinx) -> Generator[Tuple[str, Dict[str, Any], str], None, None]:
+    env = app.builder.env
+    if not hasattr(env, '_viewcode_modules'):
+        return
+=======
+def collect_pages(app: Sphinx) -> Generator[Tuple[str, Dict[str, Any], str], None, None]:
+    env = app.builder.env
+    if not hasattr(env, '_viewcode_modules'):
+        return
+    if not should_generate_viewcode(app):
+        return
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Adds a new helper function `should_generate_viewcode()` that encapsulates the logic for when viewcode pages should be generated
+2. Uses this function in both `doctree_read()` and `collect_pages()`
+3. Ensures that epub builds respect the `viewcode_enable_epub` config setting by not generating any viewcode pages when it's False
+
+The fix ensures that no viewcode pages are generated for epub when `viewcode_enable_epub=False`, which matches the expected behavior described in the issue.

@@ -1,0 +1,23 @@
+I'll analyze the problem and identify the files that need to be edited to fix it.
+
+## Wrong Behavior Analysis
+The issue described is that the `get_FOO_display()` method doesn't work correctly with inherited choices in Django models. Specifically, when a child model inherits from an abstract parent model and overrides the choices for a field, the `get_FOO_display()` method works correctly for choices defined in the parent model but returns the raw value instead of the display value for choices added in the child model.
+
+## Cause Analysis
+The issue likely stems from how Django generates the `get_FOO_display()` method for model fields with choices. When a child model inherits and extends the choices of a parent model, the display method doesn't properly recognize the extended choices. This suggests that the method is either:
+1. Not being properly regenerated when choices are overridden
+2. Using the parent model's choices instead of the child model's choices
+3. Not correctly handling inheritance of field attributes like choices
+
+## Most Related Files
+Based on the repository information, these are the files most likely related to the issue:
+
+```
+django/db/models/base.py
+django/db/models/fields/__init__.py
+django/db/models/options.py
+django/db/models/fields/mixins.py
+django/db/models/fields/proxy.py
+```
+
+The issue is most likely in `django/db/models/base.py` which contains the core Model class and handles how model fields are processed, including the generation of methods like `get_FOO_display()`. The fields implementation in `django/db/models/fields/__init__.py` would be the next most important as it defines how field choices work. The `options.py` file handles model metadata including field options, while the mixins and proxy files contain supporting functionality for fields that might be involved in the inheritance behavior.

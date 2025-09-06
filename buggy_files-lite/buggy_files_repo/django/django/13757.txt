@@ -1,0 +1,26 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When using `__isnull=True` on a KeyTransform in SQLite and Oracle databases, the query incorrectly matches objects that have the key with a JSON null value
+- It should only match objects that do not have the key at all
+- This behavior differs from other databases like MariaDB, MySQL, and PostgreSQL which work correctly
+
+2. Cause Analysis:
+- The issue lies in how KeyTransformIsNull lookup handles the `isnull=True` case for JSON fields
+- While it correctly borrows logic from HasKey for `isnull=False`, the `isnull=True` implementation is not properly handling the distinction between "key doesn't exist" vs "key exists with null value" in SQLite and Oracle databases
+- This appears to be a database-specific implementation issue in how JSON key existence vs null values are queried
+
+3. Most Related Files:
+```
+django/db/models/fields/json.py
+django/db/backends/sqlite3/base.py
+django/db/backends/oracle/base.py
+django/contrib/postgres/fields/jsonb.py
+django/db/models/lookups.py
+```
+
+These files are ordered by importance because:
+1. `json.py` would contain the core JSON field implementation and lookup handlers
+2. `sqlite3/base.py` and `oracle/base.py` contain the database-specific implementations where the issue manifests
+3. `jsonb.py` contains reference implementation for PostgreSQL that works correctly
+4. `lookups.py` likely contains base lookup classes that influence this behavior

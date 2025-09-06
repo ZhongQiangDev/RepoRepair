@@ -1,0 +1,25 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When performing arithmetic operations (specifically multiplication) on NDDataRef objects where one operand has a mask and the other doesn't, it raises a TypeError about unsupported operand types for bitwise OR between 'int' and 'NoneType'
+- This happens in v5.3 but works fine in v5.2
+
+2. Cause Analysis:
+- The issue occurs during mask propagation in arithmetic operations
+- When one operand has no mask, it seems to be treated as None instead of being properly handled
+- The bitwise_or operation fails because it tries to perform the operation between integer values from the existing mask and None from the no-mask operand
+- The mask handling logic in arithmetic operations needs to properly handle cases where one operand lacks a mask
+
+3. Most Related Files:
+```
+astropy/nddata/mixins/ndarithmetic.py
+astropy/nddata/nddata.py
+astropy/nddata/compat.py
+```
+
+These files are most relevant because:
+- ndarithmetic.py contains the core arithmetic operations and mask handling logic for NDData objects
+- nddata.py defines the base NDData class and its core functionality including mask handling
+- compat.py contains NDDataArray which combines arithmetic operations with other NDData features
+
+The issue likely stems from changes in how masks are handled during arithmetic operations in these files between v5.2 and v5.3.

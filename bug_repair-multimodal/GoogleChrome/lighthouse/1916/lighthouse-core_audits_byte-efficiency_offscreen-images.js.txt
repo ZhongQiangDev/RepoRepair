@@ -1,0 +1,84 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that SVG images with 0 area (width or height of 0) are being flagged in the offscreen images audit. According to the screenshot in the issue, an SVG file is being reported with a debug string.
+
+Looking at the code, the problem is in the `computeWaste` function. When calculating the waste for images with 0 area (which can happen with SVGs), the `wastedRatio` calculation becomes `1 - visiblePixels / 0`, which results in `Infinity` or `NaN`. 
+
+The current code checks if `wastedRatio` is finite, but it doesn't specifically check for images with 0 area before doing the calculation.
+
+## Fix
+
+We need to add a check for images with 0 area (totalPixels = 0) and skip them or handle them specially:
+
+```javascript
+### lighthouse-core/audits/byte-efficiency/offscreen-images.js
+<<<<<<< SEARCH
+  static computeWaste(image, viewportDimensions) {
+    const url = URL.getDisplayName(image.src, {preserveQuery: true});
+    const totalPixels = image.clientWidth * image.clientHeight;
+    const visiblePixels = this.computeVisiblePixels(image.clientRect, viewportDimensions);
+    const wastedRatio = 1 - visiblePixels / totalPixels;
+    const totalBytes = image.networkRecord.resourceSize;
+    const wastedBytes = Math.round(totalBytes * wastedRatio);
+
+    if (!Number.isFinite(wastedRatio)) {
+      return new Error(`Invalid image sizing information ${url}`);
+    }
+=======
+  static computeWaste(image, viewportDimensions) {
+    const url = URL.getDisplayName(image.src, {preserveQuery: true});
+    const totalPixels = image.clientWidth * image.clientHeight;
+    
+    // Skip images with no area
+    if (totalPixels === 0) {
+      return null;
+    }
+    
+    const visiblePixels = this.computeVisiblePixels(image.clientRect, viewportDimensions);
+    const wastedRatio = 1 - visiblePixels / totalPixels;
+    const totalBytes = image.networkRecord.resourceSize;
+    const wastedBytes = Math.round(totalBytes * wastedRatio);
+
+    if (!Number.isFinite(wastedRatio)) {
+      return new Error(`Invalid image sizing information ${url}`);
+    }
+>>>>>>> REPLACE
+```
+
+And then we need to update the `reduce` function to handle the `null` return value:
+
+```javascript
+### lighthouse-core/audits/byte-efficiency/offscreen-images.js
+<<<<<<< SEARCH
+    const resultsMap = images.reduce((results, image) => {
+      if (!image.networkRecord) {
+        return results;
+      }
+
+      const processed = OffscreenImages.computeWaste(image, viewportDimensions);
+      if (processed instanceof Error) {
+        debugString = processed.message;
+        return results;
+      }
+=======
+    const resultsMap = images.reduce((results, image) => {
+      if (!image.networkRecord) {
+        return results;
+      }
+
+      const processed = OffscreenImages.computeWaste(image, viewportDimensions);
+      if (processed === null) {
+        // Skip images with 0 area (like some SVGs)
+        return results;
+      }
+      
+      if (processed instanceof Error) {
+        debugString = processed.message;
+        return results;
+      }
+>>>>>>> REPLACE
+```
+
+These changes will ensure that images with 0 area (like some SVGs) are skipped in the offscreen images audit, which should fix the issue reported.

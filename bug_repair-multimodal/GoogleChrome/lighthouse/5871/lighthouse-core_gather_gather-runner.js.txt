@@ -1,0 +1,57 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that Lighthouse is showing one user agent in the "Runtime settings" section of the report, but is actually using a different user agent when making requests. This is confusing for users who check their server logs and see different user agents from the same tool.
+
+Looking at the code, I can see that in `getBaseArtifacts()` method, only one user agent is being collected:
+```javascript
+UserAgent: await options.driver.getUserAgent(),
+```
+
+However, the issue suggests that there are actually two different user agents being used. The Chrome DevTools Protocol likely has access to both the browser's user agent and the specific user agent used for network requests.
+
+## Solution
+
+We need to modify the `getBaseArtifacts()` method to collect both user agents:
+1. The browser's user agent (currently collected)
+2. The network request user agent (currently missing)
+
+Here's the fix:
+
+```javascript
+### lighthouse-core/gather/gather-runner.js
+<<<<<<< SEARCH
+  static async getBaseArtifacts(options) {
+    return {
+      fetchTime: (new Date()).toJSON(),
+      LighthouseRunWarnings: [],
+      UserAgent: await options.driver.getUserAgent(),
+      traces: {},
+      devtoolsLogs: {},
+      settings: options.settings,
+      URL: {requestedUrl: options.requestedUrl, finalUrl: ''},
+    };
+  }
+=======
+  static async getBaseArtifacts(options) {
+    const userAgent = await options.driver.getUserAgent();
+    const networkUserAgent = await options.driver.getNetworkUserAgent();
+    
+    return {
+      fetchTime: (new Date()).toJSON(),
+      LighthouseRunWarnings: [],
+      UserAgent: userAgent,
+      NetworkUserAgent: networkUserAgent,
+      traces: {},
+      devtoolsLogs: {},
+      settings: options.settings,
+      URL: {requestedUrl: options.requestedUrl, finalUrl: ''},
+    };
+  }
+>>>>>>> REPLACE
+```
+
+This change adds a new field `NetworkUserAgent` to the base artifacts, which will be populated by a new method `getNetworkUserAgent()` that needs to be implemented in the driver class. This will allow Lighthouse to expose both user agents in the runtime settings, making it clearer which user agent is being used for network requests versus the browser's reported user agent.
+
+Note: This fix assumes that a `getNetworkUserAgent()` method will be implemented in the driver class. The implementation of that method would need to be added to the driver class, but that file is not provided in the code segments.

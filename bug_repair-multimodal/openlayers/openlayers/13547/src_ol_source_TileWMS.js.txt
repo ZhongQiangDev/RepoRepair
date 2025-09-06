@@ -1,0 +1,428 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about extending the "gutter" option to more tile sources beyond just TileWMS. The gutter (or buffer) is a feature that helps avoid edge effects when tiles are rendered. Currently, only the TileWMS source supports this option, but other tile sources like XYZ and DataTile would benefit from it as well.
+
+The issue also mentions that the current implementation for WebGL tile layers doesn't properly handle the gutter - it removes the gutter before creating the texture, which doesn't prevent edge effects.
+
+## Solution
+
+We need to:
+
+1. Extract the gutter functionality from TileWMS into a more generic place so it can be used by other tile sources
+2. Modify how the gutter is handled for WebGL tile layers
+
+Looking at the provided code, I can see that the gutter functionality is currently implemented in the TileWMS class. The key parts are:
+- The gutter option in the constructor
+- The getGutter() method
+- The handling of the gutter in the tileUrlFunction method
+
+Let's create a solution that will allow the gutter option to be used by other tile sources.
+
+```javascript
+### src/ol/source/TileWMS.js
+<<<<<<< SEARCH
+/**
+ * @typedef {Object} Options
+ * @property {import("./Source.js").AttributionLike} [attributions] Attributions.
+ * @property {boolean} [attributionsCollapsible=true] Attributions are collapsible.
+ * @property {number} [cacheSize] Initial tile cache size. Will auto-grow to hold at least the number of tiles in the viewport.
+ * @property {null|string} [crossOrigin] The `crossOrigin` attribute for loaded images.  Note that
+ * you must provide a `crossOrigin` value if you want to access pixel data with the Canvas renderer.
+ * See https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_enabled_image for more detail.
+ * @property {boolean} [imageSmoothing=true] Deprecated.  Use the `interpolate` option instead.
+ * @property {boolean} [interpolate=true] Use interpolated values when resampling.  By default,
+ * linear interpolation is used when resampling.  Set to false to use the nearest neighbor instead.
+ * @property {Object<string,*>} params WMS request parameters.
+ * At least a `LAYERS` param is required. `STYLES` is
+ * `''` by default. `VERSION` is `1.3.0` by default. `WIDTH`, `HEIGHT`, `BBOX`
+ * and `CRS` (`SRS` for WMS version < 1.3.0) will be set dynamically.
+ * @property {number} [gutter=0]
+ * The size in pixels of the gutter around image tiles to ignore. By setting
+ * this property to a non-zero value, images will be requested that are wider
+ * and taller than the tile size by a value of `2 x gutter`.
+ * Using a non-zero value allows artifacts of rendering at tile edges to be
+ * ignored. If you control the WMS service it is recommended to address
+ * "artifacts at tile edges" issues by properly configuring the WMS service. For
+ * example, MapServer has a `tile_map_edge_buffer` configuration parameter for
+ * this. See https://mapserver.org/output/tile_mode.html.
+ * @property {boolean} [hidpi=true] Use the `ol/Map#pixelRatio` value when requesting
+ * the image from the remote server.
+ * @property {import("../proj.js").ProjectionLike} [projection] Projection. Default is the view projection.
+ * @property {number} [reprojectionErrorThreshold=0.5] Maximum allowed reprojection error (in pixels).
+ * Higher values can increase reprojection performance, but decrease precision.
+ * @property {typeof import("../ImageTile.js").default} [tileClass] Class used to instantiate image tiles.
+ * Default is {@link module:ol/ImageTile~ImageTile}.
+ * @property {import("../tilegrid/TileGrid.js").default} [tileGrid] Tile grid. Base this on the resolutions,
+ * tilesize and extent supported by the server.
+ * If this is not defined, a default grid will be used: if there is a projection
+ * extent, the grid will be based on that; if not, a grid based on a global
+ * extent with origin at 0,0 will be used..
+ * @property {import("./WMSServerType.js").default|string} [serverType]
+ * The type of the remote WMS server. Currently only used when `hidpi` is
+ * `true`.
+ * @property {import("../Tile.js").LoadFunction} [tileLoadFunction] Optional function to load a tile given a URL. The default is
+ * ```js
+ * function(imageTile, src) {
+ *   imageTile.getImage().src = src;
+ * };
+ * ```
+ * @property {string} [url] WMS service URL.
+ * @property {Array<string>} [urls] WMS service urls.
+ * Use this instead of `url` when the WMS supports multiple urls for GetMap requests.
+ * @property {boolean} [wrapX=true] Whether to wrap the world horizontally.
+ * When set to `false`, only one world
+ * will be rendered. When `true`, tiles will be requested for one world only,
+ * but they will be wrapped horizontally to render multiple worlds.
+ * @property {number} [transition] Duration of the opacity transition for rendering.
+ * To disable the opacity transition, pass `transition: 0`.
+ * @property {number|import("../array.js").NearestDirectionFunction} [zDirection=0]
+ * Choose whether to use tiles with a higher or lower zoom level when between integer
+ * zoom levels. See {@link module:ol/tilegrid/TileGrid~TileGrid#getZForResolution}.
+ */
+=======
+/**
+ * @typedef {Object} Options
+ * @property {import("./Source.js").AttributionLike} [attributions] Attributions.
+ * @property {boolean} [attributionsCollapsible=true] Attributions are collapsible.
+ * @property {number} [cacheSize] Initial tile cache size. Will auto-grow to hold at least the number of tiles in the viewport.
+ * @property {null|string} [crossOrigin] The `crossOrigin` attribute for loaded images.  Note that
+ * you must provide a `crossOrigin` value if you want to access pixel data with the Canvas renderer.
+ * See https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_enabled_image for more detail.
+ * @property {boolean} [imageSmoothing=true] Deprecated.  Use the `interpolate` option instead.
+ * @property {boolean} [interpolate=true] Use interpolated values when resampling.  By default,
+ * linear interpolation is used when resampling.  Set to false to use the nearest neighbor instead.
+ * @property {Object<string,*>} params WMS request parameters.
+ * At least a `LAYERS` param is required. `STYLES` is
+ * `''` by default. `VERSION` is `1.3.0` by default. `WIDTH`, `HEIGHT`, `BBOX`
+ * and `CRS` (`SRS` for WMS version < 1.3.0) will be set dynamically.
+ * @property {number} [gutter=0]
+ * The size in pixels of the gutter around image tiles to ignore. By setting
+ * this property to a non-zero value, images will be requested that are wider
+ * and taller than the tile size by a value of `2 x gutter`.
+ * Using a non-zero value allows artifacts of rendering at tile edges to be
+ * ignored. If you control the WMS service it is recommended to address
+ * "artifacts at tile edges" issues by properly configuring the WMS service. For
+ * example, MapServer has a `tile_map_edge_buffer` configuration parameter for
+ * this. See https://mapserver.org/output/tile_mode.html.
+ * @property {boolean} [hidpi=true] Use the `ol/Map#pixelRatio` value when requesting
+ * the image from the remote server.
+ * @property {import("../proj.js").ProjectionLike} [projection] Projection. Default is the view projection.
+ * @property {number} [reprojectionErrorThreshold=0.5] Maximum allowed reprojection error (in pixels).
+ * Higher values can increase reprojection performance, but decrease precision.
+ * @property {typeof import("../ImageTile.js").default} [tileClass] Class used to instantiate image tiles.
+ * Default is {@link module:ol/ImageTile~ImageTile}.
+ * @property {import("../tilegrid/TileGrid.js").default} [tileGrid] Tile grid. Base this on the resolutions,
+ * tilesize and extent supported by the server.
+ * If this is not defined, a default grid will be used: if there is a projection
+ * extent, the grid will be based on that; if not, a grid based on a global
+ * extent with origin at 0,0 will be used..
+ * @property {import("./WMSServerType.js").default|string} [serverType]
+ * The type of the remote WMS server. Currently only used when `hidpi` is
+ * `true`.
+ * @property {import("../Tile.js").LoadFunction} [tileLoadFunction] Optional function to load a tile given a URL. The default is
+ * ```js
+ * function(imageTile, src) {
+ *   imageTile.getImage().src = src;
+ * };
+ * ```
+ * @property {string} [url] WMS service URL.
+ * @property {Array<string>} [urls] WMS service urls.
+ * Use this instead of `url` when the WMS supports multiple urls for GetMap requests.
+ * @property {boolean} [wrapX=true] Whether to wrap the world horizontally.
+ * When set to `false`, only one world
+ * will be rendered. When `true`, tiles will be requested for one world only,
+ * but they will be wrapped horizontally to render multiple worlds.
+ * @property {number} [transition] Duration of the opacity transition for rendering.
+ * To disable the opacity transition, pass `transition: 0`.
+ * @property {number|import("../array.js").NearestDirectionFunction} [zDirection=0]
+ * Choose whether to use tiles with a higher or lower zoom level when between integer
+ * zoom levels. See {@link module:ol/tilegrid/TileGrid~TileGrid#getZForResolution}.
+ */
+>>>>>>> REPLACE
+```
+
+The Options typedef doesn't need to change, as it already has the gutter property. Let's modify the constructor to properly handle the gutter option:
+
+```javascript
+### src/ol/source/TileWMS.js
+<<<<<<< SEARCH
+  constructor(opt_options) {
+    const options = opt_options ? opt_options : /** @type {Options} */ ({});
+
+    let interpolate =
+      options.imageSmoothing !== undefined ? options.imageSmoothing : true;
+    if (options.interpolate !== undefined) {
+      interpolate = options.interpolate;
+    }
+
+    const params = options.params || {};
+
+    const transparent = 'TRANSPARENT' in params ? params['TRANSPARENT'] : true;
+
+    super({
+      attributions: options.attributions,
+      attributionsCollapsible: options.attributionsCollapsible,
+      cacheSize: options.cacheSize,
+      crossOrigin: options.crossOrigin,
+      interpolate: interpolate,
+      opaque: !transparent,
+      projection: options.projection,
+      reprojectionErrorThreshold: options.reprojectionErrorThreshold,
+      tileClass: options.tileClass,
+      tileGrid: options.tileGrid,
+      tileLoadFunction: options.tileLoadFunction,
+      url: options.url,
+      urls: options.urls,
+      wrapX: options.wrapX !== undefined ? options.wrapX : true,
+      transition: options.transition,
+      zDirection: options.zDirection,
+    });
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.gutter_ = options.gutter !== undefined ? options.gutter : 0;
+
+    /**
+     * @private
+     * @type {!Object}
+     */
+    this.params_ = params;
+=======
+  constructor(opt_options) {
+    const options = opt_options ? opt_options : /** @type {Options} */ ({});
+
+    let interpolate =
+      options.imageSmoothing !== undefined ? options.imageSmoothing : true;
+    if (options.interpolate !== undefined) {
+      interpolate = options.interpolate;
+    }
+
+    const params = options.params || {};
+
+    const transparent = 'TRANSPARENT' in params ? params['TRANSPARENT'] : true;
+
+    super({
+      attributions: options.attributions,
+      attributionsCollapsible: options.attributionsCollapsible,
+      cacheSize: options.cacheSize,
+      crossOrigin: options.crossOrigin,
+      interpolate: interpolate,
+      opaque: !transparent,
+      projection: options.projection,
+      reprojectionErrorThreshold: options.reprojectionErrorThreshold,
+      tileClass: options.tileClass,
+      tileGrid: options.tileGrid,
+      tileLoadFunction: options.tileLoadFunction,
+      url: options.url,
+      urls: options.urls,
+      wrapX: options.wrapX !== undefined ? options.wrapX : true,
+      transition: options.transition,
+      zDirection: options.zDirection,
+      gutter: options.gutter,
+    });
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.gutter_ = this.getGutter();
+
+    /**
+     * @private
+     * @type {!Object}
+     */
+    this.params_ = params;
+>>>>>>> REPLACE
+```
+
+Now let's modify the TileImage class to handle the gutter option. Since we don't have the TileImage.js file, I'll create a search/replace for the methods that need to be added to it:
+
+```javascript
+### src/ol/source/TileImage.js
+<<<<<<< SEARCH
+import TileSource from './Tile.js';
+=======
+import TileSource from './Tile.js';
+>>>>>>> REPLACE
+```
+
+This is a placeholder since we don't have the actual TileImage.js file. In a real implementation, we would need to:
+
+1. Add the gutter option to TileImage's Options typedef
+2. Add a gutter_ property to TileImage
+3. Add a getGutter() method to TileImage
+4. Modify TileImage's tileUrlFunction to handle the gutter
+
+Let's update the getGutter method in TileWMS to use the parent class's method:
+
+```javascript
+### src/ol/source/TileWMS.js
+<<<<<<< SEARCH
+  /**
+   * @return {number} Gutter.
+   */
+  getGutter() {
+    return this.gutter_;
+  }
+=======
+  /**
+   * @return {number} Gutter.
+   * @override
+   */
+  getGutter() {
+    return this.gutter_;
+  }
+>>>>>>> REPLACE
+```
+
+Finally, let's update the tileUrlFunction method to use the gutter property:
+
+```javascript
+### src/ol/source/TileWMS.js
+<<<<<<< SEARCH
+  /**
+   * @param {import("../tilecoord.js").TileCoord} tileCoord The tile coordinate
+   * @param {number} pixelRatio The pixel ratio
+   * @param {import("../proj/Projection.js").default} projection The projection
+   * @return {string|undefined} The tile URL
+   * @override
+   */
+  tileUrlFunction(tileCoord, pixelRatio, projection) {
+    let tileGrid = this.getTileGrid();
+    if (!tileGrid) {
+      tileGrid = this.getTileGridForProjection(projection);
+    }
+
+    if (tileGrid.getResolutions().length <= tileCoord[0]) {
+      return undefined;
+    }
+
+    if (pixelRatio != 1 && (!this.hidpi_ || this.serverType_ === undefined)) {
+      pixelRatio = 1;
+    }
+
+    const tileResolution = tileGrid.getResolution(tileCoord[0]);
+    let tileExtent = tileGrid.getTileCoordExtent(tileCoord, this.tmpExtent_);
+    let tileSize = toSize(tileGrid.getTileSize(tileCoord[0]), this.tmpSize);
+
+    const gutter = this.gutter_;
+    if (gutter !== 0) {
+      tileSize = bufferSize(tileSize, gutter, this.tmpSize);
+      tileExtent = buffer(tileExtent, tileResolution * gutter, tileExtent);
+    }
+
+    if (pixelRatio != 1) {
+      tileSize = scaleSize(tileSize, pixelRatio, this.tmpSize);
+    }
+
+    const baseParams = {
+      'SERVICE': 'WMS',
+      'VERSION': DEFAULT_WMS_VERSION,
+      'REQUEST': 'GetMap',
+      'FORMAT': 'image/png',
+      'TRANSPARENT': true,
+    };
+    assign(baseParams, this.params_);
+
+    return this.getRequestUrl_(
+      tileCoord,
+      tileSize,
+      tileExtent,
+      pixelRatio,
+      projection,
+      baseParams
+    );
+  }
+=======
+  /**
+   * @param {import("../tilecoord.js").TileCoord} tileCoord The tile coordinate
+   * @param {number} pixelRatio The pixel ratio
+   * @param {import("../proj/Projection.js").default} projection The projection
+   * @return {string|undefined} The tile URL
+   * @override
+   */
+  tileUrlFunction(tileCoord, pixelRatio, projection) {
+    let tileGrid = this.getTileGrid();
+    if (!tileGrid) {
+      tileGrid = this.getTileGridForProjection(projection);
+    }
+
+    if (tileGrid.getResolutions().length <= tileCoord[0]) {
+      return undefined;
+    }
+
+    if (pixelRatio != 1 && (!this.hidpi_ || this.serverType_ === undefined)) {
+      pixelRatio = 1;
+    }
+
+    const tileResolution = tileGrid.getResolution(tileCoord[0]);
+    let tileExtent = tileGrid.getTileCoordExtent(tileCoord, this.tmpExtent_);
+    let tileSize = toSize(tileGrid.getTileSize(tileCoord[0]), this.tmpSize);
+
+    const gutter = this.getGutter();
+    if (gutter !== 0) {
+      tileSize = bufferSize(tileSize, gutter, this.tmpSize);
+      tileExtent = buffer(tileExtent, tileResolution * gutter, tileExtent);
+    }
+
+    if (pixelRatio != 1) {
+      tileSize = scaleSize(tileSize, pixelRatio, this.tmpSize);
+    }
+
+    const baseParams = {
+      'SERVICE': 'WMS',
+      'VERSION': DEFAULT_WMS_VERSION,
+      'REQUEST': 'GetMap',
+      'FORMAT': 'image/png',
+      'TRANSPARENT': true,
+    };
+    assign(baseParams, this.params_);
+
+    return this.getRequestUrl_(
+      tileCoord,
+      tileSize,
+      tileExtent,
+      pixelRatio,
+      projection,
+      baseParams
+    );
+  }
+>>>>>>> REPLACE
+```
+
+Let's also update the getFeatureInfoUrl method to use the getGutter method:
+
+```javascript
+### src/ol/source/TileWMS.js
+<<<<<<< SEARCH
+    let tileSize = toSize(tileGrid.getTileSize(tileCoord[0]), this.tmpSize);
+
+    const gutter = this.gutter_;
+    if (gutter !== 0) {
+      tileSize = bufferSize(tileSize, gutter, this.tmpSize);
+      tileExtent = buffer(tileExtent, tileResolution * gutter, tileExtent);
+    }
+=======
+    let tileSize = toSize(tileGrid.getTileSize(tileCoord[0]), this.tmpSize);
+
+    const gutter = this.getGutter();
+    if (gutter !== 0) {
+      tileSize = bufferSize(tileSize, gutter, this.tmpSize);
+      tileExtent = buffer(tileExtent, tileResolution * gutter, tileExtent);
+    }
+>>>>>>> REPLACE
+```
+
+## Summary of Changes
+
+1. Modified the TileWMS constructor to pass the gutter option to the parent class (TileImage)
+2. Updated the TileWMS class to use the getGutter() method instead of directly accessing the gutter_ property
+3. Added the @override annotation to the getGutter method to indicate it's overriding a parent method
+
+These changes will allow the gutter option to be used by other tile sources that extend TileImage, such as XYZ and DataTile. The implementation assumes that the TileImage class will be updated to handle the gutter option, which would involve adding the gutter property to its Options typedef, adding a gutter_ property, and implementing the getGutter method.
+
+For the WebGL tile layers issue, we would need to modify how the gutter is handled when creating textures, but that would require access to the WebGL-related code which isn't provided in the current context.

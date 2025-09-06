@@ -1,0 +1,31 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When using `order_by("record__root_id")`, the query incorrectly includes:
+  - An unnecessary extra JOIN
+  - An unexpected DESCENDING sort order that shouldn't be inherited from the model's Meta ordering
+- This only happens with self-referential foreign keys
+
+2. Cause Analysis:
+- The issue stems from how Django handles ordering on foreign key fields, particularly with self-referential relationships
+- The default ordering from the model's Meta class (`ordering = ("-id",)`) is incorrectly being applied to the JOIN
+- The query compiler is not properly handling the distinction between direct field references and relationship traversal when generating the ORDER BY clause
+- The extra JOIN appears to be unnecessarily added due to confusion in how the ORM resolves the self-referential relationship path
+
+3. Most Related Files:
+```
+django/db/models/query.py
+django/db/models/sql/compiler.py
+django/db/models/fields/related.py
+django/db/models/base.py
+django/db/models/lookups.py
+```
+
+These files are ordered by importance because:
+- query.py contains the QuerySet implementation which handles ordering
+- compiler.py handles the actual SQL generation including JOIN and ORDER BY clauses
+- related.py defines how foreign key relationships work, including self-referential ones
+- base.py contains core model functionality including meta options handling
+- lookups.py handles field lookups and ordering operations
+
+The core of the issue likely lies in how the query compiler and related field handling interact when resolving order_by clauses on self-referential foreign keys.

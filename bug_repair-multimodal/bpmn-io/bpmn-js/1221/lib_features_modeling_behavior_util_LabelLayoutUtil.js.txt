@@ -1,0 +1,131 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is that when copying and pasting elements with labels onto flows, the `AdaptiveLabelPositioningBehavior` is not being applied. This behavior should automatically align the text labels after pasting.
+
+Looking at the provided code, I can see that `LabelLayoutUtil.js` contains utilities for label positioning, but there's no direct reference to the copy/paste functionality or the `AdaptiveLabelPositioningBehavior`. 
+
+The issue is likely that when elements are pasted, the label adjustment logic isn't being triggered. The `AdaptiveLabelPositioningBehavior` probably needs to be applied after paste operations.
+
+Since we don't have the complete codebase, I'll make an educated guess about where the issue might be. The most likely problem is that the paste functionality doesn't trigger the label adjustment behavior.
+
+## Solution
+
+We need to find the code that handles paste operations and ensure it triggers the adaptive label positioning behavior. Since we don't have that file, I'll provide a general solution that would likely fix the issue:
+
+```javascript
+### lib/features/copy-paste/BpmnCopyPaste.js
+<<<<<<< SEARCH
+  paste: function(context) {
+    var topParent = context.element;
+
+    var tree = this._createTree(context.elements);
+
+    // make sure we handle labels correctly
+    this._prepareLabels(tree, context);
+
+    var elements = this._paste(tree, topParent);
+=======
+  paste: function(context) {
+    var topParent = context.element;
+
+    var tree = this._createTree(context.elements);
+
+    // make sure we handle labels correctly
+    this._prepareLabels(tree, context);
+
+    var elements = this._paste(tree, topParent);
+    
+    // apply adaptive label positioning behavior after paste
+    this._adjustLabelPositions(elements);
+>>>>>>> REPLACE
+```
+
+And then add the implementation of the `_adjustLabelPositions` method:
+
+```javascript
+### lib/features/copy-paste/BpmnCopyPaste.js
+<<<<<<< SEARCH
+  // [existing code]
+}
+=======
+  // [existing code]
+  
+  /**
+   * Adjust label positions after paste operation
+   *
+   * @param {Array<Object>} elements
+   */
+  _adjustLabelPositions: function(elements) {
+    var self = this;
+    
+    elements.forEach(function(element) {
+      if (element.labels && element.labels.length) {
+        element.labels.forEach(function(label) {
+          self.eventBus.fire('element.changed', { element: label });
+        });
+      } else if (element.label) {
+        self.eventBus.fire('element.changed', { element: element.label });
+      }
+    });
+  }
+}
+>>>>>>> REPLACE
+```
+
+Alternatively, if there's an `AdaptiveLabelPositioningBehavior` class, we might need to modify it to listen for paste events:
+
+```javascript
+### lib/features/modeling/behavior/AdaptiveLabelPositioningBehavior.js
+<<<<<<< SEARCH
+function AdaptiveLabelPositioningBehavior(eventBus, modeling) {
+  CommandInterceptor.call(this, eventBus);
+
+  this.postExecute([ 'connection.create', 'connection.layout' ], function(event) {
+    var context = event.context,
+        connection = context.connection;
+
+    var source = connection.source,
+        target = connection.target;
+
+    checkLabelAdjustment(source);
+    checkLabelAdjustment(target);
+  });
+=======
+function AdaptiveLabelPositioningBehavior(eventBus, modeling) {
+  CommandInterceptor.call(this, eventBus);
+
+  this.postExecute([ 'connection.create', 'connection.layout', 'elements.paste' ], function(event) {
+    var context = event.context,
+        connection = context.connection;
+
+    if (event.command === 'elements.paste') {
+      // Handle paste event
+      var elements = context.elements;
+      
+      if (elements) {
+        elements.forEach(function(element) {
+          checkLabelAdjustment(element);
+          
+          if (element.labels) {
+            element.labels.forEach(function(label) {
+              checkLabelAdjustment(label);
+            });
+          }
+        });
+      }
+      
+      return;
+    }
+    
+    var source = connection.source,
+        target = connection.target;
+
+    checkLabelAdjustment(source);
+    checkLabelAdjustment(target);
+  });
+>>>>>>> REPLACE
+```
+
+Without seeing more of the codebase, it's difficult to provide a more precise solution. The issue is that the adaptive label positioning behavior isn't being triggered after paste operations, so we need to ensure that it is.

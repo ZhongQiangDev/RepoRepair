@@ -1,0 +1,29 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When copying a Pool with a Task inside and pasting it, the resulting XML shows duplicate Process IDs ("Process_17iojvx")
+- This causes issues when exporting and importing the diagram since Process IDs must be unique
+
+2. Cause Analysis:
+- The issue appears to be in the ID management system during copy-paste operations
+- When copying a Pool (which contains a Process), the Process ID is not being regenerated to be unique
+- The copy-paste functionality is not properly handling the cloning and ID generation for nested Process elements
+
+3. Most Related Files:
+```
+lib/features/copy-paste/BpmnCopyPaste.js
+lib/features/copy-paste/ModdleCopy.js
+lib/BaseModeler.js
+lib/features/modeling/cmd/IdClaimHandler.js
+lib/features/modeling/behavior/UnclaimIdBehavior.js
+```
+
+These files are ordered by importance because:
+
+1. BpmnCopyPaste.js - Primary file handling BPMN element copying and pasting, including handling of business objects and their properties
+2. ModdleCopy.js - Manages property copying between elements in BPMN model, which would include Process IDs
+3. BaseModeler.js - Contains core ID management functionality through _collectIds method
+4. IdClaimHandler.js - Handles claiming and unclaiming of IDs in the system
+5. UnclaimIdBehavior.js - Manages the unclaiming of IDs when elements are deleted, which is relevant for maintaining ID uniqueness
+
+The issue likely needs to be fixed in BpmnCopyPaste.js to ensure Process IDs are regenerated during the copy operation.

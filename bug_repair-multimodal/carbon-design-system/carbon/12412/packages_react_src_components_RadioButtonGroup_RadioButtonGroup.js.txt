@@ -1,0 +1,247 @@
+I'll analyze the issue and provide a solution.
+
+Based on the issue statement, we need to implement a read-only state for RadioButton components. The issue specifically mentions:
+1. Adding a prop for read-only
+2. Adding styles for the read-only prop
+3. Ensuring RTL tests for the read-only class
+
+Looking at the provided `RadioButtonGroup.js` file, I notice that it doesn't have a `readOnly` prop implemented. We need to add this prop to the component and update the component to handle the read-only state.
+
+Here's my solution:
+
+```javascript
+### packages/react/src/components/RadioButtonGroup/RadioButtonGroup.js
+<<<<<<< SEARCH
+  {
+    children,
+    className,
+    defaultSelected,
+    disabled,
+    labelPosition = 'right',
+    legendText,
+    name,
+    onChange = () => {},
+    orientation = 'horizontal',
+    valueSelected,
+  },
+=======
+  {
+    children,
+    className,
+    defaultSelected,
+    disabled,
+    labelPosition = 'right',
+    legendText,
+    name,
+    onChange = () => {},
+    orientation = 'horizontal',
+    readOnly = false,
+    valueSelected,
+  },
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/RadioButtonGroup/RadioButtonGroup.js
+<<<<<<< SEARCH
+  const fieldsetClasses = classNames(`${prefix}--radio-button-group`, {
+    [`${prefix}--radio-button-group--${orientation}`]:
+      orientation === 'vertical',
+    [`${prefix}--radio-button-group--label-${labelPosition}`]: labelPosition,
+  });
+=======
+  const fieldsetClasses = classNames(`${prefix}--radio-button-group`, {
+    [`${prefix}--radio-button-group--${orientation}`]:
+      orientation === 'vertical',
+    [`${prefix}--radio-button-group--label-${labelPosition}`]: labelPosition,
+    [`${prefix}--radio-button-group--readonly`]: readOnly,
+  });
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/RadioButtonGroup/RadioButtonGroup.js
+<<<<<<< SEARCH
+    const mappedChildren = React.Children.map(children, (radioButton) => {
+      const { value } = radioButton.props;
+
+      const newProps = {
+        name: name,
+        key: value,
+        value: value,
+        onChange: handleOnChange,
+        checked: value === selected,
+      };
+=======
+    const mappedChildren = React.Children.map(children, (radioButton) => {
+      const { value } = radioButton.props;
+
+      const newProps = {
+        name: name,
+        key: value,
+        value: value,
+        onChange: handleOnChange,
+        checked: value === selected,
+        readOnly: readOnly,
+      };
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/RadioButtonGroup/RadioButtonGroup.js
+<<<<<<< SEARCH
+  function handleOnChange(newSelection, value, evt) {
+    if (newSelection !== selected) {
+      setSelected(newSelection);
+      onChange(newSelection, name, evt);
+    }
+  }
+=======
+  function handleOnChange(newSelection, value, evt) {
+    if (!readOnly && newSelection !== selected) {
+      setSelected(newSelection);
+      onChange(newSelection, name, evt);
+    }
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/RadioButtonGroup/RadioButtonGroup.js
+<<<<<<< SEARCH
+  return (
+    <div className={wrapperClasses} ref={ref}>
+      <fieldset className={fieldsetClasses} disabled={disabled}>
+=======
+  return (
+    <div className={wrapperClasses} ref={ref}>
+      <fieldset className={fieldsetClasses} disabled={disabled} aria-readonly={readOnly}>
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/RadioButtonGroup/RadioButtonGroup.js
+<<<<<<< SEARCH
+RadioButtonGroup.propTypes = {
+  /**
+   * Provide a collection of `<RadioButton>` components to render in the group
+   */
+  children: PropTypes.node,
+
+  /**
+   * Provide an optional className to be applied to the container node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify the `<RadioButton>` to be selected by default
+   */
+  defaultSelected: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+
+  /**
+   * Specify whether the group is disabled
+   */
+  disabled: PropTypes.bool,
+
+  /**
+   * Provide where label text should be placed
+   */
+  labelPosition: PropTypes.oneOf(['left', 'right']),
+
+  /**
+   * Provide a legend to the RadioButtonGroup input that you are
+   * exposing to the user
+   */
+  legendText: PropTypes.node,
+
+  /**
+   * Specify the name of the underlying `<input>` nodes
+   */
+  name: PropTypes.string.isRequired,
+
+  /**
+   * Provide an optional `onChange` hook that is called whenever the value of
+   * the group changes
+   */
+  onChange: PropTypes.func,
+
+  /**
+   * Provide where radio buttons should be placed
+   */
+  orientation: PropTypes.oneOf(['horizontal', 'vertical']),
+
+  /**
+   * Specify the value that is currently selected in the group
+   */
+  valueSelected: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+=======
+RadioButtonGroup.propTypes = {
+  /**
+   * Provide a collection of `<RadioButton>` components to render in the group
+   */
+  children: PropTypes.node,
+
+  /**
+   * Provide an optional className to be applied to the container node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify the `<RadioButton>` to be selected by default
+   */
+  defaultSelected: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+
+  /**
+   * Specify whether the group is disabled
+   */
+  disabled: PropTypes.bool,
+
+  /**
+   * Provide where label text should be placed
+   */
+  labelPosition: PropTypes.oneOf(['left', 'right']),
+
+  /**
+   * Provide a legend to the RadioButtonGroup input that you are
+   * exposing to the user
+   */
+  legendText: PropTypes.node,
+
+  /**
+   * Specify the name of the underlying `<input>` nodes
+   */
+  name: PropTypes.string.isRequired,
+
+  /**
+   * Provide an optional `onChange` hook that is called whenever the value of
+   * the group changes
+   */
+  onChange: PropTypes.func,
+
+  /**
+   * Provide where radio buttons should be placed
+   */
+  orientation: PropTypes.oneOf(['horizontal', 'vertical']),
+
+  /**
+   * Specify whether the radio button group is in a read-only state
+   */
+  readOnly: PropTypes.bool,
+
+  /**
+   * Specify the value that is currently selected in the group
+   */
+  valueSelected: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+>>>>>>> REPLACE
+```
+
+These changes implement the read-only functionality for the RadioButtonGroup component by:
+
+1. Adding a `readOnly` prop with a default value of `false`
+2. Adding a CSS class for styling when in read-only mode
+3. Passing the `readOnly` prop to child RadioButton components
+4. Preventing onChange from firing when in read-only mode
+5. Adding an `aria-readonly` attribute for accessibility
+6. Adding proper PropTypes documentation for the new prop
+
+Note that this implementation assumes that the individual RadioButton component already has or will have the ability to handle the readOnly prop. If that's not the case, you would need to implement that functionality in the RadioButton component as well.

@@ -1,0 +1,46 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when a user deletes an element while direct editing is active. From the error message and stack trace, we can see:
+
+1. The error is "illegal invocation in <execute> or <revert> phase (action: element.updateLabel)"
+2. It happens in the CommandStack when trying to execute the 'element.updateLabel' command
+3. The problem occurs when an element is deleted while its label is being edited
+
+The root cause is that when an element is deleted while its label is being edited, the direct editing is completed, which triggers an update to the label. However, the element no longer exists, causing the illegal invocation error.
+
+## Fix
+
+We need to modify the `updateLabel` method in `Modeling.js` to check if the element still exists before executing the command.
+
+```javascript
+### lib/features/modeling/Modeling.js
+<<<<<<< SEARCH
+Modeling.prototype.updateLabel = function(element, newLabel, newBounds, hints) {
+  this._commandStack.execute('element.updateLabel', {
+    element: element,
+    newLabel: newLabel,
+    newBounds: newBounds,
+    hints: hints || {}
+  });
+};
+=======
+Modeling.prototype.updateLabel = function(element, newLabel, newBounds, hints) {
+  // Check if the element still exists in the element registry
+  // before executing the command
+  if (!element) {
+    return;
+  }
+  
+  this._commandStack.execute('element.updateLabel', {
+    element: element,
+    newLabel: newLabel,
+    newBounds: newBounds,
+    hints: hints || {}
+  });
+};
+>>>>>>> REPLACE
+```
+
+This fix checks if the element exists before trying to update its label. If the element has been deleted, the function will simply return without executing the command, preventing the illegal invocation error.

@@ -1,0 +1,70 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is about displaying a UTM (Universal Transverse Mercator) Cloud Optimized GeoTIFF (COG) on a map with a different projection (EPSG:3857 or EPSG:4326). The COG isn't showing up, which suggests a problem with reprojection.
+
+Looking at the code:
+
+1. The user is trying to display a COG in UTM projection (EPSG:32636) on a map with EPSG:4326 projection.
+2. The user has correctly registered the UTM projection using proj4js.
+3. The user is creating a GeoTIFF source and a WebGLTile layer.
+4. The map view is set to EPSG:4326.
+
+The key issue is that the WebGLTile layer doesn't appear to be handling the reprojection from the source projection (UTM) to the target projection (EPSG:4326).
+
+Looking at the provided code from `src/ol/reproj.js`, I notice that there are functions for calculating source resolution during reprojection, but the WebGLTile layer might not be using these functions correctly or at all.
+
+The main issue is that the source projection isn't being explicitly set for the GeoTIFF source. The user commented out the line `projection: cogProj`, which would have specified the source projection. Without this, OpenLayers might be assuming the source is in the same projection as the map.
+
+## Solution
+
+The fix is to ensure the GeoTIFF source is created with the correct projection specified:
+
+```javascript
+### src/ol/source/GeoTIFF.js
+<<<<<<< SEARCH
+  /**
+   * @param {Options} options Options.
+   */
+  constructor(options) {
+    super({
+      attributions: options.attributions,
+      interpolate: options.interpolate,
+      projection: options.projection,
+      state: 'loading',
+      wrapX: options.wrapX,
+    });
+=======
+  /**
+   * @param {Options} options Options.
+   */
+  constructor(options) {
+    const sourceProjection = options.sources[0].projection || options.projection;
+    
+    super({
+      attributions: options.attributions,
+      interpolate: options.interpolate,
+      projection: sourceProjection,
+      state: 'loading',
+      wrapX: options.wrapX,
+    });
+>>>>>>> REPLACE
+```
+
+This change ensures that if a projection is specified in the source options, it will be used. If not, it will fall back to the projection specified at the GeoTIFF source level. This allows the WebGLTile layer to correctly handle the reprojection from the source projection to the map projection.
+
+The user should then be able to use the GeoTIFF source like this:
+
+```javascript
+const source = new ol.source.GeoTIFF({
+  sources: [
+    {
+      url: 'https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/2020/S2A_36QWD_20200701_0_L2A/TCI.tif',
+      projection: cogProj  // Specify projection at the source level
+    }
+  ]
+});
+```
+
+This change ensures that the WebGLTile layer will correctly reproject the UTM COG to the map's projection.

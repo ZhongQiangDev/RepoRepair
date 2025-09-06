@@ -1,0 +1,32 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the shell session tokenizer issue.
+
+## Identifying the Wrong Behavior
+The problem is that the "Shell session" language tokenizer is broken in web downloads of Prism versions 1.22 and 1.23. The tokenizer doesn't properly highlight shell session code, as shown in the screenshots. The issue appears to be in the download generation code rather than the core tokenizer itself, since an earlier download of version 1.22 worked correctly.
+
+## Analyzing the Cause
+Based on the DOM tree screenshot, the tokenizer isn't properly recognizing and separating the shell prompt (`/home/user$`) from the commands and outputs. This suggests that either:
+1. The shell session language definition isn't being included in the web download
+2. The shell session tokenizer is being included but is broken or misconfigured
+3. There's an issue with how the components are being bundled for the web download
+
+Since the issue appeared between two different downloads of the same version (1.22), it's likely related to the build/download generation process rather than a core code change.
+
+## Files Most Related to the Cause
+
+```
+components/prism-shell-session.js
+gulpfile.js/index.js
+components/index.js
+assets/download.js
+prism.js
+```
+
+The `components/prism-shell-session.js` file is the most important as it contains the actual tokenizer for shell sessions. This is where the language definition and tokenization rules are defined.
+
+The `gulpfile.js/index.js` file is likely responsible for the build process, including how components are bundled for web downloads.
+
+The `components/index.js` file probably manages the loading and registration of language components.
+
+The `assets/download.js` file appears to handle the download generation process on the website.
+
+Finally, `prism.js` is the core file that all components integrate with, and might contain code related to how languages are registered and processed.

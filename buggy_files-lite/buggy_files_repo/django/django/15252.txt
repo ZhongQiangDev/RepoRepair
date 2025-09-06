@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- The MigrationRecorder tries to create django_migrations table in all database connections during test database setup
+- This happens even when the db_router's allow_migrate explicitly returns False for non-default databases
+- This violates the router rules that should prevent migrations/table creation in non-default databases
+
+2. Cause Analysis:
+- The issue stems from MigrationRecorder's ensure_schema() method which creates the django_migrations table
+- This method is called during migration recording but doesn't respect the database router's allow_migrate rules
+- The recorder directly creates tables without checking if migrations are allowed on that database connection
+- This bypasses the router's control over which databases should have migration tables created
+
+3. Most Related Files:
+```
+django/db/migrations/recorder.py
+django/db/migrations/executor.py
+django/db/utils.py
+django/db/backends/base/creation.py
+django/core/management/commands/migrate.py
+```
+
+These files are ordered by importance because:
+- recorder.py contains the MigrationRecorder class that's directly responsible for the issue
+- executor.py handles migration execution and calls the recorder
+- utils.py contains the router functionality being bypassed
+- creation.py handles test database creation where the issue manifests
+- migrate.py is the command that triggers the migration process

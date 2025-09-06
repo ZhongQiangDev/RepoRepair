@@ -1,0 +1,156 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is that when using `itemToElement` to render custom components in the dropdown list, the selected item in the dropdown button still uses `itemToString` for rendering the title attribute and display text. This causes problems when `itemToString` returns an object, resulting in `[Object object]` being displayed in the title attribute.
+
+The user is requesting a way to use `itemToElement` for the selected item in the dropdown button, not just for the items in the dropdown list.
+
+## Solution
+
+We need to modify the Dropdown component to:
+1. Add a new prop `selectedItemToElement` that allows rendering the selected item using `itemToElement`
+2. Update the button rendering to use this prop when available
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/Dropdown/Dropdown.js
+<<<<<<< SEARCH
+Dropdown.propTypes = {
+  /**
+   * 'aria-label' of the ListBox component.
+   */
+  ariaLabel: PropTypes.string,
+
+  /**
+   * Provide a custom className to be applied on the bx--dropdown node
+   */
+  className: PropTypes.string,
+=======
+Dropdown.propTypes = {
+  /**
+   * 'aria-label' of the ListBox component.
+   */
+  ariaLabel: PropTypes.string,
+
+  /**
+   * Provide a custom className to be applied on the bx--dropdown node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Determines whether to use itemToElement or itemToString for rendering the selected item
+   */
+  selectedItemToElement: PropTypes.bool,
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Dropdown/Dropdown.js
+<<<<<<< SEARCH
+  itemToElement,
+  type,
+  size,
+  onChange,
+  id,
+  titleText,
+  hideLabel,
+  helperText,
+  translateWithId,
+  light,
+  invalid,
+  invalidText,
+  warn,
+  warnText,
+  initialSelectedItem,
+  selectedItem: controlledSelectedItem,
+  downshiftProps,
+=======
+  itemToElement,
+  type,
+  size,
+  onChange,
+  id,
+  titleText,
+  hideLabel,
+  helperText,
+  translateWithId,
+  light,
+  invalid,
+  invalidText,
+  warn,
+  warnText,
+  initialSelectedItem,
+  selectedItem: controlledSelectedItem,
+  selectedItemToElement,
+  downshiftProps,
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Dropdown/Dropdown.js
+<<<<<<< SEARCH
+        <button
+          type="button"
+          className={`${prefix}--list-box__field`}
+          disabled={disabled}
+          aria-disabled={disabled}
+          title={selectedItem ? itemToString(selectedItem) : label}
+          {...toggleButtonProps}
+          ref={mergeRefs(toggleButtonProps.ref, ref)}>
+          <span className={`${prefix}--list-box__label`}>
+            {selectedItem ? itemToString(selectedItem) : label}
+          </span>
+          <ListBox.MenuIcon isOpen={isOpen} translateWithId={translateWithId} />
+        </button>
+=======
+        <button
+          type="button"
+          className={`${prefix}--list-box__field`}
+          disabled={disabled}
+          aria-disabled={disabled}
+          title={selectedItem ? itemToString(selectedItem) : label}
+          {...toggleButtonProps}
+          ref={mergeRefs(toggleButtonProps.ref, ref)}>
+          <span className={`${prefix}--list-box__label`}>
+            {selectedItem && selectedItemToElement && itemToElement ? (
+              <ItemToElement {...selectedItem} />
+            ) : (
+              selectedItem ? itemToString(selectedItem) : label
+            )}
+          </span>
+          <ListBox.MenuIcon isOpen={isOpen} translateWithId={translateWithId} />
+        </button>
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Dropdown/Dropdown.js
+<<<<<<< SEARCH
+Dropdown.defaultProps = {
+  disabled: false,
+  type: 'default',
+  itemToString: defaultItemToString,
+  itemToElement: null,
+  light: false,
+  titleText: '',
+  helperText: '',
+  direction: 'bottom',
+};
+=======
+Dropdown.defaultProps = {
+  disabled: false,
+  type: 'default',
+  itemToString: defaultItemToString,
+  itemToElement: null,
+  selectedItemToElement: false,
+  light: false,
+  titleText: '',
+  helperText: '',
+  direction: 'bottom',
+};
+>>>>>>> REPLACE
+```
+
+These changes add a new `selectedItemToElement` boolean prop that, when set to true, will use the `itemToElement` function to render the selected item in the dropdown button instead of using `itemToString`. This allows users to have custom components as the selected item display, solving the issue with `[Object object]` appearing in the title attribute.

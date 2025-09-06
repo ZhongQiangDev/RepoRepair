@@ -1,0 +1,177 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when using `ol/render.toContext()` with a `pixelRatio` greater than 1.0, the `lineDash` property is not being scaled by the `pixelRatio`, unlike when rendering to a map. This causes dashed lines to appear differently (often blurring into continuous lines) when rendered with Canvas Immediate.
+
+Looking at the code, I need to find where the line dash is applied in the Canvas Immediate rendering context. The issue is likely in the implementation of the `setStyle` method of the vector context created by `ol.render.toContext()`.
+
+The fix would be to scale the `lineDash` values by the `pixelRatio` when setting the style for Canvas Immediate rendering.
+
+## Fix
+
+Since we don't have the complete codebase, I'll need to make an educated guess about where the bug is located. Based on the issue description, the problem is likely in the Canvas Immediate rendering implementation, which would be in a file related to canvas rendering context.
+
+The most likely location would be in a file that handles the implementation of the `setStyle` method for the Canvas Immediate context, where it applies the stroke style properties including the line dash.
+
+```javascript
+### src/ol/render/canvas/Immediate.js
+<<<<<<< SEARCH
+  /**
+   * Set the rendering style.  Note that since this is an immediate rendering API,
+   * any `zIndex` on the provided style will be ignored.
+   *
+   * @param {import("../../style/Style.js").default} style The rendering style.
+   * @override
+   * @api
+   */
+  setStyle(style) {
+    this.setFillStrokeStyle(style.getFill(), style.getStroke());
+    this.setImageStyle(style.getImage());
+    this.setTextStyle(style.getText());
+  }
+=======
+  /**
+   * Set the rendering style.  Note that since this is an immediate rendering API,
+   * any `zIndex` on the provided style will be ignored.
+   *
+   * @param {import("../../style/Style.js").default} style The rendering style.
+   * @override
+   * @api
+   */
+  setStyle(style) {
+    this.setFillStrokeStyle(style.getFill(), style.getStroke());
+    this.setImageStyle(style.getImage());
+    this.setTextStyle(style.getText());
+  }
+>>>>>>> REPLACE
+```
+
+The above search/replace doesn't change anything because we need to see the implementation of `setFillStrokeStyle` where the line dash is actually applied. Let's try to find that method:
+
+```javascript
+### src/ol/render/canvas/Immediate.js
+<<<<<<< SEARCH
+  /**
+   * @param {import("../../style/Fill.js").default} fillStyle Fill style.
+   * @param {import("../../style/Stroke.js").default} strokeStyle Stroke style.
+   */
+  setFillStrokeStyle(fillStyle, strokeStyle) {
+    if (!fillStyle) {
+      this.fillState_ = null;
+    } else {
+      const fillStyleColor = fillStyle.getColor();
+      this.fillState_ = {
+        fillStyle: asColorLike(
+          fillStyleColor ? fillStyleColor : defaultFillStyle
+        ),
+      };
+    }
+    if (!strokeStyle) {
+      this.strokeState_ = null;
+    } else {
+      const strokeStyleColor = strokeStyle.getColor();
+      const strokeStyleLineCap = strokeStyle.getLineCap();
+      const strokeStyleLineDash = strokeStyle.getLineDash();
+      const strokeStyleLineDashOffset = strokeStyle.getLineDashOffset();
+      const strokeStyleLineJoin = strokeStyle.getLineJoin();
+      const strokeStyleWidth = strokeStyle.getWidth();
+      const strokeStyleMiterLimit = strokeStyle.getMiterLimit();
+      this.strokeState_ = {
+        lineCap:
+          strokeStyleLineCap !== undefined
+            ? strokeStyleLineCap
+            : defaultLineCap,
+        lineDash:
+          strokeStyleLineDash !== undefined
+            ? strokeStyleLineDash
+            : defaultLineDash,
+        lineDashOffset:
+          strokeStyleLineDashOffset !== undefined
+            ? strokeStyleLineDashOffset
+            : defaultLineDashOffset,
+        lineJoin:
+          strokeStyleLineJoin !== undefined
+            ? strokeStyleLineJoin
+            : defaultLineJoin,
+        lineWidth:
+          strokeStyleWidth !== undefined
+            ? strokeStyleWidth
+            : defaultLineWidth,
+        miterLimit:
+          strokeStyleMiterLimit !== undefined
+            ? strokeStyleMiterLimit
+            : defaultMiterLimit,
+        strokeStyle: asColorLike(
+          strokeStyleColor ? strokeStyleColor : defaultStrokeStyle
+        ),
+      };
+    }
+  }
+=======
+  /**
+   * @param {import("../../style/Fill.js").default} fillStyle Fill style.
+   * @param {import("../../style/Stroke.js").default} strokeStyle Stroke style.
+   */
+  setFillStrokeStyle(fillStyle, strokeStyle) {
+    if (!fillStyle) {
+      this.fillState_ = null;
+    } else {
+      const fillStyleColor = fillStyle.getColor();
+      this.fillState_ = {
+        fillStyle: asColorLike(
+          fillStyleColor ? fillStyleColor : defaultFillStyle
+        ),
+      };
+    }
+    if (!strokeStyle) {
+      this.strokeState_ = null;
+    } else {
+      const strokeStyleColor = strokeStyle.getColor();
+      const strokeStyleLineCap = strokeStyle.getLineCap();
+      const strokeStyleLineDash = strokeStyle.getLineDash();
+      const strokeStyleLineDashOffset = strokeStyle.getLineDashOffset();
+      const strokeStyleLineJoin = strokeStyle.getLineJoin();
+      const strokeStyleWidth = strokeStyle.getWidth();
+      const strokeStyleMiterLimit = strokeStyle.getMiterLimit();
+      
+      // Scale line dash by pixel ratio
+      let lineDash = strokeStyleLineDash !== undefined ? strokeStyleLineDash : defaultLineDash;
+      if (this.pixelRatio_ !== 1 && lineDash.length) {
+        lineDash = lineDash.map((dash) => dash * this.pixelRatio_);
+      }
+      
+      this.strokeState_ = {
+        lineCap:
+          strokeStyleLineCap !== undefined
+            ? strokeStyleLineCap
+            : defaultLineCap,
+        lineDash: lineDash,
+        lineDashOffset:
+          strokeStyleLineDashOffset !== undefined
+            ? strokeStyleLineDashOffset
+            : defaultLineDashOffset,
+        lineJoin:
+          strokeStyleLineJoin !== undefined
+            ? strokeStyleLineJoin
+            : defaultLineJoin,
+        lineWidth:
+          strokeStyleWidth !== undefined
+            ? strokeStyleWidth
+            : defaultLineWidth,
+        miterLimit:
+          strokeStyleMiterLimit !== undefined
+            ? strokeStyleMiterLimit
+            : defaultMiterLimit,
+        strokeStyle: asColorLike(
+          strokeStyleColor ? strokeStyleColor : defaultStrokeStyle
+        ),
+      };
+    }
+  }
+>>>>>>> REPLACE
+```
+
+This fix scales the line dash values by the pixel ratio when setting the stroke style. It creates a new array with each dash length multiplied by the pixel ratio, similar to how other dimensions are scaled in high-DPI rendering.
+
+Note that this assumes that `this.pixelRatio_` is available in the Immediate class. If it's not, we would need to modify the constructor to store the pixel ratio or access it from another source.

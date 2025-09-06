@@ -1,0 +1,71 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is in the WebGL rendering of shapes with the `CLOSE` parameter in `endShape()`. Looking at the example code and the screenshot, we can see that when drawing a closed shape (the letter C) in WebGL mode, there's an unwanted fill connecting the last vertex to the origin (top-left corner of the letter).
+
+The problem is in the `_drawFillImmediateMode` function in `p5.RendererGL.Immediate.js`. When drawing in WEBGL mode, the function is not properly handling the `CLOSE` parameter that's passed to `endShape()`. Instead, it's using `TRIANGLE_FAN` as the default shape mode for fills, which connects all vertices to the first vertex, creating the unwanted fill.
+
+## Fix
+
+The fix is to modify the `_drawFillImmediateMode` function to properly handle the shape mode based on whether the shape is closed or not:
+
+```javascript
+### src/webgl/p5.RendererGL.Immediate.js
+<<<<<<< SEARCH
+  //if (true || mode) {
+  if (this.drawMode === constants.FILL || this.drawMode === constants.TEXTURE) {
+    switch (this.immediateMode.shapeMode) {
+      case constants.LINE_STRIP:
+      case constants.LINES:
+      case constants.TRIANGLES:
+        this.immediateMode.shapeMode =
+          this.isBezier ||
+          this.isQuadratic ||
+          this.isCurve ||
+          this.immediateMode.shapeMode === constants.TRIANGLES
+            ? constants.TRIANGLES
+            : constants.TRIANGLE_FAN;
+        break;
+    }
+  } else {
+    switch (this.immediateMode.shapeMode) {
+      case constants.LINE_STRIP:
+      case constants.LINES:
+        this.immediateMode.shapeMode = constants.LINE_LOOP;
+        break;
+    }
+  }
+=======
+  if (this.drawMode === constants.FILL || this.drawMode === constants.TEXTURE) {
+    // If the shape is closed or is a curve/bezier/quadratic, use TRIANGLES mode
+    // Otherwise, use TRIANGLE_FAN mode
+    if (
+      isContour === true ||
+      isBezier ||
+      isQuadratic ||
+      isCurve ||
+      this.immediateMode.shapeMode === constants.TRIANGLES
+    ) {
+      this.immediateMode.shapeMode = constants.TRIANGLES;
+    } else {
+      // For open shapes, we need to check if it should be closed
+      if (shapeKind === constants.CLOSE) {
+        this.immediateMode.shapeMode = constants.TRIANGLES;
+      } else {
+        this.immediateMode.shapeMode = constants.TRIANGLE_FAN;
+      }
+    }
+  } else {
+    // For stroke-only rendering
+    switch (this.immediateMode.shapeMode) {
+      case constants.LINE_STRIP:
+      case constants.LINES:
+        this.immediateMode.shapeMode = constants.LINE_LOOP;
+        break;
+    }
+  }
+>>>>>>> REPLACE
+```
+
+This fix checks if the shape should be closed (when `shapeKind === constants.CLOSE`) and uses the appropriate rendering mode. For closed shapes, it uses `TRIANGLES` instead of `TRIANGLE_FAN`, which should prevent the unwanted fill from the last vertex to the origin.

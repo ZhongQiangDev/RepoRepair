@@ -1,0 +1,56 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that the ByteEfficiency audit reports no savings (a score of 100) for cases where animated GIFs are converted to video, even though there are significant potential savings (almost 5MB in this case). The issue arises because the `computeWasteWithTTIGraph` method reports 0 savings due to only one network request being affected and no long tasks being touched. However, the difference in the end of the graph is 23 seconds, indicating that there should be a noticeable impact.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior seems to be the way `computeWasteWithTTIGraph` calculates the savings. It appears to be focusing on the impact on the estimated Time to Interactive (TTI) rather than the overall impact on the end of the graph or the onload event. Since the conversion of a large animated GIF to a video format can significantly reduce the transfer size and potentially improve the overall load time, the current method of calculating savings may not be capturing this improvement accurately.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### lighthouse-core/audits/byte-efficiency/byte-efficiency-audit.js
+
+```
+lighthouse-core/audits/byte-efficiency/byte-efficiency-audit.js
+class: UnusedBytes
+```
+
+The `UnusedBytes` class contains the `computeWasteWithTTIGraph` method, which is likely the source of the issue. This method calculates the estimated time savings by simulating changes to the network graph, but it may not be considering the overall impact on the end of the graph or the onload event.
+
+#### lighthouse-core/audits/byte-efficiency/efficient-animated-content.js
+
+```
+lighthouse-core/audits/byte-efficiency/efficient-animated-content.js
+class: EfficientAnimatedContent
+```
+
+The `EfficientAnimatedContent` class extends `ByteEfficiencyAudit` and is responsible for identifying and optimizing large animated GIFs. The `audit_` method in this class filters network records to find unoptimized GIFs and calculates potential savings. While this class is relevant to the audit, it does not directly address the issue with the savings calculation.
+
+#### lighthouse-core/lib/dependency-graph/network-node.js
+
+```
+This file contains no relevant functions/classes.
+```
+
+The `NetworkNode` class provides getter methods to access and analyze network request properties, but it does not directly relate to the savings calculation issue.
+
+#### lighthouse-core/lib/dependency-graph/simulator/network-analyzer.js
+
+```
+This file contains no relevant functions/classes.
+```
+
+The `NetworkAnalyzer` class provides utility methods for analyzing network request data and extracting performance metrics. While it is useful for performance analysis, it does not directly address the savings calculation issue.
+
+#### lighthouse-core/lib/dependency-graph/simulator/simulator.js
+
+```
+lighthouse-core/lib/dependency-graph/simulator/simulator.js
+class: Simulator
+```
+
+The `Simulator` class simulates the execution of a graph of nodes, including network requests and CPU tasks. It may be relevant to the issue because it estimates the time taken for each node to complete and the overall execution time of the graph. However, the specific method causing the issue is likely in the `computeWasteWithTTIGraph` method of the `UnusedBytes` class.
+
+### Summary
+
+The primary location that needs inspection or editing is the `computeWasteWithTTIGraph` method in the `UnusedBytes` class. This method should be modified to consider the overall impact on the end of the graph or the onload event, rather than just the impact on the estimated TTI. The `EfficientAnimatedContent` class is also relevant to the audit but does not directly address the savings calculation issue. The other files do not contain relevant functions or classes for this specific problem.

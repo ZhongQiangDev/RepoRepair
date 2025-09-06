@@ -1,0 +1,60 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about missing tiles in WebGLTileLayer when using a GeoTiff source with a stereographic projection, particularly near the antimeridian (±180° longitude).
+
+Looking at the code, the problem appears to be in the `wrapX` function in `src/ol/tilegrid.js`. This function is responsible for handling tiles that cross the antimeridian by wrapping them around the world.
+
+The current implementation checks if the tile's center is outside the projection extent, and if so, it calculates how many "worlds away" the tile is and adjusts its position. However, the calculation only considers tiles that are to the left of the projection extent's left edge (`projectionExtent[0]`). It doesn't properly handle tiles that are to the right of the projection extent's right edge.
+
+## Fix
+
+We need to modify the `wrapX` function to handle tiles that are outside the projection extent on either side (left or right).
+
+```javascript
+### src/ol/tilegrid.js
+<<<<<<< SEARCH
+export function wrapX(tileGrid, tileCoord, projection) {
+  const z = tileCoord[0];
+  const center = tileGrid.getTileCoordCenter(tileCoord);
+  const projectionExtent = extentFromProjection(projection);
+  if (!containsCoordinate(projectionExtent, center)) {
+    const worldWidth = getWidth(projectionExtent);
+    const worldsAway = Math.ceil(
+      (projectionExtent[0] - center[0]) / worldWidth,
+    );
+    center[0] += worldWidth * worldsAway;
+    return tileGrid.getTileCoordForCoordAndZ(center, z);
+  }
+  return tileCoord;
+}
+=======
+export function wrapX(tileGrid, tileCoord, projection) {
+  const z = tileCoord[0];
+  const center = tileGrid.getTileCoordCenter(tileCoord);
+  const projectionExtent = extentFromProjection(projection);
+  if (!containsCoordinate(projectionExtent, center)) {
+    const worldWidth = getWidth(projectionExtent);
+    let worldsAway;
+    if (center[0] < projectionExtent[0]) {
+      // Tile is to the left of the projection extent
+      worldsAway = Math.ceil((projectionExtent[0] - center[0]) / worldWidth);
+      center[0] += worldWidth * worldsAway;
+    } else if (center[0] > projectionExtent[2]) {
+      // Tile is to the right of the projection extent
+      worldsAway = Math.ceil((center[0] - projectionExtent[2]) / worldWidth);
+      center[0] -= worldWidth * worldsAway;
+    }
+    return tileGrid.getTileCoordForCoordAndZ(center, z);
+  }
+  return tileCoord;
+}
+>>>>>>> REPLACE
+```
+
+This fix modifies the `wrapX` function to handle tiles that are outside the projection extent on either side:
+1. If the tile center is to the left of the projection extent's left edge, it adds the necessary number of world widths to bring it into the extent.
+2. If the tile center is to the right of the projection extent's right edge, it subtracts the necessary number of world widths to bring it into the extent.
+
+This should ensure that tiles near the antimeridian are properly wrapped and displayed, eliminating the black gaps in the stereographic projection.

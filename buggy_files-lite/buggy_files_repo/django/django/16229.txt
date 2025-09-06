@@ -1,0 +1,30 @@
+Let me help analyze this issue:
+
+1. Wrong Behavior:
+- When submitting a form with an ArrayField in an inline admin form:
+  * First submission shows validation error correctly
+  * Second submission bypasses validation and clears the field value incorrectly
+  * The hidden input with initial value is not being handled properly
+
+2. Cause Analysis:
+- The issue appears to be related to how Django handles validation and initial values for ArrayField in inline forms
+- The hidden input containing the initial value (`initial-relatedmodel_set-0-plop`) is not being processed correctly on subsequent submissions
+- This seems to be a problem with the form validation logic in Django's admin interface, specifically around inline formsets and their handling of ArrayField defaults
+
+3. Most Relevant Files:
+```
+django/contrib/admin/options.py
+django/forms/models.py
+django/contrib/admin/helpers.py
+django/forms/boundfield.py
+django/db/models/fields/related.py
+```
+
+These files are ordered by relevance because:
+1. `options.py` contains the core InlineModelAdmin and form handling logic
+2. `models.py` handles model form processing and validation
+3. `helpers.py` manages inline formset rendering and processing
+4. `boundfield.py` handles form field binding and initial values
+5. `fields/related.py` contains related field logic that may affect inline processing
+
+The issue likely needs to be fixed primarily in the inline formset handling code within these files, particularly around how initial values are processed during validation.

@@ -1,0 +1,40 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when dropping an element onto a sequence flow, the layout breaks. The docking of the new incoming sequence flow is always at the top left corner, as shown in the GIF.
+
+Looking at the code, I found a bug in the `deconflictPosition` function in `lib/features/auto-place/AutoPlaceUtil.js`. There's a variable name mismatch - the function uses `existingTarget` in one place but the variable is actually named `existingElement`.
+
+## Fix
+
+```javascript
+### lib/features/auto-place/AutoPlaceUtil.js
+<<<<<<< SEARCH
+      if (margin < 0) {
+        newPosition[axis] = Math.min(
+          existingElement[axis] + margin - element[dimension] / 2,
+          position[axis] - rowSize + margin
+        );
+      } else {
+        newPosition[axis] = Math.max(
+          existingTarget[axis] + existingTarget[dimension] + margin + element[dimension] / 2,
+          position[axis] + rowSize + margin
+        );
+      }
+=======
+      if (margin < 0) {
+        newPosition[axis] = Math.min(
+          existingElement[axis] + margin - element[dimension] / 2,
+          position[axis] - rowSize + margin
+        );
+      } else {
+        newPosition[axis] = Math.max(
+          existingElement[axis] + existingElement[dimension] + margin + element[dimension] / 2,
+          position[axis] + rowSize + margin
+        );
+      }
+>>>>>>> REPLACE
+```
+
+The bug is that in the `else` clause, the code incorrectly uses `existingTarget` instead of `existingElement`. This inconsistency causes the layout to break when dropping elements onto sequence flows. The fix ensures that the same variable name `existingElement` is used consistently throughout the function, which should resolve the layout issue.

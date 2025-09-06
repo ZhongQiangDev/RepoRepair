@@ -1,0 +1,157 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that the TableContainer component doesn't provide IDs for its title and description elements, which prevents them from being properly referenced by the Table component for accessibility purposes using aria-labelledby and aria-describedby attributes.
+
+According to the ARIA best practices mentioned in the issue, when text is visible on screen, it's better to use aria-labelledby rather than aria-label. Currently, the component doesn't support this pattern.
+
+Here's my fix:
+
+```javascript
+### packages/react/src/components/DataTable/TableContainer.js
+<<<<<<< SEARCH
+const TableContainer = ({
+  className,
+  children,
+  title,
+  description,
+  stickyHeader,
+  useStaticWidth,
+  ...rest
+}) => {
+  const prefix = usePrefix();
+  const tableContainerClasses = cx(
+    className,
+    `${prefix}--data-table-container`,
+    {
+      [`${prefix}--data-table--max-width`]: stickyHeader,
+      [`${prefix}--data-table-container--static`]: useStaticWidth,
+    }
+  );
+
+  return (
+    <div {...rest} className={tableContainerClasses}>
+      {title && (
+        <div className={`${prefix}--data-table-header`}>
+          <h4 className={`${prefix}--data-table-header__title`}>{title}</h4>
+          <p className={`${prefix}--data-table-header__description`}>
+            {description}
+          </p>
+        </div>
+      )}
+      {children}
+    </div>
+  );
+};
+=======
+const TableContainer = ({
+  className,
+  children,
+  title,
+  description,
+  stickyHeader,
+  useStaticWidth,
+  id,
+  ...rest
+}) => {
+  const prefix = usePrefix();
+  const tableContainerClasses = cx(
+    className,
+    `${prefix}--data-table-container`,
+    {
+      [`${prefix}--data-table--max-width`]: stickyHeader,
+      [`${prefix}--data-table-container--static`]: useStaticWidth,
+    }
+  );
+  
+  const titleId = id && title ? `${id}-title` : undefined;
+  const descriptionId = id && description ? `${id}-description` : undefined;
+
+  return (
+    <div {...rest} className={tableContainerClasses}>
+      {title && (
+        <div className={`${prefix}--data-table-header`}>
+          <h4 id={titleId} className={`${prefix}--data-table-header__title`}>{title}</h4>
+          {description && (
+            <p id={descriptionId} className={`${prefix}--data-table-header__description`}>
+              {description}
+            </p>
+          )}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+};
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/DataTable/TableContainer.js
+<<<<<<< SEARCH
+TableContainer.propTypes = {
+  children: PropTypes.node,
+  className: PropTypes.string,
+  /**
+   * Optional description text for the Table
+   */
+  description: PropTypes.node,
+
+  /**
+   * Specify whether the table should have a sticky header
+   */
+  stickyHeader: PropTypes.bool,
+
+  /**
+   * Provide a title for the Table
+   */
+  title: PropTypes.node,
+
+  /**
+   * If true, will use a width of 'fit-content' to match the inner table width
+   */
+  useStaticWidth: PropTypes.bool,
+};
+=======
+TableContainer.propTypes = {
+  children: PropTypes.node,
+  className: PropTypes.string,
+  /**
+   * Optional description text for the Table
+   */
+  description: PropTypes.node,
+
+  /**
+   * Optional id for the TableContainer. If provided, it will be used to generate
+   * unique IDs for the title and description elements that can be referenced by
+   * aria-labelledby and aria-describedby attributes on the Table.
+   */
+  id: PropTypes.string,
+
+  /**
+   * Specify whether the table should have a sticky header
+   */
+  stickyHeader: PropTypes.bool,
+
+  /**
+   * Provide a title for the Table
+   */
+  title: PropTypes.node,
+
+  /**
+   * If true, will use a width of 'fit-content' to match the inner table width
+   */
+  useStaticWidth: PropTypes.bool,
+};
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Adds an optional `id` prop to the TableContainer component
+2. Uses this id to generate unique IDs for the title and description elements (`${id}-title` and `${id}-description`)
+3. Adds these IDs to the title and description elements
+4. Adds proper documentation for the new `id` prop
+5. Adds a conditional check for description to avoid rendering an empty paragraph
+6. Makes the IDs only generate when both the parent id and the respective content (title/description) exist
+
+With this change, users can now properly reference the title and description elements using aria-labelledby and aria-describedby attributes on their Table component, following ARIA best practices.

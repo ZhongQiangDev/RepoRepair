@@ -1,0 +1,26 @@
+Based on the issue description, the bug appears to be in how Django 3.0 handles optional URL parameters. The error occurs when a view function is called with more positional arguments than it expects, specifically when using optional URL parameters with regex patterns.
+
+The issue stems from how the URLResolver's resolve() method handles the merging of arguments in the ResolverMatch creation. The bug is in the `resolve()` method where it handles the sub_match arguments and kwargs.
+
+Here's the fix:
+
+```python
+### django/urls/resolvers.py
+<<<<<<< SEARCH
+                        sub_match_args = sub_match.args
+                        if not sub_match_dict:
+                            sub_match_args = args + sub_match.args
+=======
+                        # Only use positional arguments if no named groups are captured
+                        # and if the sub_match doesn't have any kwargs
+                        sub_match_args = sub_match.args
+                        if not sub_match_dict and not sub_match.kwargs:
+                            sub_match_args = args + sub_match.args
+>>>>>>> REPLACE
+```
+
+This fix modifies the logic for handling positional arguments. The original code only checked if there were no named groups in the current match (`sub_match_dict`), but didn't consider if the sub-match already had keyword arguments. The new code ensures that positional arguments are only combined if both the current match and sub-match have no keyword arguments.
+
+This change prevents Django from incorrectly passing URL capture groups as positional arguments when they should be handled as keyword arguments, which was causing the "takes from 1 to 2 positional arguments but 3 were given" error.
+
+The fix ensures that when using optional URL parameters with regex patterns like `(?P<format>(html|json|xml))?`, the parameters are properly passed as keyword arguments to the view function rather than being incorrectly treated as positional arguments.

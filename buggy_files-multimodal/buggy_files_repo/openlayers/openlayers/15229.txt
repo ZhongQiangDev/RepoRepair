@@ -1,0 +1,29 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the icon distortion issue.
+
+## 1. Identifying the Wrong Behavior
+
+The problem involves icon distortion in the `WebGLPoints` layer when:
+- `icon-rotate-with-view: true` is used
+- The viewport is non-square
+
+As shown in the screenshot, the icons appear stretched/distorted rather than maintaining their original proportions.
+
+## 2. Analyzing the Cause
+
+The issue is likely related to how the WebGL shader handles icon rendering when rotation is applied. When `icon-rotate-with-view: true` is set, the icons are supposed to rotate with the map view, but the aspect ratio correction isn't being properly applied for non-square viewports.
+
+This suggests that the WebGL shader code or the transformation matrix used for rendering the icons isn't accounting for the viewport's aspect ratio when applying rotation. The icons are being stretched along one axis because the transformation doesn't maintain the proper aspect ratio.
+
+## 3. Files Most Related to the Cause
+
+Based on the repository information provided, these are the most relevant files that would need to be edited:
+
+```
+src/ol/layer/WebGLPoints.js
+src/ol/webgl/ShaderBuilder.js
+src/ol/renderer/webgl/PointsLayer.js
+src/ol/style/expressions.js
+src/ol/render/webgl/MixedGeometryBatch.js
+```
+
+The `WebGLPoints.js` file is the primary class implementing the layer with the issue. The `ShaderBuilder.js` and `PointsLayer.js` files handle the shader generation and rendering logic. The `expressions.js` file contains utilities for WebGL shader expressions that might need adjustment for proper aspect ratio handling. Finally, `MixedGeometryBatch.js` could be involved in the geometry processing that affects how icons are rendered.

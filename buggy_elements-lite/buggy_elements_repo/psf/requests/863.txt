@@ -1,0 +1,32 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The Request class's handling of hooks doesn't properly support multiple hook functions per hook type. When passing a list of hook functions in the hooks argument, the code wraps this list in another list, making it uncallable when the hooks are executed.
+
+2. Cause Analysis:
+The issue stems from how the Request class initializes and processes the hooks dictionary in its __init__ method. When a list of hook functions is provided, instead of treating it as multiple hooks to be executed sequentially, the code incorrectly wraps it in another list, creating a nested structure that can't be called as a function.
+
+3. File Analysis:
+
+requests/hooks.py:
+```
+requests/hooks.py
+function: dispatch_hook
+```
+This function is relevant as it's responsible for executing the hooks, and needs to properly handle both single functions and lists of functions.
+
+requests/models.py:
+```
+requests/models.py
+class: Request
+```
+This class is directly relevant as it contains the initialization logic that's causing the issue with hook handling.
+
+requests/sessions.py:
+```
+requests/sessions.py
+class: Session
+```
+This class is relevant as it manages hooks at the session level and needs to properly merge them with request-level hooks.
+
+The issue likely needs to be addressed in both the Request class initialization and how dispatch_hook handles the hook execution. The Session class is included because it's involved in managing hooks at a higher level and needs to ensure proper hook handling when merging session-level and request-level hooks.

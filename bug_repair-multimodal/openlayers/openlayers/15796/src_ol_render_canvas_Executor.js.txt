@@ -1,0 +1,150 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that vector layers with both `declutter: true` and `opacity < 1` are not clearing properly between renders, causing visual artifacts when panning the map.
+
+Looking at the code in `src/ol/render/canvas/Executor.js`, I need to find where the rendering happens for decluttered layers with opacity. The problem is likely related to how the canvas context is being managed when opacity is set to a value less than 1.
+
+The issue appears to be in the `replayImageOrLabel_` method of the `Executor` class. When rendering decluttered content with opacity < 1, the canvas isn't being properly cleared between frames.
+
+## Fix
+
+```javascript
+### src/ol/render/canvas/Executor.js
+<<<<<<< SEARCH
+  /**
+   * @private
+   * @param {CanvasRenderingContext2D} context Context.
+   * @param {import('../../size.js').Size} scaledCanvasSize Scaled canvas size.
+   * @param {import("../canvas.js").Label|HTMLImageElement|HTMLCanvasElement|HTMLVideoElement} imageOrLabel Image.
+   * @param {ImageOrLabelDimensions} dimensions Dimensions.
+   * @param {number} opacity Opacity.
+   * @param {Array<*>} fillInstruction Fill instruction.
+   * @param {Array<*>} strokeInstruction Stroke instruction.
+   * @return {boolean} The image or label was rendered.
+   */
+  replayImageOrLabel_(
+    context,
+    scaledCanvasSize,
+    imageOrLabel,
+    dimensions,
+    opacity,
+    fillInstruction,
+    strokeInstruction,
+  ) {
+    const fillStroke = !!(fillInstruction || strokeInstruction);
+
+    const box = dimensions.declutterBox;
+    const strokePadding = strokeInstruction
+      ? (strokeInstruction[2] * dimensions.scale[0]) / 2
+      : 0;
+    const intersects =
+      box.minX - strokePadding <= scaledCanvasSize[0] &&
+      box.maxX + strokePadding >= 0 &&
+      box.minY - strokePadding <= scaledCanvasSize[1] &&
+      box.maxY + strokePadding >= 0;
+
+    if (intersects) {
+      if (fillStroke) {
+        this.replayTextBackground_(
+          context,
+          p1,
+          p2,
+          p3,
+          p4,
+          /** @type {Array<*>} */ (fillInstruction),
+          /** @type {Array<*>} */ (strokeInstruction),
+        );
+      }
+      drawImageOrLabel(
+        context,
+        dimensions.canvasTransform,
+        opacity,
+        imageOrLabel,
+        dimensions.originX,
+        dimensions.originY,
+        dimensions.drawImageW,
+        dimensions.drawImageH,
+        dimensions.drawImageX,
+        dimensions.drawImageY,
+        dimensions.scale,
+      );
+    }
+    return true;
+=======
+  /**
+   * @private
+   * @param {CanvasRenderingContext2D} context Context.
+   * @param {import('../../size.js').Size} scaledCanvasSize Scaled canvas size.
+   * @param {import("../canvas.js").Label|HTMLImageElement|HTMLCanvasElement|HTMLVideoElement} imageOrLabel Image.
+   * @param {ImageOrLabelDimensions} dimensions Dimensions.
+   * @param {number} opacity Opacity.
+   * @param {Array<*>} fillInstruction Fill instruction.
+   * @param {Array<*>} strokeInstruction Stroke instruction.
+   * @return {boolean} The image or label was rendered.
+   */
+  replayImageOrLabel_(
+    context,
+    scaledCanvasSize,
+    imageOrLabel,
+    dimensions,
+    opacity,
+    fillInstruction,
+    strokeInstruction,
+  ) {
+    const fillStroke = !!(fillInstruction || strokeInstruction);
+
+    const box = dimensions.declutterBox;
+    const strokePadding = strokeInstruction
+      ? (strokeInstruction[2] * dimensions.scale[0]) / 2
+      : 0;
+    const intersects =
+      box.minX - strokePadding <= scaledCanvasSize[0] &&
+      box.maxX + strokePadding >= 0 &&
+      box.minY - strokePadding <= scaledCanvasSize[1] &&
+      box.maxY + strokePadding >= 0;
+
+    if (intersects) {
+      // Save the context state when opacity < 1 to ensure proper clearing between renders
+      if (opacity !== 1) {
+        context.save();
+      }
+      
+      if (fillStroke) {
+        this.replayTextBackground_(
+          context,
+          p1,
+          p2,
+          p3,
+          p4,
+          /** @type {Array<*>} */ (fillInstruction),
+          /** @type {Array<*>} */ (strokeInstruction),
+        );
+      }
+      drawImageOrLabel(
+        context,
+        dimensions.canvasTransform,
+        opacity,
+        imageOrLabel,
+        dimensions.originX,
+        dimensions.originY,
+        dimensions.drawImageW,
+        dimensions.drawImageH,
+        dimensions.drawImageX,
+        dimensions.drawImageY,
+        dimensions.scale,
+      );
+      
+      // Restore the context state when opacity < 1
+      if (opacity !== 1) {
+        context.restore();
+      }
+    }
+    return true;
+>>>>>>> REPLACE
+```
+
+The fix adds proper context state management when dealing with elements that have opacity less than 1. By using `context.save()` and `context.restore()` around the drawing operations, we ensure that the canvas context is properly reset between renders, which prevents the visual artifacts when panning the map.
+
+This approach isolates the opacity changes to just the current drawing operation and ensures the canvas state is properly restored afterward, which should fix the issue where decluttered layers with opacity < 1 were not clearing properly between renders.

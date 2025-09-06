@@ -1,0 +1,29 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When clicking on the `<input>` element of a filterable multiselect with selected options, the focus outline appears around the input instead of the whole control.
+- The focus outline correctly appears around the whole control when clicking more to the left.
+
+2. Cause Analysis:
+- This appears to be a focus management issue in the MultiSelect component
+- The focus outline is being applied to the wrong DOM node (input element) instead of the parent container when the input is directly clicked
+- The issue seems to be a regression from a previous change (#4721)
+- The focus handling logic needs to be adjusted to ensure consistent focus outline behavior regardless of where the user clicks
+
+3. Most Relevant Files:
+```
+packages/react/src/components/MultiSelect/FilterableMultiSelect.js
+packages/react/src/components/MultiSelect/MultiSelect.js
+packages/react/src/internal/keyboard/match.js
+packages/react/src/internal/Selection.js
+packages/react/src/internal/wrapFocus.js
+```
+
+These files are ordered by relevance because:
+- FilterableMultiSelect.js is the main component with the focus issue
+- MultiSelect.js contains core functionality that FilterableMultiSelect extends
+- keyboard/match.js handles keyboard interactions which may affect focus behavior
+- Selection.js manages selection state which could impact focus handling
+- wrapFocus.js contains focus management utilities that may need adjustment
+
+The fix would likely involve modifying the focus handling logic in FilterableMultiSelect.js to ensure the focus outline is applied to the correct container element regardless of which child element receives the click event.

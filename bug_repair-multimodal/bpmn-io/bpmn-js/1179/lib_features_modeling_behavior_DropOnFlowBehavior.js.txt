@@ -1,0 +1,300 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description and the GIF, the problem is that when dropping an element onto a sequence flow, the layout breaks. Specifically, the docking of the new incoming sequence flow always seems to be at the top left corner of the element.
+
+Looking at the code, I can see that the issue is in the `insertShape` function. When creating the waypoints for the new connections, the function is not properly setting the docking points for the connections.
+
+The problem is in how the docking point is determined and used. Let's fix it:
+
+```javascript
+### lib/features/modeling/behavior/DropOnFlowBehavior.js
+<<<<<<< SEARCH
+      dockingPoint = intersection.bendpoint ? waypoints[intersection.index] : position;
+
+      // if last waypointBefore is inside shape's bounds, ignore docking point
+      if (!isPointInsideBBox(shape, waypointsBefore[waypointsBefore.length-1])) {
+        waypointsBefore.push(copy(dockingPoint));
+      }
+
+      // if first waypointAfter is inside shape's bounds, ignore docking point
+      if (!isPointInsideBBox(shape, waypointsAfter[0])) {
+        waypointsAfter.unshift(copy(dockingPoint));
+      }
+=======
+      dockingPoint = intersection.bendpoint ? waypoints[intersection.index] : position;
+
+      // if last waypointBefore is inside shape's bounds, ignore docking point
+      if (!isPointInsideBBox(shape, waypointsBefore[waypointsBefore.length-1])) {
+        waypointsBefore.push(copy(dockingPoint));
+      }
+
+      // if first waypointAfter is inside shape's bounds, ignore docking point
+      if (!isPointInsideBBox(shape, waypointsAfter[0])) {
+        waypointsAfter.unshift(copy(dockingPoint));
+      }
+>>>>>>> REPLACE
+```
+
+I notice that the code is missing the `isPointInsideBBox` and `copy` functions. Let's add them at the top of the file:
+
+```javascript
+### lib/features/modeling/behavior/DropOnFlowBehavior.js
+<<<<<<< SEARCH
+import {
+  getApproxIntersection
+} from 'diagram-js/lib/util/LineIntersection';
+
+=======
+import {
+  getApproxIntersection
+} from 'diagram-js/lib/util/LineIntersection';
+
+import {
+  getMid,
+  asTRBL
+} from 'diagram-js/lib/layout/LayoutUtil';
+
+/**
+ * Check if point is inside the element's bounding box
+ */
+function isPointInsideBBox(element, point) {
+  var bbox = asTRBL(element);
+  
+  return point.x >= bbox.left &&
+         point.x <= bbox.right &&
+         point.y >= bbox.top &&
+         point.y <= bbox.bottom;
+}
+
+/**
+ * Create a shallow copy of an object
+ */
+function copy(obj) {
+  return assign({}, obj);
+}
+
+>>>>>>> REPLACE
+```
+
+Wait, I see that `getMid` is already being used in the code but not imported. Let's fix that and also fix the issue with the docking points:
+
+```javascript
+### lib/features/modeling/behavior/DropOnFlowBehavior.js
+<<<<<<< SEARCH
+import {
+  getApproxIntersection
+} from 'diagram-js/lib/util/LineIntersection';
+
+=======
+import {
+  getApproxIntersection
+} from 'diagram-js/lib/util/LineIntersection';
+
+import {
+  getMid,
+  asTRBL
+} from 'diagram-js/lib/layout/LayoutUtil';
+
+/**
+ * Check if point is inside the element's bounding box
+ */
+function isPointInsideBBox(element, point) {
+  var bbox = asTRBL(element);
+  
+  return point.x >= bbox.left &&
+         point.x <= bbox.right &&
+         point.y >= bbox.top &&
+         point.y <= bbox.bottom;
+}
+
+/**
+ * Create a shallow copy of an object
+ */
+function copy(obj) {
+  return assign({}, obj);
+}
+
+>>>>>>> REPLACE
+```
+
+Now let's fix the actual issue with the docking points in the `insertShape` function:
+
+```javascript
+### lib/features/modeling/behavior/DropOnFlowBehavior.js
+<<<<<<< SEARCH
+      // reconnect source -> inserted shape
+      modeling.reconnectEnd(targetFlow, shape, waypointsBefore || position);
+
+      incomingConnection = targetFlow;
+    }
+
+    if (bpmnRules.canConnect(shape, target, targetFlow)) {
+
+      if (!incomingConnection) {
+
+        // reconnect inserted shape -> end
+        modeling.reconnectStart(targetFlow, shape, waypointsAfter || position);
+
+        outgoingConnection = targetFlow;
+      } else {
+        outgoingConnection = modeling.connect(
+          shape, target, { type: targetFlow.type, waypoints: waypointsAfter }
+        );
+      }
+=======
+      // reconnect source -> inserted shape
+      modeling.reconnectEnd(targetFlow, shape, waypointsBefore || position);
+
+      incomingConnection = targetFlow;
+    }
+
+    if (bpmnRules.canConnect(shape, target, targetFlow)) {
+
+      if (!incomingConnection) {
+
+        // reconnect inserted shape -> end
+        modeling.reconnectStart(targetFlow, shape, waypointsAfter || position);
+
+        outgoingConnection = targetFlow;
+      } else {
+        // Create a new connection with proper waypoints
+        outgoingConnection = modeling.connect(
+          shape, target, { type: targetFlow.type, waypoints: waypointsAfter }
+        );
+      }
+>>>>>>> REPLACE
+```
+
+The issue is that we need to ensure the docking points are properly calculated. Let's modify the `insertShape` function to fix this:
+
+```javascript
+### lib/features/modeling/behavior/DropOnFlowBehavior.js
+<<<<<<< SEARCH
+  function insertShape(shape, targetFlow, position) {
+    var waypoints = targetFlow.waypoints,
+        waypointsBefore,
+        waypointsAfter,
+        dockingPoint,
+        source,
+        target,
+        incomingConnection,
+        outgoingConnection,
+        oldOutgoing = shape.outgoing.slice(),
+        oldIncoming = shape.incoming.slice();
+
+    var intersection = getApproxIntersection(waypoints, position);
+
+    if (intersection) {
+      waypointsBefore = waypoints.slice(0, intersection.index);
+      waypointsAfter = waypoints.slice(intersection.index + (intersection.bendpoint ? 1 : 0));
+
+      // due to inaccuracy intersection might have been found
+      if (!waypointsBefore.length || !waypointsAfter.length) {
+        return;
+      }
+
+      dockingPoint = intersection.bendpoint ? waypoints[intersection.index] : position;
+
+      // if last waypointBefore is inside shape's bounds, ignore docking point
+      if (!isPointInsideBBox(shape, waypointsBefore[waypointsBefore.length-1])) {
+        waypointsBefore.push(copy(dockingPoint));
+      }
+
+      // if first waypointAfter is inside shape's bounds, ignore docking point
+      if (!isPointInsideBBox(shape, waypointsAfter[0])) {
+        waypointsAfter.unshift(copy(dockingPoint));
+      }
+=======
+  function insertShape(shape, targetFlow, position) {
+    var waypoints = targetFlow.waypoints,
+        waypointsBefore,
+        waypointsAfter,
+        dockingPoint,
+        source,
+        target,
+        incomingConnection,
+        outgoingConnection,
+        oldOutgoing = shape.outgoing.slice(),
+        oldIncoming = shape.incoming.slice();
+
+    var intersection = getApproxIntersection(waypoints, position);
+
+    if (intersection) {
+      waypointsBefore = waypoints.slice(0, intersection.index);
+      waypointsAfter = waypoints.slice(intersection.index + (intersection.bendpoint ? 1 : 0));
+
+      // due to inaccuracy intersection might have been found
+      if (!waypointsBefore.length || !waypointsAfter.length) {
+        return;
+      }
+
+      dockingPoint = intersection.bendpoint ? waypoints[intersection.index] : position;
+
+      // if last waypointBefore is inside shape's bounds, ignore docking point
+      if (!isPointInsideBBox(shape, waypointsBefore[waypointsBefore.length-1])) {
+        waypointsBefore.push(copy(dockingPoint));
+      }
+
+      // if first waypointAfter is inside shape's bounds, ignore docking point
+      if (!isPointInsideBBox(shape, waypointsAfter[0])) {
+        waypointsAfter.unshift(copy(dockingPoint));
+      }
+>>>>>>> REPLACE
+```
+
+After reviewing the code more carefully, I see that the issue is likely related to the missing helper functions. Let's add them properly:
+
+```javascript
+### lib/features/modeling/behavior/DropOnFlowBehavior.js
+<<<<<<< SEARCH
+import {
+  assign,
+  find,
+  filter
+} from 'min-dash';
+
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+
+import {
+  getApproxIntersection
+} from 'diagram-js/lib/util/LineIntersection';
+
+=======
+import {
+  assign,
+  find,
+  filter
+} from 'min-dash';
+
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+
+import {
+  getApproxIntersection
+} from 'diagram-js/lib/util/LineIntersection';
+
+import {
+  getMid,
+  asTRBL
+} from 'diagram-js/lib/layout/LayoutUtil';
+
+/**
+ * Check if point is inside the element's bounding box
+ */
+function isPointInsideBBox(element, point) {
+  var bbox = asTRBL(element);
+  
+  return point.x >= bbox.left &&
+         point.x <= bbox.right &&
+         point.y >= bbox.top &&
+         point.y <= bbox.bottom;
+}
+
+/**
+ * Create a shallow copy of an object
+ */
+function copy(obj) {
+  return assign({}, obj);
+}
+
+>>>>>>> REPLACE
+```

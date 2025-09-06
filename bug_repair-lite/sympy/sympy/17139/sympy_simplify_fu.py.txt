@@ -1,0 +1,40 @@
+Based on the issue statement, the bug occurs in the `_TR56` helper function used by `TR6` when trying to compare a complex number `I` with 0 using `<`. The error occurs specifically in this line:
+
+```python
+if (rv.exp < 0) == True:
+```
+
+When `rv.exp` is the complex number `I`, this comparison is invalid and raises the TypeError.
+
+Here's the fix that checks for complex numbers before attempting the comparison:
+
+```python
+### sympy/simplify/fu.py
+<<<<<<< SEARCH
+        if (rv.exp < 0) == True:
+            return rv
+        if (rv.exp > max) == True:
+            return rv
+=======
+        # Skip complex exponents
+        if rv.exp.is_complex:
+            return rv
+        # Compare real exponents 
+        if rv.exp.is_real:
+            if (rv.exp < 0) == True:
+                return rv
+            if (rv.exp > max) == True:
+                return rv
+=======
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Adds a check for complex exponents using `is_complex` and skips the transformation if the exponent is complex
+2. Only performs the comparison operations when we know the exponent is real using `is_real`
+3. Maintains the same behavior for real exponents while preventing invalid complex number comparisons
+
+This will prevent the TypeError when trying to compare complex numbers like `I` while preserving the original functionality for real exponents.
+
+The fix handles the original issue case `cos(x)**I` by detecting that `I` is complex and returning the expression unchanged rather than attempting invalid comparisons.

@@ -1,0 +1,25 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description and screenshots, there's a bug in the markdown rendering where code snippets that contain markdown syntax characters like underscores (`_`) and square brackets (`[]()`) are being incorrectly processed as markdown, which causes rendering issues in code snippets.
+
+Looking at the code, the issue is in the `sanitize` function in `handlebar-helpers.js`. The current implementation doesn't properly handle code blocks that already contain markdown syntax.
+
+The bug is specifically in the `codespan` renderer function. When rendering code spans (inline code), it should escape any markdown syntax characters to prevent them from being interpreted as markdown.
+
+Here's the fix:
+
+```javascript
+### lighthouse-core/report/handlebar-helpers.js
+<<<<<<< SEARCH
+    renderer.codespan = function(str) {
+      return `<code>${str}</code>`;
+    };
+=======
+    renderer.codespan = function(str) {
+      // Don't transform the code block content
+      return `<code>${Handlebars.Utils.escapeExpression(str)}</code>`;
+    };
+>>>>>>> REPLACE
+```
+
+This fix uses Handlebars' built-in `escapeExpression` utility to ensure that any HTML or markdown characters within code spans are properly escaped, preventing them from being interpreted as markdown or HTML when rendered. This will fix the issue where underscores and other markdown syntax in code snippets are being incorrectly rendered as formatting.

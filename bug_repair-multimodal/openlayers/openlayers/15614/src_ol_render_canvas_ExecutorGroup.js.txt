@@ -1,0 +1,28 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when `declutter` is enabled on a Vector Layer and `setOpacity` is called on that layer, the layer disappears. This happens in OpenLayers v9.0.
+
+Looking at the code, I notice that the `NON_DECLUTTER` constant is defined but its implementation is incomplete. It's supposed to filter out the declutter types from the `ALL` array, but the filter function is empty.
+
+This is important because when opacity is changed on a layer with decluttering enabled, the rendering system needs to know which builder types should be rendered normally and which should be handled with decluttering.
+
+## Fix
+
+```javascript
+### src/ol/render/canvas/ExecutorGroup.js
+<<<<<<< SEARCH
+export const NON_DECLUTTER = ALL.filter(
+
+);
+=======
+export const NON_DECLUTTER = ALL.filter(
+  (builderType) => !DECLUTTER.includes(builderType)
+);
+>>>>>>> REPLACE
+```
+
+This fix properly implements the `NON_DECLUTTER` constant by filtering out the builder types that are in the `DECLUTTER` array from the `ALL` array. This ensures that when opacity is changed on a layer with decluttering enabled, the rendering system correctly identifies which builder types should be rendered normally and which should be handled with decluttering.
+
+The issue occurs because without this filter implementation, the `NON_DECLUTTER` array is empty, and when opacity changes, the layer's rendering logic can't properly determine which elements to render, causing the entire layer to disappear.

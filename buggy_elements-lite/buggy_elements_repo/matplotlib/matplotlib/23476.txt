@@ -1,0 +1,29 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The bug shows that when a figure is unpickled on an M1 Mac, its DPI value is doubled each time. This leads to an exponential increase in DPI value, eventually causing an OverflowError when the value becomes too large.
+
+2. Cause Analysis:
+The issue appears to be related to how figure DPI is handled during pickling/unpickling on M1 Macs. When a figure is unpickled, something in the backend initialization or figure restoration process is causing the DPI value to be doubled incorrectly. This is likely due to how the M1 Mac's display scaling is being handled during figure reconstruction.
+
+3. Relevant Files/Functions Analysis:
+
+lib/matplotlib/figure.py:
+```
+lib/matplotlib/figure.py
+class: Figure
+```
+This class is relevant because it handles figure creation, serialization (pickling/unpickling), and DPI management. The issue occurs during figure unpickling, which is handled by this class.
+
+lib/matplotlib/backends/backend_macosx.py:
+```
+lib/matplotlib/backends/backend_macosx.py
+class: FigureCanvasMac
+```
+This class is highly relevant as it's the Mac-specific canvas implementation that handles DPI scaling and device-specific behavior. The bug only occurs on M1 Macs, suggesting this class's handling of DPI and device scaling is involved.
+
+lib/matplotlib/pyplot.py:
+This file contains no relevant functions/classes.
+While this file contains many plotting functions, none are directly related to the DPI doubling issue during unpickling.
+
+The core issue likely lies in the interaction between the Figure class's unpickling mechanism and the FigureCanvasMac class's handling of device scaling on M1 Macs. When a figure is unpickled, the canvas initialization might be incorrectly applying the device scaling factor twice, leading to the observed DPI doubling behavior.

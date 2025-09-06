@@ -1,0 +1,23 @@
+Based on the issue description, the bug is in the `BoundWidget.id_for_label` property implementation. Currently, it ignores the ID that was set through the widget's attrs and instead generates its own ID format. The issue suggests that we should use the ID from the widget's attrs when available.
+
+Here's the fix:
+
+```python
+### django/forms/boundfield.py
+<<<<<<< SEARCH
+    @property
+    def id_for_label(self):
+        return 'id_%s_%s' % (self.data['name'], self.data['index'])
+=======
+    @property
+    def id_for_label(self):
+        return self.data['attrs'].get('id') or 'id_%s_%s' % (self.data['name'], self.data['index'])
+>>>>>>> REPLACE
+```
+
+This change:
+1. First tries to get the 'id' from the widget's attrs dictionary
+2. Falls back to the original ID format if no custom ID was provided
+3. Maintains backward compatibility while fixing the issue
+
+The fix ensures that when an ID is explicitly set (either through widget attrs or auto_id), that ID will be used for the label's "for" attribute. This is particularly important for CheckboxSelectMultiple widgets where each subwidget should respect the custom IDs set through the widget's options.

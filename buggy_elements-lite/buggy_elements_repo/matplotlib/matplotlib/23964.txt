@@ -1,0 +1,36 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+When saving a figure with the PostScript backend, a TypeError occurs when trying to unpack a NoneType object. This happens specifically when a text label (either through annotate or title) contains an empty line at the beginning ('\nLower label').
+
+2. Cause Analysis:
+The error suggests that somewhere in the PostScript backend's text handling code, there's an issue with processing text that starts with a newline character. The code is likely trying to unpack or process a value that has become None due to improper handling of empty lines in text.
+
+3. Examining Relevant Files:
+
+lib/matplotlib/pyplot.py:
+```
+lib/matplotlib/pyplot.py
+function: annotate
+```
+This function is directly related as it's used in the reproduction code to create the annotation that triggers the error.
+
+lib/matplotlib/text.py:
+```
+lib/matplotlib/text.py
+class: Text
+class: Annotation
+```
+These classes handle text rendering and annotations, which are central to the issue since it involves text label processing.
+
+lib/matplotlib/backends/backend_ps.py:
+```
+lib/matplotlib/backends/backend_ps.py
+class: RendererPS
+function: quote_ps_string
+```
+This is the PostScript backend renderer where the error likely occurs during text processing. The quote_ps_string function is responsible for converting text strings into PostScript-compatible format.
+
+The error is likely occurring in the RendererPS class when it attempts to process the text with an empty line, and quote_ps_string may be involved in the string conversion process that's failing.
+
+The issue appears to be in the text processing pipeline where an empty line at the start of the text is not being handled correctly, resulting in a None value being returned where a tuple was expected.

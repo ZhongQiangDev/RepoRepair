@@ -1,0 +1,36 @@
+Based on the issue description, the bug occurs in the `resolve_lookup_value` method of the Query class. The issue is that when reconstructing named tuples, the method doesn't properly unpack iterator values into the constructor.
+
+Here's the fix:
+
+```python
+### django/db/models/sql/query.py
+<<<<<<< SEARCH
+            # The items of the iterable may be expressions and therefore need
+            # to be resolved independently.
+            return type(value)(
+                self.resolve_lookup_value(sub_value, can_reuse, allow_joins)
+                for sub_value in value
+            )
+=======
+            # The items of the iterable may be expressions and therefore need
+            # to be resolved independently.
+            resolved_values = [
+                self.resolve_lookup_value(sub_value, can_reuse, allow_joins)
+                for sub_value in value
+            ]
+            # For named tuples, we need to unpack the values with * to properly
+            # reconstruct them
+            if hasattr(value, '_fields'):  # Named tuple check
+                return type(value)(*resolved_values)
+            return type(value)(resolved_values)
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Evaluates the iterator into a list first to avoid passing an iterator directly to the constructor
+2. Checks if the value is a named tuple by looking for the `_fields` attribute
+3. If it is a named tuple, uses the * operator to unpack the values into the constructor
+4. Otherwise falls back to the original behavior for regular tuples/lists
+
+The issue occurred because named tuples don't support being constructed from an iterator directly - they need the values to be passed as separate arguments. The fix ensures proper handling of both named tuples and regular sequences.

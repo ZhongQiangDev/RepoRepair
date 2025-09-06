@@ -1,0 +1,32 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- Message flows targeting intermediate message catch boundary events are being disallowed in the modeler
+- According to BPMN 2.0 spec, message flows should be allowed to target intermediate message catch boundary events
+- This is specifically about connection validation rules for message flows
+
+2. Cause Analysis:
+- The issue likely lies in the connection rules validation logic
+- The rules engine is incorrectly preventing message flows from targeting boundary events
+- Based on the spec reference, this is a special case where message catch boundary events should be allowed as targets for message flows, while other boundary events should not
+- The validation rules need to be updated to allow this specific case
+
+3. Most Related Files:
+The key files that would need to be modified to fix this issue are:
+
+```
+lib/features/rules/BpmnRules.js
+lib/features/modeling/behavior/ReplaceConnectionBehavior.js
+lib/features/modeling/BpmnFactory.js
+lib/features/modeling/cmd/UpdatePropertiesHandler.js
+lib/features/modeling/behavior/MessageFlowBehavior.js
+```
+
+Reasoning:
+- BpmnRules.js is the primary file containing connection validation rules and would need to be updated to allow this specific case
+- ReplaceConnectionBehavior.js handles connection type replacements and validations
+- BpmnFactory.js creates BPMN elements and connections
+- UpdatePropertiesHandler.js manages property updates when connections are created
+- MessageFlowBehavior.js would handle specific message flow behaviors and validations
+
+The fix would primarily involve modifying the connection rules in BpmnRules.js to allow message flows to target intermediate message catch boundary events while maintaining restrictions for other boundary event types.

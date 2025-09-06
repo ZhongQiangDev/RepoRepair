@@ -1,0 +1,131 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue occurs when drawing a textured triangle followed by an untextured square with lighting enabled in WebGL mode on Android devices. The square doesn't appear because of how WebGL attribute registers are handled.
+
+The problem is that when a textured triangle is drawn, the UV information is stored in texture registers. When the untextured square is drawn afterward, it tries to use the same shader but doesn't have enough texture data (3 vertices worth of data for a 4-vertex square). While most environments handle this gracefully, some Android devices treat this as an error and don't render the object.
+
+## Solution
+
+We need to implement the solution proposed in the issue: disable vertex attribute arrays for attributes that aren't being used. This requires:
+
+1. Adding a `registerEnabled` array to track enabled attribute registers
+2. Updating the `enableAttrib` function to track enabled registers
+3. Modifying the `_prepareBuffer` function to disable registers for attributes with no data
+
+Here's the fix:
+
+```javascript
+### src/webgl/p5.RendererGL.js
+<<<<<<< SEARCH
+p5.RendererGL.prototype = Object.create(p5.Renderer.prototype);
+=======
+p5.RendererGL.prototype = Object.create(p5.Renderer.prototype);
+
+// Array to track enabled attribute registers
+p5.RendererGL.prototype.registerEnabled = [];
+>>>>>>> REPLACE
+```
+
+Now we need to modify the `enableAttrib` function to track enabled registers:
+
+```javascript
+### src/webgl/p5.RendererGL.js
+<<<<<<< SEARCH
+/* Binds a buffer to the drawing context
+ * when passed more than two arguments it also updates or initializes
+ * the data associated with the buffer
+ */
+=======
+/**
+ * Enables the attribute array for a given attribute location
+ * @private
+ * @param {Number} loc attribute location
+ */
+p5.RendererGL.prototype.enableAttrib = function(loc, size) {
+  const gl = this.GL;
+  const attr = this.attributes[loc];
+
+  if (!attr.enabled) {
+    gl.enableVertexAttribArray(loc);
+    this.registerEnabled[loc] = true; // Record register enabled state
+    attr.enabled = true;
+  }
+  
+  // Set the attribute pointer
+  gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
+};
+
+/* Binds a buffer to the drawing context
+ * when passed more than two arguments it also updates or initializes
+ * the data associated with the buffer
+ */
+>>>>>>> REPLACE
+```
+
+Finally, we need to modify the `_prepareBuffer` function to disable registers for attributes with no data:
+
+```javascript
+### src/webgl/p5.RendererGL.js
+<<<<<<< SEARCH
+/**
+ * turn a two dimensional array into one dimensional array
+ * @private
+ * @param  {Array} arr 2-dimensional array
+ * @return {Array}     1-dimensional array
+ * [[1, 2, 3],[4, 5, 6]] -> [1, 2, 3, 4, 5, 6]
+ */
+=======
+/**
+ * Prepares a buffer for a specific attribute
+ * @private
+ * @param {String} attr the name of the attribute
+ * @param {Array} arr the data for that attribute
+ * @param {String} [name] the name of the buffer (optional)
+ */
+p5.RendererGL.prototype._prepareBuffer = function(attr, arr, name) {
+  const gl = this.GL;
+  const shader = this.curStrokeShader;
+  
+  // Get the attribute location
+  const loc = shader.attributes[attr].location;
+  
+  // If the location is not found, do nothing
+  if (loc === -1) return;
+  
+  // Get the source array
+  const src = this[`${name || ''}${attr}Buffer`];
+  
+  if (src.length > 0) {
+    // If we have data, enable the attribute and bind the buffer
+    const buffer = this[`${name || ''}${attr}Geometry`];
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    this.enableAttrib(loc, src.itemSize);
+  } else {
+    // If no data, check if register is enabled and disable it if needed
+    if (loc !== -1 && this.registerEnabled[loc]) {
+      gl.disableVertexAttribArray(loc);
+      shader.attributes[attr].enabled = false;
+      this.registerEnabled[loc] = false;
+    }
+  }
+};
+
+/**
+ * turn a two dimensional array into one dimensional array
+ * @private
+ * @param  {Array} arr 2-dimensional array
+ * @return {Array}     1-dimensional array
+ * [[1, 2, 3],[4, 5, 6]] -> [1, 2, 3, 4, 5, 6]
+ */
+>>>>>>> REPLACE
+```
+
+These changes implement the solution proposed in the issue:
+
+1. We added a `registerEnabled` array to track which attribute registers are enabled
+2. We created an `enableAttrib` function that updates this array when enabling attributes
+3. We modified the `_prepareBuffer` function to check if an attribute has no data and disable its register if needed
+
+This will prevent the issue where Android devices fail to render objects when there's insufficient attribute data for unused attributes.

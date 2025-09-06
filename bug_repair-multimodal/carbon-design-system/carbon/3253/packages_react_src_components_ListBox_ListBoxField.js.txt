@@ -1,0 +1,32 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when a component (specifically the Dropdown) is disabled, it should automatically set `tabIndex="-1"` to prevent it from being accessible via keyboard tabbing. Currently, even when a parent component has `tabIndex="-1"` and `disabled=true`, the child component still has its `tabIndex` set to 0, which interrupts the tab flow.
+
+Looking at the `ListBoxField.js` file, I can see that it's setting the tabIndex to either the provided value or defaulting to -1:
+
+```javascript
+tabIndex={rest.tabIndex || -1}
+```
+
+However, this doesn't account for the `disabled` state. When a component is disabled, it should always have `tabIndex="-1"` regardless of what was passed in.
+
+## Fix
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/ListBox/ListBoxField.js
+<<<<<<< SEARCH
+    className={`${prefix}--list-box__field`}
+    tabIndex={rest.tabIndex || -1}
+    {...rest}>
+=======
+    className={`${prefix}--list-box__field`}
+    tabIndex={rest.disabled ? -1 : (rest.tabIndex || -1)}
+    {...rest}>
+>>>>>>> REPLACE
+```
+
+This change ensures that when the component is disabled (`rest.disabled` is true), the `tabIndex` will always be set to -1, regardless of any tabIndex value passed in. If the component is not disabled, it will use the provided tabIndex or default to -1 as before.

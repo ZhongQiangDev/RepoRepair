@@ -1,0 +1,33 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The `pairplot` function raises a KeyError when trying to plot a DataFrame with MultiIndex columns. Specifically, it fails with the error "['1'] not in index" when attempting to access data for plotting.
+
+2. Cause Analysis:
+The issue occurs because `pairplot` and its underlying implementation in `PairGrid` don't properly handle MultiIndex DataFrame columns. When trying to access individual variables for plotting, it's treating the MultiIndex as a single level index, causing the KeyError when attempting to access the second level ('1') directly.
+
+3. Relevant Files Analysis:
+
+seaborn/axisgrid.py:
+```
+seaborn/axisgrid.py
+class: PairGrid
+class: Grid
+function: pairplot
+```
+This file contains the core functionality related to the issue. The `PairGrid` class handles the grid creation and data access, while `pairplot` is the high-level function where the error manifests. The `Grid` base class may also need modifications to support MultiIndex handling.
+
+seaborn/matrix.py:
+```
+This file contains no relevant functions/classes.
+```
+
+seaborn/utils.py:
+```
+seaborn/utils.py
+function: _index_to_label
+function: _index_to_ticklabels
+```
+These utility functions are relevant as they handle index/label conversions and might need to be adapted to properly handle MultiIndex columns. They could be part of the solution for proper MultiIndex support.
+
+The main focus should be on modifying the `PairGrid` class and `pairplot` function to properly handle MultiIndex columns, possibly by flattening the MultiIndex or implementing proper MultiIndex support throughout the plotting process. The utility functions in utils.py could be used or modified to help with proper label handling.

@@ -1,0 +1,27 @@
+Let me help analyze this issue.
+
+1. Wrong Behavior:
+The `hstack` operation on empty matrices with different column counts returns inconsistent results between SymPy 1.0 and 1.1:
+- In SymPy 1.0: `(0, 6)` - correctly sums the columns (0+1+2+3=6)
+- In SymPy 1.1: `(0, 3)` - incorrectly takes only the last column count (3)
+
+2. Cause Analysis:
+This appears to be a regression in how matrix stacking operations handle empty matrices. The issue likely stems from changes in the core matrix handling code, specifically around horizontal stacking (`hstack`) operations. The fact that it works correctly for non-empty matrices (1×N case) but fails for empty matrices (0×N case) suggests the issue is in the special case handling of empty matrices during concatenation operations.
+
+3. Most Relevant Files:
+```
+sympy/matrices/dense.py
+sympy/matrices/matrices.py
+sympy/matrices/sparse.py
+sympy/matrices/immutable.py
+sympy/matrices/expressions/matmul.py
+```
+
+These files are ordered by relevance because:
+1. `dense.py` contains the core implementation of dense matrices and their operations including stacking
+2. `matrices.py` contains base matrix classes and fundamental operations
+3. `sparse.py` handles sparse matrix implementations which may affect stacking behavior
+4. `immutable.py` deals with immutable matrix operations which could influence stacking results
+5. `matmul.py` handles matrix multiplication and concatenation operations that may affect stacking
+
+The fix would most likely need to be implemented in `dense.py` where the `hstack` operation is primarily defined and handled.

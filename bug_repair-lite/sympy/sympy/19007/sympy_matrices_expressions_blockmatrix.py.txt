@@ -1,0 +1,57 @@
+Based on the issue description, the bug is in the `_entry` method of the `BlockMatrix` class. The current implementation incorrectly handles block matrix element access by not properly tracking which block we're in when accessing elements.
+
+Here's the fix:
+
+```python
+### sympy/matrices/expressions/blockmatrix.py
+<<<<<<< SEARCH
+    def _entry(self, i, j, **kwargs):
+        # Find row entry
+        for row_block, numrows in enumerate(self.rowblocksizes):
+            if (i < numrows) != False:
+                break
+            else:
+                i -= numrows
+        for col_block, numcols in enumerate(self.colblocksizes):
+            if (j < numcols) != False:
+                break
+            else:
+                j -= numcols
+        return self.blocks[row_block, col_block][i, j]
+=======
+    def _entry(self, i, j, **kwargs):
+        # Find row entry
+        row_block = 0
+        row_offset = i
+        for numrows in self.rowblocksizes:
+            if row_offset < numrows:
+                break
+            row_offset -= numrows
+            row_block += 1
+        
+        # Find column entry    
+        col_block = 0
+        col_offset = j
+        for numcols in self.colblocksizes:
+            if col_offset < numcols:
+                break
+            col_offset -= numcols
+            col_block += 1
+            
+        if row_block >= self.blockshape[0] or col_block >= self.blockshape[1]:
+            raise IndexError("Block index out of range")
+            
+        return self.blocks[row_block, col_block][row_offset, col_offset]
+>>>>>>> REPLACE
+```
+
+The fix makes several important changes:
+
+1. Properly tracks both the block index and the offset within that block separately
+2. Uses clearer variable names (row_offset/col_offset instead of reusing i/j)
+3. Adds bounds checking to prevent accessing invalid blocks
+4. Maintains proper offsets when accessing the inner block matrix
+
+The original code had issues with the logic for determining which block to access and didn't properly maintain the relative position within each block. The new implementation correctly tracks both the block position and the relative position within each block, which fixes the issue described where C[i,0] was incorrectly simplified to A[i,0].
+
+This fix will ensure that when accessing elements of a BlockMatrix, it properly determines which block contains the element and correctly calculates the relative position within that block.

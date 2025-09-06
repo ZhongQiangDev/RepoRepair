@@ -1,0 +1,61 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is related to the `ratio` parameter in the `ImageArcGISRest` source class. According to the issue description:
+
+1. The default value of `ratio` is 1.5, which causes problems when the computer's zoom/scaling is not 100%.
+2. When using a ratio value other than 1, there can be misalignment between the layer and the map, especially after map rotation.
+3. The workaround is to set the ratio to 1.
+
+Looking at the code, I can see that the `ratio_` property is indeed initialized with a default value of 1.5 in the constructor:
+
+```javascript
+this.ratio_ = options.ratio !== undefined ? options.ratio : 1.5;
+```
+
+## Fix
+
+The solution is to change the default value of the `ratio` parameter from 1.5 to 1, which will prevent the layer-map mismatch issues described in the bug report.
+
+Here's the search/replace edit:
+
+```javascript
+### src/ol/source/ImageArcGISRest.js
+<<<<<<< SEARCH
+   * @property {import("../proj.js").ProjectionLike} [projection] Projection. Default is the view projection.
+   * The projection code must contain a numeric end portion separated by :
+   * or the entire code must form a valid ArcGIS SpatialReference definition.
+   * @property {number} [ratio=1.5] Ratio. `1` means image requests are the size of the map viewport,
+   * `2` means twice the size of the map viewport, and so on.
+   * @property {Array<number>} [resolutions] Resolutions. If specified, requests will be made for
+   * these resolutions only.
+=======
+   * @property {import("../proj.js").ProjectionLike} [projection] Projection. Default is the view projection.
+   * The projection code must contain a numeric end portion separated by :
+   * or the entire code must form a valid ArcGIS SpatialReference definition.
+   * @property {number} [ratio=1] Ratio. `1` means image requests are the size of the map viewport,
+   * `2` means twice the size of the map viewport, and so on.
+   * @property {Array<number>} [resolutions] Resolutions. If specified, requests will be made for
+   * these resolutions only.
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/source/ImageArcGISRest.js
+<<<<<<< SEARCH
+    /**
+     * @private
+     * @type {number}
+     */
+    this.ratio_ = options.ratio !== undefined ? options.ratio : 1.5;
+=======
+    /**
+     * @private
+     * @type {number}
+     */
+    this.ratio_ = options.ratio !== undefined ? options.ratio : 1;
+>>>>>>> REPLACE
+```
+
+These changes will set the default ratio to 1 instead of 1.5, which should resolve the layer-map mismatch issues described in the bug report, particularly when the computer's zoom/scaling is not at 100% or when the map is rotated.

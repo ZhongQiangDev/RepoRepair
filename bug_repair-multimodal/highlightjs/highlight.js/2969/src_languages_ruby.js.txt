@@ -1,0 +1,39 @@
+I'll analyze the issue and provide a fix for the Ruby character literal notation problem.
+
+The issue is that the current regex for character literals in Ruby doesn't properly handle several cases:
+1. Single slash character (`?/`) - gets treated as starting a regex
+2. Escaped backslash character (`?\\`)
+3. Non-ascii character (`?あ`)
+4. Unicode using curly-bracket notation (`?\u{1AF9}`)
+5. Control and Meta characters (`?\C-a`)
+
+Looking at the code, the problem is in the regex pattern for character literals in the STRING section. The current pattern is too restrictive and doesn't handle all the valid Ruby character literal cases.
+
+Here's my fix:
+
+```javascript
+### src/languages/ruby.js
+<<<<<<< SEARCH
+      {
+        // \B in the beginning suppresses recognition of ?-sequences where ?
+        // is the last character of a preceding identifier, as in: `func?4`
+        begin: /\B\?(\\\d{1,3}|\\x[A-Fa-f0-9]{1,2}|\\u[A-Fa-f0-9]{4}|\\?\S)\b/
+      },
+=======
+      {
+        // \B in the beginning suppresses recognition of ?-sequences where ?
+        // is the last character of a preceding identifier, as in: `func?4`
+        begin: /\B\?(\\[MC]-|\\?[a-zA-Z_]|\\u\{[0-9a-fA-F]+\}|\\[0-9]{1,3}|\\x[0-9a-fA-F]{1,2}|\\u[0-9a-fA-F]{4}|\\?.)/
+      },
+>>>>>>> REPLACE
+```
+
+This updated regex pattern handles all the cases mentioned in the issue:
+
+1. It supports single slash character (`?/`) by using a more general pattern that doesn't conflict with regex literals
+2. It properly handles escaped backslash character (`?\\`)
+3. It supports non-ascii characters (`?あ`) by using a more general pattern that matches any character (`.`)
+4. It adds support for Unicode using curly-bracket notation (`?\u{1AF9}`) with `\\u\{[0-9a-fA-F]+\}`
+5. It adds support for Control and Meta characters (`?\C-a`) with `\\[MC]-`
+
+The pattern is more comprehensive and matches all the Ruby character literal cases mentioned in the issue while avoiding conflicts with other syntax elements.

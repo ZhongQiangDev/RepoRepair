@@ -1,0 +1,47 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The issue is that Signal.send_robust() doesn't log exceptions that occur in signal receivers. This means when a receiver function raises an exception, it's silently caught without any logging, making it difficult for developers to track and debug issues.
+
+2. Cause Analysis:
+The root cause is that while Signal.send_robust() catches exceptions to prevent them from breaking the application flow (which is its intended behavior), it doesn't include any logging mechanism to record these exceptions. This differs from Django's approach in other areas like template variable handling where exceptions are logged.
+
+3. Relevant Files/Functions Analysis:
+
+django/core/exceptions.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/db/models/signals.py:
+```
+django/db/models/signals.py
+class: ModelSignal
+```
+
+django/dispatch/dispatcher.py:
+```
+django/dispatch/dispatcher.py
+class: Signal
+```
+
+django/utils/log.py:
+```
+django/utils/log.py
+class: AdminEmailHandler
+class: CallbackFilter
+function: configure_logging
+```
+
+The most relevant components are:
+
+1. The Signal class in dispatcher.py is the primary location that needs modification since it contains the send_robust() method that currently doesn't log exceptions.
+
+2. ModelSignal in signals.py inherits from Signal and would be affected by any changes to the base Signal class.
+
+3. The logging-related classes and functions in log.py would be useful for implementing the logging functionality:
+- AdminEmailHandler could be used to send email notifications for exceptions
+- CallbackFilter could help filter which exceptions get logged
+- configure_logging would ensure the logging is properly set up
+
+The core fix would need to be implemented in the Signal class's send_robust() method, with appropriate integration with Django's logging system.

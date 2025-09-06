@@ -1,0 +1,104 @@
+Based on the issue description, the main problems with mixture models are:
+1. They use `n_components` instead of `n_clusters` parameter
+2. They don't store training data labels
+3. They don't have a `fit_predict` method
+
+Let's fix these issues to make mixture models more consistent with the clustering interface:
+
+1. First, let's add `labels_` attribute after fitting:
+
+```python
+### sklearn/mixture/base.py
+<<<<<<< SEARCH
+        self._set_parameters(best_params)
+        self.n_iter_ = best_n_iter
+
+        return self
+=======
+        self._set_parameters(best_params)
+        self.n_iter_ = best_n_iter
+        
+        # Store labels_ like other clustering estimators
+        self.labels_ = self.predict(X)
+
+        return self
+>>>>>>> REPLACE
+```
+
+2. Add `fit_predict` method to match clustering interface:
+
+```python
+### sklearn/mixture/base.py
+<<<<<<< SEARCH
+    def predict(self, X):
+=======
+    def fit_predict(self, X, y=None):
+        """Fit the model and predict the labels for the data samples in X.
+        
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            List of n_features-dimensional data points. Each row
+            corresponds to a single data point.
+        y : ignored
+            Not used, present here for API consistency by convention.
+            
+        Returns
+        -------
+        labels : array, shape (n_samples,)
+            Component labels.
+        """
+        return self.fit(X).labels_
+
+    def predict(self, X):
+>>>>>>> REPLACE
+```
+
+3. For the `n_components` vs `n_clusters` parameter, we should add `n_clusters` as an alias:
+
+```python
+### sklearn/mixture/base.py
+<<<<<<< SEARCH
+    def __init__(self, n_components, tol, reg_covar,
+                 max_iter, n_init, init_params, random_state, warm_start,
+                 verbose, verbose_interval):
+        self.n_components = n_components
+=======
+    def __init__(self, n_components=None, n_clusters=None, tol=1e-3, reg_covar=1e-6,
+                 max_iter=100, n_init=1, init_params='kmeans', random_state=None,
+                 warm_start=False, verbose=0, verbose_interval=10):
+        # Allow n_clusters as an alias for n_components
+        if n_components is not None and n_clusters is not None:
+            raise ValueError("n_components and n_clusters cannot both be specified")
+        self.n_clusters = n_clusters
+        self.n_components = n_clusters if n_clusters is not None else n_components
+>>>>>>> REPLACE
+```
+
+4. Update the parameter validation:
+
+```python
+### sklearn/mixture/base.py
+<<<<<<< SEARCH
+        if self.n_components < 1:
+            raise ValueError("Invalid value for 'n_components': %d "
+                             "Estimation requires at least one component"
+                             % self.n_components)
+=======
+        n = self.n_components
+        if n is None:
+            raise ValueError("Either n_components or n_clusters must be specified")
+        if n < 1:
+            raise ValueError("Invalid value for 'n_components'/'n_clusters': %d "
+                           "Estimation requires at least one component"
+                           % n)
+>>>>>>> REPLACE
+```
+
+These changes make mixture models more consistent with the clustering interface by:
+1. Adding `labels_` attribute to store training data labels
+2. Adding `fit_predict` method
+3. Supporting both `n_components` and `n_clusters` parameters
+4. Maintaining backward compatibility while adding new features
+
+The changes preserve all existing functionality while making the interface more consistent with other clustering estimators in scikit-learn.

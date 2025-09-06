@@ -1,0 +1,73 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described in the GitHub problem is that the pool and lane labels are not being rendered correctly when the pool is marked as vertical (`isHorizontal="false"`). Specifically, the labels are not aligned or positioned properly for vertical pools, leading to incorrect visual representation.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from the rendering logic not accounting for the orientation of the pool (`isHorizontal` property). When a pool is marked as vertical, the rendering functions should adjust the positioning and alignment of the labels accordingly. The current implementation seems to treat all pools as horizontal by default, leading to incorrect label placement for vertical pools.
+
+### 3. Examine Each File One by One
+
+#### --- lib/draw/BpmnRenderer.js ---
+This file contains functions responsible for rendering BPMN elements, including pools and lanes. The following functions are relevant to the issue:
+
+```
+lib/draw/BpmnRenderer.js
+function: function_94
+function: function_92
+function: function_93
+```
+
+- `function_94` (`getShapePath`): This function generates the SVG path for rendering different types of BPMN elements. It may need to be adjusted to handle vertical pools differently.
+- `function_92` (`drawConnection`): This function renders connections, which may need to be adjusted for vertical pools.
+- `function_93` (`drawShape`): This function is responsible for rendering shapes, including pools and lanes. It may need to consider the orientation of the pool.
+
+#### --- lib/features/modeling/ElementFactory.js ---
+This file contains functions for creating BPMN elements. The following function is relevant:
+
+```
+lib/features/modeling/ElementFactory.js
+function: function_4
+```
+
+- `function_4` (`getDefaultSize`): This function retrieves the default dimensions for various BPMN elements. It may need to consider the orientation of pools when determining the size.
+
+#### --- lib/features/modeling/behavior/LabelBehavior.js ---
+This file contains functions related to label behavior. The following functions are relevant:
+
+```
+lib/features/modeling/behavior/LabelBehavior.js
+function: getReferencePoint
+function: getReferencePointDelta
+```
+
+- `getReferencePoint`: This function calculates the nearest reference point on a set of lines. It may need to be adjusted for vertical pools.
+- `getReferencePointDelta`: This function calculates the change in position of a reference point. It may need to consider the orientation of pools.
+
+#### --- lib/import/BpmnImporter.js ---
+This file contains functions for importing BPMN elements. The following functions are relevant:
+
+```
+lib/import/BpmnImporter.js
+function: function_8
+function: function_6
+```
+
+- `function_8` (`addLabel`): This function creates and attaches labels to elements. It may need to consider the orientation of pools when positioning labels.
+- `function_6` (`add`): This function handles the addition of BPMN elements to the canvas. It may need to consider the orientation of pools when rendering elements.
+
+#### --- lib/util/LabelUtil.js ---
+This file contains utility functions for label handling. The following functions are relevant:
+
+```
+lib/util/LabelUtil.js
+function: getExternalLabelBounds
+function: getExternalLabelMid
+```
+
+- `getExternalLabelBounds`: This function calculates the bounds for external labels. It may need to consider the orientation of pools.
+- `getExternalLabelMid`: This function calculates the midpoint for external labels. It may need to consider the orientation of pools.
+
+### Summary
+
+The files and functions listed above are relevant to the issue of incorrect label rendering for vertical pools. Adjustments to these functions should consider the orientation of pools (`isHorizontal` property) to ensure proper label positioning and alignment.

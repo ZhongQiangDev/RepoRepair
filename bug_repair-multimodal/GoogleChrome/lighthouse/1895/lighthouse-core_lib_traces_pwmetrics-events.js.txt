@@ -1,0 +1,52 @@
+I'll analyze the issue and provide a fix.
+
+Based on the error message "Cannot read property 'ts' of undefined" and the screenshot showing it occurs when generating a report, the problem appears to be in the `lighthouse-core/lib/traces/pwmetrics-events.js` file.
+
+The main issue is that the file exports a `Metrics` module, but there's no actual `Metrics` function or class defined in the file. This would cause the error when trying to access properties of an undefined object.
+
+Here's my fix:
+
+```javascript
+### lighthouse-core/lib/traces/pwmetrics-events.js
+<<<<<<< SEARCH
+const log = require('../../../lighthouse-core/lib/log.js');
+
+
+
+module.exports = Metrics;
+=======
+const log = require('../../../lighthouse-core/lib/log.js');
+
+/**
+ * Returns simplified representation of all metrics events from the trace.
+ * @param {!DevToolsTimelineModel} model
+ * @return {!Array<{name: string, id: string, ts: number}>}
+ */
+function Metrics(model) {
+  const metrics = [];
+  const traceEvents = model.timelineModel().mainThreadEvents();
+  
+  traceEvents.forEach(event => {
+    if (event.name !== 'TimeStamp' || !event.args || !event.args.data) {
+      return;
+    }
+    
+    // Only collect metrics with web vitals prefix data
+    if (typeof event.args.data.message === 'string' && 
+        event.args.data.message.startsWith('lh:')) {
+      metrics.push({
+        name: event.args.data.message,
+        id: event.id,
+        ts: event.startTime
+      });
+    }
+  });
+  
+  return metrics;
+}
+
+module.exports = Metrics;
+>>>>>>> REPLACE
+```
+
+This fix implements a proper `Metrics` function that processes trace events and returns metrics data with the required `ts` property. The implementation is based on common patterns for processing timeline events in Lighthouse, extracting timestamp data from trace events with a specific format.

@@ -1,0 +1,53 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior is that the `no-constant-condition` rule in ESLint is reporting errors with an overly broad range. Instead of highlighting only the constant condition (`true` in the examples provided), it highlights the entire statement or expression containing the constant condition.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely lies in how the `no-constant-condition` rule determines the range of the reported error. The rule is probably using the entire node's range (e.g., the entire `IfStatement` or `ConditionalExpression`) instead of narrowing it down to the specific part of the node that represents the constant condition.
+
+### 3. Examine Each File One by One
+
+#### --- lib/cli-engine.js ---
+```
+This file contains no relevant functions/classes.
+```
+
+#### --- lib/linter.js ---
+```
+lib/linter.js
+function: create
+```
+
+The `create` function in `lib/rules/no-constant-condition.js` is where the rule logic is defined. This function is responsible for detecting constant conditions and reporting issues. The issue likely stems from how the `checkConstantCondition` helper method determines the range of the reported error.
+
+#### --- lib/report-translator.js ---
+```
+lib/report-translator.js
+function: createProblem
+function: normalizeReportLoc
+```
+
+The `createProblem` function constructs the problem report object, including the location (`loc`) of the issue. The `normalizeReportLoc` function ensures that the location information is consistent. If the range is too broad, it might be due to how these functions handle the location information.
+
+#### --- lib/rules/no-constant-condition.js ---
+```
+lib/rules/no-constant-condition.js
+function: create
+```
+
+The `create` function in this file is directly responsible for implementing the `no-constant-condition` rule. It contains the logic for detecting constant conditions and reporting them. The issue with the broad error range is likely related to how this function determines and reports the location of the constant condition.
+
+### Summary of Relevant Locations
+
+```
+lib/linter.js
+function: create
+
+lib/report-translator.js
+function: createProblem
+function: normalizeReportLoc
+
+lib/rules/no-constant-condition.js
+function: create
+```

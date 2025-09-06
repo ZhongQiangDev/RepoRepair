@@ -1,0 +1,68 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that associations on boundary events can be created but aren't rendered after loading a saved diagram. Looking at the provided screenshots, we can see that the association between a boundary event and a data object is lost after saving and reloading.
+
+The problem is likely in the `CreateBoundaryEventBehavior.js` file. When a boundary event is created, it's not properly handling the associations that might be connected to it. The current code only sets the `attachedToRef` property but doesn't handle any connections or associations that might be related to the boundary event.
+
+## Fix
+
+We need to modify the `CreateBoundaryEventBehavior.js` file to ensure that when a boundary event is created, it properly maintains its associations. The issue is that when replacing an intermediate event with a boundary event, we're not preserving the connections.
+
+```javascript
+### lib/features/modeling/behavior/CreateBoundaryEventBehavior.js
+<<<<<<< SEARCH
+  this.preExecute('shape.create', function(context) {
+    var shape = context.shape,
+        host = context.host,
+        businessObject,
+        boundaryEvent;
+
+    var attrs = {
+      cancelActivity: true
+    };
+
+    if (host && is(shape, 'bpmn:IntermediateThrowEvent')) {
+      attrs.attachedToRef = host.businessObject;
+
+      businessObject = bpmnFactory.create('bpmn:BoundaryEvent', attrs);
+
+      boundaryEvent = {
+        type: 'bpmn:BoundaryEvent',
+        businessObject: businessObject
+      };
+
+      context.shape = elementFactory.createShape(boundaryEvent);
+    }
+=======
+  this.preExecute('shape.create', function(context) {
+    var shape = context.shape,
+        host = context.host,
+        businessObject,
+        boundaryEvent;
+
+    var attrs = {
+      cancelActivity: true
+    };
+
+    if (host && is(shape, 'bpmn:IntermediateThrowEvent')) {
+      attrs.attachedToRef = host.businessObject;
+
+      businessObject = bpmnFactory.create('bpmn:BoundaryEvent', attrs);
+
+      boundaryEvent = {
+        type: 'bpmn:BoundaryEvent',
+        businessObject: businessObject,
+        // Preserve the id if it exists to maintain connections
+        id: shape.id || shape.businessObject.id
+      };
+
+      context.shape = elementFactory.createShape(boundaryEvent);
+    }
+>>>>>>> REPLACE
+```
+
+This fix ensures that when we replace an intermediate event with a boundary event, we preserve the original element's ID. This is crucial because connections and associations reference elements by their IDs. By maintaining the same ID, any associations created with the original element will still be valid after the replacement.
+
+The issue occurs because when saving and reloading the diagram, the system tries to reconnect associations based on element IDs. If the boundary event has a different ID than what was originally used when creating the association, the connection can't be re-established properly.

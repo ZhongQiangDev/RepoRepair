@@ -1,0 +1,28 @@
+Based on the issue description, the bug is in the `InlineModelAdmin` class initialization where the `verbose_name_plural` is not derived from the `verbose_name` when only `verbose_name` is specified. Currently, it always uses the model's `verbose_name_plural` when its own `verbose_name_plural` is not set.
+
+Here's the fix:
+
+```python
+### django/contrib/admin/options.py
+<<<<<<< SEARCH
+        if self.verbose_name is None:
+            self.verbose_name = self.model._meta.verbose_name
+        if self.verbose_name_plural is None:
+            self.verbose_name_plural = self.model._meta.verbose_name_plural
+=======
+        if self.verbose_name is None:
+            self.verbose_name = self.model._meta.verbose_name
+        if self.verbose_name_plural is None:
+            if self.verbose_name is not None:
+                self.verbose_name_plural = str(self.verbose_name) + 's'
+            else:
+                self.verbose_name_plural = self.model._meta.verbose_name_plural
+>>>>>>> REPLACE
+```
+
+This change makes it so that:
+1. If neither `verbose_name` nor `verbose_name_plural` is specified, use the model's defaults
+2. If only `verbose_name` is specified, derive `verbose_name_plural` by adding 's' to `verbose_name`
+3. If both are specified, use the specified values
+
+The fix follows Django's pattern of deriving plural names from singular names when only the singular is provided, similar to how it works in model Meta classes. Note that this is a simple pluralization (adding 's') - for more complex cases, developers can still explicitly set `verbose_name_plural`.

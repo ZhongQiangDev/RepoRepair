@@ -1,0 +1,128 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a user adds and then removes a featured image on a new post, the post is incorrectly marked as "dirty" (having unsaved changes), even though there are no actual changes to save. This causes the "Are You Sure?" dialog to appear when navigating away from the page.
+
+Looking at the code, I need to find where the post's "dirty" state is being tracked when a featured image is added or removed. The issue only happens with new posts, not with existing ones, which suggests there might be a difference in how the state is updated in these scenarios.
+
+The key issue is likely that when a featured image is added and then removed on a new post, the system is incorrectly tracking this as a change that needs to be saved, even though the post has returned to its original state.
+
+## Fix
+
+I need to modify how the post's dirty state is tracked when dealing with featured images. Let's look at the `onEditedPostChange` function, which is responsible for updating the component's state based on changes to the post.
+
+```javascript
+### client/post-editor/post-editor.jsx
+<<<<<<< SEARCH
+	onEditedPostChange: function() {
+		var didLoad = this.state.isLoading && ! PostEditStore.isLoading(),
+			loadingError = PostEditStore.getLoadingError(),
+			postEditState,
+			post,
+			site;
+
+		if ( loadingError ) {
+			this.setState( { loadingError } );
+		} else if ( ( PostEditStore.isNew() && ! this.state.isNew ) || PostEditStore.isLoading() ) {
+			// is new or loading
+			this.setState(
+				this.getInitialState(),
+				() => this.editor && this.editor.setEditorContent( '' )
+			);
+		} else if ( this.state.isNew && this.state.hasContent && ! this.state.isDirty ) {
+			// Is a copy of an existing post.
+			// When copying a post, the created draft is new and the editor is not yet dirty, but it already has content.
+			// Once the content is set, the editor becomes dirty and the following setState won't trigger anymore.
+			this.setState(
+				this.getInitialState(),
+				() => this.editor && this.editor.setEditorContent( this.state.post.content )
+			);
+		} else {
+			postEditState = this.getPostEditState();
+			post = postEditState.post;
+			site = this.props.selectedSite;
+			if ( didLoad && site && ( this.props.type === 'page' ) !== utils.isPage( post ) ) {
+				// incorrect post type in URL
+				page.redirect( utils.getEditURL( post, site ) );
+			}
+			this.setState( postEditState, function() {
+				if ( this.editor && ( didLoad || this.state.isLoadingRevision ) ) {
+					this.editor.setEditorContent( this.state.post.content, { initial: true } );
+				}
+
+				if ( this.state.isLoadingRevision ) {
+					this.setState( { isLoadingRevision: false } );
+				}
+			} );
+		}
+	},
+=======
+	onEditedPostChange: function() {
+		var didLoad = this.state.isLoading && ! PostEditStore.isLoading(),
+			loadingError = PostEditStore.getLoadingError(),
+			postEditState,
+			post,
+			site;
+
+		if ( loadingError ) {
+			this.setState( { loadingError } );
+		} else if ( ( PostEditStore.isNew() && ! this.state.isNew ) || PostEditStore.isLoading() ) {
+			// is new or loading
+			this.setState(
+				this.getInitialState(),
+				() => this.editor && this.editor.setEditorContent( '' )
+			);
+		} else if ( this.state.isNew && this.state.hasContent && ! this.state.isDirty ) {
+			// Is a copy of an existing post.
+			// When copying a post, the created draft is new and the editor is not yet dirty, but it already has content.
+			// Once the content is set, the editor becomes dirty and the following setState won't trigger anymore.
+			this.setState(
+				this.getInitialState(),
+				() => this.editor && this.editor.setEditorContent( this.state.post.content )
+			);
+		} else {
+			postEditState = this.getPostEditState();
+			post = postEditState.post;
+			site = this.props.selectedSite;
+			if ( didLoad && site && ( this.props.type === 'page' ) !== utils.isPage( post ) ) {
+				// incorrect post type in URL
+				page.redirect( utils.getEditURL( post, site ) );
+			}
+			
+			// For new posts, check if the only change is the featured image being added and then removed
+			if (PostEditStore.isNew() && 
+				postEditState.post && 
+				!postEditState.post.featured_image && 
+				this.state.post && 
+				!this.state.post.featured_image &&
+				postEditState.isDirty) {
+				
+				// If the featured image was added and then removed, and there are no other changes,
+				// we should not consider the post dirty
+				const hasRealChanges = Object.keys(PostEditStore.getPostEdits()).some(key => 
+					key !== 'featured_image'
+				);
+				
+				if (!hasRealChanges) {
+					postEditState.isDirty = false;
+				}
+			}
+			
+			this.setState( postEditState, function() {
+				if ( this.editor && ( didLoad || this.state.isLoadingRevision ) ) {
+					this.editor.setEditorContent( this.state.post.content, { initial: true } );
+				}
+
+				if ( this.state.isLoadingRevision ) {
+					this.setState( { isLoadingRevision: false } );
+				}
+			} );
+		}
+	},
+>>>>>>> REPLACE
+```
+
+This fix adds a special check for new posts to determine if the only change was adding and then removing a featured image. If that's the case, and there are no other changes to the post, we reset the `isDirty` flag to `false`, which prevents the "Are You Sure?" dialog from appearing when navigating away.
+
+The solution specifically targets new posts (where the issue was reported) and only affects the dirty state when the featured image has been both added and removed, leaving no other changes to the post.

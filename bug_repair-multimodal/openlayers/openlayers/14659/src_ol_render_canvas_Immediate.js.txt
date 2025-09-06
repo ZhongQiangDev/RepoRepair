@@ -1,0 +1,90 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about `drawFeature()` not working correctly with geographic coordinates when Null Island (0,0) is not in view. According to the issue description, there's an incorrect extent comparison in the `drawFeature()` method that prevents features from being drawn when they should be.
+
+Looking at the code, I can see that in the `drawFeature()` method, there's an extent intersection check that might be causing the problem:
+
+```javascript
+drawFeature(feature, style) {
+  const geometry = style.getGeometryFunction()(feature);
+  if (!geometry || !intersects(this.extent_, geometry.getExtent())) {
+    return;
+  }
+  this.setStyle(style);
+  this.drawGeometry(geometry);
+}
+```
+
+The issue mentions that this extent comparison is redundant because it's already performed in the subsequent `drawGeometry` call. Let's check if this is true by examining the individual geometry drawing methods.
+
+Looking at the geometry drawing methods like `drawCircle`, `drawLineString`, etc., they all have their own extent intersection checks. For example, in `drawCircle`:
+
+```javascript
+if (!intersects(this.extent_, geometry.getExtent())) {
+  return;
+}
+```
+
+This confirms that the extent check in `drawFeature` is indeed redundant and can be removed.
+
+## Fix
+
+```javascript
+### src/ol/render/canvas/Immediate.js
+<<<<<<< SEARCH
+  /**
+   * Render a feature into the canvas.  Note that any `zIndex` on the provided
+   * style will be ignored - features are rendered immediately in the order that
+   * this method is called.  If you need `zIndex` support, you should be using an
+   * {@link module:ol/layer/Vector~VectorLayer} instead.
+   *
+   * @param {import("../../Feature.js").default} feature Feature.
+   * @param {import("../../style/Style.js").default} style Style.
+   * @api
+   */
+  drawFeature(feature, style) {
+    const geometry = style.getGeometryFunction()(feature);
+    if (!geometry || !intersects(this.extent_, geometry.getExtent())) {
+      return;
+    }
+    this.setStyle(style);
+    this.drawGeometry(geometry);
+  }
+=======
+  /**
+   * Render a feature into the canvas.  Note that any `zIndex` on the provided
+   * style will be ignored - features are rendered immediately in the order that
+   * this method is called.  If you need `zIndex` support, you should be using an
+   * {@link module:ol/layer/Vector~VectorLayer} instead.
+   *
+   * @param {import("../../Feature.js").default} feature Feature.
+   * @param {import("../../style/Style.js").default} style Style.
+   * @api
+   */
+  drawFeature(feature, style) {
+    const geometry = style.getGeometryFunction()(feature);
+    if (!geometry) {
+      return;
+    }
+    this.setStyle(style);
+    this.drawGeometry(geometry);
+  }
+>>>>>>> REPLACE
+```
+
+Additionally, the issue also mentions that the comparison in `drawCircle` needs fixing. Let's examine that method:
+
+```javascript
+drawCircle(geometry) {
+  if (!intersects(this.extent_, geometry.getExtent())) {
+    return;
+  }
+  // ...rest of the method
+}
+```
+
+The issue doesn't provide specific details about what's wrong with this check, but since it's mentioned as needing fixing, I'll assume it should be consistent with the fix for `drawFeature`. However, unlike `drawFeature`, there's no redundant check in `drawCircle` since it directly handles the geometry drawing. The extent check here is likely necessary to avoid drawing circles that are completely outside the view.
+
+Since the issue specifically mentions that the comparison in `drawCircle` needs fixing but doesn't provide details on how, I'll leave that part for further investigation or clarification. The primary fix is removing the redundant extent check in `drawFeature`.

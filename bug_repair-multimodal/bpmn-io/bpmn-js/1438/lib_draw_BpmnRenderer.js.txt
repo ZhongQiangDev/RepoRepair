@@ -1,0 +1,92 @@
+I'll analyze the issue and provide a solution.
+
+Based on the issue description, the problem is that names of message elements on message flows are not being rendered. Looking at the code, I need to find where message flows are rendered and add functionality to display the message name.
+
+The key part of the code is in the `'bpmn:MessageFlow'` handler in the `BpmnRenderer.js` file. Currently, it draws the message flow path and a marker if there's a message reference, but it doesn't render the name of the message.
+
+Here's my solution:
+
+```javascript
+### lib/draw/BpmnRenderer.js
+<<<<<<< SEARCH
+      var path = drawPath(parentGfx, pathData, attrs);
+
+      if (semantic.messageRef) {
+        var midPoint = path.getPointAtLength(path.getTotalLength() / 2);
+
+        var markerPathData = pathMap.getScaledPath('MESSAGE_FLOW_MARKER', {
+          abspos: {
+            x: midPoint.x,
+            y: midPoint.y
+          }
+        });
+
+        var messageAttrs = { strokeWidth: 1 };
+
+        if (di.messageVisibleKind === 'initiating') {
+          messageAttrs.fill = 'white';
+          messageAttrs.stroke = 'black';
+        } else {
+          messageAttrs.fill = '#888';
+          messageAttrs.stroke = 'white';
+        }
+
+        drawPath(parentGfx, markerPathData, messageAttrs);
+      }
+
+      return path;
+=======
+      var path = drawPath(parentGfx, pathData, attrs);
+
+      if (semantic.messageRef) {
+        var midPoint = path.getPointAtLength(path.getTotalLength() / 2);
+
+        var markerPathData = pathMap.getScaledPath('MESSAGE_FLOW_MARKER', {
+          abspos: {
+            x: midPoint.x,
+            y: midPoint.y
+          }
+        });
+
+        var messageAttrs = { strokeWidth: 1 };
+
+        if (di.messageVisibleKind === 'initiating') {
+          messageAttrs.fill = 'white';
+          messageAttrs.stroke = 'black';
+        } else {
+          messageAttrs.fill = '#888';
+          messageAttrs.stroke = 'white';
+        }
+
+        drawPath(parentGfx, markerPathData, messageAttrs);
+        
+        // Render message name if available
+        if (semantic.messageRef.name) {
+          var text = semantic.messageRef.name;
+          
+          // Position the label below the message marker
+          var labelPosition = {
+            x: midPoint.x,
+            y: midPoint.y + 20
+          };
+          
+          renderLabel(parentGfx, text, {
+            box: {
+              x: labelPosition.x,
+              y: labelPosition.y,
+              width: 100,
+              height: 20
+            },
+            align: 'center-middle',
+            style: {
+              fill: getStrokeColor(element, defaultStrokeColor)
+            }
+          });
+        }
+      }
+
+      return path;
+>>>>>>> REPLACE
+```
+
+This change adds functionality to render the name of the message element below the message marker on message flows. It checks if the message reference has a name, and if so, renders it using the existing `renderLabel` function, positioning it below the message marker.

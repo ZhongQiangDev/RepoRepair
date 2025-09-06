@@ -1,0 +1,43 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The problem shows that pi**(1/E) is being rendered incorrectly as "-1___╲╱ π" when displayed. However, both LaTeX and str representations show the correct form (pi^(e^(-1)) and pi**exp(-1) respectively).
+
+2. Cause Analysis:
+The issue appears to be in the pretty printing system's handling of fractional/negative exponents, specifically when dealing with special constants like pi and e. The pretty printer is incorrectly interpreting or formatting the expression pi**(1/E) as some kind of negative root form, when it should be showing it as pi raised to the power of 1/e.
+
+3. Relevant Files/Functions Analysis:
+
+sympy/core/compatibility.py:
+```
+This file contains no relevant functions/classes.
+```
+
+sympy/core/numbers.py:
+```
+sympy/core/numbers.py
+class: Pi
+class: Exp1
+```
+
+sympy/printing/str.py:
+```
+sympy/printing/str.py
+class: StrPrinter
+```
+
+sympy/printing/pretty/pretty.py:
+```
+sympy/printing/pretty/pretty.py
+class: PrettyPrinter
+```
+
+sympy/printing/pretty/stringpict.py:
+```
+sympy/printing/pretty/stringpict.py
+class: prettyForm
+```
+
+The issue likely stems from how PrettyPrinter handles power operations with Pi and Exp1 (e) constants, and how prettyForm formats these expressions. The StrPrinter is included because it shows the correct behavior, which can help identify where the pretty printing diverges from the expected output. The Pi and Exp1 classes are relevant as they define the basic constants involved in the expression.
+
+The core of the bug is likely in the PrettyPrinter's handling of power operations with these special constants, particularly in how it processes negative or fractional exponents involving e.

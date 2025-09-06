@@ -1,0 +1,140 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that attributions from a layer that is part of an invisible group layer are still being displayed in the attribution control. According to the issue description:
+
+1. When a group layer's visibility is set to false [1]
+2. But a sub-layer's visibility is set to true [2]
+3. The attributions from the WMS layer [3] are still displayed in the popup
+
+This happens because the current implementation in `Attribution.js` collects attributions from all layers without checking if parent group layers are visible.
+
+## Solution
+
+We need to modify the `collectSourceAttributions_` method to only collect attributions from layers that are actually visible, taking into account the visibility of parent group layers.
+
+Here's the fix:
+
+```javascript
+### src/ol/control/Attribution.js
+<<<<<<< SEARCH
+  collectSourceAttributions_(frameState) {
+    const visibleAttributions = Array.from(
+      new Set(
+        this.getMap()
+          .getAllLayers()
+          .flatMap((layer) => layer.getAttributions(frameState))
+      )
+    );
+
+    const collapsible = !this.getMap()
+      .getAllLayers()
+      .some(
+        (layer) =>
+          layer.getSource() &&
+          layer.getSource().getAttributionsCollapsible() === false
+      );
+=======
+  collectSourceAttributions_(frameState) {
+    // Only collect attributions from layers that are visible
+    // This includes checking if parent group layers are visible
+    const visibleAttributions = Array.from(
+      new Set(
+        this.getMap()
+          .getAllLayers()
+          .filter((layer) => {
+            // Check if the layer itself is visible
+            if (!layer.getVisible()) {
+              return false;
+            }
+            
+            // Check if all parent layers are visible
+            let parent = layer.get('parent');
+            while (parent) {
+              if (!parent.getVisible()) {
+                return false;
+              }
+              parent = parent.get('parent');
+            }
+            
+            return true;
+          })
+          .flatMap((layer) => layer.getAttributions(frameState))
+      )
+    );
+
+    const collapsible = !this.getMap()
+      .getAllLayers()
+      .some(
+        (layer) =>
+          layer.getSource() &&
+          layer.getSource().getAttributionsCollapsible() === false
+      );
+>>>>>>> REPLACE
+```
+
+However, there's a potential issue with this solution. The OpenLayers API doesn't explicitly track parent-child relationships between layers with a 'parent' property. The actual implementation might depend on how the application is managing group layers.
+
+Let's provide an alternative solution that works with OpenLayers' standard layer hierarchy:
+
+```javascript
+### src/ol/control/Attribution.js
+<<<<<<< SEARCH
+  collectSourceAttributions_(frameState) {
+    const visibleAttributions = Array.from(
+      new Set(
+        this.getMap()
+          .getAllLayers()
+          .flatMap((layer) => layer.getAttributions(frameState))
+      )
+    );
+
+    const collapsible = !this.getMap()
+      .getAllLayers()
+      .some(
+        (layer) =>
+          layer.getSource() &&
+          layer.getSource().getAttributionsCollapsible() === false
+      );
+=======
+  collectSourceAttributions_(frameState) {
+    // Get all layers that are actually visible in the map
+    const visibleLayers = [];
+    const checkLayer = (layer) => {
+      // If the layer itself is not visible, none of its children are visible either
+      if (!layer.getVisible()) {
+        return;
+      }
+      
+      // If it's a group layer, check its children
+      if (layer.getLayers) {
+        const sublayers = layer.getLayers().getArray();
+        sublayers.forEach(checkLayer);
+      } else {
+        // It's a regular layer and it's visible
+        visibleLayers.push(layer);
+      }
+    };
+    
+    // Start checking from the top-level layers
+    this.getMap().getLayers().forEach(checkLayer);
+    
+    // Now collect attributions only from visible layers
+    const visibleAttributions = Array.from(
+      new Set(
+        visibleLayers.flatMap((layer) => layer.getAttributions(frameState))
+      )
+    );
+
+    const collapsible = !this.getMap()
+      .getAllLayers()
+      .some(
+        (layer) =>
+          layer.getSource() &&
+          layer.getSource().getAttributionsCollapsible() === false
+      );
+>>>>>>> REPLACE
+```
+
+This solution properly handles the OpenLayers layer hierarchy by recursively checking the visibility of layers and their parent groups.

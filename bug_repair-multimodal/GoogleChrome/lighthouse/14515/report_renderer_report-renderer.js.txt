@@ -1,0 +1,35 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is requesting to include emulated screen dimensions and deviceScaleFactor in the report meta block, specifically in the devices tooltip. Currently, the tooltip shows information about CPU/Memory power, but doesn't include screen dimensions or device scale factor.
+
+Looking at the code, the relevant section is in the `_renderMetaBlock` method of the `ReportRenderer` class. This method creates the meta information displayed in the footer of the report, including the devices tooltip.
+
+The fix needs to add the screen dimensions and deviceScaleFactor to the tooltip text for the devices item in the meta block.
+
+## Solution
+
+I need to modify the `_renderMetaBlock` method to include the screen dimensions and deviceScaleFactor in the tooltip for the devices item. The information should be available in the `report.configSettings` object, which is already being used to get other emulation descriptions.
+
+```javascript
+### report/renderer/report-renderer.js
+<<<<<<< SEARCH
+      ['devices',
+        `${envValues.deviceEmulation} with Lighthouse ${report.lighthouseVersion}`,
+        `${Util.i18n.strings.runtimeSettingsBenchmark}: ${benchmarkIndex}` +
+            `\n${Util.i18n.strings.runtimeSettingsCPUThrottling}: ${envValues.cpuThrottling}` +
+            (axeVersion ? `\n${Util.i18n.strings.runtimeSettingsAxeVersion}: ${axeVersion}` : '')],
+=======
+      ['devices',
+        `${envValues.deviceEmulation} with Lighthouse ${report.lighthouseVersion}`,
+        `${Util.i18n.strings.runtimeSettingsBenchmark}: ${benchmarkIndex}` +
+            `\n${Util.i18n.strings.runtimeSettingsCPUThrottling}: ${envValues.cpuThrottling}` +
+            (report.configSettings.screenEmulation ? 
+              `\nScreen: ${report.configSettings.screenEmulation.width}x${report.configSettings.screenEmulation.height}, ` +
+              `DPR: ${report.configSettings.screenEmulation.deviceScaleFactor}` : '') +
+            (axeVersion ? `\n${Util.i18n.strings.runtimeSettingsAxeVersion}: ${axeVersion}` : '')],
+>>>>>>> REPLACE
+```
+
+This change adds the screen dimensions and device scale factor to the tooltip if the `screenEmulation` property exists in the `report.configSettings` object. The screen dimensions are displayed as width x height, and the device scale factor is displayed as DPR (Device Pixel Ratio).

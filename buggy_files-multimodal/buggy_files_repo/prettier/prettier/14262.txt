@@ -1,0 +1,39 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## Analysis of the Problem
+
+The issue is that Prettier is removing parentheses around an object expression that has a JSDoc type annotation (`@satisfies {Record<string, string>}`). This breaks TypeScript's intellisense functionality because the JSDoc annotation needs to apply to the entire expression, including the parentheses.
+
+In the example:
+```jsx
+module.exports = /** @satisfies {Record<string, string>} */ ({
+  hello: 1337,
+});
+```
+
+Prettier is incorrectly transforming it to:
+```jsx
+module.exports = /** @satisfies {Record<string, string>} */ {
+  hello: 1337,
+};
+```
+
+This breaks the TypeScript intellisense functionality that relies on the JSDoc annotation applying to the parenthesized expression.
+
+## Cause of the Issue
+
+The issue is likely in the code that determines when parentheses are necessary around expressions, particularly when JSDoc comments are involved. Prettier is not recognizing that the parentheses are semantically important when they're preceded by a JSDoc comment with annotations like `@satisfies`.
+
+## Files That Need to Be Modified
+
+```
+src/language-js/needs-parens.js
+src/language-js/print/assignment.js
+src/language-js/comments.js
+src/language-js/clean.js
+src/language-js/printer-estree.js
+```
+
+The primary file is `src/language-js/needs-parens.js` which determines when parentheses are needed around expressions. This file would need to be modified to recognize JSDoc annotations like `@satisfies` and preserve parentheses in those cases.
+
+The other files handle related aspects of JavaScript/TypeScript printing, comment handling, and AST cleaning that might need adjustments to properly support this feature.

@@ -1,0 +1,44 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the problem occurs when using proj4js version 2.6.1 and above with OpenLayers. The issue is related to axis order interpretation, which was fixed in proj4js 2.6.1. This change in proj4js is causing rotation problems in OpenLayers when transforming between different coordinate systems.
+
+The issue is in the `register` function in `src/ol/proj/proj4.js`. When creating coordinate transforms between projections, OpenLayers needs to account for the axis order changes introduced in proj4js 2.6.1.
+
+Here's the fix:
+
+```javascript
+### src/ol/proj/proj4.js
+<<<<<<< SEARCH
+          const transform = proj4(code1, code2);
+          addCoordinateTransforms(
+            proj1,
+            proj2,
+            transform.forward,
+            transform.inverse
+          );
+=======
+          const transform = proj4(code1, code2);
+          addCoordinateTransforms(
+            proj1,
+            proj2,
+            function(coordinate) {
+              const coord = transform.forward(coordinate.slice(0, 2));
+              if (coordinate.length > 2) {
+                coordinate = coord.concat(coordinate.slice(2));
+                return coordinate;
+              }
+              return coord;
+            },
+            function(coordinate) {
+              const coord = transform.inverse(coordinate.slice(0, 2));
+              if (coordinate.length > 2) {
+                coordinate = coord.concat(coordinate.slice(2));
+                return coordinate;
+              }
+              return coord;
+            }
+          );
+>>>>>>> REPLACE
+```
+
+This fix wraps the transform functions to ensure that only the first two components (x and y) of the coordinates are transformed, while preserving any additional components (like z or time values). This approach handles the axis order changes in proj4js 2.6.1 by explicitly managing how coordinates are passed to and returned from the proj4 transform functions.

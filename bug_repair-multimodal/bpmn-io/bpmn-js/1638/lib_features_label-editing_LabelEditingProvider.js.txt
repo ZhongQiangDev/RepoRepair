@@ -1,0 +1,35 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when a label is cleared from a task, the `di` (diagram interchange) object still has a `label` property with a value of `null`. According to the expected behavior, the `label` property should not exist at all when the label is cleared.
+
+This issue was introduced when support for embedded label DIs was added. The problem is in the `LabelEditingProvider.prototype.update` method, which is responsible for updating labels. When a label is cleared, it sets the label value to `null`, but it doesn't remove the property entirely from the diagram interchange object.
+
+## Solution
+
+We need to modify the `update` method to completely remove the `label` property from the diagram interchange object when the label is cleared, rather than just setting it to `null`.
+
+```javascript
+### lib/features/label-editing/LabelEditingProvider.js
+<<<<<<< SEARCH
+  if (isEmptyText(newLabel)) {
+    newLabel = null;
+  }
+
+  this._modeling.updateLabel(element, newLabel, newBounds);
+=======
+  if (isEmptyText(newLabel)) {
+    newLabel = null;
+  }
+
+  this._modeling.updateLabel(element, newLabel, newBounds);
+
+  // If the label was removed, also remove the label property from the DI
+  if (newLabel === null && element.di && element.di.label) {
+    delete element.di.label;
+  }
+>>>>>>> REPLACE
+```
+
+This change adds code to check if the label was removed (set to null) and if the element has a diagram interchange object with a label property. If both conditions are true, it removes the label property from the diagram interchange object.

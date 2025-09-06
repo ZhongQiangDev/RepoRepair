@@ -1,0 +1,121 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about the Dialog component's close button position when there's no title. According to the screenshot, the close button is overlapping with text content when no title is provided.
+
+Looking at the code, I need to examine how the close button is positioned in the Dialog component. The issue is likely in the Inner component which is imported and used to render the dialog content.
+
+The problem appears to be that when there's no title, the close button doesn't have proper positioning or spacing, causing it to overlap with the content.
+
+## Fix
+
+Since the actual implementation of the close button is in the `Inner` component which is imported in this file, I need to make a change to ensure proper spacing or positioning when there's no title.
+
+Looking at the code, I notice that the `title` prop is passed directly to the `Inner` component. The issue is likely that the Inner component doesn't handle the case when title is not provided.
+
+Let's create a fix that ensures proper spacing or positioning for the close button when there's no title:
+
+```javascript
+### src/dialog/dialog.jsx
+<<<<<<< SEARCH
+    renderInner(closeable) {
+        const {
+            prefix,
+            className,
+            title,
+            children,
+            footer,
+            footerAlign,
+            footerActions,
+            onOk,
+            onCancel,
+            okProps,
+            cancelProps,
+            onClose,
+            locale,
+            visible,
+            rtl,
+            height,
+        } = this.props;
+        const others = pickOthers(Object.keys(Dialog.propTypes), this.props);
+
+        return (
+            <Inner
+                prefix={prefix}
+                className={className}
+                title={title}
+                footer={footer}
+                footerAlign={footerAlign}
+                footerActions={footerActions}
+                onOk={visible ? onOk : noop}
+                onCancel={visible ? onCancel : noop}
+                okProps={okProps}
+                cancelProps={cancelProps}
+                locale={locale}
+                closeable={closeable}
+                rtl={rtl}
+                onClose={onClose.bind(this, 'closeClick')}
+                height={height}
+                {...others}
+            >
+                {children}
+            </Inner>
+        );
+    }
+=======
+    renderInner(closeable) {
+        const {
+            prefix,
+            className,
+            title,
+            children,
+            footer,
+            footerAlign,
+            footerActions,
+            onOk,
+            onCancel,
+            okProps,
+            cancelProps,
+            onClose,
+            locale,
+            visible,
+            rtl,
+            height,
+        } = this.props;
+        const others = pickOthers(Object.keys(Dialog.propTypes), this.props);
+
+        // Add a class to handle the case when there's no title
+        const innerClassName = title === undefined || title === null ? 
+            `${className || ''} ${prefix}dialog-no-title` : 
+            className;
+
+        return (
+            <Inner
+                prefix={prefix}
+                className={innerClassName}
+                title={title}
+                footer={footer}
+                footerAlign={footerAlign}
+                footerActions={footerActions}
+                onOk={visible ? onOk : noop}
+                onCancel={visible ? onCancel : noop}
+                okProps={okProps}
+                cancelProps={cancelProps}
+                locale={locale}
+                closeable={closeable}
+                rtl={rtl}
+                onClose={onClose.bind(this, 'closeClick')}
+                height={height}
+                {...others}
+            >
+                {children}
+            </Inner>
+        );
+    }
+>>>>>>> REPLACE
+```
+
+This fix adds a special CSS class `${prefix}dialog-no-title` to the Inner component when the title is not provided. This class can be used in the CSS to adjust the positioning of the close button when there's no title, preventing it from overlapping with the content.
+
+The CSS for this class would need to be defined in the corresponding CSS file for the Dialog component, which would add appropriate padding or positioning to ensure the close button doesn't overlap with content when there's no title.

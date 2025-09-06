@@ -1,0 +1,132 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when moving source and target elements of an association out of a subprocess, the association's parent remains the subprocess. When the subprocess is deleted, the association is also deleted, which is incorrect behavior.
+
+Looking at the provided code, I can see that `UpdateSemanticParentHandler` is responsible for updating the parent of elements, but it's specifically designed for data store objects (`dataStoreBo`). The issue is that this handler doesn't update the parent of associations when their source or target elements are moved.
+
+The bug is that we need to extend this handler to also update the parent of associations when their connected elements are moved to a new parent.
+
+## Fix
+
+```javascript
+### lib/features/modeling/cmd/UpdateSemanticParentHandler.js
+<<<<<<< SEARCH
+export default function UpdateSemanticParentHandler(bpmnUpdater) {
+  this._bpmnUpdater = bpmnUpdater;
+}
+
+UpdateSemanticParentHandler.$inject = [ 'bpmnUpdater' ];
+
+
+UpdateSemanticParentHandler.prototype.execute = function(context) {
+  var dataStoreBo = context.dataStoreBo,
+      newSemanticParent = context.newSemanticParent,
+      newDiParent = context.newDiParent;
+
+  context.oldSemanticParent = dataStoreBo.$parent;
+  context.oldDiParent = dataStoreBo.di.$parent;
+
+  // update semantic parent
+  this._bpmnUpdater.updateSemanticParent(dataStoreBo, newSemanticParent);
+
+  // update DI parent
+  this._bpmnUpdater.updateDiParent(dataStoreBo.di, newDiParent);
+};
+
+UpdateSemanticParentHandler.prototype.revert = function(context) {
+  var dataStoreBo = context.dataStoreBo,
+      oldSemanticParent = context.oldSemanticParent,
+      oldDiParent = context.oldDiParent;
+
+  // update semantic parent
+  this._bpmnUpdater.updateSemanticParent(dataStoreBo, oldSemanticParent);
+
+  // update DI parent
+  this._bpmnUpdater.updateDiParent(dataStoreBo.di, oldDiParent);
+};
+
+=======
+export default function UpdateSemanticParentHandler(bpmnUpdater) {
+  this._bpmnUpdater = bpmnUpdater;
+}
+
+UpdateSemanticParentHandler.$inject = [ 'bpmnUpdater' ];
+
+
+UpdateSemanticParentHandler.prototype.execute = function(context) {
+  var dataStoreBo = context.dataStoreBo,
+      newSemanticParent = context.newSemanticParent,
+      newDiParent = context.newDiParent;
+
+  context.oldSemanticParent = dataStoreBo.$parent;
+  context.oldDiParent = dataStoreBo.di.$parent;
+
+  // update semantic parent
+  this._bpmnUpdater.updateSemanticParent(dataStoreBo, newSemanticParent);
+
+  // update DI parent
+  this._bpmnUpdater.updateDiParent(dataStoreBo.di, newDiParent);
+
+  // update associations' parents if element is source or target
+  this._updateAssociationParents(dataStoreBo, newSemanticParent, newDiParent);
+};
+
+UpdateSemanticParentHandler.prototype.revert = function(context) {
+  var dataStoreBo = context.dataStoreBo,
+      oldSemanticParent = context.oldSemanticParent,
+      oldDiParent = context.oldDiParent;
+
+  // update semantic parent
+  this._bpmnUpdater.updateSemanticParent(dataStoreBo, oldSemanticParent);
+
+  // update DI parent
+  this._bpmnUpdater.updateDiParent(dataStoreBo.di, oldDiParent);
+
+  // revert associations' parents if element is source or target
+  this._updateAssociationParents(dataStoreBo, oldSemanticParent, oldDiParent);
+};
+
+/**
+ * Update the parent of all associations connected to the given element
+ */
+UpdateSemanticParentHandler.prototype._updateAssociationParents = function(element, newSemanticParent, newDiParent) {
+  var associations = this._getAssociations(element);
+
+  associations.forEach(function(association) {
+    this._bpmnUpdater.updateSemanticParent(association, newSemanticParent);
+    this._bpmnUpdater.updateDiParent(association.di, newDiParent);
+  }, this);
+};
+
+/**
+ * Get all associations where the given element is source or target
+ */
+UpdateSemanticParentHandler.prototype._getAssociations = function(element) {
+  var elementRegistry = this._bpmnUpdater._elementRegistry;
+  var associations = [];
+
+  elementRegistry.forEach(function(entry) {
+    var businessObject = entry.businessObject;
+    
+    if (businessObject.$type === 'bpmn:Association' && 
+        (businessObject.sourceRef === element || businessObject.targetRef === element)) {
+      associations.push(businessObject);
+    }
+  });
+
+  return associations;
+};
+
+>>>>>>> REPLACE
+```
+
+This fix adds two new methods to the `UpdateSemanticParentHandler`:
+
+1. `_updateAssociationParents`: Updates the parent of all associations connected to the given element
+2. `_getAssociations`: Finds all associations where the given element is a source or target
+
+The fix also modifies the `execute` and `revert` methods to call `_updateAssociationParents` to ensure that when an element is moved to a new parent, any associations connected to it are also moved to the same parent.
+
+This should fix the issue where associations remain in the subprocess when their source and target elements are moved out, preventing the undesired deletion of associations when the subprocess is deleted.

@@ -1,0 +1,132 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that `blendMode()` is not working correctly in WebGL mode. When using blend modes like `MULTIPLY`, the overlapping colors don't blend the same way as they do in 2D mode.
+
+Looking at the code, I can see that the `blendMode()` method in `p5.RendererGL.prototype` sets the `curBlendMode` property, but it doesn't actually apply the blend mode to the WebGL context. In contrast to the 2D renderer, which would apply the blend mode directly to the canvas context, the WebGL renderer needs to set the appropriate WebGL blend functions.
+
+## Solution
+
+We need to modify the `blendMode()` method in `p5.RendererGL.prototype` to actually apply the blend mode to the WebGL context using the appropriate WebGL blend functions for each blend mode.
+
+```javascript
+### src/webgl/p5.RendererGL.js
+<<<<<<< SEARCH
+p5.RendererGL.prototype.blendMode = function(mode) {
+  if (
+    mode === constants.DARKEST ||
+    mode === constants.LIGHTEST ||
+    mode === constants.ADD ||
+    mode === constants.BLEND ||
+    mode === constants.SUBTRACT ||
+    mode === constants.SCREEN ||
+    mode === constants.EXCLUSION ||
+    mode === constants.REPLACE ||
+    mode === constants.MULTIPLY ||
+    mode === constants.REMOVE
+  )
+    this.curBlendMode = mode;
+  else if (
+    mode === constants.BURN ||
+    mode === constants.OVERLAY ||
+    mode === constants.HARD_LIGHT ||
+    mode === constants.SOFT_LIGHT ||
+    mode === constants.DODGE
+  ) {
+    console.warn(
+      'BURN, OVERLAY, HARD_LIGHT, SOFT_LIGHT, and DODGE only work for blendMode in 2D mode.'
+    );
+  }
+};
+=======
+p5.RendererGL.prototype.blendMode = function(mode) {
+  const gl = this.drawingContext;
+  
+  // Set the blend mode property
+  if (
+    mode === constants.DARKEST ||
+    mode === constants.LIGHTEST ||
+    mode === constants.ADD ||
+    mode === constants.BLEND ||
+    mode === constants.SUBTRACT ||
+    mode === constants.SCREEN ||
+    mode === constants.EXCLUSION ||
+    mode === constants.REPLACE ||
+    mode === constants.MULTIPLY ||
+    mode === constants.REMOVE
+  ) {
+    this.curBlendMode = mode;
+    
+    // Enable blending
+    gl.enable(gl.BLEND);
+    
+    switch (mode) {
+      case constants.BLEND:
+        gl.blendEquation(gl.FUNC_ADD);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        break;
+      case constants.ADD:
+        gl.blendEquation(gl.FUNC_ADD);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+        break;
+      case constants.SUBTRACT:
+        gl.blendEquationSeparate(gl.FUNC_REVERSE_SUBTRACT, gl.FUNC_ADD);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+        break;
+      case constants.DARKEST:
+        gl.blendEquation(gl.MIN);
+        gl.blendFunc(gl.ONE, gl.ONE);
+        break;
+      case constants.LIGHTEST:
+        gl.blendEquation(gl.MAX);
+        gl.blendFunc(gl.ONE, gl.ONE);
+        break;
+      case constants.MULTIPLY:
+        gl.blendEquation(gl.FUNC_ADD);
+        gl.blendFunc(gl.DST_COLOR, gl.ONE_MINUS_SRC_ALPHA);
+        break;
+      case constants.SCREEN:
+        gl.blendEquation(gl.FUNC_ADD);
+        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR);
+        break;
+      case constants.EXCLUSION:
+        gl.blendEquation(gl.FUNC_ADD);
+        gl.blendFunc(gl.ONE_MINUS_DST_COLOR, gl.ONE_MINUS_SRC_COLOR);
+        break;
+      case constants.REPLACE:
+        gl.blendEquation(gl.FUNC_ADD);
+        gl.blendFunc(gl.ONE, gl.ZERO);
+        break;
+      case constants.REMOVE:
+        gl.blendEquation(gl.FUNC_ADD);
+        gl.blendFunc(gl.ZERO, gl.ONE_MINUS_SRC_ALPHA);
+        break;
+      default:
+        gl.blendEquation(gl.FUNC_ADD);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        break;
+    }
+  } else if (
+    mode === constants.BURN ||
+    mode === constants.OVERLAY ||
+    mode === constants.HARD_LIGHT ||
+    mode === constants.SOFT_LIGHT ||
+    mode === constants.DODGE
+  ) {
+    console.warn(
+      'BURN, OVERLAY, HARD_LIGHT, SOFT_LIGHT, and DODGE only work for blendMode in 2D mode.'
+    );
+  }
+};
+>>>>>>> REPLACE
+```
+
+This implementation:
+
+1. Sets the `curBlendMode` property as before
+2. Enables blending in WebGL
+3. Sets the appropriate blend equation and blend function for each supported blend mode
+4. Maintains the warning for unsupported blend modes
+
+The blend functions were chosen to match the behavior of the 2D renderer as closely as possible in WebGL. For example, for `MULTIPLY`, we use `gl.DST_COLOR` and `gl.ONE_MINUS_SRC_ALPHA` to achieve a similar effect to the 2D renderer's multiply blend mode.

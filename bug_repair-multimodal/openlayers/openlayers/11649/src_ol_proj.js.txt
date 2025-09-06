@@ -1,0 +1,73 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about broken projections when using proj4js definitions with OpenLayers. Specifically:
+
+1. When using geographic coordinate reference systems (CRS) with proj4js definitions, OpenLayers creates invalid projections
+2. The main problems are:
+   - `units` parameter is undefined when it should default to "degrees" for geographic projections
+   - `axisOrientation` is set to wrong default values
+
+The issue occurs when registering proj4js definitions with OpenLayers using `ol.proj.proj4.register(proj4)`. The problem is that OpenLayers doesn't properly handle geographic projections that don't explicitly specify units or axis orientation in their proj4js definition strings.
+
+## Solution
+
+Looking at the code, we need to modify how OpenLayers handles projections when registering them from proj4js. The issue is not directly in the provided file (`src/ol/proj.js`), but rather in the code that registers proj4js projections.
+
+Since we don't have direct access to the proj4 registration code, I'll need to make an educated guess about where the fix should be applied. Based on the issue description, we need to ensure that:
+
+1. Geographic projections (longlat) default to "degrees" as their unit
+2. Axis orientation is properly set for geographic projections
+
+Let's create a fix for this issue:
+
+```javascript
+### src/ol/proj/proj4.js
+<<<<<<< SEARCH
+  const proj4Projection = proj4.Proj(code);
+  let units = proj4Projection.units;
+  if (
+    code === 'EPSG:4326' &&
+    !proj4Projection.units &&
+    proj4Projection.datum &&
+    proj4Projection.datum.ellps === 'WGS84'
+  ) {
+    units = 'degrees';
+  }
+=======
+  const proj4Projection = proj4.Proj(code);
+  let units = proj4Projection.units;
+  // Handle geographic projections (longlat) that don't explicitly define units
+  if (
+    (!units && proj4Projection.projName === 'longlat') ||
+    (code === 'EPSG:4326' &&
+     !units &&
+     proj4Projection.datum &&
+     proj4Projection.datum.ellps === 'WGS84')
+  ) {
+    units = 'degrees';
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/proj/proj4.js
+<<<<<<< SEARCH
+  const axisOrientation = proj4Projection.axis || 'enu';
+=======
+  // Set correct axis orientation for geographic projections
+  let axisOrientation = proj4Projection.axis || 'enu';
+  if (units === 'degrees' && axisOrientation === 'enu') {
+    // For geographic projections, the default axis orientation should be 'neu'
+    axisOrientation = 'neu';
+  }
+>>>>>>> REPLACE
+```
+
+These changes will:
+
+1. Detect geographic projections by checking if the projection name is 'longlat' and set units to 'degrees' when not specified
+2. Set the correct axis orientation ('neu') for geographic projections that don't explicitly specify it
+
+This should fix the issue with broken projections when using proj4js definitions for geographic coordinate reference systems.

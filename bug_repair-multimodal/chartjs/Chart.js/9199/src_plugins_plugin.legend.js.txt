@@ -1,0 +1,55 @@
+I'll analyze the issue and provide a fix for the RTL regression in Chart.js v3.
+
+## Issue Analysis
+
+The issue is about RTL (right-to-left) support in the legend component of Chart.js v3. In v2, when `rtl: true` was set, the legend would properly display with the box to the right of the text. In v3, the text goes off-screen or isn't rendered at all.
+
+Looking at the code, I can see that the issue is in the `_textX` function usage in the `draw` method of the Legend class. The issue description mentions that `_textX` should be updated to be RTL-aware.
+
+The problem is in this line:
+```javascript
+x = _textX(textAlign, x + boxWidth + halfFontSize, me.right);
+```
+
+This function doesn't properly handle RTL text alignment. When RTL is enabled, the text position calculation needs to be adjusted.
+
+## Fix
+
+```javascript
+### src/plugins/plugin.legend.js
+<<<<<<< SEARCH
+      const realX = rtlHelper.x(x);
+
+      drawLegendBox(realX, y, legendItem);
+
+      x = _textX(textAlign, x + boxWidth + halfFontSize, me.right);
+
+      // Fill the actual label
+      fillText(rtlHelper.x(x), y, legendItem);
+=======
+      const realX = rtlHelper.x(x);
+
+      drawLegendBox(realX, y, legendItem);
+
+      // For RTL the text position needs to be adjusted differently
+      const textX = rtlHelper.x(
+        textAlign === 'start' ? x + boxWidth + halfFontSize : 
+        textAlign === 'end' ? x - halfFontSize : 
+        x + boxWidth / 2
+      );
+
+      // Fill the actual label
+      fillText(textX, y, legendItem);
+>>>>>>> REPLACE
+```
+
+This fix changes how the text position is calculated when rendering the legend items. Instead of using the `_textX` helper function which doesn't properly handle RTL, we now use the `rtlHelper.x` function directly with appropriate positioning based on the text alignment.
+
+The new code:
+1. Calculates the text position based on the text alignment
+2. For 'start' alignment, positions the text after the box (plus half font size)
+3. For 'end' alignment, positions the text before the box (minus half font size)
+4. For center alignment (default), positions the text at the center of the box
+5. Uses the rtlHelper to properly handle RTL text direction
+
+This should fix the RTL regression and ensure that legend text is properly positioned in RTL mode, with the box appearing to the right of the text as expected.

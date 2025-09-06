@@ -1,0 +1,59 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the problem is that the PageHeader component's heading doesn't wrap when it contains long text, causing it to overflow and collide with other content. The issue is likely in the `StyledHeading` component's styling.
+
+Looking at the provided code, we don't see the actual styling implementation in `StyledHeading.js`. However, since the issue is about text wrapping, we need to add a CSS property to ensure long text wraps properly.
+
+The fix would be to add `word-break: break-word` or `overflow-wrap: break-word` to the `StyledHeading` component. Since we don't have the actual `StyledHeading.js` file, I'll provide a search/replace edit that assumes the most likely structure:
+
+```javascript
+### src/js/components/Heading/StyledHeading.js
+<<<<<<< SEARCH
+import styled, { css } from 'styled-components';
+
+import { genericStyles } from '../../utils/styles';
+import { defaultProps } from '../../default-props';
+
+const sizeStyle = props => {
+  // size style implementation
+};
+
+const fontStyle = props => {
+  // font style implementation
+};
+
+const StyledHeading = styled.h1`
+  ${genericStyles}
+  ${props => sizeStyle(props)}
+  ${props => fontStyle(props)}
+  ${props =>
+    props.textAlign &&
+    `text-align: ${props.textAlign};`}
+  ${props => props.truncate && `white-space: nowrap; overflow: hidden; text-overflow: ellipsis;`}
+=======
+import styled, { css } from 'styled-components';
+
+import { genericStyles } from '../../utils/styles';
+import { defaultProps } from '../../default-props';
+
+const sizeStyle = props => {
+  // size style implementation
+};
+
+const fontStyle = props => {
+  // font style implementation
+};
+
+const StyledHeading = styled.h1`
+  ${genericStyles}
+  ${props => sizeStyle(props)}
+  ${props => fontStyle(props)}
+  ${props =>
+    props.textAlign &&
+    `text-align: ${props.textAlign};`}
+  ${props => props.truncate && `white-space: nowrap; overflow: hidden; text-overflow: ellipsis;`}
+  ${props => !props.truncate && `overflow-wrap: break-word; word-break: break-word;`}
+>>>>>>> REPLACE
+```
+
+This fix adds `overflow-wrap: break-word; word-break: break-word;` to the styled component, but only when the `truncate` prop is not set (since truncation and word-breaking are mutually exclusive behaviors). This will ensure that long text in headings will wrap to the next line instead of overflowing.

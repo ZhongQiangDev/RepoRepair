@@ -1,0 +1,30 @@
+Let me help analyze this issue and identify the relevant files.
+
+1. Wrong Behavior:
+- When running migrations with a specified database parameter, there's an unexpected DB read request after the migration completes
+- This read request ignores the specified database parameter and uses the DB router instead
+- This causes issues in multi-tenant scenarios where database routing is managed through thread-local variables
+
+2. Cause Analysis:
+- After migrations complete, Django appears to be making additional database reads related to Permissions
+- These reads are not respecting the database context set by the migration command
+- The issue likely stems from how post-migration signals or permission setup handles database connections
+- The core problem appears to be in the interaction between migration execution, permission setup, and database routing
+
+3. Most Relevant Files (ordered by importance):
+```
+django/core/management/commands/migrate.py
+django/db/migrations/executor.py
+django/contrib/sites/apps.py
+django/db/utils.py
+django/db/backends/base/base.py
+```
+
+Reasoning for file selection:
+- `migrate.py` is the primary file handling migration commands and database selection
+- `executor.py` manages the actual execution of migrations and related operations
+- `sites/apps.py` demonstrates how post-migration signals are handled (similar to permission setup)
+- `utils.py` contains the database routing infrastructure
+- `base/base.py` handles core database connection management
+
+These files would need to be examined to ensure database context is properly maintained throughout the entire migration process, including post-migration operations.

@@ -1,0 +1,105 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is with the "Select All" checkbox behavior in the DataTable component. When a user searches for items in the table, the "Select All" checkbox selects all rows in the table, not just the filtered/visible rows. 
+
+In the example from the issue:
+1. The table has 3 items
+2. The user searches for a specific ID, which filters to show only 1 item
+3. When clicking "Select All", all 3 items are selected (even the hidden ones), but the user expects only the 1 visible item to be selected
+
+The bug is in the `handleSelectAll` method. Currently, it selects all rows in the state, regardless of whether they're filtered or not. We need to modify this method to only select rows that are currently visible after filtering.
+
+## Fix
+
+```javascript
+### packages/react/src/components/DataTable/DataTable.js
+<<<<<<< SEARCH
+  /**
+   * Handler for toggling the selection state of all rows in the database
+   */
+  handleSelectAll = () => {
+    this.setState(state => {
+      const { rowIds, rowsById } = state;
+      const selectableRows = rowIds.reduce((acc, rowId) => {
+        return (acc += rowsById[rowId].disabled ? 0 : 1);
+      }, 0);
+      const isSelected = this.getSelectedRows().length !== selectableRows;
+      return {
+        shouldShowBatchActions: isSelected,
+        ...this.setAllSelectedState(state, isSelected),
+      };
+    });
+  };
+=======
+  /**
+   * Handler for toggling the selection state of all rows in the database
+   */
+  handleSelectAll = () => {
+    this.setState(state => {
+      const { rowIds, rowsById, filterInputValue } = state;
+      
+      // Get the filtered row IDs if a filter is applied
+      const filteredRowIds = typeof filterInputValue === 'string'
+        ? this.props.filterRows({
+            rowIds,
+            headers: this.props.headers,
+            cellsById: state.cellsById,
+            inputValue: filterInputValue,
+          })
+        : rowIds;
+      
+      // Count selectable rows from the filtered set
+      const selectableRows = filteredRowIds.reduce((acc, rowId) => {
+        return (acc += rowsById[rowId].disabled ? 0 : 1);
+      }, 0);
+      
+      // Determine if all filtered rows are selected
+      const selectedFilteredRows = filteredRowIds.filter(
+        id => rowsById[id].isSelected && !rowsById[id].disabled
+      ).length;
+      const isSelected = selectedFilteredRows !== selectableRows;
+      
+      // Create a new state with only filtered rows toggled
+      const newRowsById = { ...state.rowsById };
+      
+      // First, if we're selecting, we only want to select filtered rows
+      if (isSelected) {
+        // Mark all filtered rows as selected
+        filteredRowIds.forEach(id => {
+          if (!newRowsById[id].disabled) {
+            newRowsById[id] = {
+              ...newRowsById[id],
+              isSelected: true,
+            };
+          }
+        });
+      } else {
+        // If deselecting, only deselect the filtered rows
+        filteredRowIds.forEach(id => {
+          newRowsById[id] = {
+            ...newRowsById[id],
+            isSelected: false,
+          };
+        });
+      }
+      
+      return {
+        shouldShowBatchActions: isSelected || this.getSelectedRows().length > 0,
+        rowsById: newRowsById,
+      };
+    });
+  };
+>>>>>>> REPLACE
+```
+
+This fix modifies the `handleSelectAll` method to:
+
+1. Get the filtered row IDs based on the current search input
+2. Count how many of these filtered rows are selectable (not disabled)
+3. Determine if all filtered rows are currently selected
+4. When selecting, only select the filtered/visible rows
+5. When deselecting, only deselect the filtered/visible rows
+
+This way, the "Select All" checkbox will only affect the rows that are currently visible to the user after filtering, which matches the expected behavior described in the issue.

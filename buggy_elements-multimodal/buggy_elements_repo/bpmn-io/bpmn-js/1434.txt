@@ -1,0 +1,44 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that a typed start event can be copied and pasted onto a subprocess, which should not be allowed according to BPMN rules. Additionally, non-interrupting events can be copied out of an event subprocess, which is also not allowed.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior likely lies in the copy-paste functionality not properly enforcing BPMN rules when pasting elements onto a subprocess. Specifically, the rules that prohibit typed start events from being placed within a subprocess and non-interrupting events from being copied out of an event subprocess are not being checked or enforced during the paste operation.
+
+### 3. Examine Each File One by One
+
+#### --- lib/features/copy-paste/BpmnCopyPaste.js ---
+```
+lib/features/copy-paste/BpmnCopyPaste.js
+function: BpmnCopyPaste
+```
+The `BpmnCopyPaste` function is responsible for managing copy-paste operations. It listens to events like `copyPaste.pasteElement` and performs the paste operation. It needs to be modified to enforce BPMN rules during the paste operation.
+
+#### --- lib/features/modeling/behavior/ReplaceElementBehaviour.js ---
+```
+lib/features/modeling/behavior/ReplaceElementBehaviour.js
+function: ReplaceElementBehaviour
+```
+The `ReplaceElementBehaviour` function handles element replacements and might be relevant if the paste operation involves replacing an existing element. However, it does not directly handle the paste operation itself.
+
+#### --- lib/features/modeling/cmd/UpdatePropertiesHandler.js ---
+```
+This file contains no relevant functions/classes.
+```
+This file handles updating properties of elements and is not directly related to the copy-paste operation.
+
+#### --- lib/features/popup-menu/ReplaceMenuProvider.js ---
+```
+This file contains no relevant functions/classes.
+```
+This file provides replacement menu options and is not directly related to the copy-paste operation.
+
+#### --- lib/features/rules/BpmnRules.js ---
+```
+lib/features/rules/BpmnRules.js
+function: canAttach
+function: canReplace
+function: canPaste
+```
+The `BpmnRules` file contains functions that define BPMN-specific modeling rules. The `canAttach`, `canReplace`, and `canPaste` functions are relevant as they determine if an element can be attached, replaced, or pasted into a target. These functions need to be checked and potentially modified to enforce the rules preventing typed start events from being pasted onto subprocesses and non-interrupting events from being copied out of event subprocesses.

@@ -1,0 +1,56 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about replacing a message flow with a sequence flow. When this happens, the new sequence flow is not being placed in the appropriate parent container, especially when the previous connection source is a Participant.
+
+Looking at the code, the problem is likely in the `BpmnReplace.js` file. The issue is that when replacing a connection (like a message flow with a sequence flow), the code doesn't properly handle the parent container for the new connection.
+
+The key insight from the issue description is that the sequence flow should be part of the second participant/process after replacement, but it's not being properly assigned to that parent.
+
+## Fix
+
+We need to add code to handle the parent container when replacing connections, particularly for sequence flows. Let's add this functionality to the `replaceElement` function:
+
+```javascript
+### lib/features/replace/BpmnReplace.js
+<<<<<<< SEARCH
+    // remove children if not expanding sub process
+    if (isSubProcess(oldBusinessObject) && !isSubProcess(newBusinessObject)) {
+      hints.moveChildren = false;
+    }
+=======
+    // remove children if not expanding sub process
+    if (isSubProcess(oldBusinessObject) && !isSubProcess(newBusinessObject)) {
+      hints.moveChildren = false;
+    }
+
+    // handle sequence/message flow replacement
+    if (is(oldBusinessObject, 'bpmn:SequenceFlow') && is(newBusinessObject, 'bpmn:MessageFlow') ||
+        is(oldBusinessObject, 'bpmn:MessageFlow') && is(newBusinessObject, 'bpmn:SequenceFlow')) {
+      
+      var connectionTarget = element.target,
+          connectionSource = element.source;
+      
+      // handle the case of a sequence flow replacement
+      if (is(newBusinessObject, 'bpmn:SequenceFlow')) {
+        var parent;
+        
+        // get appropriate parent for the new sequence flow
+        if (is(connectionSource, 'bpmn:Participant')) {
+          parent = connectionSource.businessObject.processRef;
+        } else if (is(connectionTarget, 'bpmn:Participant')) {
+          parent = connectionTarget.businessObject.processRef;
+        }
+        
+        if (parent) {
+          hints.connectionParent = parent;
+        }
+      }
+    }
+>>>>>>> REPLACE
+```
+
+This fix adds logic to handle the specific case of replacing a message flow with a sequence flow. When this happens, it determines the appropriate parent for the new sequence flow based on the source and target of the connection. If the source or target is a Participant, it sets the parent to the participant's process reference.
+
+The `hints.connectionParent` property is then used by the replace module to properly set the parent of the new connection.

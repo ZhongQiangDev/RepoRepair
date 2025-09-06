@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- Lighthouse/PageSpeed is reporting a size of 80kb and potential savings of ~70kb for CSS when the actual gzipped JSON containing the CSS is only around 20kb.
+- The tool is incorrectly calculating the potential savings based on the uncompressed size in the DOM rather than the actual transferred size.
+
+2. Cause Analysis:
+- The issue stems from how Lighthouse calculates CSS size and compression savings
+- It's using the uncompressed size of CSS in the DOM rather than considering the actual network transfer size after gzip compression
+- The compression ratio estimation for CSS appears to be too pessimistic, leading to inflated potential savings calculations
+
+3. Most Relevant Files:
+```
+lighthouse-core/audits/byte-efficiency/unused-css-rules.js
+lighthouse-core/lib/minification-estimator.js
+lighthouse-core/audits/byte-efficiency/byte-efficiency-audit.js
+lighthouse-core/lib/dependency-graph/simulator/network-analyzer.js
+lighthouse-core/lib/network-request.js
+```
+
+These files are most relevant because:
+- unused-css-rules.js: Directly handles CSS usage analysis and savings calculations
+- minification-estimator.js: Contains logic for estimating compressed sizes
+- byte-efficiency-audit.js: Base class for byte efficiency audits including compression calculations
+- network-analyzer.js: Analyzes network requests and transfer sizes
+- network-request.js: Handles network request data including compression information
+
+The core issue likely needs to be addressed in these files to properly account for gzip compression ratios when calculating potential CSS savings.

@@ -1,0 +1,33 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about GeoTIFF files with NaN as no-data value not being correctly recognized. When retrieving pixel values with `getData`, the alpha channel is 255 (fully opaque) instead of 0 (transparent) for no-data pixels.
+
+Looking at the code, the problem is in the `loadTile_` method of the `GeoTIFFSource` class. When checking if a pixel value equals the no-data value, it's using strict equality (`!==`). However, in JavaScript, `NaN !== NaN` is true, so the comparison fails when the no-data value is NaN.
+
+## Fix
+
+We need to modify the comparison to handle NaN values correctly by using `isNaN()` when appropriate:
+
+```javascript
+### src/ol/source/GeoTIFF.js
+<<<<<<< SEARCH
+                if (sourceValue !== nodata) {
+                  transparent = false;
+                  data[dataIndex] = value;
+                }
+=======
+                if ((isNaN(nodata) && !isNaN(sourceValue)) || 
+                    (!isNaN(nodata) && sourceValue !== nodata)) {
+                  transparent = false;
+                  data[dataIndex] = value;
+                }
+>>>>>>> REPLACE
+```
+
+This fix checks:
+1. If the no-data value is NaN, then any non-NaN source value should be considered valid data
+2. If the no-data value is not NaN, then use the regular comparison
+
+With this change, when a pixel has a NaN value that matches the NaN no-data value, it will be treated as transparent, resulting in an alpha value of 0 instead of 255.

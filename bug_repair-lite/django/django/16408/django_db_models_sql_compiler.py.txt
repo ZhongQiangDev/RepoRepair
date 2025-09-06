@@ -1,0 +1,40 @@
+Based on the issue description, the bug appears to be in the `get_related_selections()` method of SQLCompiler. The issue occurs when using multi-level FilteredRelation with select_related(), where the wrong related object is being set.
+
+The problem is that when handling filtered relations, the method is not properly setting up the relationship between the filtered relation and its target model. The current code incorrectly uses the filtered relation's field as both the local and remote setter, which causes the wrong object to be cached.
+
+Here's the fix:
+
+```python
+### django/db/models/sql/compiler.py
+<<<<<<< SEARCH
+                    klass_info = {
+                        "model": model,
+                        "field": final_field,
+                        "reverse": True,
+                        "local_setter": partial(local_setter, final_field),
+                        "remote_setter": partial(remote_setter, name),
+                        "from_parent": from_parent,
+                    }
+=======
+                    klass_info = {
+                        "model": model,
+                        "field": final_field,
+                        "reverse": True,
+                        "local_setter": lambda obj, from_obj: setattr(from_obj, name, obj),
+                        "remote_setter": lambda obj, from_obj: None,
+                        "from_parent": from_parent,
+                    }
+>>>>>>> REPLACE
+```
+
+This fix changes how the filtered relation's setters work:
+
+1. The local_setter is changed to directly set the attribute on the parent object using the filtered relation's name
+2. The remote_setter is set to a no-op function since we don't need to set anything in the reverse direction for filtered relations
+
+The change ensures that filtered relations are handled correctly when used with select_related() by:
+1. Properly setting up the one-way relationship from parent to filtered relation
+2. Avoiding incorrect bi-directional caching that was causing the wrong objects to be set
+3. Using the filtered relation's name directly rather than going through the field's setters
+
+This should resolve the issue where the wrong related object was being set when using multi-level FilteredRelation with select_related().

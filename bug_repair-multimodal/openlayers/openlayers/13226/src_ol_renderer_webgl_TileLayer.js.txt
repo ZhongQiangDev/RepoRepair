@@ -1,0 +1,36 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that "WebGL renderer incorrectly expects the source to have a tile grid" when using view projection with `wrapX: false`. Looking at the code, the problem is in the `getRenderExtent` function in `src/ol/renderer/webgl/TileLayer.js`.
+
+The function tries to access `source.tileGrid` directly, but when a source doesn't have a tile grid (like a WMS source with `wrapX: false`), this will cause an error. The code should first check if the tile grid exists before trying to use it.
+
+## Fix
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+  const source =
+    /** {import("../../source/Tile.js").default} */ layerState.layer.getSource();
+  if (!source.getWrapX()) {
+    const gridExtent = source.tileGrid.getExtent();
+    if (gridExtent) {
+      extent = getIntersection(extent, gridExtent);
+    }
+  }
+=======
+  const source =
+    /** {import("../../source/Tile.js").default} */ layerState.layer.getSource();
+  if (!source.getWrapX() && source.tileGrid) {
+    const gridExtent = source.tileGrid.getExtent();
+    if (gridExtent) {
+      extent = getIntersection(extent, gridExtent);
+    }
+  }
+>>>>>>> REPLACE
+```
+
+This fix adds a check to verify that `source.tileGrid` exists before trying to access its `getExtent()` method. This way, sources that don't have a tile grid (like WMS sources with `wrapX: false`) will work correctly with WebGLTileLayer.
+
+The issue occurs because some sources don't have a tile grid defined directly on them, but they create one when needed through methods like `getTileGridForProjection()`. The direct access to `source.tileGrid` was causing the error.

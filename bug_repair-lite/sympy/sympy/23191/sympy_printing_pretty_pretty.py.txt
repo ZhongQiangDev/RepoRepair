@@ -1,0 +1,92 @@
+Based on the issue description and code, the bug appears to be in the pretty printing of vector expressions where unit vectors are being inserted in the middle of other terms. Looking at the code, this seems to be happening in the `_print_Cross`, `_print_Curl`, `_print_Divergence`, and `_print_Dot` methods in `sympy/printing/pretty/pretty.py`.
+
+The issue is that these methods are incorrectly handling the parentheses and operator placement. Let's fix them with proper ordering:
+
+```python
+### sympy/printing/pretty/pretty.py
+<<<<<<< SEARCH
+    def _print_Cross(self, e):
+        vec1 = e._expr1
+        vec2 = e._expr2
+        pform = self._print(vec2)
+        pform = prettyForm(*pform.left('('))
+        pform = prettyForm(*pform.right(')'))
+        pform = prettyForm(*pform.left(self._print(U('MULTIPLICATION SIGN'))))
+        pform = prettyForm(*pform.left(')'))
+        pform = prettyForm(*pform.left(self._print(vec1)))
+        pform = prettyForm(*pform.left('('))
+        return pform
+
+    def _print_Curl(self, e):
+        vec = e._expr
+        pform = self._print(vec)
+        pform = prettyForm(*pform.left('('))
+        pform = prettyForm(*pform.right(')'))
+        pform = prettyForm(*pform.left(self._print(U('MULTIPLICATION SIGN'))))
+        pform = prettyForm(*pform.left(self._print(U('NABLA'))))
+        return pform
+
+    def _print_Divergence(self, e):
+        vec = e._expr
+        pform = self._print(vec)
+        pform = prettyForm(*pform.left('('))
+        pform = prettyForm(*pform.right(')'))
+        pform = prettyForm(*pform.left(self._print(U('DOT OPERATOR'))))
+        pform = prettyForm(*pform.left(self._print(U('NABLA'))))
+        return pform
+
+    def _print_Dot(self, e):
+        vec1 = e._expr1
+        vec2 = e._expr2
+        pform = self._print(vec2)
+        pform = prettyForm(*pform.left('('))
+        pform = prettyForm(*pform.right(')'))
+        pform = prettyForm(*pform.left(self._print(U('DOT OPERATOR'))))
+        pform = prettyForm(*pform.left(')'))
+        pform = prettyForm(*pform.left(self._print(vec1)))
+        pform = prettyForm(*pform.left('('))
+        return pform
+=======
+    def _print_Cross(self, e):
+        vec1 = e._expr1
+        vec2 = e._expr2
+        pform1 = self._print(vec1)
+        pform2 = self._print(vec2)
+        pform = prettyForm(*pform1.right(self._print(U('MULTIPLICATION SIGN'))))
+        pform = prettyForm(*pform.right(pform2))
+        return pform
+
+    def _print_Curl(self, e):
+        vec = e._expr
+        pform = self._print(U('NABLA'))
+        pform = prettyForm(*pform.right(self._print(U('MULTIPLICATION SIGN'))))
+        pform = prettyForm(*pform.right(self._print(vec)))
+        return pform
+
+    def _print_Divergence(self, e):
+        vec = e._expr
+        pform = self._print(U('NABLA'))
+        pform = prettyForm(*pform.right(self._print(U('DOT OPERATOR'))))
+        pform = prettyForm(*pform.right(self._print(vec)))
+        return pform
+
+    def _print_Dot(self, e):
+        vec1 = e._expr1
+        vec2 = e._expr2
+        pform1 = self._print(vec1)
+        pform2 = self._print(vec2)
+        pform = prettyForm(*pform1.right(self._print(U('DOT OPERATOR'))))
+        pform = prettyForm(*pform.right(pform2))
+        return pform
+>>>>>>> REPLACE
+```
+
+The key changes made:
+
+1. Simplified the printing logic to avoid unnecessary parentheses
+2. Fixed the order of operations to print from left to right
+3. Removed redundant parentheses wrapping
+4. Made the operator placement consistent between vector operations
+5. Used proper right-to-left construction of the pretty forms
+
+This should fix the display bug where unit vectors were being inserted in the middle of expressions. The output will now show the vector operations in a more natural left-to-right order with proper operator placement.

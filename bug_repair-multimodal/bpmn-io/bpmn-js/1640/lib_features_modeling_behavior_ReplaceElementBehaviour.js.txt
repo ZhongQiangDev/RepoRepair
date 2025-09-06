@@ -1,0 +1,70 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when changing a task from parallel multi-instance to sequential multi-instance (or vice versa), the multi-instance properties like loop cardinality are lost. This happens because the current implementation of `ReplaceElementBehaviour` doesn't preserve these properties when replacing elements.
+
+Looking at the code, when a shape is replaced, the only property that's preserved is the ID. We need to modify the code to also preserve multi-instance properties when replacing elements.
+
+## Solution
+
+We need to modify the `shape.replace` post-execution handler to preserve multi-instance properties. The properties we need to preserve are stored in the `loopCharacteristics` of the business object.
+
+Here's the fix:
+
+```javascript
+### lib/features/modeling/behavior/ReplaceElementBehaviour.js
+<<<<<<< SEARCH
+  // keep ID on shape replace
+  this.postExecuted([ 'shape.replace' ], 1500, function(e) {
+    var context = e.context,
+        oldShape = context.oldShape,
+        newShape = context.newShape;
+
+    modeling.unclaimId(oldShape.businessObject.id, oldShape.businessObject);
+    modeling.updateProperties(newShape, { id: oldShape.id });
+  });
+=======
+  // keep ID and multi-instance properties on shape replace
+  this.postExecuted([ 'shape.replace' ], 1500, function(e) {
+    var context = e.context,
+        oldShape = context.oldShape,
+        newShape = context.newShape;
+
+    modeling.unclaimId(oldShape.businessObject.id, oldShape.businessObject);
+    
+    var properties = { id: oldShape.id };
+    
+    // preserve multi-instance properties if both old and new shapes have loopCharacteristics
+    var oldBO = oldShape.businessObject,
+        newBO = newShape.businessObject;
+    
+    if (oldBO.loopCharacteristics && newBO.loopCharacteristics) {
+      var oldLoopCharacteristics = oldBO.loopCharacteristics;
+      
+      // copy loop cardinality
+      if (oldLoopCharacteristics.loopCardinality) {
+        newBO.loopCharacteristics.loopCardinality = oldLoopCharacteristics.loopCardinality;
+      }
+      
+      // copy collection and element variable properties
+      if (oldLoopCharacteristics.collection) {
+        newBO.loopCharacteristics.collection = oldLoopCharacteristics.collection;
+      }
+      
+      if (oldLoopCharacteristics.elementVariable) {
+        newBO.loopCharacteristics.elementVariable = oldLoopCharacteristics.elementVariable;
+      }
+      
+      // copy completion condition
+      if (oldLoopCharacteristics.completionCondition) {
+        newBO.loopCharacteristics.completionCondition = oldLoopCharacteristics.completionCondition;
+      }
+    }
+    
+    modeling.updateProperties(newShape, properties);
+  });
+>>>>>>> REPLACE
+```
+
+This fix preserves the multi-instance properties (loop cardinality, collection, element variable, and completion condition) when switching between parallel and sequential multi-instance tasks. The code checks if both the old and new shapes have loop characteristics before attempting to copy the properties, ensuring we only do this for multi-instance elements.

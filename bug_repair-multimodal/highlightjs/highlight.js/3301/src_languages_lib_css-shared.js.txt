@@ -1,0 +1,37 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, there's a regression in CSS highlighting between versions 10.5.0 and 10.6.0, specifically with inline comments not being highlighted correctly. Looking at the expected vs. actual behavior screenshots, we can see that inline comments (using `/* */` syntax) are not being properly highlighted in the newer version.
+
+The issue is in the CSS language definition. Looking at the provided code from `src/languages/lib/css-shared.js`, I notice that there's no definition for comments in the shared CSS modes. This is likely why inline comments aren't being highlighted correctly.
+
+Let's fix this by adding a comment mode to the CSS shared modes:
+
+```javascript
+### src/languages/lib/css-shared.js
+<<<<<<< SEARCH
+export const MODES = (hljs) => {
+  return {
+    IMPORTANT: {
+      scope: 'meta',
+      begin: '!important'
+    },
+    HEXCOLOR: {
+      scope: 'number',
+      begin: '#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})'
+    },
+=======
+export const MODES = (hljs) => {
+  return {
+    IMPORTANT: {
+      scope: 'meta',
+      begin: '!important'
+    },
+    HEXCOLOR: {
+      scope: 'number',
+      begin: '#([a-fA-F0-9]{6}|[a-fA-F0-9]{3})'
+    },
+    COMMENT: hljs.C_BLOCK_COMMENT_MODE,
+>>>>>>> REPLACE
+```
+
+This change adds the standard C-style block comment mode (`/* */`) to the CSS shared modes, which will ensure that inline comments are properly highlighted. The `hljs.C_BLOCK_COMMENT_MODE` is a built-in mode in highlight.js that handles C-style block comments, which is exactly what CSS uses for comments.

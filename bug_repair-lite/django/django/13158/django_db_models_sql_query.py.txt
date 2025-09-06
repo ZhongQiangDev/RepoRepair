@@ -1,0 +1,93 @@
+Based on the issue description, the bug occurs when using `union()` on a queryset in a `ModelMultipleChoiceField` - when submitting an empty form, it incorrectly adds ALL objects matching the queryset instead of adding NO objects.
+
+Looking at the code, this appears to be an issue with how empty values are handled in the query building logic. The problem is in the `build_filter()` method of the `Query` class, where it doesn't properly handle empty values for union queries.
+
+Here's the fix:
+
+```python
+### django/db/models/sql/query.py
+<<<<<<< SEARCH
+    def build_filter(self, filter_expr, branch_negated=False, current_negated=False,
+                     can_reuse=None, allow_joins=True, split_subq=True,
+                     reuse_with_filtered_relation=False, check_filterable=True):
+        """
+        Build a WhereNode for a single filter clause but don't add it
+        to this Query. Query.add_q() will then add this filter to the where
+        Node.
+
+        The 'branch_negated' tells us if the current branch contains any
+        negations. This will be used to determine if subqueries are needed.
+
+        The 'current_negated' is used to determine if the current filter is
+        negated or not and this will be used to determine if IS NULL filtering
+        is needed.
+
+        The difference between current_negated and branch_negated is that
+        branch_negated is set on first negation, but current_negated is
+        flipped for each negation.
+
+        Note that add_filter will not do any negating itself, that is done
+        upper in the code by add_q().
+
+        The 'can_reuse' is a set of reusable joins for multijoins.
+
+        If 'reuse_with_filtered_relation' is True, then only joins in can_reuse
+        will be reused.
+
+        The method will create a filter clause that can be added to the current
+        query. However, if the filter isn't added to the query then the caller
+        is responsible for unreffing the joins used.
+        """
+=======
+    def build_filter(self, filter_expr, branch_negated=False, current_negated=False,
+                     can_reuse=None, allow_joins=True, split_subq=True,
+                     reuse_with_filtered_relation=False, check_filterable=True):
+        """
+        Build a WhereNode for a single filter clause but don't add it
+        to this Query. Query.add_q() will then add this filter to the where
+        Node.
+
+        The 'branch_negated' tells us if the current branch contains any
+        negations. This will be used to determine if subqueries are needed.
+
+        The 'current_negated' is used to determine if the current filter is
+        negated or not and this will be used to determine if IS NULL filtering
+        is needed.
+
+        The difference between current_negated and branch_negated is that
+        branch_negated is set on first negation, but current_negated is
+        flipped for each negation.
+
+        Note that add_filter will not do any negating itself, that is done
+        upper in the code by add_q().
+
+        The 'can_reuse' is a set of reusable joins for multijoins.
+
+        If 'reuse_with_filtered_relation' is True, then only joins in can_reuse
+        will be reused.
+
+        The method will create a filter clause that can be added to the current
+        query. However, if the filter isn't added to the query then the caller
+        is responsible for unreffing the joins used.
+        """
+        # Handle empty values for union queries
+        if isinstance(filter_expr, tuple) and len(filter_expr) == 2:
+            value = filter_expr[1]
+            if isinstance(value, Query) and value.combinator == 'union' and not value.has_results(DEFAULT_DB_ALIAS):
+                self.set_empty()
+                return self.where_class(), []
+
+>>>>>>> REPLACE
+```
+
+This fix adds a check at the start of `build_filter()` to detect when we're dealing with a union query that has no results. In this case, we set the query to return no results by calling `set_empty()` and return an empty where clause.
+
+This ensures that when a form with a union-based `ModelMultipleChoiceField` is submitted with no selections, the query properly returns no results instead of all matching objects.
+
+The fix works by:
+1. Checking if we have a filter expression tuple (which we do for field lookups)
+2. Checking if the value is a Query with a union combinator
+3. If that query has no results, we set the query to return nothing
+4. This properly handles the empty form submission case
+
+This matches the behavior of the OR-based queries while fixing the union case.

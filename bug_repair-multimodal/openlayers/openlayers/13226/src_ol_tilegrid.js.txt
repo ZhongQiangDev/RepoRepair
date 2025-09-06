@@ -1,0 +1,59 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that sources using view projection with `wrapX: false` don't work with `WebGLTileLayer`. The WebGL renderer incorrectly expects the source to have a tile grid.
+
+Looking at the provided code, I notice that the `tilegrid.js` file contains a `wrapX` function that handles tile coordinate wrapping for projections. The issue is likely related to how WebGLTileLayer handles sources without a tile grid when wrapping is disabled.
+
+Based on the issue description, the problem occurs when switching from `ol/layer/Tile` to `ol/layer/WebGLTile`. The issue mentions that #13212 might fix this, suggesting that there's a missing implementation or check in the WebGL renderer.
+
+The key issue is that the `wrapX` function in `tilegrid.js` doesn't properly handle the case when a source doesn't have a tile grid. We need to add a check to handle this scenario.
+
+## Fix
+
+The problem is in the `wrapX` function in `tilegrid.js`. We need to add a check to handle the case when `wrapX` is false or when the source doesn't have a tile grid.
+
+```javascript
+### src/ol/tilegrid.js
+<<<<<<< SEARCH
+export function wrapX(tileGrid, tileCoord, projection) {
+  const z = tileCoord[0];
+  const center = tileGrid.getTileCoordCenter(tileCoord);
+  const projectionExtent = extentFromProjection(projection);
+  if (!containsCoordinate(projectionExtent, center)) {
+    const worldWidth = getWidth(projectionExtent);
+    const worldsAway = Math.ceil(
+      (projectionExtent[0] - center[0]) / worldWidth
+    );
+    center[0] += worldWidth * worldsAway;
+    return tileGrid.getTileCoordForCoordAndZ(center, z);
+  } else {
+    return tileCoord;
+  }
+}
+=======
+export function wrapX(tileGrid, tileCoord, projection) {
+  // If no tileGrid is provided, return the original tileCoord
+  if (!tileGrid) {
+    return tileCoord;
+  }
+  
+  const z = tileCoord[0];
+  const center = tileGrid.getTileCoordCenter(tileCoord);
+  const projectionExtent = extentFromProjection(projection);
+  if (!containsCoordinate(projectionExtent, center)) {
+    const worldWidth = getWidth(projectionExtent);
+    const worldsAway = Math.ceil(
+      (projectionExtent[0] - center[0]) / worldWidth
+    );
+    center[0] += worldWidth * worldsAway;
+    return tileGrid.getTileCoordForCoordAndZ(center, z);
+  } else {
+    return tileCoord;
+  }
+}
+>>>>>>> REPLACE
+```
+
+This fix adds a check at the beginning of the `wrapX` function to handle the case when no tile grid is provided. In such cases, it simply returns the original tile coordinate without attempting to perform any wrapping operations. This allows sources without a tile grid to work correctly with WebGLTileLayer when `wrapX` is false.

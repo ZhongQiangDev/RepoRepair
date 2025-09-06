@@ -1,0 +1,70 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that group elements are not rendered on top of all other elements. Specifically, when a new element is created on a group's border, the group borders are not hidden behind the new element, as shown in the screenshot. The expected behavior is that groups should always be rendered on top of all other elements.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from the ordering of elements during rendering. In SVG and similar graphics systems, the order in which elements are added to the DOM determines their stacking order. Elements added later appear on top of those added earlier. If group elements are not being rendered last or are not being assigned a higher z-index, they will not appear on top of other elements.
+
+### 3. Examine Each File One by One
+
+#### lib/draw/BpmnRenderer.js
+
+This file contains functions related to rendering BPMN elements. The issue described is related to the rendering order, so this file is highly relevant.
+
+```
+lib/draw/BpmnRenderer.js
+function: function_84
+function: function_85
+```
+
+- `function_84` is responsible for drawing shapes. If the order in which shapes are drawn is incorrect, it could cause the group elements to not appear on top.
+- `function_85` is responsible for drawing connections. Similar to shapes, if connections are not drawn in the correct order, it could affect the rendering order.
+
+#### lib/features/modeling/BpmnUpdater.js
+
+This file contains functions related to updating the BPMN diagram. While it handles updates to the diagram, it does not directly control the rendering order. Therefore, it is less likely to be directly relevant to the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### lib/features/modeling/cmd/UpdateCanvasRootHandler.js
+
+This file contains functions related to updating the root element of the canvas. It does not directly control the rendering order of elements, so it is not relevant to the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+#### lib/features/ordering/BpmnOrderingProvider.js
+
+This file contains functions related to ordering BPMN elements. The `BpmnOrderingProvider` class is responsible for ensuring elements are rendered in a specific order based on their type and hierarchy. This file is highly relevant.
+
+```
+lib/features/ordering/BpmnOrderingProvider.js
+class: BpmnOrderingProvider
+```
+
+- The `BpmnOrderingProvider` class defines the ordering rules for different BPMN element types. If the ordering rules for group elements are not set correctly, it could cause the issue described.
+
+#### lib/import/BpmnImporter.js
+
+This file contains functions related to importing BPMN elements. While it handles the initial placement of elements on the canvas, it does not directly control the rendering order after the initial import. Therefore, it is less likely to be directly relevant to the issue.
+
+```
+This file contains no relevant functions/classes.
+```
+
+### Summary
+
+The most relevant files and functions/classes for fixing the issue are:
+
+```
+lib/draw/BpmnRenderer.js
+function: function_84
+function: function_85
+
+lib/features/ordering/BpmnOrderingProvider.js
+class: BpmnOrderingProvider
+```

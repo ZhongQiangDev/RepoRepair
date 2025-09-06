@@ -1,0 +1,48 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+- When accessing any URL on the staging server after upgrading to Django 3.1, the system crashes with a session decoding error
+- The issue only occurs in Chrome browser, while Firefox works fine
+- The error involves invalid session data that can't be properly decoded, leading to a cascade of exceptions
+
+2. Cause Analysis:
+The root cause appears to be:
+- An existing session cookie contains invalid/corrupted session data
+- The session data fails base64 decoding due to incorrect padding
+- This triggers a BadSignature error when trying to verify the session signature
+- The error handling cascade eventually fails when trying to decode the legacy session format
+
+3. Relevant Files/Functions Analysis:
+
+```
+django/contrib/sessions/middleware.py
+class: SessionMiddleware
+```
+This class is relevant as it handles session processing for each request and would be the first point of interaction with the corrupted session data.
+
+```
+django/contrib/sessions/backends/base.py
+class: SessionBase
+```
+This base class contains the core session handling logic including the decode() method that's failing to handle the corrupted session data.
+
+```
+django/contrib/sessions/backends/db.py
+class: SessionStore
+```
+This class handles the actual session storage and retrieval, including the load() method that's involved in the error chain.
+
+```
+django/core/signing.py
+class: TimestampSigner
+function: b64_decode
+```
+These are relevant as they handle the signature verification and base64 decoding that's failing due to incorrect padding.
+
+For the remaining file:
+```
+django/contrib/sessions/models.py
+This file contains no relevant functions/classes.
+```
+
+The issue appears to be primarily in the session handling and decoding logic rather than the database models themselves.

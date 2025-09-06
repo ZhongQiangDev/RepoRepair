@@ -1,0 +1,23 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is in the `get_order_by` method of the `SQLCompiler` class. When using multiline `RawSQL` expressions in `order_by`, the compiler incorrectly identifies duplicate ordering clauses.
+
+The problem occurs because the regular expression `self.ordering_parts` is applied to the SQL string that may contain newlines. When it extracts the "without_ordering" part, it only captures a single line of the SQL statement (the line containing "ASC" or "DESC"). This causes different `RawSQL` expressions with identical last lines to be incorrectly identified as duplicates, resulting in some ordering clauses being removed.
+
+The issue can be fixed by replacing newlines with spaces in the SQL string before applying the regular expression, as suggested in the issue description.
+
+## Fix
+
+```python
+### django/db/models/sql/compiler.py
+<<<<<<< SEARCH
+            without_ordering = self.ordering_parts.search(sql).group(1)
+=======
+            sql_oneline = ' '.join(sql.split())
+            without_ordering = self.ordering_parts.search(sql_oneline).group(1)
+>>>>>>> REPLACE
+```
+
+This fix replaces all whitespace (including newlines) with a single space before applying the regular expression. This ensures that multiline SQL statements are properly handled when checking for duplicate ordering clauses.

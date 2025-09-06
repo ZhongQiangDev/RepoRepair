@@ -1,0 +1,26 @@
+Based on the issue description, the bug appears to be in the `option_desc_re` regex pattern in sphinx/domains/std.py. The current regex is too restrictive and doesn't accept valid option syntax like `[enable=]PATTERN`.
+
+Here's the fix:
+
+```python
+### sphinx/domains/std.py
+<<<<<<< SEARCH
+# RE for option descriptions
+option_desc_re = re.compile(r'((?:/|--|-|\+)?[^\s=[]+)(=?\s*.*)')
+=======
+# RE for option descriptions
+option_desc_re = re.compile(r'(\[?(?:/|--|-|\+)?[^\s=\]]+\]?)(=?\s*.*)')
+>>>>>>> REPLACE
+```
+
+This change:
+1. Adds `\[?` and `\]?` to optionally allow square brackets around the option name
+2. Adjusts the character class to exclude `]` as well as spaces and equals signs
+3. Maintains the existing capture groups for the option name and arguments
+
+The modified regex will now accept:
+- Standard options like `-opt`, `--opt`, `/opt`, `+opt` 
+- Options with square brackets like `[enable=]`
+- Options with arguments like `--opt=value` or `-opt value`
+
+This preserves backward compatibility while adding support for the `[enable=]PATTERN` syntax that was previously working in older Sphinx versions.

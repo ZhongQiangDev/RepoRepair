@@ -1,0 +1,121 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about handling inverted Y coordinates in TileImage layers. When using a URL template with `{-y}` (inverted Y coordinate), the TileDebug layer doesn't correctly represent these coordinates. 
+
+Looking at the code, the problem is in the `createTile_` method of the `TileImage` class. When creating a tile, it passes the tile coordinates to `getTileCoordForTileUrlFunction`, but it doesn't handle the case where the Y coordinate might need to be inverted for the URL template.
+
+The issue is that while the URL template can contain `{-y}`, the TileDebug layer shows the original Y coordinate, not the inverted one that's actually used in the network request.
+
+## Fix
+
+We need to modify the `getTileCoordForTileUrlFunction` method to properly handle the inverted Y coordinate case. However, this method is not directly in the provided code. The issue is likely in how the URL template is processed and how the tile coordinates are transformed.
+
+Since we don't have direct access to the URL template processing code, I'll focus on ensuring that the debug information matches the actual network requests by examining how the tile coordinates are used.
+
+```javascript
+### src/ol/source/TileImage.js
+<<<<<<< SEARCH
+    const urlTileCoord = this.getTileCoordForTileUrlFunction(
+      tileCoord,
+      projection
+    );
+    const tileUrl = urlTileCoord
+      ? this.tileUrlFunction(urlTileCoord, pixelRatio, projection)
+      : undefined;
+=======
+    const urlTileCoord = this.getTileCoordForTileUrlFunction(
+      tileCoord,
+      projection
+    );
+    
+    // Store the actual URL tile coordinates on the tile for debugging purposes
+    // This will allow TileDebug to show the correct coordinates that match the network requests
+    const tileUrl = urlTileCoord
+      ? this.tileUrlFunction(urlTileCoord, pixelRatio, projection)
+      : undefined;
+>>>>>>> REPLACE
+```
+
+This change alone won't completely fix the issue, as we need to modify how the TileDebug layer accesses and displays the coordinates. However, without seeing the TileDebug layer code, I can't provide a complete fix.
+
+Let me provide a more comprehensive solution that addresses the core issue:
+
+```javascript
+### src/ol/source/TileImage.js
+<<<<<<< SEARCH
+  /**
+   * @param {number} z Tile coordinate z.
+   * @param {number} x Tile coordinate x.
+   * @param {number} y Tile coordinate y.
+   * @param {number} pixelRatio Pixel ratio.
+   * @param {import("../proj/Projection.js").default} projection Projection.
+   * @param {string} key The key set on the tile.
+   * @return {!import("../Tile.js").default} Tile.
+   * @private
+   */
+  createTile_(z, x, y, pixelRatio, projection, key) {
+    const tileCoord = [z, x, y];
+    const urlTileCoord = this.getTileCoordForTileUrlFunction(
+      tileCoord,
+      projection
+    );
+    const tileUrl = urlTileCoord
+      ? this.tileUrlFunction(urlTileCoord, pixelRatio, projection)
+      : undefined;
+    const tile = new this.tileClass(
+      tileCoord,
+      tileUrl !== undefined ? TileState.IDLE : TileState.EMPTY,
+      tileUrl !== undefined ? tileUrl : '',
+      this.crossOrigin,
+      this.tileLoadFunction,
+      this.tileOptions
+    );
+    tile.key = key;
+    tile.addEventListener(EventType.CHANGE, this.handleTileChange.bind(this));
+    return tile;
+=======
+  /**
+   * @param {number} z Tile coordinate z.
+   * @param {number} x Tile coordinate x.
+   * @param {number} y Tile coordinate y.
+   * @param {number} pixelRatio Pixel ratio.
+   * @param {import("../proj/Projection.js").default} projection Projection.
+   * @param {string} key The key set on the tile.
+   * @return {!import("../Tile.js").default} Tile.
+   * @private
+   */
+  createTile_(z, x, y, pixelRatio, projection, key) {
+    const tileCoord = [z, x, y];
+    const urlTileCoord = this.getTileCoordForTileUrlFunction(
+      tileCoord,
+      projection
+    );
+    const tileUrl = urlTileCoord
+      ? this.tileUrlFunction(urlTileCoord, pixelRatio, projection)
+      : undefined;
+    const tile = new this.tileClass(
+      tileCoord,
+      tileUrl !== undefined ? TileState.IDLE : TileState.EMPTY,
+      tileUrl !== undefined ? tileUrl : '',
+      this.crossOrigin,
+      this.tileLoadFunction,
+      this.tileOptions
+    );
+    
+    // Store the URL tile coordinates on the tile for debugging purposes
+    // This allows TileDebug to access the actual coordinates used in the URL
+    if (urlTileCoord) {
+      tile.urlTileCoord = urlTileCoord.slice();
+    }
+    
+    tile.key = key;
+    tile.addEventListener(EventType.CHANGE, this.handleTileChange.bind(this));
+    return tile;
+>>>>>>> REPLACE
+```
+
+This change adds the URL tile coordinates to the tile object, which can then be used by the TileDebug layer to display the correct coordinates. The TileDebug layer would need to be modified to use `tile.urlTileCoord` instead of `tile.tileCoord` when rendering the debug information.
+
+Note: For a complete solution, the TileDebug layer would also need to be updated to check for and use these `urlTileCoord` values when available. Without seeing that code, I can only provide this part of the fix.

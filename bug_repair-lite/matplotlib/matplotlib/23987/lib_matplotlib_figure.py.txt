@@ -1,0 +1,51 @@
+Based on the issue description, the bug occurs when using `plt.subplots_adjust` or `bbox_inches='tight'` with `constrained_layout=False`, where a UserWarning is produced even though constrained layout is explicitly disabled.
+
+Looking at the code, the issue appears to be in the Figure class where the layout engine is not properly cleared when `constrained_layout=False`. The warning occurs because there is still a layout engine present when using `subplots_adjust`.
+
+Here's the fix:
+
+```python
+### lib/matplotlib/figure.py
+<<<<<<< SEARCH
+        elif tight_layout is not None:
+            if constrained_layout is not None:
+                _api.warn_external(
+                    "The Figure parameters 'tight_layout' and "
+                    "'constrained_layout' cannot be used together. Please use "
+                    "'layout' parameter")
+            self.set_layout_engine(layout='tight')
+            if isinstance(tight_layout, dict):
+                self.get_layout_engine().set(**tight_layout)
+        elif constrained_layout is not None:
+            self.set_layout_engine(layout='constrained')
+            if isinstance(constrained_layout, dict):
+                self.get_layout_engine().set(**constrained_layout)
+        else:
+            # everything is None, so use default:
+            self.set_layout_engine(layout=layout)
+=======
+        elif tight_layout is not None:
+            if constrained_layout is not None:
+                _api.warn_external(
+                    "The Figure parameters 'tight_layout' and "
+                    "'constrained_layout' cannot be used together. Please use "
+                    "'layout' parameter")
+            self.set_layout_engine(layout='tight')
+            if isinstance(tight_layout, dict):
+                self.get_layout_engine().set(**tight_layout)
+        elif constrained_layout is not None:
+            if constrained_layout:
+                self.set_layout_engine(layout='constrained')
+                if isinstance(constrained_layout, dict):
+                    self.get_layout_engine().set(**constrained_layout)
+            else:
+                self.set_layout_engine(layout=None)
+        else:
+            # everything is None, so use default:
+            self.set_layout_engine(layout=layout)
+>>>>>>> REPLACE
+```
+
+This fix modifies the logic to explicitly set the layout engine to None when `constrained_layout=False`. This ensures that when `constrained_layout` is explicitly set to False, no layout engine is active and therefore no warning will be produced when using `subplots_adjust`.
+
+The key change is adding a condition to check if `constrained_layout` is True before setting the constrained layout engine, and explicitly setting it to None if False. This matches the expected behavior where `constrained_layout=False` should completely disable the layout engine.

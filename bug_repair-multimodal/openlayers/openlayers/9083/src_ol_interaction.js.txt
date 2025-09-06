@@ -1,0 +1,42 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that after drawing a polygon with OpenLayers 5.3.0, the map sometimes can't be dragged anymore. This only happens after ending a drawing (drawend event), and the behavior is inconsistent. The user mentioned that rolling back to OpenLayers 4.6.5 fixed the issue.
+
+Looking at the provided code and the issue description, the problem appears to be related to the DragPan interaction. The issue mentions using "altkeyonly condition" for their setup, but the default DragPan interaction in the code doesn't preserve any custom conditions that might be set by other interactions.
+
+When a Draw interaction ends, it might not be properly releasing its hold on mouse events, or it might be affecting the DragPan interaction's condition. The fact that this worked in an older version suggests a regression in how interactions are managed.
+
+## Fix
+
+The issue is likely in how the DragPan interaction is initialized in the defaults function. We need to ensure that any custom conditions set for DragPan are preserved after other interactions (like Draw) end.
+
+```javascript
+### src/ol/interaction.js
+<<<<<<< SEARCH
+  const dragPan = options.dragPan !== undefined ? options.dragPan : true;
+  if (dragPan) {
+    interactions.push(new DragPan({
+      condition: options.onFocusOnly ? focus : undefined,
+      kinetic: kinetic
+    }));
+  }
+=======
+  const dragPan = options.dragPan !== undefined ? options.dragPan : true;
+  if (dragPan) {
+    interactions.push(new DragPan({
+      condition: options.onFocusOnly ? focus : undefined,
+      kinetic: kinetic,
+      stopDown: function(browserEvent) {
+        // This ensures DragPan can be reactivated after other interactions end
+        return false;
+      }
+    }));
+  }
+>>>>>>> REPLACE
+```
+
+This fix adds a `stopDown` function to the DragPan interaction that always returns false. This ensures that the DragPan interaction doesn't get permanently disabled after other interactions (like Draw) end. The `stopDown` method controls whether the interaction should stop the propagation of the down event, and by returning false, we ensure that the DragPan interaction remains active and can be reused after other interactions finish.
+
+This should fix the issue where the map can't be dragged after ending a polygon drawing, while maintaining compatibility with the "altkeyonly" condition mentioned in the issue.

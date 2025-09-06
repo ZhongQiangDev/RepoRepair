@@ -1,0 +1,35 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, there's a bug in the TypeScript formatting where an empty array `[]` in a generic type is incorrectly formatted with a comma when certain conditions are met (specifically with print-width 120 and identifiers of a certain length).
+
+Looking at the code, the issue is likely in the `printTupleType` function in `src/language-js/print/type-annotation.js`. The function is adding a comma in empty arrays when it shouldn't.
+
+The problem is that the function is adding a comma based on the `shouldPrintComma` option, but it's not checking if the array is empty. It's only checking if there's a rest element.
+
+Here's the fix:
+
+```javascript
+### src/language-js/print/type-annotation.js
+<<<<<<< SEARCH
+  return group([
+    "[",
+    indent([softline, printArrayItems(path, options, typesField, print)]),
+    ifBreak(shouldPrintComma(options, "all") && !hasRest ? "," : ""),
+    printDanglingComments(path, options, /* sameIndent */ true),
+    softline,
+    "]",
+  ]);
+=======
+  const isEmpty = node[typesField].length === 0;
+  return group([
+    "[",
+    indent([softline, printArrayItems(path, options, typesField, print)]),
+    ifBreak(shouldPrintComma(options, "all") && !hasRest && !isEmpty ? "," : ""),
+    printDanglingComments(path, options, /* sameIndent */ true),
+    softline,
+    "]",
+  ]);
+>>>>>>> REPLACE
+```
+
+This fix adds a check for empty arrays (`isEmpty`) and only adds a trailing comma if the array is not empty, there's no rest element, and the comma option is enabled.

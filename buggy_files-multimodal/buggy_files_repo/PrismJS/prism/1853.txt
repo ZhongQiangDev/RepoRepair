@@ -1,0 +1,33 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## Identifying the Wrong Behavior
+The problem involves JSON tokenization breaking when a JSON object contains a property with the value `"/*"`. As shown in the screenshot and code snippet, a simple JSON object like:
+`
+{
+  "A": "/*",
+  "B": "B",
+  "C": "C"
+}
+`
+is being incorrectly tokenized, with the `"/*"` value causing the rest of the JSON to be treated as a comment.
+
+## Analyzing the Cause
+The issue appears to be that Prism.js is incorrectly interpreting the `"/*"` string value as the beginning of a multi-line comment, even though comments are not valid in JSON. This is likely happening because:
+
+1. The JSON tokenizer is either inheriting comment patterns from another language (like JavaScript)
+2. Or the JSON tokenizer explicitly includes comment patterns when it shouldn't
+
+## Files Most Related to the Cause
+Based on the repository information provided, here are the most relevant files that would need to be edited:
+
+```
+components/prism-json.js
+components/prism-core.js
+components/prism-javascript.js
+components/prism-markup-templating.js
+components/prism-http.js
+```
+
+The most important file would be `components/prism-json.js` (which wasn't included in the repository information but must exist since the issue is with JSON highlighting). This file would contain the JSON language definition that needs to be fixed to prevent `/*` from being treated as a comment start.
+
+The `prism-core.js` file contains the core tokenization logic, while `prism-javascript.js` might be relevant if JSON is inheriting from JavaScript. The `prism-markup-templating.js` and `prism-http.js` files are included because they handle content-type detection and might influence how JSON is processed, especially since the issue occurs with HTTP responses.

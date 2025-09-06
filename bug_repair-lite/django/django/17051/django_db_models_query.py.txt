@@ -1,0 +1,61 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is in the `bulk_create` method of the `QuerySet` class. When using `update_conflicts=True`, the primary keys are not being returned in the result set. This is because the `returning_fields` are being removed in the case of `update_conflicts`.
+
+Looking at the code, I can see that in the `_batched_insert` method, the `returning_fields` are only passed to the `_insert` method when `bulk_return` is True and `on_conflict` is None. This means that when handling conflicts (either ignoring or updating), the primary keys are not returned.
+
+The issue description mentions that for `update_conflicts`, it should be possible to return the IDs, unlike `ignore_conflicts` where PostgreSQL might not return IDs for ignored rows.
+
+## Fix
+
+I need to modify the `_batched_insert` method to pass the `returning_fields` when `on_conflict` is set to `OnConflict.UPDATE` (which happens when `update_conflicts=True`).
+
+```python
+### django/db/models/query.py
+<<<<<<< SEARCH
+            if bulk_return and on_conflict is None:
+                inserted_rows.extend(
+                    self._insert(
+                        item,
+                        fields=fields,
+                        using=self.db,
+                        returning_fields=self.model._meta.db_returning_fields,
+                    )
+                )
+            else:
+                self._insert(
+                    item,
+                    fields=fields,
+                    using=self.db,
+                    on_conflict=on_conflict,
+                    update_fields=update_fields,
+                    unique_fields=unique_fields,
+                )
+=======
+            if bulk_return and (on_conflict is None or on_conflict == OnConflict.UPDATE):
+                inserted_rows.extend(
+                    self._insert(
+                        item,
+                        fields=fields,
+                        using=self.db,
+                        returning_fields=self.model._meta.db_returning_fields,
+                        on_conflict=on_conflict,
+                        update_fields=update_fields,
+                        unique_fields=unique_fields,
+                    )
+                )
+            else:
+                self._insert(
+                    item,
+                    fields=fields,
+                    using=self.db,
+                    on_conflict=on_conflict,
+                    update_fields=update_fields,
+                    unique_fields=unique_fields,
+                )
+>>>>>>> REPLACE
+```
+
+This change allows the primary keys to be returned when using `update_conflicts=True` by passing the `returning_fields` to the `_insert` method when `on_conflict` is set to `OnConflict.UPDATE`. The existing check for `bulk_return` ensures that this only happens when the database supports returning rows from bulk insert operations.

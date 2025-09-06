@@ -1,0 +1,49 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when a custom shader is used to create a geometry (in this case, a sphere), the render buffers for that geometry are created based on the attributes of the custom shader. If the custom shader does not have certain attributes (e.g., for normals or texture coordinates), the corresponding buffers are not created. Later, when a different shader (e.g., a fill shader that expects those attributes) is used to render the geometry, the missing buffers cause the geometry to be rendered incorrectly or not at all.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue is that the render buffers for a geometry are created at the time the geometry is first rendered, based on the current shader's attributes. If the current shader does not require certain attributes (e.g., normals or texture coordinates), the corresponding buffers are not created. When a different shader that does require those attributes is later used to render the geometry, it fails because the required buffers are missing.
+
+### 3. Examine Each File One by One
+
+#### src/webgl/p5.Geometry.js
+This file contains no relevant functions/classes.
+
+#### src/webgl/p5.RendererGL.js
+```
+src/webgl/p5.RendererGL.js
+function: function_3
+function: function_30
+function: function_39
+function: function_42
+```
+
+- `function_3`: This function initializes the WebGL context and sets up the WebGL environment. While it doesn't directly cause the issue, it is relevant to the overall WebGL rendering setup.
+- `function_30`: This function determines the fill shader to use in retained mode. It checks the current conditions and selects the appropriate shader, which is relevant to the issue of shader selection and buffer creation.
+- `function_39`: This function sets the fill uniforms for a shader, which is relevant to the issue of configuring shaders for rendering.
+- `function_42`: This function configures the shader used for filling shapes, which is relevant to the issue of setting up shaders and their attributes.
+
+#### src/webgl/p5.RendererGL.Retained.js
+```
+src/webgl/p5.RendererGL.Retained.js
+function: function_3
+function: function_4
+```
+
+- `function_3`: This function sets up WebGL buffers for rendering geometry. It checks the current shader's attributes and creates buffers accordingly, which is directly related to the issue of buffer creation based on the current shader.
+- `function_4`: This function renders geometry buffers in WebGL. It checks whether stroke or fill rendering is enabled and processes the corresponding geometry buffers, which is relevant to the issue of rendering with the correct buffers.
+
+#### src/webgl/p5.Shader.js
+```
+src/webgl/p5.Shader.js
+function: function_14
+function: function_18
+```
+
+- `function_14`: This function checks if a shader can handle lighting by verifying the existence of specific attributes and uniforms. It is relevant to the issue of determining whether a shader requires certain attributes.
+- `function_18`: This function checks if a shader is intended for stroking by examining the `uStrokeWeight` uniform. It is relevant to the issue of determining the role of a shader in rendering.
+
+### Summary
+The issue arises from the way render buffers are created based on the current shader's attributes at the time of geometry creation. The relevant functions and classes identified above are involved in shader selection, buffer creation, and rendering, and should be inspected and potentially modified to fix the problem.

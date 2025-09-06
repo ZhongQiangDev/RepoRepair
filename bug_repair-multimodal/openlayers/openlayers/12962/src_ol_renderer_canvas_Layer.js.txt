@@ -1,0 +1,72 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is related to layer opacity stacking in OpenLayers 6.8.1 and later versions. When multiple layers have the same opacity value (e.g., 0.5), the top-most layer becomes opaque relative to other OpenLayers layers, though it still allows basemaps to show through.
+
+Looking at the code, the problem appears to be in the `useContainer` method of the `CanvasLayerRenderer` class. The issue is likely related to how layer containers are reused and how opacity is applied.
+
+The current implementation checks if a target container's opacity matches the desired opacity and if the class name matches, but it doesn't properly handle the case where multiple layers have the same opacity value. This causes the top layer to become opaque relative to other layers.
+
+## Fix
+
+The fix is to modify the `useContainer` method to ensure proper layer stacking with opacity. We need to make sure that each layer container is properly created with the correct opacity value.
+
+```javascript
+### src/ol/renderer/canvas/Layer.js
+<<<<<<< SEARCH
+  useContainer(target, transform, opacity) {
+    const layerClassName = this.getLayer().getClassName();
+    let container, context;
+    if (
+      target &&
+      target.style.opacity === cssOpacity(opacity) &&
+      target.className === layerClassName
+    ) {
+      const canvas = target.firstElementChild;
+      if (canvas instanceof HTMLCanvasElement) {
+        context = canvas.getContext('2d');
+      }
+    }
+    if (context && context.canvas.style.transform === transform) {
+      // Container of the previous layer renderer can be used.
+      this.container = target;
+      this.context = context;
+      this.containerReused = true;
+    } else if (this.containerReused) {
+      // Previously reused container cannot be used any more.
+      this.container = null;
+      this.context = null;
+      this.containerReused = false;
+    }
+=======
+  useContainer(target, transform, opacity) {
+    const layerClassName = this.getLayer().getClassName();
+    let container, context;
+    if (
+      target &&
+      target.style.opacity === cssOpacity(opacity) &&
+      target.className === layerClassName
+    ) {
+      const canvas = target.firstElementChild;
+      if (canvas instanceof HTMLCanvasElement) {
+        context = canvas.getContext('2d');
+      }
+    }
+    if (context && context.canvas.style.transform === transform) {
+      // Container of the previous layer renderer can be used.
+      this.container = target;
+      this.context = context;
+      this.containerReused = true;
+    } else {
+      // Previously reused container cannot be used any more or no container to reuse.
+      this.container = null;
+      this.context = null;
+      this.containerReused = false;
+    }
+>>>>>>> REPLACE
+```
+
+The key change is replacing the conditional `else if (this.containerReused)` with just `else`. This ensures that when a container can't be reused (either because it was previously reused but now incompatible, or because there's no suitable container to reuse), we always create a new container with the correct properties.
+
+This fix ensures that each layer gets its own container with the proper opacity setting, preventing the issue where layers with the same opacity value don't stack correctly.

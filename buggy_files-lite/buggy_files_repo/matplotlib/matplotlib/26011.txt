@@ -1,0 +1,22 @@
+Let me follow the steps:
+
+1. Wrong Behavior:
+- The "xlim_changed" callbacks are not being triggered when axis limits change through a shared axis (sharex=)
+- This means event handlers listening for x-axis limit changes don't get notified when the change comes from a shared axis
+
+2. Cause Analysis:
+- In the set_xlim method, when propagating changes to shared axes, emit=False is passed
+- This prevents the xlim_changed callbacks from being triggered on the shared axes
+- The emit=False parameter appears to be used to prevent recursion, but it also blocks legitimate callback notifications
+- The issue suggests moving the callback trigger outside the emit check could resolve this
+
+3. Most Related Files (ordered by relevance):
+```
+lib/matplotlib/axes/_base.py
+lib/matplotlib/axis.py
+lib/matplotlib/pyplot.py
+```
+
+The _base.py file is clearly the most important since it contains the problematic set_xlim code. The axis.py file is second as it handles axis-related functionality and callbacks. pyplot.py is included as it provides the high-level interface for axis manipulation but is less directly involved with the core issue.
+
+I excluded scale.py as it deals with axis scaling transformations rather than limit changes and callbacks.

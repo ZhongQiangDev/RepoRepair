@@ -1,0 +1,57 @@
+Based on the issue description, the bug is in the ordering behavior when a child model inherits from a parent model with Meta.ordering set. The query is being generated with ASC ordering when it should be DESC according to the parent's Meta.ordering=["-pk"].
+
+Looking at the code, the issue appears to be in the `get_order_by()` method of SQLCompiler. When processing the ordering from Meta.ordering, it's not properly handling the descending flag.
+
+Here's the fix:
+
+```python
+### django/db/models/sql/compiler.py
+<<<<<<< SEARCH
+            if self.query.standard_ordering:
+                asc, desc = ORDER_DIR['ASC']
+            else:
+                asc, desc = ORDER_DIR['DESC']
+
+            order_by = []
+            for field in ordering:
+                if hasattr(field, 'resolve_expression'):
+                    if isinstance(field, Value):
+                        # output_field must be resolved for constants.
+                        field = Cast(field, field.output_field)
+                    if not isinstance(field, OrderBy):
+                        field = field.asc()
+                    if not self.query.standard_ordering:
+                        field = field.copy()
+                        field.reverse_ordering()
+                    order_by.append((field, False))
+                    continue
+=======
+            if self.query.standard_ordering:
+                asc, desc = ORDER_DIR['ASC']
+            else:
+                asc, desc = ORDER_DIR['DESC']
+
+            order_by = []
+            for field in ordering:
+                if hasattr(field, 'resolve_expression'):
+                    if isinstance(field, Value):
+                        # output_field must be resolved for constants.
+                        field = Cast(field, field.output_field)
+                    if not isinstance(field, OrderBy):
+                        if field.startswith('-'):
+                            field = field[1:].desc()
+                        else:
+                            field = field.asc()
+                    if not self.query.standard_ordering:
+                        field = field.copy()
+                        field.reverse_ordering()
+                    order_by.append((field, False))
+                    continue
+>>>>>>> REPLACE
+```
+
+This fix adds handling for the case where a field starts with '-' in the Meta.ordering list. When such a field is encountered, it properly creates a descending OrderBy expression by calling desc() instead of the default asc().
+
+The issue occurred because the original code was always calling asc() on fields from Meta.ordering, ignoring any '-' prefix that indicated descending order. The fix ensures that fields prefixed with '-' are properly handled as descending order fields.
+
+This should resolve the issue where Child.objects.all() was incorrectly ordering by "id ASC" instead of "id DESC" when the parent model had Meta.ordering=["-pk"].

@@ -1,0 +1,49 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about extending the "gutter" option to more tile sources beyond TileWMS. Currently, the gutter option is supported in the TileTexture class, but there's a problem with how it's handled for WebGL tile layers. The gutter is being removed before creating the texture, which doesn't prevent edge effects.
+
+Looking at the code, I can see that in the `uploadTile_` method, there's special handling for the gutter when dealing with ImageTile or ReprojTile, but not for DataTile. This is causing the edge effects mentioned in the issue.
+
+## Fix
+
+We need to modify the `uploadTile_` method to handle the gutter for DataTile as well. Here's the fix:
+
+```javascript
+### src/ol/webgl/TileTexture.js
+<<<<<<< SEARCH
+    const pixelSize = [
+      this.size[0] * this.tilePixelRatio_,
+      this.size[1] * this.tilePixelRatio_,
+    ];
+    const data = tile.getData();
+=======
+    let data = tile.getData();
+    const gutter = this.tilePixelRatio_ * this.gutter_;
+    const pixelSize = [
+      this.size[0] * this.tilePixelRatio_,
+      this.size[1] * this.tilePixelRatio_,
+    ];
+>>>>>>> REPLACE
+```
+
+Additionally, we need to update the `getPixelData` method to properly handle the gutter for DataTile:
+
+```javascript
+### src/ol/webgl/TileTexture.js
+<<<<<<< SEARCH
+    if (this.tile instanceof DataTile) {
+      const data = this.tile.getData();
+      const pixelsPerRow = Math.floor(this.tilePixelRatio_ * this.size[0]);
+=======
+    if (this.tile instanceof DataTile) {
+      const data = this.tile.getData();
+      const pixelsPerRow = Math.floor(this.tilePixelRatio_ * this.size[0]);
+      const gutter = Math.round(this.tilePixelRatio_ * this.gutter_);
+      col += gutter;
+      row += gutter;
+>>>>>>> REPLACE
+```
+
+These changes will ensure that the gutter option is properly handled for DataTile sources, which will help prevent the edge effects shown in the issue.

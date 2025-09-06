@@ -1,0 +1,57 @@
+Based on the issue, we need to modify the `summarize_coord` and `summarize_datavar` functions in `xarray/core/formatting.py` to include units information from the variables when displaying the dataset overview.
+
+Here are the necessary edits:
+
+```python
+### xarray/core/formatting.py
+<<<<<<< SEARCH
+def summarize_datavar(name, var, col_width):
+    return summarize_variable(name, var.variable, col_width)
+
+
+def summarize_coord(name: Hashable, var, col_width: int):
+    is_index = name in var.dims
+    marker = "*" if is_index else " "
+    if is_index:
+        coord = var.variable.to_index_variable()
+        if coord.level_names is not None:
+            return "\n".join(
+                [
+                    _summarize_coord_multiindex(coord, col_width, marker),
+                    _summarize_coord_levels(coord, col_width),
+                ]
+            )
+    return summarize_variable(name, var.variable, col_width, marker)
+=======
+def summarize_datavar(name, var, col_width):
+    display_name = name
+    if hasattr(var.variable, 'attrs') and 'units' in var.variable.attrs:
+        display_name = f"{name}, in {var.variable.attrs['units']}"
+    return summarize_variable(display_name, var.variable, col_width)
+
+
+def summarize_coord(name: Hashable, var, col_width: int):
+    is_index = name in var.dims
+    marker = "*" if is_index else " "
+    display_name = name
+    if hasattr(var.variable, 'attrs') and 'units' in var.variable.attrs:
+        display_name = f"{name}, in {var.variable.attrs['units']}"
+    if is_index:
+        coord = var.variable.to_index_variable()
+        if coord.level_names is not None:
+            return "\n".join(
+                [
+                    _summarize_coord_multiindex(coord, col_width, marker),
+                    _summarize_coord_levels(coord, col_width),
+                ]
+            )
+    return summarize_variable(display_name, var.variable, col_width, marker)
+>>>>>>> REPLACE
+```
+
+This modification:
+1. Checks if the variable has units defined in its attributes
+2. If units exist, appends them to the variable name in the format "name, in units"
+3. Uses this modified name in the display output
+
+The changes will affect both coordinates and data variables, showing units when they are available in the variable's attributes. This matches the requested format in the issue where units are displayed like "rainfall, in mm" and "max_temp, in deg C".

@@ -1,0 +1,42 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about Markdown image links not rendering correctly when the alt text contains escaped square brackets. Looking at the example:
+
+```md
+[![\[Manny Pacquiao\]](https://img.youtube.com/vi/s6bCmZmy9aQ/0.jpg)](https://youtu.be/s6bCmZmy9aQ)
+```
+
+The problem is in the `outputLink` function in `src/Tokenizer.js`. When processing an image link (starting with `!`), the function is escaping the alt text (`cap[1]`) using the `escape` function. This is causing already escaped characters like `\[` and `\]` to be double-escaped, breaking the rendering.
+
+For image alt text, we shouldn't escape the content that's already properly formatted in Markdown.
+
+## Fix
+
+```javascript
+### src/Tokenizer.js
+<<<<<<< SEARCH
+  } else {
+    return {
+      type: 'image',
+      raw,
+      text: escape(cap[1]),
+      href,
+      title
+    };
+  }
+=======
+  } else {
+    return {
+      type: 'image',
+      raw,
+      text: cap[1],
+      href,
+      title
+    };
+  }
+>>>>>>> REPLACE
+```
+
+This change removes the `escape()` function call on `cap[1]` for image alt text. Since the alt text is already properly formatted in Markdown, we don't need to escape it again. This will prevent double-escaping of characters like `\[` and `\]`, allowing the image links to render correctly.

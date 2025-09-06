@@ -1,0 +1,49 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+When creating an object via the admin interface with an inline form containing an ArrayField, if there's a validation error on the first submission and the form is submitted again without changes, the validation is bypassed and the inline form is dismissed. The field 'plop' becomes unfilled despite having a value previously.
+
+2. Cause Analysis:
+The issue appears to be related to how Django handles form validation and initial values in inline formsets, particularly with ArrayField types. The problem occurs because:
+- The initial value is stored in a hidden input field
+- On second submission, the validation logic is not properly comparing the initial value with the submitted value
+- This leads to the form incorrectly determining that no changes occurred, bypassing validation
+
+3. Relevant Files Analysis:
+
+django/contrib/admin/helpers.py:
+```
+django/contrib/admin/helpers.py
+class: InlineAdminForm
+class: InlineAdminFormSet
+```
+These classes handle the rendering and processing of inline forms in the admin interface, including how initial values are handled.
+
+django/contrib/admin/options.py:
+```
+django/contrib/admin/options.py
+class: InlineModelAdmin
+class: BaseModelAdmin
+```
+These classes manage the admin interface's form handling and validation logic for inline forms.
+
+django/forms/models.py:
+```
+django/forms/models.py
+class: BaseInlineFormSet
+class: BaseModelForm
+class: ModelForm
+```
+These classes are core to form processing and validation, particularly for inline forms and model-based forms.
+
+django/forms/boundfield.py:
+```
+django/forms/boundfield.py
+class: BoundField
+```
+This class handles form field binding and value comparison, which is relevant to the validation bypass issue.
+
+django/db/models/fields/related.py:
+This file contains no relevant functions/classes.
+
+The issue likely stems from an interaction between these components, particularly in how BaseInlineFormSet and InlineAdminFormSet handle validation and initial values for ArrayField types. The validation bypass occurs when the form processing logic incorrectly determines that no changes have occurred between submissions.

@@ -1,0 +1,31 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior Identification:
+The system is raising a translation.E004 error when using a sublanguage code (e.g., "de-at") in LANGUAGE_CODE setting, even though the base language ("de") is available. According to Django's documentation, this should not happen - Django should fall back to using the base language when a sublanguage is not available.
+
+2. Cause Analysis:
+The issue appears to be in the validation check system that verifies the LANGUAGE_CODE setting. The system is strictly checking if the exact LANGUAGE_CODE value exists in the LANGUAGES setting, without considering the fallback mechanism for sublanguages to their base languages. This validation is happening before the actual language resolution process that would normally handle the fallback.
+
+3. File Analysis:
+
+django/core/checks/translation.py:
+```
+django/core/checks/translation.py
+function: check_setting_language_code
+```
+This function is directly relevant as it's responsible for the E004 error being raised. It needs to be modified to consider base language fallbacks when validating LANGUAGE_CODE.
+
+django/middleware/locale.py:
+```
+django/middleware/locale.py
+class: LocaleMiddleware
+```
+This class is relevant because it handles language resolution and fallback mechanisms during request processing. While it's not the direct cause of the error, it demonstrates how Django should handle language fallbacks.
+
+django/utils/translation/template.py:
+```
+This file contains no relevant functions/classes.
+```
+This file deals with template translation processing and is not related to language code validation or fallback mechanisms.
+
+The core issue appears to be in the validation logic within check_setting_language_code, which needs to be updated to align with Django's language fallback behavior. The LocaleMiddleware class provides a reference for how language fallbacks should work, but it operates at a different stage of request processing.

@@ -1,0 +1,32 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior Identification:
+The issue occurs in NDDataRef mask propagation when performing arithmetic operations (specifically multiplication) where one operand has a mask and the other doesn't. The operation fails with TypeError: "unsupported operand type(s) for |: 'int' and 'NoneType'" when using handle_mask=np.bitwise_or.
+
+2. Cause Analysis:
+The error suggests that when one operand doesn't have a mask, it's being treated as None, and the bitwise_or operation is attempting to perform between an integer (from the existing mask) and None, which is invalid. The proper behavior should be to propagate the existing mask when only one operand has a mask, as it worked in v5.2.
+
+3. File Analysis:
+
+astropy/nddata/compat.py:
+```
+astropy/nddata/compat.py
+class: NDDataArray
+```
+This class is relevant as it inherits from NDArithmeticMixin and handles basic NDData features including mask operations.
+
+astropy/nddata/nddata.py:
+```
+astropy/nddata/nddata.py
+class: NDData
+```
+This class is relevant as it's the base class that handles mask storage and basic mask operations.
+
+astropy/nddata/mixins/ndarithmetic.py:
+```
+astropy/nddata/mixins/ndarithmetic.py
+class: NDArithmeticMixin
+```
+This is the most relevant class as it contains the arithmetic operations and mask handling logic that's causing the issue. The problem likely lies in its _arithmetic_mask method that handles mask combinations during arithmetic operations.
+
+The issue is most likely centered in NDArithmeticMixin's implementation, where the mask handling logic needs to be modified to properly handle cases where one operand has no mask. The other two classes are relevant because they provide the framework for mask storage and propagation, but the actual bug is probably in the arithmetic mixin.

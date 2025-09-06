@@ -1,0 +1,90 @@
+Based on the issue description, the bug is in the `_check_list_display_item` method of the `ModelAdminChecks` class. The current implementation doesn't properly handle the case where a field name in `list_display` refers to a related field that doesn't exist.
+
+The fix should enhance the error checking to better handle cases where the field name refers to a non-existent related field. Here's the proposed fix:
+
+```python
+### django/contrib/admin/checks.py
+<<<<<<< SEARCH
+    def _check_list_display_item(self, obj, item, label):
+        if callable(item):
+            return []
+        elif hasattr(obj, item):
+            return []
+        try:
+            field = obj.model._meta.get_field(item)
+        except FieldDoesNotExist:
+            try:
+                field = getattr(obj.model, item)
+            except AttributeError:
+                return [
+                    checks.Error(
+                        "The value of '%s' refers to '%s', which is not a "
+                        "callable, an attribute of '%s', or an attribute or "
+                        "method on '%s'."
+                        % (
+                            label,
+                            item,
+                            obj.__class__.__name__,
+                            obj.model._meta.label,
+                        ),
+                        obj=obj.__class__,
+                        id="admin.E108",
+                    )
+                ]
+=======
+    def _check_list_display_item(self, obj, item, label):
+        if callable(item):
+            return []
+        elif hasattr(obj, item):
+            return []
+        try:
+            field = obj.model._meta.get_field(item)
+        except FieldDoesNotExist:
+            # Handle related field lookups
+            if LOOKUP_SEP in item:
+                try:
+                    field = get_fields_from_path(obj.model, item)[-1]
+                except (NotRelationField, FieldDoesNotExist):
+                    return [
+                        checks.Error(
+                            "The value of '%s' refers to '%s', which is not a valid "
+                            "field or relation on '%s'."
+                            % (
+                                label,
+                                item,
+                                obj.model._meta.label,
+                            ),
+                            obj=obj.__class__,
+                            id="admin.E108",
+                        )
+                    ]
+            else:
+                try:
+                    field = getattr(obj.model, item)
+                except AttributeError:
+                    return [
+                        checks.Error(
+                            "The value of '%s' refers to '%s', which is not a "
+                            "callable, an attribute of '%s', or an attribute or "
+                            "method on '%s'."
+                            % (
+                                label,
+                                item,
+                                obj.__class__.__name__,
+                                obj.model._meta.label,
+                            ),
+                            obj=obj.__class__,
+                            id="admin.E108",
+                        )
+                    ]
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Adds specific handling for related field lookups (fields containing LOOKUP_SEP, which is typically "__")
+2. Uses get_fields_from_path to properly validate related field paths
+3. Provides a more specific error message for invalid related field references
+4. Maintains backward compatibility with the existing error handling for non-related fields
+
+The fix will now properly catch and report errors when list_display contains invalid related field references, like in the case described in the issue where "choice" was an invalid reference.

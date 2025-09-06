@@ -1,0 +1,74 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about the `CascaderSelect` component having an abnormal background color when using virtual scrolling. Looking at the screenshot, it appears that the menu items have a different background color when virtual scrolling is enabled.
+
+The problem is likely in the `renderMenu` method of the `CascaderMenu` component. When using virtual scrolling, the menu items are rendered inside a `VirtualList` component, but the styling might not be properly applied.
+
+In the current implementation, the `className` prop is applied to the wrapper div, but not to the menu when using virtual scrolling. This could cause styling inconsistencies.
+
+## Fix
+
+```typescript
+### components/cascader/menu.tsx
+<<<<<<< SEARCH
+    render() {
+        const { prefix, useVirtual, className, style, children, ...others } = this.props;
+        const menuProps = {
+            labelToggleChecked: false,
+            className: `${prefix}cascader-menu`,
+            ...others,
+        };
+        return (
+            <div
+                ref={this.saveMenuRef}
+                className={`${prefix}cascader-menu-wrapper ${className ? className : ''}`}
+                style={style}
+            >
+                {useVirtual ? (
+                    <VirtualList
+                        ref={this.saveVirtualRef}
+                        itemsRenderer={(items, ref) => this.renderMenu(items, ref, menuProps)}
+                    >
+                        {children}
+                    </VirtualList>
+                ) : (
+                    this.renderMenu(children as ReactNodeArray, undefined, menuProps)
+                )}
+            </div>
+=======
+    render() {
+        const { prefix, useVirtual, className, style, children, ...others } = this.props;
+        const menuProps = {
+            labelToggleChecked: false,
+            className: `${prefix}cascader-menu ${className || ''}`,
+            ...others,
+        };
+        return (
+            <div
+                ref={this.saveMenuRef}
+                className={`${prefix}cascader-menu-wrapper`}
+                style={style}
+            >
+                {useVirtual ? (
+                    <VirtualList
+                        ref={this.saveVirtualRef}
+                        itemsRenderer={(items, ref) => this.renderMenu(items, ref, menuProps)}
+                    >
+                        {children}
+                    </VirtualList>
+                ) : (
+                    this.renderMenu(children as ReactNodeArray, undefined, menuProps)
+                )}
+            </div>
+>>>>>>> REPLACE
+```
+
+The key changes in this fix:
+
+1. Moved the `className` prop from the wrapper div to the menu props, so it's applied to the actual menu component
+2. Combined the class names properly: `${prefix}cascader-menu ${className || ''}`
+3. Simplified the wrapper div's className to just use the base class
+
+This ensures that the same styling is applied to the menu regardless of whether virtual scrolling is enabled or not, which should fix the background color inconsistency.

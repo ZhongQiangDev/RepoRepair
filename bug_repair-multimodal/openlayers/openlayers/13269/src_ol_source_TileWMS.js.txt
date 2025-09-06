@@ -1,0 +1,45 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when using a TileWMS source with a gutter option in combination with a WebGLTile layer, the gutter is not being properly handled. The gutter is a border of extra pixels around each tile that helps prevent rendering artifacts at tile edges. However, when used with WebGLTile, this gutter is not being clipped before creating textures, resulting in misplacement and duplication.
+
+Looking at the code, I can see that the `TileWMS` class has a `getGutter()` method that returns the gutter value, but there's no mechanism to ensure that WebGLTile layers properly handle this gutter by clipping it before rendering.
+
+## Solution
+
+The solution is to modify the `TileWMS` class to provide additional information about the gutter that needs to be clipped when used with WebGL rendering. We need to add a method that will allow the WebGLTile renderer to know how much of the tile to clip.
+
+```javascript
+### src/ol/source/TileWMS.js
+<<<<<<< SEARCH
+  /**
+   * @return {number} Gutter.
+   */
+  getGutter() {
+    return this.gutter_;
+  }
+=======
+  /**
+   * @return {number} Gutter.
+   */
+  getGutter() {
+    return this.gutter_;
+  }
+
+  /**
+   * @param {number} pixelRatio Pixel ratio.
+   * @return {number} Gutter in pixels.
+   */
+  getGutterForProjection(pixelRatio) {
+    if (pixelRatio !== undefined && this.hidpi_ && this.serverType_ !== undefined) {
+      return this.gutter_ * pixelRatio;
+    }
+    return this.gutter_;
+  }
+>>>>>>> REPLACE
+```
+
+This new method `getGutterForProjection` will provide the correct gutter size in pixels, taking into account the pixel ratio when HIDPI is enabled. This will allow the WebGLTile renderer to properly clip the gutter area before creating textures.
+
+The WebGLTile renderer would then need to use this method to determine how much of the tile to clip, but that would be in a different file that wasn't provided in the code segments.

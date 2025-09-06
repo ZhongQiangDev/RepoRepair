@@ -1,0 +1,188 @@
+I'll analyze the issue and provide a solution.
+
+Based on the issue description, we need to update the `ContainedTab` component to support an icon-only variant. Looking at the screenshots provided, we need to add support for displaying tabs with only icons (no text labels).
+
+The current implementation of `ContainedTab` only supports text labels. We need to modify it to accept an `iconOnly` prop and adjust the styling accordingly.
+
+Here's my solution:
+
+```javascript
+### packages/react/src/components/Tab/next/ContainedTab.js
+<<<<<<< SEARCH
+import PropTypes from 'prop-types';
+import React from 'react';
+import classNames from 'classnames';
+import { usePrefix } from '../../../internal/usePrefix';
+
+const ContainedTab = React.forwardRef(function ContainedTab(
+  {
+    className,
+    disabled,
+    handleTabClick,
+    handleTabKeyDown,
+    id,
+    index,
+    label = 'provide a label',
+    onClick = () => {},
+    onKeyDown = () => {},
+    renderButton,
+    renderContent, // eslint-disable-line no-unused-vars
+    selected = false,
+    tabIndex = 0,
+    ...other
+  },
+  ref
+) {
+  const prefix = usePrefix();
+
+  const classes = classNames(className, `${prefix}--tabs__nav-item`, {
+    [`${prefix}--tabs__nav-item--disabled`]: disabled,
+    [`${prefix}--tabs__nav-item--selected`]: selected,
+  });
+
+  const buttonProps = {
+    ['aria-selected']: selected,
+    ['aria-disabled']: disabled,
+    ['aria-controls']: id && `${id}__panel`,
+    id,
+    className: `${prefix}--tabs__nav-link`,
+    tabIndex: !disabled ? tabIndex : -1,
+    ref: ref,
+  };
+=======
+import PropTypes from 'prop-types';
+import React from 'react';
+import classNames from 'classnames';
+import { usePrefix } from '../../../internal/usePrefix';
+
+const ContainedTab = React.forwardRef(function ContainedTab(
+  {
+    className,
+    disabled,
+    handleTabClick,
+    handleTabKeyDown,
+    iconOnly = false,
+    id,
+    index,
+    label = 'provide a label',
+    onClick = () => {},
+    onKeyDown = () => {},
+    renderButton,
+    renderContent, // eslint-disable-line no-unused-vars
+    selected = false,
+    tabIndex = 0,
+    ...other
+  },
+  ref
+) {
+  const prefix = usePrefix();
+
+  const classes = classNames(className, `${prefix}--tabs__nav-item`, {
+    [`${prefix}--tabs__nav-item--disabled`]: disabled,
+    [`${prefix}--tabs__nav-item--selected`]: selected,
+    [`${prefix}--tabs__nav-item--icon-only`]: iconOnly,
+  });
+
+  const buttonProps = {
+    ['aria-selected']: selected,
+    ['aria-disabled']: disabled,
+    ['aria-controls']: id && `${id}__panel`,
+    id,
+    className: classNames(`${prefix}--tabs__nav-link`, {
+      [`${prefix}--tabs__nav-link--icon-only`]: iconOnly,
+    }),
+    tabIndex: !disabled ? tabIndex : -1,
+    ref: ref,
+  };
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Tab/next/ContainedTab.js
+<<<<<<< SEARCH
+ContainedTab.propTypes = {
+  /**
+   * Specify an optional className to be added to your Tab
+   */
+  className: PropTypes.string,
+
+  /**
+   * Whether your Tab is disabled.
+   */
+  disabled: PropTypes.bool,
+
+  /**
+   * A handler that is invoked when a user clicks on the control.
+   * Reserved for usage in Tabs
+   */
+  handleTabClick: PropTypes.func,
+
+  /**
+   * A handler that is invoked on the key down event for the control.
+   * Reserved for usage in Tabs
+   */
+  handleTabKeyDown: PropTypes.func,
+
+  /**
+   * The element ID for the top-level element.
+   */
+  id: PropTypes.string,
+
+  /**
+   * The index of your Tab in your Tabs. Reserved for usage in Tabs
+   */
+  index: PropTypes.number,
+
+  /**
+   * Provide the contents of your Tab
+   */
+  label: PropTypes.node,
+=======
+ContainedTab.propTypes = {
+  /**
+   * Specify an optional className to be added to your Tab
+   */
+  className: PropTypes.string,
+
+  /**
+   * Whether your Tab is disabled.
+   */
+  disabled: PropTypes.bool,
+
+  /**
+   * A handler that is invoked when a user clicks on the control.
+   * Reserved for usage in Tabs
+   */
+  handleTabClick: PropTypes.func,
+
+  /**
+   * A handler that is invoked on the key down event for the control.
+   * Reserved for usage in Tabs
+   */
+  handleTabKeyDown: PropTypes.func,
+
+  /**
+   * Specify whether the Tab is an icon-only tab
+   */
+  iconOnly: PropTypes.bool,
+
+  /**
+   * The element ID for the top-level element.
+   */
+  id: PropTypes.string,
+
+  /**
+   * The index of your Tab in your Tabs. Reserved for usage in Tabs
+   */
+  index: PropTypes.number,
+
+  /**
+   * Provide the contents of your Tab
+   */
+  label: PropTypes.node,
+>>>>>>> REPLACE
+```
+
+These changes add an `iconOnly` prop to the `ContainedTab` component with appropriate styling classes. When `iconOnly` is set to `true`, the component will apply the necessary CSS classes to style the tab as an icon-only variant. The CSS classes `${prefix}--tabs__nav-item--icon-only` and `${prefix}--tabs__nav-link--icon-only` will be used by the styling system to apply the appropriate styles for the icon-only variant.
+
+Note that we're also updating the PropTypes to include documentation for the new `iconOnly` prop.

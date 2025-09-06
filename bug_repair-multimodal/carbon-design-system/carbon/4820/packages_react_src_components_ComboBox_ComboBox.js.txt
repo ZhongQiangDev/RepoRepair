@@ -1,0 +1,96 @@
+I'll analyze the issue and provide a fix for the DAP (Digital Accessibility Platform) violations in the ComboBox component.
+
+## Issue Analysis
+
+Looking at the screenshots in the issue, there are accessibility violations related to the ComboBox component. The main issues appear to be:
+
+1. Missing or incorrect ARIA attributes on the dropdown component
+2. Issues with the disabled state
+3. Issues with the form invalid state
+
+The primary problem is that the input element has `aria-labelledby` pointing to a ComboBox ID, but there's no corresponding element with that ID that contains a text label. Additionally, there are issues with the ARIA attributes for the dropdown menu.
+
+## Solution
+
+The main fixes needed are:
+
+1. Add proper aria-label to the input when no labelledby element exists
+2. Fix the aria-controls and aria-owns attributes to only be present when needed
+3. Ensure proper ARIA attributes for disabled and invalid states
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+              <input
+                className={inputClasses}
+                aria-labelledby={comboBoxA11yId}
+                tabIndex="0"
+                aria-disabled={disabled}
+                aria-controls={isOpen ? `${id}__menu` : null}
+                aria-owns={isOpen ? `${id}__menu` : null}
+                aria-autocomplete="list"
+                ref={this.textInput}
+                {...rest}
+                {...getInputProps({
+                  disabled,
+                  id,
+                  placeholder,
+                  onKeyDown: event => {
+                    event.stopPropagation();
+
+                    if (match(event, keys.Enter)) {
+                      toggleMenu();
+                    }
+                  },
+                })}
+              />
+=======
+              <input
+                className={inputClasses}
+                aria-label={ariaLabel}
+                tabIndex="0"
+                aria-disabled={disabled}
+                aria-controls={isOpen ? `${id}__menu` : null}
+                aria-expanded={isOpen}
+                aria-autocomplete="list"
+                disabled={disabled}
+                ref={this.textInput}
+                {...rest}
+                {...getInputProps({
+                  disabled,
+                  id,
+                  placeholder,
+                  onKeyDown: event => {
+                    event.stopPropagation();
+
+                    if (match(event, keys.Enter)) {
+                      toggleMenu();
+                    }
+                  },
+                })}
+              />
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+            {isOpen && (
+              <ListBox.Menu aria-label={ariaLabel} id={id}>
+=======
+            {isOpen && (
+              <ListBox.Menu aria-label={ariaLabel} id={`${id}__menu`}>
+>>>>>>> REPLACE
+```
+
+The changes I've made:
+
+1. Replaced `aria-labelledby` with `aria-label` using the existing `ariaLabel` prop to ensure the input has a proper accessible name
+2. Removed `aria-owns` as it's redundant with `aria-controls` in this context
+3. Added `aria-expanded` to properly indicate the dropdown state
+4. Added the explicit `disabled` attribute to ensure proper disabled state handling
+5. Fixed the menu ID to match the ID referenced in `aria-controls`
+
+These changes should resolve the DAP violations shown in the screenshots by ensuring proper ARIA attributes are applied to the ComboBox component.

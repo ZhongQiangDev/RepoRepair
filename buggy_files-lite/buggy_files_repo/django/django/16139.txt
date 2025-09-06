@@ -1,0 +1,26 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When accessing UserAdmin through another model's Admin that uses `to_field="uuid"`, the link to the PasswordResetForm becomes broken (404)
+- The URL pattern becomes `.../user/22222222-3333-4444-5555-666677778888/change/?_to_field=uuid`
+- The password reset link is incorrectly formatted as `../password/` instead of considering the actual path structure
+
+2. Cause Analysis:
+- The UserChangeForm hardcodes the password reset link format to `../password/`
+- This assumes UserAdmin is always accessed via primary key
+- When accessed through UUID or other fields, the relative path becomes incorrect
+- The fix requires using the actual instance's primary key in the path: `../../{self.instance.pk}/password/`
+
+3. Most Related Files:
+```
+django/contrib/auth/forms.py
+django/contrib/auth/admin.py
+django/contrib/admin/options.py
+```
+
+These files are most relevant because:
+- `auth/forms.py` contains the UserChangeForm with the hardcoded password reset link path
+- `auth/admin.py` contains the UserAdmin class that uses the UserChangeForm
+- `admin/options.py` contains the base ModelAdmin class that handles URL generation and field references
+
+The core issue lies in `auth/forms.py` where the password reset link is hardcoded, while the other files provide the context and infrastructure where this issue manifests.

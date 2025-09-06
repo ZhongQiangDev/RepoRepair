@@ -1,0 +1,78 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that Prettier fails to detect the language of a fenced code block when there are non-whitespace characters following the language identifier. Specifically, when attributes are added after the language identifier (e.g., `js {cmd=node .line-numbers}`), Prettier does not format the code block as it would if only the language identifier were present (e.g., js`). This results in the code block being treated as plain text rather than being formatted according to the specified language.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior likely lies in how Prettier parses and identifies the language of a fenced code block. When attributes are present after the language identifier, the parser may not correctly recognize the language, leading to improper formatting. The issue could be related to how the parser handles the presence of additional characters after the language identifier and whether it correctly separates the language identifier from the attributes.
+
+### 3. Examine Each File One by One
+
+#### --- src/language-markdown/embed.js ---
+```
+src/language-markdown/embed.js
+function: embed
+```
+The `embed` function processes nodes of type "code" and retrieves the appropriate parser for the code block's language using `getParserName`. This function is likely relevant because it determines the parser based on the language identifier. If the language identifier is not correctly extracted when attributes are present, this function may not work as expected.
+
+#### --- src/language-markdown/parser-markdown.js ---
+```
+src/language-markdown/parser-markdown.js
+function: parse
+```
+The `parse` function processes the input text using a sequence of remark plugins. One of these plugins, `restoreUnescapedCharacter`, might be relevant if it affects how characters are interpreted in the code block. However, the primary concern is likely in how the language identifier is extracted and parsed, which is not directly handled by this function.
+
+```
+src/language-markdown/parser-markdown.js
+function: transformInlineCode
+```
+The `transformInlineCode` function processes inline code nodes and normalizes whitespace. While this function is related to code formatting, it does not directly handle the extraction of the language identifier from fenced code blocks.
+
+```
+src/language-markdown/parser-markdown.js
+function: mergeContinuousTexts
+```
+The `mergeContinuousTexts` function merges adjacent text nodes in the AST. This function is not directly related to the issue of language detection in fenced code blocks.
+
+```
+src/language-markdown/parser-markdown.js
+function: map
+```
+The `map` function traverses and transforms the AST. While it is a general utility function, it does not directly handle the extraction of the language identifier from fenced code blocks.
+
+```
+src/language-markdown/parser-markdown.js
+function: restoreUnescapedCharacter
+```
+The `restoreUnescapedCharacter` function restores unescaped characters in text nodes. This function is not directly related to the issue of language detection in fenced code blocks.
+
+#### --- src/language-markdown/printer-markdown.js ---
+```
+src/language-markdown/printer-markdown.js
+function: genericPrint
+```
+The `genericPrint` function processes Markdown nodes and handles different types of nodes, including code blocks. This function is relevant because it handles the formatting of code blocks based on their type. If the language identifier is not correctly extracted, this function may not format the code block correctly.
+
+```
+src/language-markdown/printer-markdown.js
+function: clean
+```
+The `clean` function processes specific markdown AST node types, including code blocks. This function is relevant because it handles the cleaning of code block values, which could be affected if the language identifier is not correctly extracted.
+
+```
+src/language-markdown/printer-markdown.js
+function: printChildren
+```
+The `printChildren` function processes the children of an AST node and applies formatting rules. While this function is related to formatting, it does not directly handle the extraction of the language identifier from fenced code blocks.
+
+```
+src/language-markdown/printer-markdown.js
+function: printLine
+```
+The `printLine` function evaluates input values and decides whether to return a line break, space, or an empty string. This function is not directly related to the issue of language detection in fenced code blocks.
+
+```
+src/language-markdown/printer-markdown.js
+function: printListItem
+```
+The `printListItem` function processes list item nodes and generates formatted string representations. This function is not directly related to the issue of language detection in fenced code blocks.

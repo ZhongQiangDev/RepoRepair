@@ -1,0 +1,33 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about an IBM 2.5.3 Label in Name violation in the DataTable with Toolbar component. This accessibility violation occurs when the accessible name of an element doesn't contain the visible text label.
+
+Looking at the screenshot and the code, the problem appears to be in the `TableToolbarMenu` component. The component is using `title` attribute to set the icon description, but for accessibility compliance, it should be using `aria-label` instead.
+
+The issue is that the `OverflowMenu` component is receiving `title={iconDescription}` but needs to have an `aria-label` with the same value to ensure the accessible name matches the visible label.
+
+## Fix
+
+```javascript
+### packages/react/src/components/DataTable/TableToolbarMenu.js
+<<<<<<< SEARCH
+    <OverflowMenu
+      renderIcon={renderIcon}
+      className={toolbarActionClasses}
+      title={iconDescription}
+      flipped
+      {...rest}>
+=======
+    <OverflowMenu
+      renderIcon={renderIcon}
+      className={toolbarActionClasses}
+      title={iconDescription}
+      aria-label={iconDescription}
+      flipped
+      {...rest}>
+>>>>>>> REPLACE
+```
+
+This fix adds an `aria-label` attribute with the same value as the `title` attribute, ensuring that the accessible name includes the visible label text. This should resolve the IBM 2.5.3 Label in Name violation detected by the accessibility testing tool.

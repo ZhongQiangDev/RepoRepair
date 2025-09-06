@@ -1,0 +1,47 @@
+I'll analyze the GitHub problem description and identify the files most related to the issue.
+
+## 1. Identifying the Wrong Behavior
+
+The issue is that raster webworkers created by the raster source are never terminated, causing high memory usage and potential memory leaks. When changing the number in the input field multiple times in the example, multiple workers (with UUIDs) remain in memory as shown in the Chrome DevTools screenshot.
+
+## 2. Analyzing the Cause
+
+The problem appears to be in the raster source implementation where webworkers are created but not properly terminated when they're no longer needed. When a new raster operation is triggered (by changing the input value), a new worker is created, but the old one isn't terminated, leading to accumulation of workers and memory leaks.
+
+The current workaround involves manually tracking and terminating these workers, suggesting that the core issue is a missing cleanup mechanism in the raster source implementation.
+
+## 3. Files Most Related to the Cause
+
+Based on the repository information, these are the most relevant files:
+
+```
+src/ol/source/Raster.js
+examples/raster.js
+examples/color-manipulation.js
+src/ol/Image.js
+src/ol/ImageCanvas.js
+```
+
+The primary issue is likely in `src/ol/source/Raster.js` which would contain the core implementation of the raster source that creates but doesn't terminate workers. The example files (`examples/raster.js` and `examples/color-manipulation.js`) demonstrate the usage pattern that reveals the issue. `src/ol/Image.js` and `src/ol/ImageCanvas.js` are likely involved in the image processing pipeline that interacts with these workers.
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue with raster webworkers not being terminated.
+
+## Analysis of the Problem
+
+The issue is that raster source webworkers created using pixelworks are never terminated, causing high memory usage and potential memory leaks. When the number in the input is changed in the example, new workers are created but the old ones are not terminated, leading to an accumulation of workers.
+
+The user has provided a workaround where they access the internal workers through `rasterSource.B.we` and manually terminate them, but this is a hack that could break with OpenLayers updates.
+
+## Cause of the Issue
+
+The root cause appears to be in the Raster source implementation. When new operations are performed, new web workers are created, but there's no cleanup mechanism to terminate these workers when they're no longer needed or when the source is disposed.
+
+## Files That Need to Be Edited
+
+src/ol/source/Raster.js
+src/ol/source/Source.js
+
+The primary file that needs to be modified is `src/ol/source/Raster.js`, which contains the implementation of the `RasterSource` class and the `Processor` class that manages the web workers. Based on the problem description, this file likely needs to be updated to properly terminate workers when they're no longer needed or when the source is disposed.
+
+The `src/ol/source/Source.js` file may also need modifications as it's the base class for all sources, including the `RasterSource`. It might need updates to ensure proper cleanup of resources during disposal.
+
+The issue is specifically related to the raster source's worker management, so these two files are the most relevant to fixing the problem.

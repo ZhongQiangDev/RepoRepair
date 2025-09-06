@@ -1,0 +1,63 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when a label is cleared from a task, the `di` (diagram interchange) object still has a `label` property with a value of `null`. According to the expected behavior, the `label` property should not exist at all when cleared.
+
+This is causing issues with linting tools as shown in the GIF. The issue was introduced when support for embedded label DIs was added.
+
+Looking at the code, the problem is likely in the `UpdatePropertiesHandler.js` file, specifically in how properties are set or removed. When a label is cleared, the code is setting the label property to `null` instead of removing it completely.
+
+## Solution
+
+We need to modify the `setProperties` function in the `UpdatePropertiesHandler.js` file to properly remove properties when they are set to `null` or `undefined`. However, this function is not shown in the provided code segment. 
+
+Let's look for the implementation of `setProperties` in the file and modify it to handle this case properly.
+
+Since I don't see the full implementation of `setProperties` in the provided code, I'll make an educated guess based on the issue description and common patterns. The fix should check if a property value is `null` or `undefined` and delete the property instead of setting it to `null`.
+
+```javascript
+### lib/features/modeling/cmd/UpdatePropertiesHandler.js
+<<<<<<< SEARCH
+// update properties
+setProperties(element, properties);
+
+// store old values
+context.oldProperties = oldProperties;
+context.changed = changed;
+=======
+// update properties
+setProperties(element, properties);
+
+// store old values
+context.oldProperties = oldProperties;
+context.changed = changed;
+>>>>>>> REPLACE
+```
+
+I don't see the actual `setProperties` function in the provided code, so I can't make a specific edit. Let me provide a more general solution that would need to be applied to the appropriate function:
+
+```javascript
+### lib/features/modeling/cmd/UpdatePropertiesHandler.js
+<<<<<<< SEARCH
+function setProperties(element, properties) {
+  forEach(properties, function(value, key) {
+    element[key] = value;
+  });
+}
+=======
+function setProperties(element, properties) {
+  forEach(properties, function(value, key) {
+    if (value === null || value === undefined) {
+      delete element[key];
+    } else {
+      element[key] = value;
+    }
+  });
+}
+>>>>>>> REPLACE
+```
+
+If the `setProperties` function is different or not visible in the provided code, we would need to see the actual implementation to provide a more accurate fix. The key is to ensure that when a property is set to `null`, it's removed from the object rather than being set to `null`.
+
+Since I don't have the complete code, I recommend looking for where properties are set on the diagram interchange (DI) object, particularly for labels, and ensuring that null values result in property deletion rather than setting the property to null.

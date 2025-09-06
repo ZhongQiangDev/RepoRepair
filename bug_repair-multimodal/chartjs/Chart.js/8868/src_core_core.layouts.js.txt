@@ -1,0 +1,113 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that custom scale position labels are getting cut off when they extend outside the chart area. This happens specifically with the first and last horizontal labels. The issue also mentions an unwanted extra horizontal line being drawn.
+
+Looking at the code, I can see that the problem is likely in the `placeBoxes` function. When a box has a custom position (not one of the standard positions like 'left', 'top', 'right', 'bottom'), it's not being properly handled in the layout system.
+
+The `updateDims` function has a check for custom positions (`isObject(layout.pos)`), but it simply returns without updating the dimensions. However, in `placeBoxes`, there's no special handling for custom positioned boxes, which causes them to be cut off.
+
+## Fix
+
+```javascript
+### src/core/core.layouts.js
+<<<<<<< SEARCH
+function placeBoxes(boxes, chartArea, params) {
+  const userPadding = params.padding;
+  let x = chartArea.x;
+  let y = chartArea.y;
+  let i, ilen, layout, box;
+
+  for (i = 0, ilen = boxes.length; i < ilen; ++i) {
+    layout = boxes[i];
+    box = layout.box;
+    if (layout.horizontal) {
+      box.left = box.fullSize ? userPadding.left : chartArea.left;
+      box.right = box.fullSize ? params.outerWidth - userPadding.right : chartArea.left + chartArea.w;
+      box.top = y;
+      box.bottom = y + box.height;
+      box.width = box.right - box.left;
+      y = box.bottom;
+    } else {
+      box.left = x;
+      box.right = x + box.width;
+      box.top = box.fullSize ? userPadding.top : chartArea.top;
+      box.bottom = box.fullSize ? params.outerHeight - userPadding.right : chartArea.top + chartArea.h;
+      box.height = box.bottom - box.top;
+      x = box.right;
+    }
+  }
+=======
+function placeBoxes(boxes, chartArea, params) {
+  const userPadding = params.padding;
+  let x = chartArea.x;
+  let y = chartArea.y;
+  let i, ilen, layout, box;
+
+  for (i = 0, ilen = boxes.length; i < ilen; ++i) {
+    layout = boxes[i];
+    box = layout.box;
+    if (isObject(layout.pos)) {
+      // Handle custom positioning
+      if (layout.horizontal) {
+        box.left = layout.pos.x;
+        box.right = box.left + box.width;
+        box.top = y;
+        box.bottom = y + box.height;
+      } else {
+        box.left = x;
+        box.right = x + box.width;
+        box.top = layout.pos.y;
+        box.bottom = box.top + box.height;
+      }
+    } else if (layout.horizontal) {
+      box.left = box.fullSize ? userPadding.left : chartArea.left;
+      box.right = box.fullSize ? params.outerWidth - userPadding.right : chartArea.left + chartArea.w;
+      box.top = y;
+      box.bottom = y + box.height;
+      box.width = box.right - box.left;
+      y = box.bottom;
+    } else {
+      box.left = x;
+      box.right = x + box.width;
+      box.top = box.fullSize ? userPadding.top : chartArea.top;
+      box.bottom = box.fullSize ? params.outerHeight - userPadding.bottom : chartArea.top + chartArea.h;
+      box.height = box.bottom - box.top;
+      x = box.right;
+    }
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/core/core.layouts.js
+<<<<<<< SEARCH
+const STATIC_POSITIONS = ['left', 'top', 'right', 'bottom'];
+=======
+const STATIC_POSITIONS = ['left', 'top', 'right', 'bottom'];
+
+function isObject(thing) {
+  return thing !== null && typeof thing === 'object';
+}
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/core/core.layouts.js
+<<<<<<< SEARCH
+      box.bottom = box.fullSize ? params.outerHeight - userPadding.right : chartArea.top + chartArea.h;
+=======
+      box.bottom = box.fullSize ? params.outerHeight - userPadding.bottom : chartArea.top + chartArea.h;
+>>>>>>> REPLACE
+```
+
+The changes I've made:
+
+1. Added special handling for custom positioned boxes in the `placeBoxes` function. When a box has a custom position (represented as an object with x and y coordinates), we now position it correctly based on those coordinates.
+
+2. Added a local `isObject` function at the top of the file to ensure it's available for use in the `placeBoxes` function.
+
+3. Fixed a bug in the original code where `userPadding.right` was incorrectly used instead of `userPadding.bottom` when calculating the bottom position of non-horizontal boxes.
+
+These changes should ensure that custom positioned scale labels are properly displayed and not cut off, and should also fix the issue with the extra horizontal line.

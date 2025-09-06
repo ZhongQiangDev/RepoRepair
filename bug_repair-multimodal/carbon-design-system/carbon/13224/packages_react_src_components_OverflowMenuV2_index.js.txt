@@ -1,0 +1,177 @@
+I'll analyze the issue and provide a solution.
+
+Based on the issue description, the problem is related to implementing a "combo button" or "contextual menu" component. The image shows a button with a dropdown menu. The current implementation is an `OverflowMenuV2` component that only shows an overflow menu icon, but according to the issue, we need to create a combo button that can display text alongside the dropdown functionality.
+
+The main bug is that the current implementation only renders an icon button without the ability to show text or a primary action. A combo button typically has a main action part and a dropdown part.
+
+Here's my fix:
+
+```javascript
+### packages/react/src/components/OverflowMenuV2/index.js
+<<<<<<< SEARCH
+function OverflowMenuV2({
+  children,
+  className,
+  renderIcon: IconElement = OverflowMenuVertical,
+  size = defaultSize,
+  ...rest
+}) {
+=======
+function OverflowMenuV2({
+  children,
+  className,
+  renderIcon: IconElement = OverflowMenuVertical,
+  size = defaultSize,
+  label,
+  primaryActionClick,
+  ...rest
+}) {
+=======
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/OverflowMenuV2/index.js
+<<<<<<< SEARCH
+  const triggerClasses = classNames(
+    `${prefix}--overflow-menu`,
+    {
+      [`${prefix}--overflow-menu--open`]: open,
+      [className]: className,
+    },
+    size !== defaultSize && `${prefix}--overflow-menu--${size}`
+  );
+
+  return (
+    <div className={containerClasses} aria-owns={id}>
+      <button
+        {...rest}
+        type="button"
+        aria-haspopup
+        aria-expanded={open}
+        className={triggerClasses}
+        onClick={handleClick}
+        onMouseDown={handleMousedown}
+        ref={triggerRef}>
+        <IconElement className={`${prefix}--overflow-menu__icon`} />
+      </button>
+=======
+  const triggerClasses = classNames(
+    `${prefix}--overflow-menu`,
+    {
+      [`${prefix}--overflow-menu--open`]: open,
+      [className]: className,
+    },
+    size !== defaultSize && `${prefix}--overflow-menu--${size}`,
+    label && `${prefix}--overflow-menu--combo`
+  );
+
+  return (
+    <div className={containerClasses} aria-owns={id}>
+      {label ? (
+        <div className={`${prefix}--overflow-menu--combo-button-container`}>
+          <button
+            type="button"
+            className={`${prefix}--overflow-menu--combo-primary-button`}
+            onClick={primaryActionClick}>
+            {label}
+          </button>
+          <button
+            {...rest}
+            type="button"
+            aria-haspopup
+            aria-expanded={open}
+            className={triggerClasses}
+            onClick={handleClick}
+            onMouseDown={handleMousedown}
+            ref={triggerRef}>
+            <IconElement className={`${prefix}--overflow-menu__icon`} />
+          </button>
+        </div>
+      ) : (
+        <button
+          {...rest}
+          type="button"
+          aria-haspopup
+          aria-expanded={open}
+          className={triggerClasses}
+          onClick={handleClick}
+          onMouseDown={handleMousedown}
+          ref={triggerRef}>
+          <IconElement className={`${prefix}--overflow-menu__icon`} />
+        </button>
+      )}
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/OverflowMenuV2/index.js
+<<<<<<< SEARCH
+OverflowMenuV2.propTypes = {
+  /**
+   * A collection of MenuItems to be rendered within this OverflowMenu.
+   */
+  children: PropTypes.node,
+
+  /**
+   * Additional CSS class names for the trigger button.
+   */
+  className: PropTypes.string,
+
+  /**
+   * Otionally provide a custom icon to be rendered on the trigger button.
+   */
+  renderIcon: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
+
+  /**
+   * Specify the size of the menu, from a list of available sizes.
+   */
+  size: PropTypes.oneOf(['sm', 'md', 'lg']),
+};
+=======
+OverflowMenuV2.propTypes = {
+  /**
+   * A collection of MenuItems to be rendered within this OverflowMenu.
+   */
+  children: PropTypes.node,
+
+  /**
+   * Additional CSS class names for the trigger button.
+   */
+  className: PropTypes.string,
+
+  /**
+   * Optionally provide a custom icon to be rendered on the trigger button.
+   */
+  renderIcon: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
+
+  /**
+   * Specify the size of the menu, from a list of available sizes.
+   */
+  size: PropTypes.oneOf(['sm', 'md', 'lg']),
+
+  /**
+   * Optional label text to display for the primary action button.
+   * When provided, the component will render as a combo button.
+   */
+  label: PropTypes.node,
+
+  /**
+   * Optional click handler for the primary action button.
+   * Only used when label is provided.
+   */
+  primaryActionClick: PropTypes.func,
+};
+>>>>>>> REPLACE
+```
+
+These changes transform the `OverflowMenuV2` component into a combo button when a `label` prop is provided. The implementation:
+
+1. Adds new props: `label` and `primaryActionClick`
+2. When `label` is provided, renders a combo button with:
+   - A primary action button showing the label text
+   - A secondary button with the overflow menu icon
+3. When no `label` is provided, it behaves like the original overflow menu
+4. Adds appropriate PropTypes for the new props
+
+This implementation matches the contextual menu shown in the issue's image, allowing for both a primary action and additional options in a dropdown.

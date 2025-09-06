@@ -1,0 +1,31 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The issue is that empty strings in the If-Modified-Since header used to be ignored but now raise an exception since commit d6aff369ad3. This is a regression in behavior.
+
+2. Cause Analysis:
+The If-Modified-Since header is used in HTTP caching to determine if a resource has been modified. When empty, it should be ignored rather than causing an exception. This likely involves:
+- HTTP request/response handling
+- Caching middleware
+- Date/time parsing for modification checks
+- Header validation
+
+3. Most Related Files:
+Looking at the repository files, these are most relevant to handling If-Modified-Since headers and conditional requests, ordered by importance:
+
+```
+django/utils/http.py
+django/middleware/http.py
+django/views/static.py
+django/utils/cache.py
+django/views/decorators/http.py
+```
+
+These files are most relevant because:
+- django/utils/http.py handles HTTP header parsing and validation
+- django/middleware/http.py contains ConditionalGetMiddleware which processes If-Modified-Since headers
+- django/views/static.py implements static file serving with modification time checks
+- django/utils/cache.py handles HTTP caching headers
+- django/views/decorators/http.py provides decorators for conditional request handling
+
+The core issue likely lies in the header parsing logic in django/utils/http.py or the conditional request handling in django/middleware/http.py.

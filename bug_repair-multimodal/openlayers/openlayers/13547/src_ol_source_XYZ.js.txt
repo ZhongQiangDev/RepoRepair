@@ -1,0 +1,58 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is that the `gutter` option is currently only supported by the TileWMS source, but it should be available to more tile sources like XYZ and DataTile. The gutter (or buffer) is used to prevent tile edge effects when interpolating between tiles.
+
+Looking at the XYZ.js file, I can see that the `gutter` option is not included in the Options typedef or passed to the TileImage constructor in the XYZ class.
+
+## Solution
+
+I need to:
+1. Add the `gutter` option to the Options typedef in XYZ.js
+2. Pass the gutter option to the TileImage constructor
+
+Here's the fix:
+
+```javascript
+### src/ol/source/XYZ.js
+<<<<<<< SEARCH
+ * @property {number} [transition=250] Duration of the opacity transition for rendering.
+ * To disable the opacity transition, pass `transition: 0`.
+ * @property {number|import("../array.js").NearestDirectionFunction} [zDirection=0]
+ * Choose whether to use tiles with a higher or lower zoom level when between integer
+ * zoom levels. See {@link module:ol/tilegrid/TileGrid~TileGrid#getZForResolution}.
+=======
+ * @property {number} [transition=250] Duration of the opacity transition for rendering.
+ * To disable the opacity transition, pass `transition: 0`.
+ * @property {number} [gutter=0] The size in pixels of the gutter around image tiles to ignore.
+ * This allows artifacts of rendering at tile edges to be ignored.
+ * @property {number|import("../array.js").NearestDirectionFunction} [zDirection=0]
+ * Choose whether to use tiles with a higher or lower zoom level when between integer
+ * zoom levels. See {@link module:ol/tilegrid/TileGrid~TileGrid#getZForResolution}.
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/source/XYZ.js
+<<<<<<< SEARCH
+      tileUrlFunction: options.tileUrlFunction,
+      url: options.url,
+      urls: options.urls,
+      wrapX: options.wrapX !== undefined ? options.wrapX : true,
+      transition: options.transition,
+      attributionsCollapsible: options.attributionsCollapsible,
+      zDirection: options.zDirection,
+=======
+      tileUrlFunction: options.tileUrlFunction,
+      url: options.url,
+      urls: options.urls,
+      wrapX: options.wrapX !== undefined ? options.wrapX : true,
+      transition: options.transition,
+      attributionsCollapsible: options.attributionsCollapsible,
+      zDirection: options.zDirection,
+      gutter: options.gutter,
+>>>>>>> REPLACE
+```
+
+This change adds the `gutter` option to the XYZ source's Options typedef documentation and passes it to the TileImage constructor. This will allow users to specify a gutter value for XYZ tile sources, which will help prevent edge effects when interpolating between tiles, as shown in the issue.

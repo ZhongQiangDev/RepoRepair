@@ -1,0 +1,72 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about accessibility violations in skeleton components (Checkbox, NumberInput, Select, Slider, TextArea & TextInput) detected by DAP (Digital Accessibility Platform). Specifically, the components are missing proper labels.
+
+Looking at the Select.Skeleton.js file, I can see that the `id` prop is being passed to the component and used in the `htmlFor` attribute of the label, but it's not defined in the PropTypes. Additionally, the `id` prop is not being passed to the select element itself, which means the label is not properly associated with the form control.
+
+## Fix
+
+```javascript
+### packages/react/src/components/Select/Select.Skeleton.js
+<<<<<<< SEARCH
+const SelectSkeleton = ({ hideLabel, id }) => {
+  const label = hideLabel ? null : (
+    // eslint-disable-next-line jsx-a11y/label-has-for,jsx-a11y/label-has-associated-control
+    <label className={`${prefix}--label ${prefix}--skeleton`} htmlFor={id} />
+  );
+
+  return (
+    <div className={`${prefix}--form-item`}>
+      {label}
+      <div className={`${prefix}--select ${prefix}--skeleton`}>
+        <select className={`${prefix}--select-input`} />
+      </div>
+    </div>
+  );
+};
+
+SelectSkeleton.propTypes = {
+  /**
+   * Specify whether the label should be hidden, or not
+   */
+  hideLabel: PropTypes.bool,
+};
+=======
+const SelectSkeleton = ({ hideLabel, id }) => {
+  const label = hideLabel ? null : (
+    <label className={`${prefix}--label ${prefix}--skeleton`} htmlFor={id} />
+  );
+
+  return (
+    <div className={`${prefix}--form-item`}>
+      {label}
+      <div className={`${prefix}--select ${prefix}--skeleton`}>
+        <select className={`${prefix}--select-input`} id={id} />
+      </div>
+    </div>
+  );
+};
+
+SelectSkeleton.propTypes = {
+  /**
+   * Specify whether the label should be hidden, or not
+   */
+  hideLabel: PropTypes.bool,
+  
+  /**
+   * The ID for the select element
+   */
+  id: PropTypes.string,
+};
+>>>>>>> REPLACE
+```
+
+This fix makes the following changes:
+
+1. Adds the `id` prop to the select element, which properly associates the label with the form control
+2. Adds the `id` prop to the PropTypes definition with appropriate documentation
+3. Removes the eslint-disable comment since we're now properly associating the label with the control
+
+These changes will resolve the accessibility violation by ensuring the label is properly associated with the form control.

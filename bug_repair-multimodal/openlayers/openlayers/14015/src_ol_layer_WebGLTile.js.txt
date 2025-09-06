@@ -1,0 +1,92 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when `setSource()` is called or the view projection is changed, the WebGL tile layer continues to use cached textures from the previous source or projection. This happens because the tile cache isn't properly invalidated when these changes occur.
+
+Looking at the code, I can see that the `WebGLTileLayer` class keeps track of the rendered source in `renderedSource_` property, but it doesn't properly reset the cache in the renderer when the source changes or when the projection changes.
+
+The bug is in the `WebGLTileLayer` class. When the source changes (via `setSource()`) or when the view projection changes, the renderer's cache needs to be cleared to prevent displaying outdated tiles.
+
+## Fix
+
+We need to modify the `handleSourceUpdate_` method to reset the renderer when the source changes. Additionally, we need to track the view projection and reset the renderer when it changes.
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+  /**
+   * @private
+   */
+  handleSourceUpdate_() {
+    if (this.getSource()) {
+      this.setStyle(this.style_);
+    }
+  }
+=======
+  /**
+   * @private
+   */
+  handleSourceUpdate_() {
+    if (this.getSource()) {
+      const renderer = this.getRenderer();
+      if (renderer) {
+        renderer.clearCache();
+      }
+      this.setStyle(this.style_);
+    }
+  }
+>>>>>>> REPLACE
+```
+
+Additionally, we need to track the view projection and reset the renderer when it changes. Let's modify the `render` method to check for projection changes:
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+  /**
+   * @param {?import("../Map.js").FrameState} frameState Frame state.
+   * @param {HTMLElement} target Target which the renderer may (but need not) use
+   * for rendering its content.
+   * @return {HTMLElement} The rendered element.
+   */
+  render(frameState, target) {
+    this.rendered = true;
+    const viewState = frameState.viewState;
+    const sources = this.getSources(frameState.extent, viewState.resolution);
+=======
+  /**
+   * @type {string|undefined}
+   * @private
+   */
+  renderedProjection_;
+
+  /**
+   * @param {?import("../Map.js").FrameState} frameState Frame state.
+   * @param {HTMLElement} target Target which the renderer may (but need not) use
+   * for rendering its content.
+   * @return {HTMLElement} The rendered element.
+   */
+  render(frameState, target) {
+    this.rendered = true;
+    const viewState = frameState.viewState;
+    
+    // Check if projection has changed
+    const currentProjection = viewState.projection.getCode();
+    if (this.renderedProjection_ && this.renderedProjection_ !== currentProjection) {
+      const renderer = this.getRenderer();
+      if (renderer) {
+        renderer.clearCache();
+      }
+    }
+    this.renderedProjection_ = currentProjection;
+    
+    const sources = this.getSources(frameState.extent, viewState.resolution);
+>>>>>>> REPLACE
+```
+
+These changes will ensure that:
+1. When the source is changed via `setSource()`, the renderer's cache is cleared
+2. When the view projection changes, the renderer's cache is also cleared
+
+This should fix the issue where incorrect cached textures are being used after source changes or projection changes.

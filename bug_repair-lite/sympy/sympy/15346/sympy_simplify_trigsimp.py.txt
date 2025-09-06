@@ -1,0 +1,49 @@
+Based on the issue description, the problem appears to be that trigonometric simplification is not working properly for rational number arguments. Specifically, expressions like `sin(Rational(1,50))*sin(Rational(1,25)) + cos(Rational(1,50))*cos(Rational(1,25))` are not being simplified to `cos(Rational(1,50) - Rational(1,25))`.
+
+Looking at the code in sympy/simplify/trigsimp.py, the issue seems to be in the `_trigsimp` function where it's not properly handling rational number arguments in trigonometric expressions. The function needs to be modified to handle rational numbers in the same way it handles symbolic expressions.
+
+Here's the proposed fix:
+
+```python
+### sympy/simplify/trigsimp.py
+<<<<<<< SEARCH
+def _trigsimp(expr, deep=False):
+    # protect the cache from non-trig patterns; we only allow
+    # trig patterns to enter the cache
+    if expr.has(*_trigs):
+        return __trigsimp(expr, deep)
+    return expr
+=======
+def _trigsimp(expr, deep=False):
+    # protect the cache from non-trig patterns; we only allow
+    # trig patterns to enter the cache
+    if expr.has(*_trigs):
+        # Convert rational numbers in trig arguments to symbols temporarily
+        from sympy import Symbol, solve
+        subs_dict = {}
+        for func in expr.atoms(*_trigs):
+            if func.args[0].is_Rational:
+                sym = Symbol('_temp_%s' % len(subs_dict))
+                subs_dict[sym] = func.args[0]
+                expr = expr.subs(func.args[0], sym)
+        
+        # Perform simplification
+        result = __trigsimp(expr, deep)
+        
+        # Substitute back the rational numbers
+        for sym, val in subs_dict.items():
+            result = result.subs(sym, val)
+        return result
+    return expr
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Temporarily converts rational numbers in trigonometric arguments to symbols
+2. Performs the normal trigonometric simplification
+3. Substitutes the original rational numbers back
+
+This allows the simplification rules to work on the symbolic form first, which has better support for trigonometric identities, and then restores the rational numbers afterward. This should enable simplifications like `cos(x-y)` to work even when x and y are rational numbers.
+
+The fix preserves the existing behavior for purely symbolic expressions while adding support for rational number arguments. It should resolve the issue shown in the example where `sin(1/50)*sin(1/25) + cos(1/50)*cos(1/25)` wasn't being simplified to `cos(1/50 - 1/25)`.

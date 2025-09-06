@@ -1,0 +1,63 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about associations not updating their parent correctly when their source/target elements are moved to a new parent. As shown in the GIF, when moving source and target elements out of a subprocess, the association's parent remains the subprocess. This causes the association to be deleted when the subprocess is deleted, which is incorrect behavior.
+
+Looking at the code, I can see that the `updateParent` method in `BpmnUpdater.js` handles updating the parent of elements when they're moved. It has special handling for `DataInputAssociation` and `DataOutputAssociation`, but it doesn't handle regular associations (`bpmn:Association`).
+
+## Bug Fix
+
+We need to add handling for regular associations in the `updateParent` method, similar to how it's done for data associations. When an association is moved, its parent should be updated based on its source or target elements.
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+  if (is(element, 'bpmn:DataInputAssociation')) {
+    if (element.target) {
+      parentBusinessObject = element.target.businessObject;
+    } else {
+      parentBusinessObject = null;
+    }
+  }
+=======
+  if (is(element, 'bpmn:DataInputAssociation')) {
+    if (element.target) {
+      parentBusinessObject = element.target.businessObject;
+    } else {
+      parentBusinessObject = null;
+    }
+  }
+
+  if (is(element, 'bpmn:Association')) {
+    if (element.source) {
+      parentBusinessObject = element.source.businessObject;
+    } else if (element.target) {
+      parentBusinessObject = element.target.businessObject;
+    } else {
+      parentBusinessObject = null;
+    }
+  }
+>>>>>>> REPLACE
+```
+
+Additionally, we need to update the `updateSemanticParent` method to handle associations properly:
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+  if (is(businessObject, 'bpmn:DataInputAssociation')) {
+    containment = 'dataInputAssociations';
+  }
+=======
+  if (is(businessObject, 'bpmn:DataInputAssociation')) {
+    containment = 'dataInputAssociations';
+  } else
+
+  if (is(businessObject, 'bpmn:Association')) {
+    containment = 'artifacts';
+  }
+>>>>>>> REPLACE
+```
+
+These changes will ensure that when an association's source or target is moved to a new parent, the association itself will also be moved to the appropriate parent. This prevents the issue where deleting the old parent would delete the association.

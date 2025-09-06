@@ -1,0 +1,45 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when the date picker calendar is opened by clicking on the calendar icon, keyboard navigation doesn't work properly. However, when opened by clicking on the input field, keyboard navigation works fine.
+
+Looking at the code, I can see that the problem is in the `openCalendar` method. When the calendar is opened by clicking on the calendar icon, it calls `this.cal.open()` but doesn't set focus to any element inside the calendar. In contrast, when clicking on the input field, the flatpickr library's default behavior handles focus correctly.
+
+## Solution
+
+We need to modify the `openCalendar` method to not only open the calendar but also set focus to an appropriate element inside the calendar after it's opened. This will ensure keyboard navigation works regardless of how the calendar is opened.
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/DatePicker/DatePicker.js
+<<<<<<< SEARCH
+  openCalendar = () => {
+    if (this.cal) {
+      this.cal.open();
+    }
+  };
+=======
+  openCalendar = () => {
+    if (this.cal) {
+      this.cal.open();
+      // Set focus to an appropriate element in the calendar to enable keyboard navigation
+      const { calendarContainer, selectedDateElem, todayDateElem } = this.cal;
+      setTimeout(() => {
+        const elementToFocus =
+          (selectedDateElem && calendarContainer.querySelector('.selected')) ||
+          (todayDateElem && calendarContainer.querySelector('.today')) ||
+          calendarContainer.querySelector('.flatpickr-day[tabindex]') ||
+          calendarContainer;
+        
+        if (elementToFocus) {
+          elementToFocus.focus();
+        }
+      }, 0);
+    }
+  };
+>>>>>>> REPLACE
+```
+
+This fix adds a `setTimeout` to ensure the calendar is fully opened before attempting to focus an element. It tries to focus on the selected date if available, otherwise the current date, or any day with a tabindex, or finally the calendar container itself. This ensures keyboard navigation will work properly when the calendar is opened by clicking the calendar icon.

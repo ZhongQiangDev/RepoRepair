@@ -1,0 +1,29 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When using `bulk_create` with `update_conflicts=True`, the primary keys (IDs) are not returned in the resulting queryset
+- The SQL query generated lacks the `RETURNING my_model.id` clause, which would return the IDs
+
+2. Cause Analysis:
+- The issue stems from the query generation logic in Django's ORM
+- The `returning_fields` get removed even when using `update_conflicts=True`
+- While this makes sense for `ignore_conflicts` (as PostgreSQL won't return IDs for ignored rows), it's unnecessary for `update_conflicts`
+- The core issue appears to be in the PostgreSQL backend's query generation and bulk operation handling
+
+3. Most Related Files:
+```
+django/db/models/query.py
+django/db/backends/postgresql/base.py
+django/db/backends/base/base.py
+django/db/models/fields/related.py
+django/db/backends/postgresql/operations.py
+```
+
+These files are ordered by importance because:
+1. `query.py` contains the core QuerySet implementation including bulk operations
+2. `postgresql/base.py` handles PostgreSQL-specific query generation and execution
+3. `base/base.py` provides the foundational database wrapper functionality
+4. `fields/related.py` handles field relationships which may affect bulk operations
+5. `postgresql/operations.py` contains PostgreSQL-specific operations that could influence query generation
+
+The fix would likely need to modify the query generation logic to retain the `RETURNING` clause when `update_conflicts=True` is specified.

@@ -1,0 +1,37 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when using an `ol/style/Icon` with `displacement` set, the icon gets clipped. Looking at the code, I can see that the problem is in the `getOrigin()` method of the `Icon` class.
+
+The issue occurs because the displacement is being added to the origin calculation, but the canvas rendering doesn't account for this displacement when determining the size of the area to render. This causes the icon to be clipped when it's displaced outside the original bounds.
+
+In the `getOrigin()` method, the displacement is added to the offset:
+
+```javascript
+offset[0] += displacement[0];
+offset[1] += displacement[1];
+```
+
+This shifts the origin of the icon, but doesn't adjust the rendering area to accommodate the displacement.
+
+## Fix
+
+The fix is to modify the `getOrigin()` method to not add the displacement to the origin. Instead, the displacement should be handled separately in the rendering process. This is consistent with how the parent `ImageStyle` class handles displacement.
+
+Here's the fix:
+
+```javascript
+### src/ol/style/Icon.js
+<<<<<<< SEARCH
+    offset[0] += displacement[0];
+    offset[1] += displacement[1];
+    this.origin_ = offset;
+    return this.origin_;
+=======
+    this.origin_ = offset;
+    return this.origin_;
+>>>>>>> REPLACE
+```
+
+This change removes the lines that add the displacement to the offset. The displacement is already handled properly by the parent `ImageStyle` class and its rendering logic, so we don't need to modify the origin based on displacement. This will prevent the icon from being clipped when displacement is used.

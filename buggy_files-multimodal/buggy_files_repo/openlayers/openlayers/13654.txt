@@ -1,0 +1,55 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## Identifying the Wrong Behavior
+The user is trying to show a UTM COG (Cloud Optimized GeoTIFF) on an EPSG:3857 or EPSG:4326 map, but nothing shows up for the COG layer, while OSM and fitting the view to the COG extent works. This suggests a reprojection issue - the COG is in UTM (EPSG:32636) but isn't being properly reprojected to the map's projection.
+
+## Analyzing the Cause
+Looking at the code example:
+1. The user correctly registers the UTM projection (EPSG:32636) using proj4
+2. They create a GeoTIFF source with a UTM-projected COG
+3. They create a map with EPSG:4326 projection
+4. The code successfully fits to the COG extent (after transforming coordinates)
+5. But the WebGLTile layer doesn't display the COG
+
+The key issue is that the WebGLTile layer doesn't appear to support automatic reprojection of source data. The user commented out the line `//projection: cogProj` in the GeoTIFF source, which would have specified the source projection. Even with this line uncommented, the WebGLTile layer doesn't seem to handle reprojection properly.
+
+## Files Most Related to the Cause
+
+```
+src/ol/layer/WebGLTile.js
+src/ol/source/GeoTIFF.js
+src/ol/reproj.js
+src/ol/source/DataTile.js
+src/ol/renderer/webgl/TileLayer.js
+```
+
+The WebGLTile layer implementation is the primary file that needs to be modified to support reprojection of tile data from one projection to another. The GeoTIFF source provides the data that needs to be reprojected, while the reproj.js file contains the core reprojection functionality. DataTile.js is the base class for tile data sources that WebGLTile would need to work with during reprojection, and the WebGL TileLayer renderer would need to handle the reprojected tiles correctly.
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## 1. Identifying the Wrong Behavior
+
+The user is trying to display a UTM (EPSG:32636) Cloud Optimized GeoTIFF (COG) on a map with EPSG:4326 projection, but the COG doesn't show up. The OSM base layer displays correctly, and the map correctly zooms to the COG's extent, but the COG itself is not visible.
+
+## 2. Analyzing the Cause
+
+The issue appears to be related to projection handling in the WebGLTile layer. The user has correctly:
+- Defined the UTM projection (EPSG:32636) using proj4
+- Registered it with OpenLayers
+- Set the map view to EPSG:4326
+- Attempted to load a COG in EPSG:32636
+
+The problem is that the WebGLTile layer doesn't seem to be automatically reprojecting the source data from EPSG:32636 to EPSG:4326. The user commented out the line `projection: cogProj` in the source definition, which suggests they were trying different approaches.
+
+## 3. Files Most Related to the Cause
+
+Based on the repository information, the most relevant files for fixing this issue are:
+
+```
+src/ol/source/GeoTIFF.js
+src/ol/layer/WebGLTile.js
+src/ol/source/TileImage.js
+src/ol/source/Source.js
+src/ol/tilegrid/TileGrid.js
+```
+
+The issue is most likely in the GeoTIFF source implementation or the WebGLTile layer's handling of reprojection. The TileImage.js file is important because it contains reprojection logic for tile sources. Source.js provides the base functionality for all sources, and TileGrid.js handles coordinate transformations between different projections.

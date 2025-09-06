@@ -1,0 +1,62 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about Lighthouse reporting that an image could be optimized from 54KB to 53KB. Looking at the screenshot, Lighthouse is suggesting a potential saving of 53KB for a spritesheet image.
+
+The problem appears to be in the `ImageElements` gatherer, specifically in how it determines which images to consider for optimization. The current code has a heuristic to filter out sprite sheets, but it seems to be ineffective in this case.
+
+Looking at the code, there's a section that attempts to filter out sprite sheets:
+
+```javascript
+// Heuristic to filter out sprite sheets
+const differentImages = images.filter(image => image.src !== url);
+if (images.length - differentImages.length > 2) {
+  return differentImages;
+}
+```
+
+This heuristic is checking if the same URL appears more than 2 times in the images array, and if so, it filters out those images. However, this approach has a flaw - it's removing all instances of the sprite sheet from consideration rather than just recognizing it as a sprite sheet and handling it appropriately.
+
+## Fix
+
+The fix is to modify the sprite sheet detection logic. Instead of completely filtering out sprite sheets, we should mark them as such and handle them differently in the optimization recommendations.
+
+```javascript
+### lighthouse-core/gather/gatherers/image-elements.js
+<<<<<<< SEARCH
+    // Heuristic to filter out sprite sheets
+    const differentImages = images.filter(image => image.src !== url);
+    if (images.length - differentImages.length > 2) {
+      return differentImages;
+    }
+=======
+    // Check if this might be a sprite sheet
+    const sameImageCount = images.filter(image => image.src === url).length;
+    if (sameImageCount >= 2) {
+      // This is likely a sprite sheet, mark it as such but still include it
+      const isSpriteSheet = true;
+      images.push({
+        src: url,
+        displayedWidth: element.clientWidth,
+        displayedHeight: element.clientHeight,
+        clientRect: getClientRect(element),
+        naturalWidth: 0,
+        naturalHeight: 0,
+        isCss: true,
+        isPicture: false,
+        usesObjectFit: false,
+        resourceSize: 0, // this will get overwritten below
+        isSpriteSheet
+      });
+      return images;
+    }
+>>>>>>> REPLACE
+```
+
+This change modifies the sprite sheet detection logic to:
+1. Count how many times the same image URL appears
+2. If it appears 2 or more times, mark it as a sprite sheet by adding an `isSpriteSheet` property
+3. Still include the image in the results so it can be properly analyzed
+
+This way, downstream audits can check the `isSpriteSheet` property and adjust their recommendations accordingly, potentially avoiding suggesting optimizations for sprite sheets that might not be beneficial or could break functionality.

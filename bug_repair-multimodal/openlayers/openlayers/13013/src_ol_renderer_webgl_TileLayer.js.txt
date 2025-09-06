@@ -1,0 +1,50 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about black tiles appearing when using `WebGLTileLayer` with `DataTileSource` and a custom tile grid. The error message indicates a texture upload problem:
+
+```
+WebGL warning: texImage: Desired upload requires more data than is available: (767 rows plus 770 pixels needed, 767 rows plus 258 pixels available)
+```
+
+This suggests there's a mismatch between the expected texture size and the actual data available. Looking at the code, the issue is likely in the `WebGLTileLayerRenderer` class where it handles texture loading and rendering.
+
+The problem appears to be that the renderer is not correctly handling the tile dimensions when creating textures. The error message shows that it's trying to upload more data than is available (770 pixels needed, but only 258 pixels available).
+
+## Fix
+
+The issue is in the `TileTexture` class which is imported but not shown in the provided code. However, we can see that the renderer is setting uniform values for texture dimensions in the `renderFrame` method:
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+        this.helper.setUniformFloatValue(
+          Uniforms.TEXTURE_PIXEL_WIDTH,
+          tileSize[0]
+        );
+        this.helper.setUniformFloatValue(
+          Uniforms.TEXTURE_PIXEL_HEIGHT,
+          tileSize[1]
+        );
+=======
+        // Use the actual texture dimensions from the tile texture
+        // instead of the tile grid's tile size
+        this.helper.setUniformFloatValue(
+          Uniforms.TEXTURE_PIXEL_WIDTH,
+          tileTexture.getWidth()
+        );
+        this.helper.setUniformFloatValue(
+          Uniforms.TEXTURE_PIXEL_HEIGHT,
+          tileTexture.getHeight()
+        );
+>>>>>>> REPLACE
+```
+
+This fix assumes that the `TileTexture` class has methods `getWidth()` and `getHeight()` that return the actual dimensions of the texture. If these methods don't exist, we would need to add them to the `TileTexture` class.
+
+The problem is that the renderer is using the tile grid's tile size for the texture dimensions, but the actual texture might have different dimensions. This is especially true for custom tile grids where the tile sizes might not match the actual data.
+
+If the `TileTexture` class doesn't have these methods, we would need to modify that class as well. However, since that file isn't provided, I'm assuming these methods exist or can be added.
+
+This fix ensures that the renderer uses the actual texture dimensions rather than the tile grid's tile size, which should resolve the issue with black tiles and the WebGL warning.

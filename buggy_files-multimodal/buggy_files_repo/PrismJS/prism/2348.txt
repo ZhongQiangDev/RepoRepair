@@ -1,0 +1,27 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the C++ code highlighting issue.
+
+## 1. Identifying the Wrong Behavior
+The issue is that PrismJS doesn't properly highlight class names in C++ code in two specific cases:
+1. When a class name appears after `public` in an inheritance declaration: `class MainWindow : public QMainWindow`
+2. When a class name appears before `::` in a method definition: `void MainWindow::changeWindowTitle()`
+
+In both cases, `MainWindow` is highlighted as a class name, but `QMainWindow` is not highlighted in the first case, and `MainWindow` is not highlighted in the second case when it appears before the scope resolution operator `::`.
+
+## 2. Analyzing the Cause
+This is likely due to incomplete regex patterns in the C++ language definition for PrismJS. The current implementation probably:
+- Recognizes class names in class declarations but not in inheritance lists
+- Doesn't recognize class names when they appear before the scope resolution operator (`::`)
+
+These are common patterns in C++ that need specific regex rules to be properly highlighted.
+
+## 3. Files Most Related to the Cause
+Looking at the repository information, I need to find the file that defines C++ syntax highlighting rules. Since this is a PrismJS issue, the most relevant files would be:
+
+```
+components/prism-cpp.js
+components/prism-c.js
+components/prism-clike.js
+prism.js
+```
+
+The most important file would be `components/prism-cpp.js` which would contain the C++ specific language definition. If it doesn't exist in the provided repository information, then the issue would need to be fixed in `prism.js` or potentially in `components/prism-clike.js` which would serve as the base for C-like languages including C++.

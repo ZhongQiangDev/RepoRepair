@@ -1,0 +1,173 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, there are two related problems:
+1. When completing direct editing with an empty label, elements are resized to minimum bounds
+2. Events and gateways become smaller or disappear when clicked
+
+Looking at the code, I can see that the issue is in the `LabelBehavior.js` file. The problem appears to be related to the missing implementation of several helper functions that are declared but not defined in the file. Specifically, the functions `getReferencePointDelta`, `getReferencePoint`, and `asEdges` are referenced but not implemented.
+
+The bug was introduced in commit e4e789bd3eecc47597d97d6c8f1e71b941dee066, which likely removed or modified these helper functions.
+
+Here's my fix:
+
+```javascript
+### lib/features/modeling/behavior/LabelBehavior.js
+<<<<<<< SEARCH
+/**
+ * Calculates a reference point delta relative to a new position
+ * of a certain element's bounds
+ *
+ * @param {Point} point
+ * @param {Bounds} oldBounds
+ * @param {Bounds} newBounds
+ *
+ * @return {Delta} delta
+ */
+
+
+/**
+ * Generates the nearest point (reference point) for a given point
+ * onto given set of lines
+ *
+ * @param {Array<Point, Point>} lines
+ * @param {Point} point
+ *
+ * @param {Point}
+ */
+
+
+/**
+ * Convert the given bounds to a lines array containing all edges
+ *
+ * @param {Bounds|Point} bounds
+ *
+ * @return Array<Point>
+ */
+
+
+/**
+ * Returns the nearest line for a given point by distance
+ * @param {Point} point
+ * @param Array<Point> lines
+ *
+ * @return Array<Point>
+ */
+
+=======
+/**
+ * Calculates a reference point delta relative to a new position
+ * of a certain element's bounds
+ *
+ * @param {Point} point
+ * @param {Bounds} oldBounds
+ * @param {Bounds} newBounds
+ *
+ * @return {Delta} delta
+ */
+function getReferencePointDelta(referencePoint, oldBounds, newBounds) {
+
+  var oldReferencePointDistance = getDistancePointLine(
+    referencePoint,
+    { x: oldBounds.x, y: oldBounds.y },
+    { x: oldBounds.x + oldBounds.width, y: oldBounds.y }
+  );
+
+  var newReferencePoint = {};
+
+  if (oldReferencePointDistance < 5) {
+    newReferencePoint.x = newBounds.x;
+    newReferencePoint.y = referencePoint.y;
+  } else {
+    oldReferencePointDistance = getDistancePointLine(
+      referencePoint,
+      { x: oldBounds.x, y: oldBounds.y },
+      { x: oldBounds.x, y: oldBounds.y + oldBounds.height }
+    );
+
+    if (oldReferencePointDistance < 5) {
+      newReferencePoint.x = referencePoint.x;
+      newReferencePoint.y = newBounds.y;
+    } else {
+      oldReferencePointDistance = getDistancePointLine(
+        referencePoint,
+        { x: oldBounds.x, y: oldBounds.y + oldBounds.height },
+        { x: oldBounds.x + oldBounds.width, y: oldBounds.y + oldBounds.height }
+      );
+
+      if (oldReferencePointDistance < 5) {
+        newReferencePoint.x = newBounds.x;
+        newReferencePoint.y = referencePoint.y;
+      } else {
+        newReferencePoint.x = referencePoint.x;
+        newReferencePoint.y = newBounds.y;
+      }
+    }
+  }
+
+  return delta(newReferencePoint, referencePoint);
+}
+
+/**
+ * Generates the nearest point (reference point) for a given point
+ * onto given set of edges
+ *
+ * @param {Point} point
+ * @param {Array<Point>} edges
+ *
+ * @return {Point}
+ */
+function getReferencePoint(point, edges) {
+
+  if (!edges) {
+    return;
+  }
+
+  var nearestLine = getNearestLine(point, edges);
+
+  return perpendicularFoot(point, nearestLine);
+}
+
+/**
+ * Convert the given bounds to a lines array containing all edges
+ *
+ * @param {Bounds|Point} bounds
+ *
+ * @return {Array<Point>}
+ */
+function asEdges(bounds) {
+  return [
+    // top
+    { start: { x: bounds.x, y: bounds.y }, end: { x: bounds.x + bounds.width, y: bounds.y } },
+    // right
+    { start: { x: bounds.x + bounds.width, y: bounds.y }, end: { x: bounds.x + bounds.width, y: bounds.y + bounds.height } },
+    // bottom
+    { start: { x: bounds.x, y: bounds.y + bounds.height }, end: { x: bounds.x + bounds.width, y: bounds.y + bounds.height } },
+    // left
+    { start: { x: bounds.x, y: bounds.y }, end: { x: bounds.x, y: bounds.y + bounds.height } }
+  ];
+}
+
+/**
+ * Returns the nearest line for a given point by distance
+ * @param {Point} point
+ * @param {Array<Point>} lines
+ *
+ * @return {Array<Point>}
+ */
+function getNearestLine(point, lines) {
+  var distances = lines.map(function(l) {
+    return {
+      line: l,
+      distance: getDistancePointLine(point, l.start, l.end)
+    };
+  });
+
+  var sorted = sortBy(distances, 'distance');
+
+  return sorted[0].line;
+}
+
+>>>>>>> REPLACE
+```
+
+This fix restores the missing helper functions that were likely removed in the commit mentioned in the issue. These functions are essential for properly handling label positioning when elements are resized or selected, which explains why events and gateways were becoming smaller or disappearing when clicked.

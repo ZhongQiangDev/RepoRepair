@@ -1,0 +1,60 @@
+Based on the issue description, the bug is in the `__eq__` method of the `Expr` class where it attempts to evaluate reprs by passing them through `sympify()`, which can lead to unsafe eval of arbitrary strings.
+
+The fix is to modify the `__eq__` method to avoid evaluating unknown objects' reprs. Here's the edit:
+
+```python
+### sympy/core/expr.py
+<<<<<<< SEARCH
+    def __eq__(self, other):
+        try:
+            other = sympify(other)
+            if not isinstance(other, Expr):
+                return False
+        except (SympifyError, SyntaxError):
+            return False
+        # check for pure number expr
+        if  not (self.is_Number and other.is_Number) and (
+                type(self) != type(other)):
+            return False
+        a, b = self._hashable_content(), other._hashable_content()
+        if a != b:
+            return False
+        # check number *in* an expression
+        for a, b in zip(a, b):
+            if not isinstance(a, Expr):
+                continue
+            if a.is_Number and type(a) != type(b):
+                return False
+        return True
+=======
+    def __eq__(self, other):
+        # Don't attempt to sympify unknown objects since their repr 
+        # could be malicious
+        if not isinstance(other, Basic):
+            return False
+        if not isinstance(other, Expr):
+            return False
+        # check for pure number expr
+        if not (self.is_Number and other.is_Number) and (
+                type(self) != type(other)):
+            return False
+        a, b = self._hashable_content(), other._hashable_content()
+        if a != b:
+            return False
+        # check number *in* an expression
+        for a, b in zip(a, b):
+            if not isinstance(a, Expr):
+                continue
+            if a.is_Number and type(a) != type(b):
+                return False
+        return True
+>>>>>>> REPLACE
+```
+
+This change:
+
+1. Removes the unsafe `sympify()` call that could evaluate arbitrary strings
+2. Adds a type check to only compare against Basic/Expr objects
+3. Maintains the same equality comparison logic for valid SymPy expressions
+
+The fix prevents the security issue by avoiding evaluation of unknown objects' string representations while preserving the intended equality comparison behavior for valid SymPy expressions.

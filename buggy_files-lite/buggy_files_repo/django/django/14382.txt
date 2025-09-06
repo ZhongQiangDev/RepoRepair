@@ -1,0 +1,29 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When using bash tab-completion, directory names get a trailing slash appended
+- Running `django-admin startapp name directory/` results in an error claiming the directory is not valid
+- The error message states: "'' is not a valid app directory"
+
+2. Cause Analysis:
+- The issue occurs in django/core/management/templates.py line 77
+- The code calls `os.path.basename()` on the target path without handling trailing slashes
+- When a path ends with a slash, `basename()` returns an empty string
+- This empty string is then passed to `validate_name()` which fails validation
+- The fix would be to strip trailing slashes before calling `basename()`
+
+3. Most Related Files:
+```
+django/core/management/templates.py
+django/core/management/commands/startapp.py
+django/core/management/base.py
+django/core/management/utils.py
+django/core/checks/urls.py
+```
+
+Rationale for file selection:
+- templates.py is the primary file containing the bug in the template command base class
+- startapp.py inherits from TemplateCommand and is where the actual command is implemented
+- base.py contains core command functionality that both above files depend on
+- utils.py contains helper functions used by the management commands
+- checks/urls.py contains URL-related validation that may be relevant for path handling

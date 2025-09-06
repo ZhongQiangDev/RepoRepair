@@ -1,0 +1,44 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when a group is created inside a collapsed sub-process and the diagram is saved, upon re-importing the diagram, a warning appears stating `unresolved reference <CategoryValue_01k5toe>`. This indicates that the BPMN export process is not correctly handling the group elements within collapsed sub-processes, leading to unresolved references during re-import.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from how the BPMN exporter handles the creation and management of `bpmn:CategoryValue` elements when groups are added inside collapsed sub-processes. When a group is created, a corresponding `bpmn:CategoryValue` is generated and linked to the group. However, when the sub-process is collapsed, the exporter might not properly serialize this relationship, leading to the `CategoryValue` being lost or improperly referenced in the exported BPMN file. Upon re-import, the system cannot resolve the reference to the missing `CategoryValue`, resulting in the warning.
+
+### 3. Examine Each File One by One
+
+#### --- lib/features/modeling/behavior/GroupBehavior.js ---
+```
+lib/features/modeling/behavior/GroupBehavior.js
+function: GroupBehavior
+```
+The `GroupBehavior` function is responsible for handling the lifecycle of BPMN group elements, including creating and deleting groups. It includes methods for managing `bpmn:CategoryValue` elements associated with groups. This function is directly related to the issue since it handles the creation and deletion of groups and their associated category values.
+
+#### --- lib/features/modeling/behavior/util/CategoryUtil.js ---
+```
+lib/features/modeling/behavior/util/CategoryUtil.js
+function: createCategoryValue
+```
+The `createCategoryValue` function is responsible for creating `bpmn:CategoryValue` elements and encapsulating them within `bpmn:Category`. This function is relevant because it is involved in the creation of category values that may be improperly handled when groups are created inside collapsed sub-processes.
+
+#### --- lib/features/modeling/cmd/UpdateModdlePropertiesHandler.js ---
+```
+This file contains no relevant functions/classes.
+```
+The functions in this file are related to updating properties of moddle elements and do not directly handle the creation or management of groups or category values.
+
+#### --- lib/import/BpmnImporter.js ---
+```
+lib/import/BpmnImporter.js
+function: BpmnImporter
+function: function_12
+function: function_9
+```
+The `BpmnImporter` function initializes the BPMN importer and manages the import process. The `function_12` retrieves BPMN elements from the registry, which could be relevant if the issue involves retrieving or referencing elements during import. The `function_9` handles querying connection ends, which might be indirectly related if the issue involves connections within the sub-process.
+
+#### --- lib/import/BpmnTreeWalker.js ---
+```
+This file contains no relevant functions/classes.
+```
+The `BpmnTreeWalker` function is responsible for traversing and processing BPMN elements during import. While it is part of the import process, it does not directly handle the creation or management of groups or category values.

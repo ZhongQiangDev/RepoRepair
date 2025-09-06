@@ -1,0 +1,34 @@
+Based on the issue, we need to add a `rewrite` method to the `sign` class to allow rewriting sign in terms of Abs. The issue also mentions handling the case of zero arguments, but since the current behavior of `sign(0) = 0` seems reasonable and consistent with mathematical conventions, we'll keep that behavior.
+
+The bug fix requires adding a new method to the `sign` class. Here's the edit:
+
+```python
+### sympy/functions/elementary/complexes.py
+<<<<<<< SEARCH
+    def _eval_simplify(self, **kwargs):
+        return self.func(self.args[0].factor())  # XXX include doit?
+
+
+class Abs(Function):
+=======
+    def _eval_simplify(self, **kwargs):
+        return self.func(self.args[0].factor())  # XXX include doit?
+
+    def _eval_rewrite_as_Abs(self, arg, **kwargs):
+        if arg.is_zero:
+            return S.Zero
+        return arg/Abs(arg)
+
+
+class Abs(Function):
+>>>>>>> REPLACE
+```
+
+This edit adds the `_eval_rewrite_as_Abs` method to the `sign` class, which:
+
+1. Handles the zero case by returning 0 (consistent with current behavior)
+2. For non-zero arguments, returns the expression `arg/Abs(arg)` which matches the mathematical definition of sign
+
+This allows expressions like `sign(x).rewrite(Abs)` to work as requested in the issue. The method follows SymPy's convention for rewrite methods and maintains the current behavior for zero arguments.
+
+The placement is right before the `Abs` class definition to keep it with the other `sign` class methods.

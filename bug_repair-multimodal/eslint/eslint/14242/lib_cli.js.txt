@@ -1,0 +1,59 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when using `--max-warnings` in combination with `--quiet`, the warnings are filtered out by the quiet mode before checking if the number of warnings exceeds the maximum allowed. This makes the `--max-warnings` option ineffective when used with `--quiet`.
+
+Looking at the code, I can see that in the `execute` method of the CLI object:
+
+1. First, the results are obtained from linting
+2. Then, if `options.quiet` is true, the results are filtered to only include errors using `ESLint.getErrorResults(results)`
+3. After that, the code checks if there are too many warnings using the filtered results
+
+The bug is that by filtering out warnings before checking the max-warnings threshold, we lose the ability to enforce the maximum warnings limit.
+
+## Fix
+
+The solution is to check for too many warnings before applying the quiet filter. This way, we can still enforce the maximum warnings limit even when quiet mode is enabled.
+
+```javascript
+### lib/cli.js
+<<<<<<< SEARCH
+        if (options.quiet) {
+            debug("Quiet mode enabled - filtering out warnings");
+            results = ESLint.getErrorResults(results);
+        }
+
+        if (await printResults(engine, results, options.format, options.outputFile)) {
+            const { errorCount, warningCount } = countErrors(results);
+            const tooManyWarnings =
+                options.maxWarnings >= 0 && warningCount > options.maxWarnings;
+
+            if (!errorCount && tooManyWarnings) {
+                log.error(
+                    "ESLint found too many warnings (maximum: %s).",
+                    options.maxWarnings
+                );
+            }
+=======
+        // Check for too many warnings before filtering out warnings in quiet mode
+        const { errorCount, warningCount } = countErrors(results);
+        const tooManyWarnings =
+            options.maxWarnings >= 0 && warningCount > options.maxWarnings;
+
+        if (options.quiet) {
+            debug("Quiet mode enabled - filtering out warnings");
+            results = ESLint.getErrorResults(results);
+        }
+
+        if (await printResults(engine, results, options.format, options.outputFile)) {
+            if (!errorCount && tooManyWarnings) {
+                log.error(
+                    "ESLint found too many warnings (maximum: %s).",
+                    options.maxWarnings
+                );
+            }
+>>>>>>> REPLACE
+```
+
+This fix ensures that we count the warnings before filtering them out in quiet mode, allowing the `--max-warnings` option to work correctly even when used with `--quiet`.

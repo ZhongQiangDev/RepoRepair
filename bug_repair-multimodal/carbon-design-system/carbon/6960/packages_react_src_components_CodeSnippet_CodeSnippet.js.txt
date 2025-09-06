@@ -1,0 +1,252 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is that the CodeSnippet component doesn't support text wrapping for long lines of text. According to the screenshot and description, when a user has a long single line of text (like a CRN - Cloud Resource Name), it doesn't wrap even when using `type="multi"`.
+
+Looking at the code, there's no CSS property or class that would enable text wrapping in the code snippet. The text is rendered inside a `<pre>` tag, which by default preserves whitespace and doesn't wrap text.
+
+## Solution
+
+We need to add a new prop to control text wrapping and apply the appropriate CSS styling to the code snippet container. The solution will involve:
+
+1. Adding a new `wrapText` prop to the component
+2. Adding a new CSS class when this prop is enabled
+3. The CSS class would be applied to allow text wrapping
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/CodeSnippet/CodeSnippet.js
+<<<<<<< SEARCH
+function CodeSnippet({
+  className,
+  type,
+  children,
+  feedback,
+  onClick,
+  ariaLabel,
+  copyLabel, //TODO: Merge this prop to `ariaLabel` in `v11`
+  copyButtonDescription,
+  light,
+  showMoreText,
+  showLessText,
+  hideCopyButton,
+  ...rest
+}) {
+=======
+function CodeSnippet({
+  className,
+  type,
+  children,
+  feedback,
+  onClick,
+  ariaLabel,
+  copyLabel, //TODO: Merge this prop to `ariaLabel` in `v11`
+  copyButtonDescription,
+  light,
+  showMoreText,
+  showLessText,
+  hideCopyButton,
+  wrapText,
+  ...rest
+}) {
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/CodeSnippet/CodeSnippet.js
+<<<<<<< SEARCH
+  const codeSnippetClasses = classNames(className, {
+    [`${prefix}--snippet`]: true,
+    [`${prefix}--snippet--${type}`]: type,
+    [`${prefix}--snippet--expand`]: expandedCode,
+    [`${prefix}--snippet--light`]: light,
+    [`${prefix}--snippet--no-copy`]: hideCopyButton,
+  });
+=======
+  const codeSnippetClasses = classNames(className, {
+    [`${prefix}--snippet`]: true,
+    [`${prefix}--snippet--${type}`]: type,
+    [`${prefix}--snippet--expand`]: expandedCode,
+    [`${prefix}--snippet--light`]: light,
+    [`${prefix}--snippet--no-copy`]: hideCopyButton,
+    [`${prefix}--snippet--wraptext`]: wrapText,
+  });
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/CodeSnippet/CodeSnippet.js
+<<<<<<< SEARCH
+CodeSnippet.propTypes = {
+  /**
+   * Specify a label to be read by screen readers on the containing <textbox>
+   * node
+   */
+  ariaLabel: PropTypes.string,
+
+  /**
+   * Provide the content of your CodeSnippet as a string
+   */
+  children: PropTypes.string,
+
+  /**
+   * Specify an optional className to be applied to the container node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify the description for the Copy Button
+   */
+  copyButtonDescription: PropTypes.string,
+
+  /**
+   * Specify a label to be read by screen readers on the containing <textbox>
+   * node
+   */
+  copyLabel: PropTypes.string,
+
+  /**
+   * Specify the string displayed when the snippet is copied
+   */
+  feedback: PropTypes.string,
+
+  /**
+   * Specify whether or not a copy button should be used/rendered.
+   */
+  hideCopyButton: PropTypes.bool,
+
+  /**
+   * Specify whether you are using the light variant of the Code Snippet,
+   * typically used for inline snippet to display an alternate color
+   */
+  light: PropTypes.bool,
+
+  /**
+   * An optional handler to listen to the `onClick` even fired by the Copy
+   * Button
+   */
+  onClick: PropTypes.func,
+
+  /**
+   * Specify a string that is displayed when the Code Snippet has been
+   * interacted with to show more lines
+   */
+  showLessText: PropTypes.string,
+
+  /**
+   * Specify a string that is displayed when the Code Snippet text is more
+   * than 15 lines
+   */
+  showMoreText: PropTypes.string,
+
+  /**
+   * Provide the type of Code Snippet
+   */
+  type: PropTypes.oneOf(['single', 'inline', 'multi']),
+};
+=======
+CodeSnippet.propTypes = {
+  /**
+   * Specify a label to be read by screen readers on the containing <textbox>
+   * node
+   */
+  ariaLabel: PropTypes.string,
+
+  /**
+   * Provide the content of your CodeSnippet as a string
+   */
+  children: PropTypes.string,
+
+  /**
+   * Specify an optional className to be applied to the container node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify the description for the Copy Button
+   */
+  copyButtonDescription: PropTypes.string,
+
+  /**
+   * Specify a label to be read by screen readers on the containing <textbox>
+   * node
+   */
+  copyLabel: PropTypes.string,
+
+  /**
+   * Specify the string displayed when the snippet is copied
+   */
+  feedback: PropTypes.string,
+
+  /**
+   * Specify whether or not a copy button should be used/rendered.
+   */
+  hideCopyButton: PropTypes.bool,
+
+  /**
+   * Specify whether you are using the light variant of the Code Snippet,
+   * typically used for inline snippet to display an alternate color
+   */
+  light: PropTypes.bool,
+
+  /**
+   * An optional handler to listen to the `onClick` even fired by the Copy
+   * Button
+   */
+  onClick: PropTypes.func,
+
+  /**
+   * Specify a string that is displayed when the Code Snippet has been
+   * interacted with to show more lines
+   */
+  showLessText: PropTypes.string,
+
+  /**
+   * Specify a string that is displayed when the Code Snippet text is more
+   * than 15 lines
+   */
+  showMoreText: PropTypes.string,
+
+  /**
+   * Provide the type of Code Snippet
+   */
+  type: PropTypes.oneOf(['single', 'inline', 'multi']),
+
+  /**
+   * Specify whether text in the snippet should wrap
+   */
+  wrapText: PropTypes.bool,
+};
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/CodeSnippet/CodeSnippet.js
+<<<<<<< SEARCH
+CodeSnippet.defaultProps = {
+  type: 'single',
+  showMoreText: 'Show more',
+  showLessText: 'Show less',
+};
+=======
+CodeSnippet.defaultProps = {
+  type: 'single',
+  showMoreText: 'Show more',
+  showLessText: 'Show less',
+  wrapText: false,
+};
+>>>>>>> REPLACE
+```
+
+Note: This solution adds the `wrapText` prop to the component and applies a CSS class when it's enabled. The CSS implementation would need to be added in the corresponding SCSS file to make the text wrap. The CSS would likely include:
+
+```css
+.#{$prefix}--snippet--wraptext pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+```
+
+This would need to be added to the appropriate SCSS file for the CodeSnippet component, but since that file wasn't provided in the code segments, I've focused on the JavaScript changes needed.

@@ -1,0 +1,59 @@
+I'll analyze the issue and provide a fix.
+
+The issue is about a table rendering error in Markdown. Looking at the screenshot and expected output, it appears that the pipe character (`|`) in the table cell content is causing problems with the table parsing. Specifically, in the cell containing `string|ReactNode`, the pipe character is being interpreted as a table cell separator rather than part of the content.
+
+The problem is in the `splitCells` function in `lib/marked.js`. The current implementation is using a regular expression that doesn't properly handle escaped pipe characters within table cells.
+
+Here's the fix:
+
+```javascript
+### lib/marked.js
+<<<<<<< SEARCH
+function splitCells(tableRow, count) {
+  var cells = tableRow.replace(/([^\\])\|/g, '$1 |').split(/ +\| */),
+      i = 0;
+
+  if (cells.length > count) {
+    cells.splice(count);
+  } else {
+    while (cells.length < count) cells.push('');
+  }
+
+  for (; i < cells.length; i++) {
+    cells[i] = cells[i].replace(/\\\|/g, '|');
+  }
+  return cells;
+}
+=======
+function splitCells(tableRow, count) {
+  // First, handle escaped pipes
+  var row = tableRow.replace(/\\\|/g, '\u0000');
+  
+  // Split on unescaped pipes
+  var cells = row.split(/\|/);
+  
+  // Trim whitespace from cell contents
+  for (var i = 0; i < cells.length; i++) {
+    cells[i] = cells[i].trim().replace(/\u0000/g, '|');
+  }
+  
+  // Handle spanning cells
+  if (cells.length > count) {
+    cells.splice(count);
+  } else {
+    while (cells.length < count) cells.push('');
+  }
+  
+  return cells;
+}
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Replaces escaped pipes (`\|`) with a temporary placeholder character (`\u0000`)
+2. Splits the row on pipe characters
+3. Trims whitespace from each cell
+4. Restores the escaped pipes by replacing the placeholder with actual pipe characters
+5. Handles the cell count as before
+
+This approach properly preserves escaped pipe characters within table cells, which fixes the rendering issue with `string\|ReactNode` in the table.

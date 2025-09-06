@@ -1,0 +1,32 @@
+Based on the issue description, the problem is that the ManagementForm is triggering a template deprecation warning even when forms are not being rendered directly with {{ form }}. The warning occurs because the ManagementForm is instantiated without specifying a template name.
+
+To fix this, we need to modify the ManagementForm class to specify a template that won't trigger the deprecation warning. Here's the fix:
+
+```python
+### django/forms/formsets.py
+<<<<<<< SEARCH
+class ManagementForm(Form):
+    """
+    Keep track of how many form instances are displayed on the page. If adding
+    new forms via JavaScript, you should increment the count field of this form
+    as well.
+    """
+
+    TOTAL_FORMS = IntegerField(widget=HiddenInput)
+=======
+class ManagementForm(Form):
+    """
+    Keep track of how many form instances are displayed on the page. If adding
+    new forms via JavaScript, you should increment the count field of this form
+    as well.
+    """
+    
+    template_name = "django/forms/div.html"  # Specify template to avoid deprecation warning
+    
+    TOTAL_FORMS = IntegerField(widget=HiddenInput)
+>>>>>>> REPLACE
+```
+
+This change adds a specific template_name to the ManagementForm class. Since the ManagementForm only contains hidden inputs, using the div.html template is appropriate and won't affect the actual rendering of the form while preventing the deprecation warning.
+
+The fix is minimal and addresses the specific issue without affecting the functionality of the ManagementForm, since it only contains hidden inputs and the template choice doesn't impact its output.

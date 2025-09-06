@@ -1,0 +1,81 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that the vector layer renderer and the vector context renderer handle the rotation of offset text differently. Specifically:
+- The vector layer renderer rotates offset text around the feature from which it is offset.
+- The vector context renderer rotates offset text around its offset anchor point (defined by `textAlign` and `textBaseline` settings).
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The inconsistency arises because the two renderers use different reference points for rotation when text is offset. The vector layer renderer uses the feature's position as the rotation center, while the vector context renderer uses the text's offset anchor point. This discrepancy leads to different visual results, especially when both offset and rotation are applied together.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### `src/ol/render/canvas.js`
+
+This file contains functions that are directly involved in rendering and transforming text and images on the canvas. The functions `rotateAtOffset`, `drawImageOrLabel`, and `executeLabelInstructions` are relevant because they handle transformations and rendering of text and labels.
+
+```
+src/ol/render/canvas.js
+function: rotateAtOffset
+function: drawImageOrLabel
+function: executeLabelInstructions
+```
+
+#### `src/ol/render/canvas/Builder.js`
+
+This file contains the `CanvasBuilder` class, which is responsible for generating rendering instructions. While it does not directly handle text rotation, it is involved in the overall rendering process and could be indirectly relevant.
+
+```
+src/ol/render/canvas/Builder.js
+class: CanvasBuilder
+```
+
+#### `src/ol/render/canvas/Executor.js`
+
+This file contains the `Executor` class and the `executeLabelInstructions` function, which are involved in executing rendering instructions and handling text labels. The `Executor` class manages the rendering process, and `executeLabelInstructions` applies drawing instructions to the canvas context.
+
+```
+src/ol/render/canvas/Executor.js
+class: Executor
+function: executeLabelInstructions
+```
+
+#### `src/ol/render/canvas/Immediate.js`
+
+This file contains the `CanvasImmediateRenderer` class, which handles immediate rendering of vector data. It includes methods for rendering various geometry types and managing styles, including text styles. The class is relevant because it directly renders text on the canvas.
+
+```
+src/ol/render/canvas/Immediate.js
+class: CanvasImmediateRenderer
+```
+
+#### `src/ol/render/canvas/TextBuilder.js`
+
+This file contains the `CanvasTextBuilder` class, which is specifically responsible for rendering text on the canvas. It handles text properties, placement, and styling. The class is directly relevant to the issue of text rendering and rotation.
+
+```
+src/ol/render/canvas/TextBuilder.js
+class: CanvasTextBuilder
+```
+
+### Summary of Relevant Locations
+
+```
+src/ol/render/canvas.js
+function: rotateAtOffset
+function: drawImageOrLabel
+function: executeLabelInstructions
+
+src/ol/render/canvas/Builder.js
+class: CanvasBuilder
+
+src/ol/render/canvas/Executor.js
+class: Executor
+function: executeLabelInstructions
+
+src/ol/render/canvas/Immediate.js
+class: CanvasImmediateRenderer
+
+src/ol/render/canvas/TextBuilder.js
+class: CanvasTextBuilder
+```

@@ -1,0 +1,153 @@
+I'll analyze the issue and provide a fix.
+
+Looking at the issue, the problem is with URL highlighting in CSS. The screenshots show that the URL string inside the `url()` function is not being highlighted correctly. The expected behavior shows the entire URL string highlighted as a single entity, but the actual behavior shows parts of the URL being highlighted differently.
+
+The issue is in the regular expression pattern for the 'url' token in the CSS language definition. The current implementation is trying to match the URL content but isn't correctly handling the URL string when it contains special characters like those in the example (`?family=Inter:wght@300;400;500;600;700&display=swap`).
+
+Here's the fix:
+
+```javascript
+### components/prism-css.js
+<<<<<<< SEARCH
+		'url': {
+			// https://drafts.csswg.org/css-values-3/#urls
+			pattern: RegExp('\\burl\\((?:' + string.source + '|' + /(?:[^\\\r\n()"']|\\[\s\S])*/.source + ')\\)', 'i'),
+			greedy: true,
+			inside: {
+				'function': /^url/i,
+				'punctuation': /^\(|\)$/,
+				'string': {
+					pattern: RegExp('^' + string.source + '$'),
+					alias: 'url'
+				}
+			}
+		},
+=======
+		'url': {
+			// https://drafts.csswg.org/css-values-3/#urls
+			pattern: RegExp('\\burl\\((?:' + string.source + '|' + /(?:[^\\\r\n()"']|\\[\s\S])*/.source + ')\\)', 'i'),
+			greedy: true,
+			inside: {
+				'function': /^url/i,
+				'punctuation': /^\(|\)$/,
+				'string': {
+					pattern: RegExp('^' + string.source + '$'),
+					alias: 'url'
+				}
+			}
+		},
+>>>>>>> REPLACE
+```
+
+Wait, I need to look more carefully at the issue. The problem is that the URL string is not being properly recognized as a string when it contains special characters. Let me revise my solution:
+
+```javascript
+### components/prism-css.js
+<<<<<<< SEARCH
+		'url': {
+			// https://drafts.csswg.org/css-values-3/#urls
+			pattern: RegExp('\\burl\\((?:' + string.source + '|' + /(?:[^\\\r\n()"']|\\[\s\S])*/.source + ')\\)', 'i'),
+			greedy: true,
+			inside: {
+				'function': /^url/i,
+				'punctuation': /^\(|\)$/,
+				'string': {
+					pattern: RegExp('^' + string.source + '$'),
+					alias: 'url'
+				}
+			}
+		},
+=======
+		'url': {
+			// https://drafts.csswg.org/css-values-3/#urls
+			pattern: RegExp('\\burl\\((?:' + string.source + '|' + /(?:[^\\\r\n()"']|\\[\s\S])*/.source + ')\\)', 'i'),
+			greedy: true,
+			inside: {
+				'function': /^url/i,
+				'punctuation': /^\(|\)$/,
+				'string': {
+					pattern: RegExp('^' + string.source + '$'),
+					alias: 'url'
+				}
+			}
+		},
+>>>>>>> REPLACE
+```
+
+I apologize for the confusion. After further analysis, I see that the issue is with how the URL content is being parsed. Let me provide a proper fix:
+
+```javascript
+### components/prism-css.js
+<<<<<<< SEARCH
+		'url': {
+			// https://drafts.csswg.org/css-values-3/#urls
+			pattern: RegExp('\\burl\\((?:' + string.source + '|' + /(?:[^\\\r\n()"']|\\[\s\S])*/.source + ')\\)', 'i'),
+			greedy: true,
+			inside: {
+				'function': /^url/i,
+				'punctuation': /^\(|\)$/,
+				'string': {
+					pattern: RegExp('^' + string.source + '$'),
+					alias: 'url'
+				}
+			}
+		},
+=======
+		'url': {
+			// https://drafts.csswg.org/css-values-3/#urls
+			pattern: RegExp('\\burl\\((?:' + string.source + '|' + /(?:[^\\\r\n()"']|\\[\s\S])*/.source + ')\\)', 'i'),
+			greedy: true,
+			inside: {
+				'function': /^url/i,
+				'punctuation': /^\(|\)$/,
+				'string': {
+					pattern: RegExp('^' + string.source + '$'),
+					alias: 'url'
+				},
+				'url': {
+					pattern: /[^'")]+/,
+					inside: {
+						'punctuation': /[&:=?;#]/
+					}
+				}
+			}
+		},
+>>>>>>> REPLACE
+```
+
+After further examination, I see that the issue is that the URL string is not being properly recognized when it contains special characters. The problem is that the current regex pattern for the URL content is not correctly handling the URL string. Let me provide a more accurate fix:
+
+```javascript
+### components/prism-css.js
+<<<<<<< SEARCH
+		'url': {
+			// https://drafts.csswg.org/css-values-3/#urls
+			pattern: RegExp('\\burl\\((?:' + string.source + '|' + /(?:[^\\\r\n()"']|\\[\s\S])*/.source + ')\\)', 'i'),
+			greedy: true,
+			inside: {
+				'function': /^url/i,
+				'punctuation': /^\(|\)$/,
+				'string': {
+					pattern: RegExp('^' + string.source + '$'),
+					alias: 'url'
+				}
+			}
+		},
+=======
+		'url': {
+			// https://drafts.csswg.org/css-values-3/#urls
+			pattern: RegExp('\\burl\\((?:' + string.source + '|' + /(?:[^\\\r\n()"']|\\[\s\S])*/.source + ')\\)', 'i'),
+			greedy: true,
+			inside: {
+				'function': /^url/i,
+				'punctuation': /^\(|\)$/,
+				'string': {
+					pattern: string,
+					alias: 'url'
+				}
+			}
+		},
+>>>>>>> REPLACE
+```
+
+The fix changes the pattern for the 'string' token inside the 'url' token. Instead of using `RegExp('^' + string.source + '$')`, which was trying to match the entire URL content as a string but was failing for complex URLs, we now use just `string`, which correctly matches the quoted string content regardless of what's inside it.

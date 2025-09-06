@@ -1,0 +1,63 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when an icon has a negative scale and rotation is 0. There are two problems:
+1. Hit detection doesn't work
+2. The icon is not rendered at the edge of the map
+
+Looking at the code, the problem is in the `createHitDetectionImageData` function. When creating the hit detection icon, it's copying properties from the original icon, including the scale, but it's not handling negative scale values correctly. 
+
+Negative scale values are used to flip icons horizontally or vertically, but the hit detection code doesn't account for this, causing the hit detection to fail and rendering issues at map edges.
+
+## Fix
+
+```javascript
+### src/ol/render/canvas/hitdetect.js
+<<<<<<< SEARCH
+        style.setImage(
+          new Icon({
+            img: img,
+            imgSize: imgSize,
+            anchor: image.getAnchor(),
+            anchorXUnits: IconAnchorUnits.PIXELS,
+            anchorYUnits: IconAnchorUnits.PIXELS,
+            offset: image.getOrigin(),
+            size: image.getSize(),
+            opacity: image.getOpacity(),
+            scale: image.getScale(),
+            rotation: image.getRotation(),
+            rotateWithView: image.getRotateWithView(),
+          })
+=======
+        const scale = image.getScale();
+        // Use absolute scale value for hit detection to handle negative scales correctly
+        const absScale = Array.isArray(scale) 
+          ? [Math.abs(scale[0]), Math.abs(scale[1])]
+          : Math.abs(scale);
+          
+        style.setImage(
+          new Icon({
+            img: img,
+            imgSize: imgSize,
+            anchor: image.getAnchor(),
+            anchorXUnits: IconAnchorUnits.PIXELS,
+            anchorYUnits: IconAnchorUnits.PIXELS,
+            offset: image.getOrigin(),
+            size: image.getSize(),
+            opacity: image.getOpacity(),
+            scale: absScale,
+            rotation: image.getRotation(),
+            rotateWithView: image.getRotateWithView(),
+          })
+>>>>>>> REPLACE
+```
+
+## Explanation
+
+The fix addresses both issues by using the absolute value of the scale for hit detection. This ensures that:
+
+1. Hit detection works correctly regardless of whether the scale is positive or negative
+2. The icon will be properly rendered at the edge of the map
+
+The solution handles both scalar scale values and array scale values (which could be used for different x and y scaling). By using the absolute value of the scale, we maintain the size of the hit detection area while ignoring the flipping effect of negative scales, which is what was causing the issues.

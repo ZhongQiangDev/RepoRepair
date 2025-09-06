@@ -1,0 +1,111 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that the `onChange` event is not being fired when a `SelectableTile` is clicked or interacted with via keyboard. According to the issue description:
+
+1. The component has an `onChange` prop that should be called when the tile selection state changes
+2. Currently only `handleClick` and `handleKeyDown` are being called, but not `onChange`
+
+Looking at the code, I can see that:
+
+1. The `handleOnChange` method is correctly defined to call `this.props.onChange`
+2. The `<input>` element has the `onChange={this.handleOnChange}` prop set
+3. However, when clicking on the tile or using keyboard navigation, the state changes in `handleClick` and `handleKeyDown` methods, but they don't call the `onChange` prop
+
+The bug is that when the selection state changes via clicking or keyboard interaction, the `onChange` callback is not being triggered.
+
+## Fix
+
+```javascript
+### packages/react/src/components/Tile/Tile.js
+<<<<<<< SEARCH
+  handleClick = evt => {
+    evt.preventDefault();
+    evt.persist();
+    const isInput = evt.target === this.input;
+    if (!isInput) {
+      this.setState(
+        {
+          selected: !this.state.selected,
+        },
+        () => {
+          this.props.handleClick(evt);
+        }
+      );
+    } else {
+      this.props.handleClick(evt);
+    }
+  };
+
+  handleKeyDown = evt => {
+    evt.persist();
+    if (matches(evt, [keys.Enter, keys.Space])) {
+      evt.preventDefault();
+      this.setState(
+        {
+          selected: !this.state.selected,
+        },
+        () => {
+          this.props.handleKeyDown(evt);
+        }
+      );
+    } else {
+      this.props.handleKeyDown(evt);
+    }
+  };
+=======
+  handleClick = evt => {
+    evt.preventDefault();
+    evt.persist();
+    const isInput = evt.target === this.input;
+    if (!isInput) {
+      this.setState(
+        {
+          selected: !this.state.selected,
+        },
+        () => {
+          this.props.handleClick(evt);
+          // Create a synthetic change event to call onChange
+          const changeEvent = Object.assign({}, evt, {
+            target: {
+              checked: this.state.selected,
+              value: this.props.value,
+            },
+          });
+          this.props.onChange(changeEvent);
+        }
+      );
+    } else {
+      this.props.handleClick(evt);
+    }
+  };
+
+  handleKeyDown = evt => {
+    evt.persist();
+    if (matches(evt, [keys.Enter, keys.Space])) {
+      evt.preventDefault();
+      this.setState(
+        {
+          selected: !this.state.selected,
+        },
+        () => {
+          this.props.handleKeyDown(evt);
+          // Create a synthetic change event to call onChange
+          const changeEvent = Object.assign({}, evt, {
+            target: {
+              checked: this.state.selected,
+              value: this.props.value,
+            },
+          });
+          this.props.onChange(changeEvent);
+        }
+      );
+    } else {
+      this.props.handleKeyDown(evt);
+    }
+  };
+>>>>>>> REPLACE
+```
+
+This fix adds code to call the `onChange` prop after the state has been updated in both the `handleClick` and `handleKeyDown` methods. It creates a synthetic event object that mimics a change event from a checkbox input, with the appropriate `checked` and `value` properties, so that consumers of the component can handle it just like a normal input change event.

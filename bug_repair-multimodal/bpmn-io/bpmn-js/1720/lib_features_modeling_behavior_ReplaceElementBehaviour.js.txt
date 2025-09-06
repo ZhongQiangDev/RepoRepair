@@ -1,0 +1,78 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is about transforming a Call Activity into a SubProcess, which doesn't resize the shape properly. When a user converts a Call Activity to an Expanded SubProcess, the resulting element still visually looks like a task (small rectangle) instead of an expanded subprocess (larger rectangle with room for child elements).
+
+Looking at the provided code, I notice that the `ReplaceElementBehaviour` class handles element replacement, but it doesn't seem to handle resizing when changing element types. When replacing a Call Activity with a SubProcess, the shape should be resized to accommodate the new element type's expected dimensions.
+
+The issue is that the current implementation only changes the element type but doesn't adjust the dimensions of the shape.
+
+## Solution
+
+We need to modify the `replaceElements` method to handle resizing when converting to specific element types like expanded subprocesses. We'll need to add logic to check if the new element is an expanded subprocess and resize it accordingly.
+
+```javascript
+### lib/features/modeling/behavior/ReplaceElementBehaviour.js
+<<<<<<< SEARCH
+ReplaceElementBehaviour.prototype.replaceElements = function(elements, newElements) {
+  var elementRegistry = this._elementRegistry,
+      bpmnReplace = this._bpmnReplace,
+      selection = this._selection;
+
+  forEach(newElements, function(replacement) {
+    var newElement = {
+      type: replacement.newElementType
+    };
+
+    var oldElement = elementRegistry.get(replacement.oldElementId);
+
+    var idx = elements.indexOf(oldElement);
+
+    elements[idx] = bpmnReplace.replaceElement(oldElement, newElement, { select: false });
+  });
+
+  if (newElements) {
+    selection.select(elements);
+  }
+};
+=======
+ReplaceElementBehaviour.prototype.replaceElements = function(elements, newElements) {
+  var elementRegistry = this._elementRegistry,
+      bpmnReplace = this._bpmnReplace,
+      selection = this._selection,
+      modeling = this._modeling;
+
+  forEach(newElements, function(replacement) {
+    var newElement = {
+      type: replacement.newElementType
+    };
+
+    var oldElement = elementRegistry.get(replacement.oldElementId);
+
+    var idx = elements.indexOf(oldElement);
+
+    elements[idx] = bpmnReplace.replaceElement(oldElement, newElement, { select: false });
+    
+    // Resize expanded subprocesses to appropriate dimensions
+    if (replacement.newElementType === 'bpmn:SubProcess' && 
+        !isEventSubProcess(elements[idx]) && 
+        !elements[idx].collapsed) {
+      
+      modeling.resizeShape(elements[idx], {
+        x: elements[idx].x,
+        y: elements[idx].y,
+        width: Math.max(elements[idx].width, 350),
+        height: Math.max(elements[idx].height, 200)
+      });
+    }
+  });
+
+  if (newElements) {
+    selection.select(elements);
+  }
+};
+>>>>>>> REPLACE
+```
+
+This change adds logic to check if the new element is a non-collapsed, non-event SubProcess, and if so, resizes it to appropriate dimensions (minimum width of 350 and height of 200). This ensures that when a user converts a Call Activity to an Expanded SubProcess, the resulting shape will be properly sized to accommodate child elements.

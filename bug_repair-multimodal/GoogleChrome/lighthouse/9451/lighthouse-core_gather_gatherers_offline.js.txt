@@ -1,0 +1,49 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that the offline pass doesn't always correctly detect when a page is offline. According to the issue description, Lighthouse reports that the start URL doesn't load offline, but the current page does. During the offline pass, the desktop version of the page is still loading, and network requests don't have the `fromServiceWorker` or `fromDiskCache` flags set to `true`, which shouldn't be possible when truly offline.
+
+Looking at the code in `lighthouse-core/gather/gatherers/offline.js`, I can see the problem:
+
+1. The `afterPass` method is looking for a network record that matches the URL and has `fetchedViaServiceWorker` set to true.
+2. However, this doesn't account for all offline scenarios. A page might be served from disk cache without going through a service worker.
+3. The code is only checking if the page was fetched via service worker, but not checking if the page was actually loaded successfully when offline.
+
+## Fix
+
+We need to modify the `afterPass` method to properly detect if the page loaded successfully when offline, regardless of whether it came from a service worker or disk cache.
+
+```javascript
+### lighthouse-core/gather/gatherers/offline.js
+<<<<<<< SEARCH
+  afterPass(passContext, loadData) {
+    const navigationRecord = loadData.networkRecords.filter(record => {
+      return URL.equalWithExcludedFragments(record.url, passContext.url) &&
+        record.fetchedViaServiceWorker;
+    }).pop(); // Take the last record that matches.
+
+    return passContext.driver.goOnline(passContext)
+      .then(_ => navigationRecord ? navigationRecord.statusCode : -1);
+  }
+=======
+  afterPass(passContext, loadData) {
+    // Find the main resource (page navigation) in the network records
+    const navigationRecord = loadData.networkRecords.filter(record => {
+      return URL.equalWithExcludedFragments(record.url, passContext.url);
+    }).pop(); // Take the last record that matches.
+
+    // Check if we got a successful response when offline
+    // A page can be available offline either through:
+    // 1. Service worker
+    // 2. HTTP cache
+    // 3. Other browser caches
+    const statusCode = navigationRecord ? navigationRecord.statusCode : -1;
+    
+    return passContext.driver.goOnline(passContext)
+      .then(_ => statusCode);
+  }
+>>>>>>> REPLACE
+```
+
+This fix removes the requirement that the page must be fetched via a service worker to be considered available offline. Instead, it simply checks if the navigation to the URL was successful (by checking the status code) while offline, which is what we actually care about.

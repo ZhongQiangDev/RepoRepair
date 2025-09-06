@@ -1,0 +1,124 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is that the TileDebug layer doesn't correctly represent the inverted Y coordinate when using a TileImage layer with the `{-y}` template in the URL. 
+
+In the current implementation, the TileDebug layer shows the original Y coordinate, but when the actual tile request is made with `{-y}`, the Y coordinate is inverted. This causes a mismatch between what's shown in the debug layer and what's actually requested from the server.
+
+The problem is in the `getTile` method of the `TileDebug` class. When displaying the tile coordinates, it doesn't account for the possibility that the Y coordinate might be inverted in the actual request.
+
+## Solution
+
+We need to modify the `TileDebug` class to be aware of whether the Y coordinate is inverted in the actual tile requests. We should add an option to indicate this and then adjust the displayed Y coordinate accordingly.
+
+Here's the fix:
+
+```javascript
+### src/ol/source/TileDebug.js
+<<<<<<< SEARCH
+/**
+ * @typedef {Object} Options
+ * @property {import("../proj.js").ProjectionLike} [projection='EPSG:3857'] Optional projection.
+ * @property {import("../tilegrid/TileGrid.js").default} [tileGrid] Tile grid.
+ * @property {boolean} [wrapX=true] Whether to wrap the world horizontally.
+ * @property {number} [zDirection=0] Set to `1` when debugging `VectorTile` sources with
+ * a default configuration. Indicates which resolution should be used by a renderer if
+ * the view resolution does not match any resolution of the tile source. If 0, the nearest
+ * resolution will be used. If 1, the nearest lower resolution will be used. If -1, the
+ * nearest higher resolution will be used.
+ */
+=======
+/**
+ * @typedef {Object} Options
+ * @property {import("../proj.js").ProjectionLike} [projection='EPSG:3857'] Optional projection.
+ * @property {import("../tilegrid/TileGrid.js").default} [tileGrid] Tile grid.
+ * @property {boolean} [wrapX=true] Whether to wrap the world horizontally.
+ * @property {boolean} [invertY=false] If `true`, the Y coordinate will be inverted to match tile sources
+ * that use the `{-y}` template pattern.
+ * @property {number} [zDirection=0] Set to `1` when debugging `VectorTile` sources with
+ * a default configuration. Indicates which resolution should be used by a renderer if
+ * the view resolution does not match any resolution of the tile source. If 0, the nearest
+ * resolution will be used. If 1, the nearest lower resolution will be used. If -1, the
+ * nearest higher resolution will be used.
+ */
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/source/TileDebug.js
+<<<<<<< SEARCH
+  constructor(opt_options) {
+    /**
+     * @type {Options}
+     */
+    const options = opt_options || {};
+
+    super({
+      opaque: false,
+      projection: options.projection,
+      tileGrid: options.tileGrid,
+      wrapX: options.wrapX !== undefined ? options.wrapX : true,
+      zDirection: options.zDirection,
+    });
+  }
+=======
+  constructor(opt_options) {
+    /**
+     * @type {Options}
+     */
+    const options = opt_options || {};
+
+    super({
+      opaque: false,
+      projection: options.projection,
+      tileGrid: options.tileGrid,
+      wrapX: options.wrapX !== undefined ? options.wrapX : true,
+      zDirection: options.zDirection,
+    });
+
+    /**
+     * @private
+     * @type {boolean}
+     */
+    this.invertY_ = options.invertY !== undefined ? options.invertY : false;
+  }
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/source/TileDebug.js
+<<<<<<< SEARCH
+      let text;
+      if (textTileCoord) {
+        text =
+          'z:' +
+          textTileCoord[0] +
+          ' x:' +
+          textTileCoord[1] +
+          ' y:' +
+          textTileCoord[2];
+      } else {
+        text = 'none';
+      }
+=======
+      let text;
+      if (textTileCoord) {
+        const displayY = this.invertY_ ? 
+          (Math.pow(2, textTileCoord[0]) - 1 - textTileCoord[2]) : 
+          textTileCoord[2];
+        text =
+          'z:' +
+          textTileCoord[0] +
+          ' x:' +
+          textTileCoord[1] +
+          ' y:' +
+          displayY +
+          (this.invertY_ ? ' (-y)' : '');
+      } else {
+        text = 'none';
+      }
+>>>>>>> REPLACE
+```
+
+This solution adds an `invertY` option to the TileDebug source. When this option is set to `true`, the displayed Y coordinate will be inverted to match the actual request made with `{-y}`. The formula `Math.pow(2, z) - 1 - y` is the standard way to invert the Y coordinate in a tile grid. Additionally, I've added a "(-y)" indicator to the displayed text to make it clear that the Y coordinate is inverted.

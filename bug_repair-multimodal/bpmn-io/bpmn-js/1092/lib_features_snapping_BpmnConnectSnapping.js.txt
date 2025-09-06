@@ -1,0 +1,57 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that users can no longer easily connect tasks center-to-center. From the GIFs provided:
+1. In the old behavior, connecting two tasks would snap to the center of the target task
+2. In the new behavior, this center-to-center snapping doesn't work properly
+
+Looking at the code, I notice that while there's logic for snapping in various scenarios, there's no explicit handling for the common case of connecting two tasks center-to-center. The `snapInsideTarget` function only ensures the connection stays within the target's bounds, but doesn't snap to the center.
+
+## Solution
+
+We need to add center-to-center snapping functionality. The fix should add a new function to snap to the center of the target when connecting tasks, and call this function in the appropriate event handlers.
+
+```javascript
+### lib/features/snapping/BpmnConnectSnapping.js
+<<<<<<< SEARCH
+    if (target && connectionAttrs) {
+      snapInsideTarget(event, target);
+    }
+=======
+    if (target && connectionAttrs) {
+      // Snap to center for standard task connections
+      if (isAnyType(connectionAttrs, ['bpmn:SequenceFlow']) && 
+          !is(source, 'bpmn:BoundaryEvent') && 
+          !is(target, 'bpmn:BoundaryEvent')) {
+        snapToPosition(event, mid(target));
+      } else {
+        snapInsideTarget(event, target);
+      }
+    }
+>>>>>>> REPLACE
+```
+
+I also notice that there's no `snapToPosition` function defined in the file, but it's used in the code. Let's add this function:
+
+```javascript
+### lib/features/snapping/BpmnConnectSnapping.js
+<<<<<<< SEARCH
+function snapBoundaryEventLoop(event, source, target) {
+=======
+function snapToPosition(event, position) {
+  AXES.forEach(function(axis) {
+    setSnapped(event, axis, position[axis]);
+  });
+}
+
+function snapBoundaryEventLoop(event, source, target) {
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Add a `snapToPosition` function that snaps to a given position on both axes
+2. Modify the connection logic to snap to the center of the target when creating a sequence flow between standard tasks
+3. Fall back to the existing `snapInsideTarget` behavior for other connection types
+
+This should restore the center-to-center snapping behavior while maintaining the other snapping behaviors for special cases.

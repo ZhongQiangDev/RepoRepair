@@ -1,0 +1,28 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue with rotated vector layer text styles.
+
+## Analysis of the Problem
+
+The issue involves rotated vector layer text styles not displaying at the correct location when the context is clipped and translated. Specifically:
+
+1. When using a modified spyglass that displays hidden layers in a translated area (above and right of cursor)
+2. Non-rotated text styles (blue "1" and red "2") appear correctly in the translated area
+3. Rotated text styles (green "3") incorrectly appear at the original non-translated location
+4. Any rotation value != 0 causes the translation to fail
+
+This suggests a bug in how OpenLayers handles the transformation of rotated text during clipping and translation operations.
+
+## Cause of the Issue
+
+Based on the description, the issue appears to be in the rendering pipeline for vector layers, specifically in how rotated text styles are handled during canvas transformations. When the context is clipped and translated, the rotation transformation is likely not being properly applied or is being applied in the wrong order relative to the translation.
+
+## Most Relevant Files
+
+```
+src/ol/render/canvas/Immediate.js
+src/ol/transform.js
+src/ol/render/canvas.js
+src/ol/style/Text.js
+src/ol/renderer/canvas/VectorLayer.js
+```
+
+The issue is most likely in the canvas rendering code that handles text styles with rotation. The `Immediate.js` file is responsible for immediate rendering of vector features to canvas, including text with rotation. The `transform.js` file contains transformation utilities that would be used during the rendering process. The `canvas.js` file has utilities for drawing text on canvas. The `Text.js` file defines the text style class, and `VectorLayer.js` is the renderer for vector layers that would use these components.

@@ -1,0 +1,107 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that it's possible to select days from the previous month that are outside the DateInput's calendarProps bounds. Looking at the screenshot, we can see that the user has set bounds for July 2020 (`['2020-07-01', '2020-07-31']`), but the calendar is still allowing selection of days from June 2020 that appear in the calendar view.
+
+The problem is in the Calendar component integration within DateInput. When the Calendar displays a month, it often shows days from the previous and next months to fill out the grid. These days should be disabled if they fall outside the specified bounds, but currently, they can still be selected.
+
+## Fix
+
+The issue is that the DateInput component is passing the calendarProps to the Calendar component, but the Calendar component isn't properly enforcing the bounds for days from adjacent months that appear in the current view. 
+
+We need to modify the DateInput.js file to ensure that the Calendar component properly respects the bounds:
+
+```javascript
+### src/js/components/DateInput/DateInput.js
+<<<<<<< SEARCH
+      <Calendar
+        ref={inline ? ref : undefined}
+        id={inline && !format ? id : undefined}
+        range={range}
+        date={range ? undefined : value}
+        // when caller initializes with empty array, dates should be undefined
+        // allowing the user to select both begin and end of the range
+        dates={dates}
+        // places focus on days grid when Calendar opens
+        initialFocus={open ? 'days' : undefined}
+        onSelect={
+          disabled
+            ? undefined
+            : (nextValue) => {
+                let normalizedValue;
+                if (range && Array.isArray(nextValue))
+                  [normalizedValue] = nextValue;
+                // clicking an edge date removes it
+                else if (range) normalizedValue = [nextValue, nextValue];
+                else normalizedValue = nextValue;
+
+                if (schema) setTextValue(valueToText(normalizedValue, schema));
+                setValue(normalizedValue);
+                setReference(getReference(nextValue));
+                if (onChange) onChange({ value: normalizedValue });
+                if (open && !range) {
+                  closeCalendar();
+                  setTimeout(() => ref.current.focus(), 1);
+                }
+              }
+        }
+        {...calendarProps}
+=======
+      <Calendar
+        ref={inline ? ref : undefined}
+        id={inline && !format ? id : undefined}
+        range={range}
+        date={range ? undefined : value}
+        // when caller initializes with empty array, dates should be undefined
+        // allowing the user to select both begin and end of the range
+        dates={dates}
+        // places focus on days grid when Calendar opens
+        initialFocus={open ? 'days' : undefined}
+        onSelect={
+          disabled
+            ? undefined
+            : (nextValue) => {
+                // Check if the selected date is within bounds before proceeding
+                const { bounds } = calendarProps || {};
+                if (bounds) {
+                  const [lowerBound, upperBound] = bounds;
+                  const selectedDate = new Date(nextValue);
+                  const lowerDate = new Date(lowerBound);
+                  const upperDate = new Date(upperBound);
+                  
+                  // Reset time components for accurate date comparison
+                  selectedDate.setHours(0, 0, 0, 0);
+                  lowerDate.setHours(0, 0, 0, 0);
+                  upperDate.setHours(0, 0, 0, 0);
+                  
+                  // If date is out of bounds, don't proceed
+                  if (selectedDate < lowerDate || selectedDate > upperDate) {
+                    return;
+                  }
+                }
+                
+                let normalizedValue;
+                if (range && Array.isArray(nextValue))
+                  [normalizedValue] = nextValue;
+                // clicking an edge date removes it
+                else if (range) normalizedValue = [nextValue, nextValue];
+                else normalizedValue = nextValue;
+
+                if (schema) setTextValue(valueToText(normalizedValue, schema));
+                setValue(normalizedValue);
+                setReference(getReference(nextValue));
+                if (onChange) onChange({ value: normalizedValue });
+                if (open && !range) {
+                  closeCalendar();
+                  setTimeout(() => ref.current.focus(), 1);
+                }
+              }
+        }
+        {...calendarProps}
+>>>>>>> REPLACE
+```
+
+This fix adds a bounds check in the onSelect handler of the Calendar component. Before processing the selected date, it checks if the date falls within the bounds specified in calendarProps. If the date is outside the bounds, the function returns early, preventing the selection of out-of-bounds dates.
+
+The fix ensures that even if the Calendar component visually displays days from adjacent months, those days cannot be selected if they fall outside the specified bounds.

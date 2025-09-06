@@ -1,0 +1,29 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- An ExpandableTile with a StructuredList inside has accessibility issues:
+  - When there's no interactive content, the tile renders as a button but buttons can't have children with roles (which StructuredList elements have)
+  - When forcing interactive content with a hidden button, the aria-expanded attribute causes an error
+- The workaround of adding a hidden button to force interactive content is not ideal
+
+2. Cause Analysis:
+- The core issue stems from how the ExpandableTile component handles its rendering modes:
+  - It has two modes: interactive and non-interactive
+  - In non-interactive mode, it wraps everything in a button which conflicts with ARIA rules
+  - In interactive mode, it only makes the expando icon a button
+- The component needs to properly handle cases where child elements have ARIA roles without requiring hacky workarounds
+
+3. Most Related Files:
+```
+packages/react/src/components/Tile/Tile.tsx
+packages/react/src/components/StructuredList/StructuredList.js
+packages/react/src/internal/useNoInteractiveChildren.js
+packages/react/src/components/Tile/Tile-test.js
+packages/react/src/components/StructuredList/StructuredList-test.js
+```
+
+These files are ordered by importance because:
+1. Tile.tsx is the main component file where the ExpandableTile behavior needs to be fixed
+2. StructuredList.js contains the component that's causing the role conflicts
+3. useNoInteractiveChildren.js handles interactive content detection which is key to this issue
+4. The test files will need updates to verify the fixed behavior

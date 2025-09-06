@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When a ManyToManyField is defined with symmetrical=True or is self-referential, developers can still specify a related_name even though it won't be used
+- This leads to confusion since the related field on the target model is not created in these cases
+
+2. Cause Analysis:
+- The issue stems from Django's ManyToManyField implementation not validating/preventing related_name usage when symmetrical relationships are defined
+- Currently, there's no validation check to raise an error when a developer tries to use related_name with symmetrical=True
+- This is primarily a validation issue in the field definition and checks system
+
+3. Most Related Files:
+```
+django/db/models/fields/related.py
+django/core/serializers/base.py
+django/db/models/constraints.py
+django/forms/models.py
+django/db/models/deletion.py
+```
+
+Reasoning for file selection:
+- `django/db/models/fields/related.py` is most important as it contains the ManyToManyField class definition and field validation logic
+- `django/core/serializers/base.py` handles field serialization which could be affected by field relationship configurations
+- `django/db/models/constraints.py` deals with field constraints and validations
+- `django/forms/models.py` handles model form generation which interacts with field definitions
+- `django/db/models/deletion.py` manages relationship deletions and could be affected by symmetrical relationships
+
+The fix would primarily need to be implemented in the ManyToManyField class validation logic within `fields/related.py`.

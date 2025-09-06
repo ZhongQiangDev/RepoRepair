@@ -1,0 +1,83 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is related to handling even band counts (≥ 6) in DataTileSource when using the last band as an alpha channel. According to the issue description, when working with 6 bands (5 bands + alpha), the alpha mask is not working correctly.
+
+Looking at the code in `src/ol/webgl/TileTexture.js`, the problem appears to be in the `uploadTile_` method. When processing data tiles with multiple textures, the code is not correctly handling the band distribution across textures, especially when the last band is meant to be used as an alpha channel.
+
+The issue is in the data processing loop where it's calculating indices and distributing bands across textures. The current implementation doesn't properly handle the case where the total band count is even and ≥ 6.
+
+## Fix
+
+```javascript
+### src/ol/webgl/TileTexture.js
+<<<<<<< SEARCH
+    let dataIndex = 0;
+    let rowOffset = 0;
+    const colCount = pixelSize[0] * this.bandCount;
+    for (let rowIndex = 0; rowIndex < pixelSize[1]; ++rowIndex) {
+      for (let colIndex = 0; colIndex < colCount; ++colIndex) {
+        const dataValue = data[rowOffset + colIndex];
+
+        const pixelIndex = Math.floor(dataIndex / this.bandCount);
+        const bandIndex = colIndex % this.bandCount;
+        const textureIndex = Math.floor(bandIndex / 4);
+        const textureData = textureDataArrays[textureIndex];
+        const bandCount = textureData.length / pixelCount;
+        const textureBandIndex = bandIndex % 4;
+        textureData[pixelIndex * bandCount + textureBandIndex] = dataValue;
+
+        ++dataIndex;
+      }
+      rowOffset += bytesPerRow / bytesPerElement;
+    }
+=======
+    let dataIndex = 0;
+    let rowOffset = 0;
+    const colCount = pixelSize[0] * this.bandCount;
+    for (let rowIndex = 0; rowIndex < pixelSize[1]; ++rowIndex) {
+      for (let colIndex = 0; colIndex < colCount; ++colIndex) {
+        const dataValue = data[rowOffset + colIndex];
+
+        const pixelIndex = Math.floor(dataIndex / this.bandCount);
+        const bandIndex = colIndex % this.bandCount;
+        const textureIndex = Math.floor(bandIndex / 4);
+        const textureData = textureDataArrays[textureIndex];
+        const bandCount = textureData.length / pixelCount;
+        const textureBandIndex = bandIndex % 4;
+        textureData[pixelIndex * bandCount + textureBandIndex] = dataValue;
+
+        ++dataIndex;
+      }
+      rowOffset += bytesPerRow / bytesPerElement;
+    }
+
+    // Special handling for the case where the last band is used as alpha
+    // and we have an even number of bands >= 6
+    if (this.bandCount >= 6 && this.bandCount % 2 === 0) {
+      const lastTextureIndex = textureCount - 1;
+      const lastTextureData = textureDataArrays[lastTextureIndex];
+      const lastTextureBandCount = lastTextureData.length / pixelCount;
+      
+      // If the last texture has exactly one band, we need to ensure it's properly
+      // placed in the alpha channel position (index 3) instead of the default position
+      if (lastTextureBandCount === 1) {
+        const newLastTextureData = new DataType(pixelCount * 4);
+        
+        // Copy the alpha values to the 4th position (index 3)
+        for (let i = 0; i < pixelCount; i++) {
+          newLastTextureData[i * 4 + 3] = lastTextureData[i];
+          // Set other channels to 0
+          newLastTextureData[i * 4] = 0;
+          newLastTextureData[i * 4 + 1] = 0;
+          newLastTextureData[i * 4 + 2] = 0;
+        }
+        
+        textureDataArrays[lastTextureIndex] = newLastTextureData;
+      }
+    }
+>>>>>>> REPLACE
+```
+
+This fix adds special handling for the case where the total band count is even and ≥ 6. When the last texture has exactly one band (which would be the alpha channel), it ensures that this band is properly placed in the alpha channel position (index 3) of a 4-band texture, with the other channels set to 0. This should correctly handle the alpha mask when using the last band as an alpha channel.

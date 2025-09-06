@@ -1,0 +1,46 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is related to the BreadcrumbItem component in the Carbon Design System. When a BreadcrumbItem contains an OverflowMenu, it should display with a "shark fin" appearance and proper positioning. However, this isn't working correctly.
+
+Looking at the code, the problem is in this condition:
+```javascript
+if (
+  children.type &&
+  children.type.displayName !== undefined &&
+  children.type.displayName === 'OverflowMenu'
+) {
+```
+
+The issue description mentions that `createComponentToggle` is causing the problem. This likely means that the OverflowMenu component is being wrapped by a higher-order component that doesn't properly forward the `displayName` property.
+
+The fix would be to modify the condition to be more robust in detecting an OverflowMenu component, even when it's wrapped by another component.
+
+## Fix
+
+```javascript
+### packages/react/src/components/Breadcrumb/BreadcrumbItem.js
+<<<<<<< SEARCH
+  if (
+    children.type &&
+    children.type.displayName !== undefined &&
+    children.type.displayName === 'OverflowMenu'
+  ) {
+=======
+  if (
+    children.type &&
+    (children.type.displayName === 'OverflowMenu' ||
+     (children.props && children.props.className && 
+      children.props.className.includes(`${prefix}--overflow-menu`)))
+  ) {
+>>>>>>> REPLACE
+```
+
+This fix modifies the condition to check not only for the displayName property but also for the presence of the overflow-menu class in the component's className prop. This provides a fallback detection method when the displayName isn't properly set due to component wrapping.
+
+The solution checks if:
+1. The original condition is met (displayName is 'OverflowMenu'), OR
+2. The component has props with a className that includes the overflow-menu class
+
+This should ensure that the overflow menu is properly styled with the shark fin and correct positioning, even when wrapped by other components like those created with `createComponentToggle`.

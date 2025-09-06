@@ -1,0 +1,132 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when setting the color of elements with external labels using the `modeling.setColor` API, the external label is set to the "fill" color instead of the "stroke" color. This makes the text appear in a light color that's difficult to read. The expected behavior is that external labels should use the "stroke" color, just like embedded labels do.
+
+Looking at the provided code, I don't see the specific implementation of the `setColor` functionality in the `LabelBehavior.js` file. The issue is likely in another file that handles color setting for elements.
+
+Since the specific file isn't provided, I'll need to make an educated guess about where the bug might be. Based on the issue description, there's likely a component that handles setting colors for elements, and it's not correctly handling external labels.
+
+## Proposed Fix
+
+The fix would likely involve modifying the code that sets colors for elements to ensure that external labels always use the stroke color rather than the fill color. Since we don't have the exact file, I'll provide a generic solution that would likely address the issue:
+
+```javascript
+### lib/features/modeling/cmd/SetColorHandler.js
+<<<<<<< SEARCH
+  // set the color on the businessObject as well
+  if (fill || stroke) {
+    var di = getDi(element);
+    
+    if (isLabel(element) && element.labelTarget) {
+      di = getDi(element.labelTarget);
+    }
+    
+    if (!di.get('bioc:fill') && fill) {
+      di.set('bioc:fill', fill);
+    }
+    
+    if (!di.get('bioc:stroke') && stroke) {
+      di.set('bioc:stroke', stroke);
+    }
+    
+    if (fill) {
+      element.set('color:background-color', fill);
+    }
+    
+    if (stroke) {
+      element.set('color:border-color', stroke);
+    }
+  }
+=======
+  // set the color on the businessObject as well
+  if (fill || stroke) {
+    var di = getDi(element);
+    
+    if (isLabel(element) && element.labelTarget) {
+      di = getDi(element.labelTarget);
+    }
+    
+    if (!di.get('bioc:fill') && fill) {
+      di.set('bioc:fill', fill);
+    }
+    
+    if (!di.get('bioc:stroke') && stroke) {
+      di.set('bioc:stroke', stroke);
+    }
+    
+    if (fill) {
+      element.set('color:background-color', fill);
+    }
+    
+    if (stroke) {
+      element.set('color:border-color', stroke);
+      
+      // For external labels, always use stroke color for text
+      if (isLabel(element) && isLabelExternal(element.labelTarget)) {
+        element.set('color:color', stroke);
+      } else {
+        // For other elements, use fill color for text if available
+        element.set('color:color', fill || stroke);
+      }
+    }
+  }
+>>>>>>> REPLACE
+```
+
+Alternatively, if the issue is in a different file, the fix might look like this:
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+  // update colors
+  var fill = element.get('color:background-color'),
+      stroke = element.get('color:border-color');
+
+  if (fill) {
+    di.set('bioc:fill', fill);
+  }
+
+  if (stroke) {
+    di.set('bioc:stroke', stroke);
+  }
+
+  // update label colors
+  if (isLabel(element)) {
+    var labelFill = element.get('color:background-color'),
+        labelStroke = element.get('color:border-color');
+
+    if (labelFill) {
+      element.set('color:color', labelFill);
+    }
+  }
+=======
+  // update colors
+  var fill = element.get('color:background-color'),
+      stroke = element.get('color:border-color');
+
+  if (fill) {
+    di.set('bioc:fill', fill);
+  }
+
+  if (stroke) {
+    di.set('bioc:stroke', stroke);
+  }
+
+  // update label colors
+  if (isLabel(element)) {
+    var labelFill = element.get('color:background-color'),
+        labelStroke = element.get('color:border-color');
+
+    // Always use stroke color for external labels
+    if (isLabelExternal(element.labelTarget)) {
+      element.set('color:color', labelStroke);
+    } else if (labelFill) {
+      element.set('color:color', labelFill);
+    }
+  }
+>>>>>>> REPLACE
+```
+
+Since I don't have the exact file where the bug is located, these are educated guesses based on the issue description. The key change in both cases is to ensure that for external labels, we always use the stroke color for the text color, rather than the fill color.

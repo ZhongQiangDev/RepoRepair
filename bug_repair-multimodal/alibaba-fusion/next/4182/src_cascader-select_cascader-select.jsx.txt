@@ -1,0 +1,70 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that when using `CascaderSelect` with `popupProps={{ v2: true }}` and `showSearch` enabled, an error occurs. Looking at the screenshot, it appears to be a TypeError.
+
+After examining the code, I found the problem. In the `handleAfterOpen` method, when `popupProps.v2` is set to true, the popup structure is different, but the code is trying to access elements using the old structure. Specifically, it's trying to get the overlay instance and content node, but with v2 mode, this structure is different.
+
+## Fix
+
+```javascript
+### src/cascader-select/cascader-select.jsx
+<<<<<<< SEARCH
+    handleAfterOpen() {
+        if (!this.popup) {
+            return;
+        }
+
+        const { prefix, popupProps } = this.props;
+        const dropDownNode = this.popup
+            .getInstance()
+            .overlay.getInstance()
+            .getContentNode();
+        const cascaderNode = dropDownNode.querySelector(`.${prefix}cascader`);
+        if (cascaderNode) {
+            this.cascaderHeight = getStyle(cascaderNode, 'height');
+        }
+
+        if (typeof popupProps.afterOpen === 'function') {
+            popupProps.afterOpen();
+        }
+    }
+=======
+    handleAfterOpen() {
+        if (!this.popup) {
+            return;
+        }
+
+        const { prefix, popupProps } = this.props;
+        let dropDownNode;
+        
+        try {
+            // For v2 popup
+            if (popupProps.v2) {
+                dropDownNode = this.popup.getInstance().getContent();
+            } else {
+                // For legacy popup
+                dropDownNode = this.popup
+                    .getInstance()
+                    .overlay.getInstance()
+                    .getContentNode();
+            }
+            
+            const cascaderNode = dropDownNode.querySelector(`.${prefix}cascader`);
+            if (cascaderNode) {
+                this.cascaderHeight = getStyle(cascaderNode, 'height');
+            }
+        } catch (error) {
+            // Silent fail if DOM structure is unexpected
+            console.warn('Failed to get cascader node height:', error);
+        }
+
+        if (typeof popupProps.afterOpen === 'function') {
+            popupProps.afterOpen();
+        }
+    }
+>>>>>>> REPLACE
+```
+
+This fix adds support for the v2 popup structure by checking if `popupProps.v2` is true and using the appropriate method to get the content node. It also adds error handling to prevent the component from crashing if the DOM structure is unexpected.

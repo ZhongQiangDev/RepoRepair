@@ -1,0 +1,41 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states that when there are 0 passing audits, the report should not show a details dropdown. Looking at the screenshot, we can see that there's a "View 0 passed items" dropdown, which doesn't make sense since there are no passed items to view.
+
+In the code, the problem is in the `_renderCategory` method. Currently, it always creates a "passed audits" details element with a summary that says "View X passed items", even when there are 0 passed items.
+
+## Solution
+
+We need to modify the `_renderCategory` method to only add the passed audits section if there are actually passed audits to show.
+
+```javascript
+### lighthouse-core/report/v2/renderer/report-renderer.js
+<<<<<<< SEARCH
+    const passedElem = this._dom.createElement('details', 'lh-passed-audits');
+    const passedSummary = this._dom.createElement('summary', 'lh-passed-audits-summary');
+    passedSummary.textContent = `View ${passedAudits.length} passed items`;
+    passedElem.appendChild(passedSummary);
+
+    for (const audit of passedAudits) {
+      passedElem.appendChild(this._renderAudit(audit));
+    }
+    element.appendChild(passedElem);
+=======
+    // Only create the passed audits section if there are passed audits.
+    if (passedAudits.length) {
+      const passedElem = this._dom.createElement('details', 'lh-passed-audits');
+      const passedSummary = this._dom.createElement('summary', 'lh-passed-audits-summary');
+      passedSummary.textContent = `View ${passedAudits.length} passed items`;
+      passedElem.appendChild(passedSummary);
+
+      for (const audit of passedAudits) {
+        passedElem.appendChild(this._renderAudit(audit));
+      }
+      element.appendChild(passedElem);
+    }
+>>>>>>> REPLACE
+```
+
+This change wraps the creation and appending of the passed audits section in a conditional check that only executes if there are actually passed audits to display. This way, when there are 0 passing audits, no dropdown will be shown.

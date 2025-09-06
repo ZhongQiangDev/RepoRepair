@@ -1,0 +1,46 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+The problem is that when an empty string is provided for the If-Modified-Since header, it now raises an exception. Previously, empty strings were ignored for this header.
+
+2. Cause Analysis:
+The issue appears to be related to header parsing in conditional GET requests. When an empty string is provided for If-Modified-Since, the code is not properly handling this edge case and throwing an exception instead of ignoring it as it did before commit d6aff369ad3.
+
+3. File Analysis:
+
+django/middleware/http.py:
+```
+django/middleware/http.py
+class: ConditionalGetMiddleware
+```
+This class is relevant as it handles conditional GET requests and processes If-Modified-Since headers.
+
+django/utils/cache.py:
+```
+django/utils/cache.py
+function: get_conditional_response
+function: _if_modified_since_passes
+```
+These functions are relevant as they handle the If-Modified-Since header processing and conditional response generation.
+
+django/utils/http.py:
+```
+django/utils/http.py
+function: parse_http_date
+function: parse_http_date_safe
+```
+These functions are relevant as they handle the parsing of HTTP date headers, including If-Modified-Since.
+
+django/views/static.py:
+```
+django/views/static.py
+function: was_modified_since
+```
+This function is relevant as it specifically handles If-Modified-Since header validation.
+
+django/views/decorators/http.py:
+```
+django/views/decorators/http.py
+function: condition
+```
+This function is relevant as it's a decorator that handles conditional requests including If-Modified-Since headers.

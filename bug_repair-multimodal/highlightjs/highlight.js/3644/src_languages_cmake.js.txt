@@ -1,0 +1,52 @@
+I'll analyze the issue and provide a fix for the CMake multi-line comment support.
+
+## Issue Analysis
+
+The issue is that CMake multi-line comments starting with `#[[` and ending with `]]` are not being properly highlighted. Currently, the code only supports single-line comments using `hljs.HASH_COMMENT_MODE`, which matches lines starting with `#` but doesn't handle the multi-line comment syntax specific to CMake.
+
+## Solution
+
+We need to add support for CMake's multi-line comment syntax by adding a rule that matches text starting with `#[[` and ending with `]]`. This should be added to the `contains` array in the language definition.
+
+Here's the fix:
+
+```javascript
+### src/languages/cmake.js
+<<<<<<< SEARCH
+    contains: [
+      {
+        className: 'variable',
+        begin: /\$\{/,
+        end: /\}/
+      },
+      hljs.HASH_COMMENT_MODE,
+      hljs.QUOTE_STRING_MODE,
+      hljs.NUMBER_MODE
+    ]
+=======
+    contains: [
+      {
+        className: 'variable',
+        begin: /\$\{/,
+        end: /\}/
+      },
+      {
+        className: 'comment',
+        begin: /#\[\[/,
+        end: /\]\]/,
+        contains: [hljs.PHRASAL_WORDS_MODE]
+      },
+      hljs.HASH_COMMENT_MODE,
+      hljs.QUOTE_STRING_MODE,
+      hljs.NUMBER_MODE
+    ]
+>>>>>>> REPLACE
+```
+
+This change adds a new rule that specifically handles CMake's multi-line comment syntax. The rule:
+1. Uses the `comment` class for proper styling
+2. Matches text starting with `#[[` and ending with `]]`
+3. Includes `hljs.PHRASAL_WORDS_MODE` to support highlighting of common phrases within comments
+4. Keeps the existing single-line comment support via `hljs.HASH_COMMENT_MODE`
+
+This will ensure that multi-line comments in CMake are properly highlighted as comments.

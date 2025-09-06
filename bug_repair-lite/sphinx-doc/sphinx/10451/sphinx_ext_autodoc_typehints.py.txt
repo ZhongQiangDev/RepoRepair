@@ -1,0 +1,125 @@
+Based on the issue description, the bug appears to be in the `modify_field_list` function where it's not properly handling `*args` and `**kwargs` parameters, causing them to be duplicated in the output documentation.
+
+The issue occurs because the function doesn't properly recognize the special parameter syntax with asterisks, leading to duplicate parameter entries. We need to modify how the parameter names are processed and stored.
+
+Here's the fix:
+
+```python
+### sphinx/ext/autodoc/typehints.py
+<<<<<<< SEARCH
+def modify_field_list(node: nodes.field_list, annotations: Dict[str, str],
+                      suppress_rtype: bool = False) -> None:
+    arguments: Dict[str, Dict[str, bool]] = {}
+    fields = cast(Iterable[nodes.field], node)
+    for field in fields:
+        field_name = field[0].astext()
+        parts = re.split(' +', field_name)
+        if parts[0] == 'param':
+            if len(parts) == 2:
+                # :param xxx:
+                arg = arguments.setdefault(parts[1], {})
+                arg['param'] = True
+            elif len(parts) > 2:
+                # :param xxx yyy:
+                name = ' '.join(parts[2:])
+                arg = arguments.setdefault(name, {})
+                arg['param'] = True
+                arg['type'] = True
+        elif parts[0] == 'type':
+            name = ' '.join(parts[1:])
+            arg = arguments.setdefault(name, {})
+            arg['type'] = True
+        elif parts[0] == 'rtype':
+            arguments['return'] = {'type': True}
+=======
+def modify_field_list(node: nodes.field_list, annotations: Dict[str, str],
+                      suppress_rtype: bool = False) -> None:
+    arguments: Dict[str, Dict[str, bool]] = {}
+    fields = cast(Iterable[nodes.field], node)
+    for field in fields:
+        field_name = field[0].astext()
+        parts = re.split(' +', field_name)
+        if parts[0] == 'param':
+            if len(parts) == 2:
+                # :param xxx:
+                name = parts[1]
+                # Handle *args and **kwargs specially
+                if name.startswith('*'):
+                    name = name.lstrip('*')
+                arg = arguments.setdefault(name, {})
+                arg['param'] = True
+                if name in ('args', 'kwargs'):
+                    arg['stars'] = name == 'kwargs' and '**' or '*'
+            elif len(parts) > 2:
+                # :param xxx yyy:
+                name = ' '.join(parts[2:])
+                if name.startswith('*'):
+                    name = name.lstrip('*')
+                arg = arguments.setdefault(name, {})
+                arg['param'] = True
+                arg['type'] = True
+                if name in ('args', 'kwargs'):
+                    arg['stars'] = name == 'kwargs' and '**' or '*'
+        elif parts[0] == 'type':
+            name = ' '.join(parts[1:])
+            if name.startswith('*'):
+                name = name.lstrip('*')
+            arg = arguments.setdefault(name, {})
+            arg['type'] = True
+        elif parts[0] == 'rtype':
+            arguments['return'] = {'type': True}
+>>>>>>> REPLACE
+```
+
+```python
+### sphinx/ext/autodoc/typehints.py
+<<<<<<< SEARCH
+    for name, annotation in annotations.items():
+        if name == 'return':
+            continue
+
+        arg = arguments.get(name, {})
+        if not arg.get('type'):
+            field = nodes.field()
+            field += nodes.field_name('', 'type ' + name)
+            field += nodes.field_body('', nodes.paragraph('', annotation))
+            node += field
+        if not arg.get('param'):
+            field = nodes.field()
+            field += nodes.field_name('', 'param ' + name)
+            field += nodes.field_body('', nodes.paragraph('', ''))
+            node += field
+=======
+    for name, annotation in annotations.items():
+        if name == 'return':
+            continue
+
+        arg = arguments.get(name, {})
+        if not arg.get('type'):
+            field = nodes.field()
+            param_name = name
+            if arg.get('stars'):
+                param_name = arg['stars'] + name
+            field += nodes.field_name('', 'type ' + param_name)
+            field += nodes.field_body('', nodes.paragraph('', annotation))
+            node += field
+        if not arg.get('param'):
+            field = nodes.field()
+            param_name = name
+            if arg.get('stars'):
+                param_name = arg['stars'] + name
+            field += nodes.field_name('', 'param ' + param_name)
+            field += nodes.field_body('', nodes.paragraph('', ''))
+            node += field
+>>>>>>> REPLACE
+```
+
+These changes:
+
+1. Add special handling for `*args` and `**kwargs` by detecting and storing the asterisk prefix
+2. Strip asterisks from parameter names when storing in the arguments dictionary to avoid duplication
+3. Add the correct number of asterisks back when generating the field names
+4. Store whether a parameter is `args` or `kwargs` using a new `stars` property
+5. Use this information to properly format the parameter names in the output
+
+This should fix the duplication issue and ensure that `*args` and `**kwargs` are properly documented with their type hints while maintaining the correct asterisk prefix notation.

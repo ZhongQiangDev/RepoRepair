@@ -1,0 +1,29 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## Identifying the Wrong Behavior
+The issue involves SQL syntax highlighting breaking when there are quote escape sequences at the end of dynamic SQL. In the example, the highlighting goes awry after the string escape sequence in:
+`tsql
+DECLARE @DropViewStatement NVARCHAR(MAX) =
+    'EXEC ' + QUOTENAME(@DatabaseName) + '.sys.sp_executesql N''DROP VIEW IF EXISTS ' + QUOTENAME(@ViewName) + ';'';'
+`
+
+The problem appears to be with how highlight.js handles the escaped single quotes (`''`) within the SQL string, particularly at the end of the statement.
+
+## Analyzing the Cause
+Looking at the example, the issue occurs with nested quotes in SQL. In T-SQL, single quotes are escaped by doubling them (`''`). The highlighter seems to be incorrectly parsing these escaped quotes, especially when they appear at the end of a string, causing the syntax highlighting to break.
+
+The problem is likely in the SQL language definition file that handles string parsing and quote escaping. The current implementation doesn't correctly handle the case where escaped quotes appear at the end of a string literal.
+
+## Files Most Related to the Cause
+
+```
+src/languages/sql.js
+src/lib/modes.js
+src/highlight.js
+```
+
+The `src/languages/sql.js` file is the most important as it contains the SQL language definition and string handling rules. This is where the quote escape sequence handling needs to be fixed.
+
+The `src/lib/modes.js` file is relevant as it likely contains utility functions for creating common highlighting modes, including string modes that might be used by the SQL language definition.
+
+The `src/highlight.js` core file might need to be checked if the issue involves how the library processes language definitions or handles string modes in general.

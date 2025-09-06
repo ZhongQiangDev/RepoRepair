@@ -1,0 +1,126 @@
+I'll analyze the issue and provide a fix for the overlapping tooltips problem.
+
+## Bug Analysis
+
+The issue is that when a user clicks on an icon-only button (which gets focus), its tooltip becomes visible. Then, when hovering over another icon-only button, that button's tooltip also becomes visible, resulting in two overlapping tooltips.
+
+The problem is in the `TooltipIcon` component. Currently, it shows tooltips based on the `allowTooltipVisibility` state, which is set to `true` on both focus and mouse enter events. However, there's no mechanism to hide the tooltip of a focused button when hovering over another button.
+
+## Solution
+
+We need to modify the component to handle the case where a user hovers over a button while another button has focus. The best approach is to add a global event listener that tracks mouse movements and hides tooltips on focused elements when the mouse moves away from them.
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/TooltipIcon/TooltipIcon.js
+<<<<<<< SEARCH
+  const [allowTooltipVisibility, setAllowTooltipVisibility] = useState(true);
+  const tooltipId = id || `icon-tooltip-${getInstanceId()}`;
+  const tooltipTriggerClasses = cx(
+    `${prefix}--tooltip__trigger`,
+    `${prefix}--tooltip--a11y`,
+    className,
+    {
+      [`${prefix}--tooltip--${direction}`]: direction,
+      [`${prefix}--tooltip--align-${align}`]: align,
+      [`${prefix}--tooltip--hidden`]: !allowTooltipVisibility,
+    }
+  );
+  const handleFocus = () => setAllowTooltipVisibility(true);
+  const handleMouseEnter = () => setAllowTooltipVisibility(true);
+  useEffect(() => {
+    const handleEscKeyDown = (event) => {
+      if (matches(event, [keys.Escape])) {
+        setAllowTooltipVisibility(false);
+      }
+    };
+    document.addEventListener('keydown', handleEscKeyDown);
+    return () => document.removeEventListener('keydown', handleEscKeyDown);
+  }, []);
+=======
+  const [allowTooltipVisibility, setAllowTooltipVisibility] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const tooltipId = id || `icon-tooltip-${getInstanceId()}`;
+  const tooltipTriggerClasses = cx(
+    `${prefix}--tooltip__trigger`,
+    `${prefix}--tooltip--a11y`,
+    className,
+    {
+      [`${prefix}--tooltip--${direction}`]: direction,
+      [`${prefix}--tooltip--align-${align}`]: align,
+      [`${prefix}--tooltip--hidden`]: !allowTooltipVisibility || (!isHovered && !isFocused),
+    }
+  );
+  
+  const handleFocus = () => {
+    setIsFocused(true);
+    setAllowTooltipVisibility(true);
+  };
+  
+  const handleBlur = () => {
+    setIsFocused(false);
+  };
+  
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    setAllowTooltipVisibility(true);
+    
+    // Hide tooltips on all other focused but not hovered elements
+    document.querySelectorAll(`.${prefix}--tooltip__trigger.${prefix}--tooltip--a11y:focus:not(:hover)`)
+      .forEach(node => {
+        if (node !== document.activeElement) return;
+        node.classList.add(`${prefix}--tooltip--hidden`);
+      });
+  };
+  
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+  };
+  
+  useEffect(() => {
+    const handleEscKeyDown = (event) => {
+      if (matches(event, [keys.Escape])) {
+        setAllowTooltipVisibility(false);
+      }
+    };
+    document.addEventListener('keydown', handleEscKeyDown);
+    return () => document.removeEventListener('keydown', handleEscKeyDown);
+  }, []);
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/TooltipIcon/TooltipIcon.js
+<<<<<<< SEARCH
+      onMouseEnter={composeEventHandlers([onMouseEnter, handleMouseEnter])}
+      onFocus={composeEventHandlers([onFocus, handleFocus])}>
+=======
+      onMouseEnter={composeEventHandlers([onMouseEnter, handleMouseEnter])}
+      onMouseLeave={handleMouseLeave}
+      onFocus={composeEventHandlers([onFocus, handleFocus])}
+      onBlur={handleBlur}>
+>>>>>>> REPLACE
+```
+
+## Explanation
+
+The changes I've made:
+
+1. Added two new state variables:
+   - `isHovered`: Tracks if the button is currently being hovered over
+   - `isFocused`: Tracks if the button currently has focus
+
+2. Modified the tooltip visibility logic to only show the tooltip when:
+   - `allowTooltipVisibility` is true (not dismissed by Escape key)
+   - AND either the button is hovered OR focused
+
+3. Added handlers for `onMouseLeave` and `onBlur` events to update the state
+
+4. Most importantly, added logic in the `handleMouseEnter` function to hide tooltips on other focused elements when hovering over a new button. This prevents the overlapping tooltips issue.
+
+This solution ensures that:
+- When a user hovers over a button, any tooltips from focused buttons will be hidden
+- Tooltips still appear appropriately on focus (for accessibility)
+- The Escape key still dismisses tooltips as before

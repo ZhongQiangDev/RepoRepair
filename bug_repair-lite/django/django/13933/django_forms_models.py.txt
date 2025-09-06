@@ -1,0 +1,35 @@
+Based on the issue description, the bug is in the `ModelChoiceField` class where the validation error message for invalid choices doesn't include the actual invalid value, unlike its subclass `ModelMultipleChoiceField` which does include the value in its error message.
+
+The fix requires modifying the `to_python` method to pass the invalid value to the error message. Here's the *SEARCH/REPLACE* edit:
+
+```python
+### django/forms/models.py
+<<<<<<< SEARCH
+            raise ValidationError(self.error_messages['invalid_choice'], code='invalid_choice')
+=======
+            raise ValidationError(
+                self.error_messages['invalid_choice'],
+                code='invalid_choice',
+                params={'value': value},
+            )
+>>>>>>> REPLACE
+```
+
+Additionally, we need to update the error message template to include the value parameter:
+
+```python
+### django/forms/models.py
+<<<<<<< SEARCH
+        'invalid_choice': _('Select a valid choice. That choice is not one of'
+                            ' the available choices.'),
+=======
+        'invalid_choice': _('Select a valid choice. %(value)s is not one of'
+                            ' the available choices.'),
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Update the error message template to include a placeholder for the invalid value
+2. Pass the invalid value as a parameter when raising the ValidationError
+
+This brings the behavior in line with ModelMultipleChoiceField and provides more helpful error messages to users by showing them which value was invalid.

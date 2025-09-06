@@ -1,0 +1,23 @@
+Let me follow the steps:
+
+1. Wrong Behavior:
+- The sqlmigrate command is wrapping SQL output in BEGIN/COMMIT statements even when the database doesn't support transactional DDL.
+
+2. Cause Analysis:
+- The sqlmigrate command only checks migration.atomic to decide whether to add BEGIN/COMMIT
+- It should also check connection.features.can_rollback_ddl before adding transaction statements
+- The logic needs to consider both conditions: migration being atomic AND database supporting DDL rollback
+
+3. Most Related Files (ordered by importance):
+```
+django/core/management/commands/sqlmigrate.py
+django/db/migrations/executor.py
+django/db/transaction.py
+```
+
+Reasoning:
+- sqlmigrate.py is the main file containing the command implementation that needs to be modified
+- executor.py contains the MigrationExecutor class that handles migration execution and SQL generation
+- transaction.py contains core transaction handling logic that affects how BEGIN/COMMIT statements are managed
+
+These files are most directly involved in the transaction wrapping behavior during SQL migration generation.

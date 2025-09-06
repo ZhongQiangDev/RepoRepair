@@ -1,0 +1,46 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that after upgrading from Chart.js v2.9.4 to v3.5.1, the tooltip does not show when the user touches any part of the graph using `pointerdown` and `pointerup` events. The tooltip only hovers but does not display as expected.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue appears to be related to event normalization in Chart.js v3.5.1. Specifically, the event types are being normalized, and the plugin event filters are receiving these normalized event types instead of the original event types (`pointerdown` and `pointerup`). This mismatch prevents the tooltip from being triggered correctly.
+
+### 3. Examine Each File One by One
+
+#### --- src/core/core.interaction.js ---
+This file contains no relevant functions/classes.
+
+#### --- src/core/core.plugins.js ---
+This file contains no relevant functions/classes.
+
+#### --- src/platform/platform.base.js ---
+This file contains no relevant functions/classes.
+
+#### --- src/platform/platform.dom.js ---
+```
+src/platform/platform.dom.js
+function: fromNativeEvent
+function: createProxyAndListen
+```
+
+- `fromNativeEvent`: This function is responsible for converting native events to a format that Chart.js can use. It might be where the event type normalization occurs, which could be causing the issue.
+- `createProxyAndListen`: This function sets up event listeners on the chart's canvas. It might be relevant if the event listener setup is not correctly handling the normalized event types.
+
+#### --- src/plugins/plugin.tooltip.js ---
+```
+src/plugins/plugin.tooltip.js
+function: afterEvent
+function: determineAlignment
+function: getBackgroundPoint
+```
+
+- `afterEvent`: This function handles events after they occur and updates the tooltip accordingly. It might not be correctly handling the normalized event types.
+- `determineAlignment`: This function calculates the alignment of the tooltip. While not directly related to the event handling, it could be indirectly affected if the event handling is incorrect.
+- `getBackgroundPoint`: This function calculates the position of the tooltip. It might be indirectly affected if the event handling is incorrect.
+
+### Summary
+
+The relevant functions that need inspection or editing are:
+- `fromNativeEvent` and `createProxyAndListen` in `src/platform/platform.dom.js`
+- `afterEvent`, `determineAlignment`, and `getBackgroundPoint` in `src/plugins/plugin.tooltip.js`

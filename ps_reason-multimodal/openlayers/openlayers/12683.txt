@@ -1,0 +1,20 @@
+Let me analyze the GitHub issue and break down the problems and causes:
+
+### Answer 1
+**Wrong Behavior**: Icon sprite offset is incorrect when screen pixel ratio is > 1 and a custom color is applied
+**Cause**: The PR #11277 introduced changes in how sprite offsets are calculated when color tinting is applied, but didn't properly account for device pixel ratio scaling. This causes the offset calculations to be misaligned on high DPI displays.
+
+### Answer 2
+**Wrong Behavior**: The issue only manifests when all three conditions are met (offset+size specified, pixel ratio > 1, custom color applied)
+**Cause**: The sprite rendering logic appears to handle these parameters separately, where:
+- Normal sprite rendering works correctly
+- Color tinting works correctly in isolation
+- Pixel ratio scaling works correctly in isolation
+But the combination of color tinting and pixel ratio scaling causes the offset calculation to break down.
+
+### Answer 3
+**Wrong Behavior**: The sprite offset works correctly when color is removed, even with pixel ratio = 2
+**Cause**: The original sprite rendering code (pre-PR #11277) had proper handling of pixel ratio scaling. The introduction of the color tinting feature modified this behavior without maintaining proper coordinate scaling for the sprite offset calculations.
+
+### Conclusion
+**Summary**: The core issue stems from PR #11277 which introduced sprite coloring functionality but created an interaction bug with device pixel ratio scaling. The sprite offset calculation needs to be adjusted to properly handle both color tinting and pixel ratio scaling simultaneously. The problem only occurs when using custom colors on high DPI displays with specified offset/size values, suggesting the coordinate transformation logic needs to be reviewed specifically for this combination of features.

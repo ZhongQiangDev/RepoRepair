@@ -1,0 +1,30 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- File permissions for uploaded files are inconsistent (0o600 vs expected 0o644)
+- This happens specifically when using TemporaryUploadedFile for larger file uploads
+- The issue occurs due to the tempfile.NamedTemporaryFile + os.rename sequence
+
+2. Cause Analysis:
+- The root cause is that Python's tempfile module explicitly sets 0o600 permissions for security
+- When Django moves the temporary file to its final location using os.rename, these restrictive permissions are preserved
+- There's no explicit permission setting in Django's file upload handling code to ensure consistent permissions
+- This creates inconsistency between files handled in memory vs temporary files
+
+3. Most Related Files:
+```
+django/core/files/uploadhandler.py
+django/core/files/uploadedfile.py
+django/core/files/storage.py
+django/core/files/temp.py
+django/core/files/base.py
+```
+
+These files are ordered by importance because:
+1. uploadhandler.py contains the core upload handling logic and determines whether to use memory or temporary storage
+2. uploadedfile.py defines the TemporaryUploadedFile class that's directly involved in the permission issue
+3. storage.py manages file storage and could help enforce consistent permissions
+4. temp.py handles temporary file creation and management
+5. base.py provides foundational file handling functionality
+
+The fix would likely need to be implemented primarily in uploadhandler.py or uploadedfile.py to ensure consistent permissions regardless of the upload method used.

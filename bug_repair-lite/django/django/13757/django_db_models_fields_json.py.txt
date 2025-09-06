@@ -1,0 +1,50 @@
+Based on the issue description, the bug is in the `KeyTransformIsNull` lookup class where it incorrectly handles `isnull=True` cases for SQLite and Oracle databases. The issue states that when `isnull=True`, the query should only match objects that do not have the key, but currently it also matches objects that have the key with a null value.
+
+The fix needs to modify the `as_oracle` and `as_sqlite` methods to handle the `isnull=True` case correctly. Here's the fix:
+
+```python
+### django/db/models/fields/json.py
+<<<<<<< SEARCH
+    def as_oracle(self, compiler, connection):
+        if not self.rhs:
+            return HasKey(self.lhs.lhs, self.lhs.key_name).as_oracle(compiler, connection)
+        return super().as_sql(compiler, connection)
+
+    def as_sqlite(self, compiler, connection):
+        if not self.rhs:
+            return HasKey(self.lhs.lhs, self.lhs.key_name).as_sqlite(compiler, connection)
+        return super().as_sql(compiler, connection)
+=======
+    def as_oracle(self, compiler, connection):
+        if not self.rhs:
+            return HasKey(self.lhs.lhs, self.lhs.key_name).as_oracle(compiler, connection)
+        # Handle isnull=True
+        lhs, params, key_transforms = self.lhs.preprocess_lhs(compiler, connection)
+        json_path = compile_json_path(key_transforms)
+        sql = "JSON_EXISTS(%s, '$.%s') = 0" % (lhs, json_path.replace('$', ''))
+        return sql, tuple(params)
+
+    def as_sqlite(self, compiler, connection):
+        if not self.rhs:
+            return HasKey(self.lhs.lhs, self.lhs.key_name).as_sqlite(compiler, connection)
+        # Handle isnull=True
+        lhs, params, key_transforms = self.lhs.preprocess_lhs(compiler, connection)
+        json_path = compile_json_path(key_transforms)
+        sql = "NOT JSON_TYPE(%s, %%s) IS NOT NULL" % lhs
+        return sql, tuple(params) + (json_path,)
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. For Oracle:
+   - Uses `JSON_EXISTS` to check if the key exists in the JSON object
+   - Returns true only when the key doesn't exist (= 0)
+   - Properly handles the path by removing the leading '$' from the json_path
+
+2. For SQLite:
+   - Uses `JSON_TYPE` to check if the key exists
+   - `IS NOT NULL` checks if the type exists (meaning the key exists)
+   - The outer `NOT` makes it match only when the key doesn't exist
+
+This change ensures that `isnull=True` only matches objects where the key is actually missing, not where the key exists with a NULL value.

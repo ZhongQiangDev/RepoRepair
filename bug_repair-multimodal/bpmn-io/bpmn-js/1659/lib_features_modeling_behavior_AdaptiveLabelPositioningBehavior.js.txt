@@ -1,0 +1,82 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a connected shape is resized, the sequence flow (connection) is re-laid out, but labels and associations connected to that sequence flow don't move with it. This happens because the `AdaptiveLabelPositioningBehavior` class is missing event handlers for shape resize operations.
+
+Looking at the code, I can see that the class already handles label positioning for connection creation, layout, and waypoint updates, but it doesn't handle shape resize events which can also affect connections and their labels.
+
+## Solution
+
+We need to add event handlers for shape resize operations to ensure labels are properly repositioned when connected shapes are resized. Specifically, we need to:
+
+1. Add a handler for the `shape.resize` event
+2. Check and adjust labels for any connections that are attached to the resized shape
+
+Here's the fix:
+
+```javascript
+### lib/features/modeling/behavior/AdaptiveLabelPositioningBehavior.js
+<<<<<<< SEARCH
+  this.postExecuted([
+    'elements.create'
+  ], function(event) {
+    var context = event.context,
+        elements = context.elements,
+        hints = context.hints || {};
+
+    if (hints.createElementsBehavior !== false) {
+      elements.forEach(function(element) {
+        checkLabelAdjustment(element);
+      });
+    }
+  });
+=======
+  this.postExecuted([
+    'elements.create'
+  ], function(event) {
+    var context = event.context,
+        elements = context.elements,
+        hints = context.hints || {};
+
+    if (hints.createElementsBehavior !== false) {
+      elements.forEach(function(element) {
+        checkLabelAdjustment(element);
+      });
+    }
+  });
+
+  this.postExecuted([
+    'shape.resize'
+  ], function(event) {
+    var context = event.context,
+        shape = context.shape,
+        hints = context.hints || {};
+
+    if (hints.createElementsBehavior !== false) {
+      // Check the resized shape itself
+      checkLabelAdjustment(shape);
+      
+      // Check all incoming and outgoing connections
+      if (shape.incoming && shape.incoming.length) {
+        shape.incoming.forEach(function(connection) {
+          checkLabelAdjustment(connection);
+        });
+      }
+      
+      if (shape.outgoing && shape.outgoing.length) {
+        shape.outgoing.forEach(function(connection) {
+          checkLabelAdjustment(connection);
+        });
+      }
+    }
+  });
+>>>>>>> REPLACE
+```
+
+This fix adds a new event handler for the `shape.resize` event. When a shape is resized, it:
+1. Checks if the resized shape itself has a label that needs adjustment
+2. Checks all incoming connections to the shape and adjusts their labels if needed
+3. Checks all outgoing connections from the shape and adjusts their labels if needed
+
+This ensures that when a shape is resized, all connected sequence flows and their labels will be properly repositioned.

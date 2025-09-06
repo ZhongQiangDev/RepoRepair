@@ -1,0 +1,44 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is related to WebGLTileLayer not rendering data loaded with DataTileSource when using a custom tile grid. The error message indicates a texture upload problem:
+
+```
+WebGL warning: texImage: Desired upload requires more data than is available: (767 rows plus 770 pixels needed, 767 rows plus 258 pixels available)
+```
+
+This suggests a mismatch between the expected tile dimensions and the actual data available. Looking at the code in `DataTileSource.js`, I notice that when creating a tile, the tile dimensions from the tile grid aren't being properly passed to the DataTile constructor.
+
+The issue is likely that the DataTile doesn't know the correct dimensions it should have based on the custom tile grid, so when WebGL tries to use it as a texture, there's not enough data.
+
+## Fix
+
+We need to modify the `getTile` method in `DataTileSource.js` to pass the tile dimensions from the tile grid to the DataTile constructor:
+
+```javascript
+### src/ol/source/DataTile.js
+<<<<<<< SEARCH
+    const tile = new DataTile(
+      assign({tileCoord: [z, x, y], loader: loader}, this.tileOptions)
+    );
+=======
+    const tileGrid = this.getTileGrid();
+    const tileSize = tileGrid.getTileSize(z);
+    const width = Array.isArray(tileSize) ? tileSize[0] : tileSize;
+    const height = Array.isArray(tileSize) ? tileSize[1] : tileSize;
+    
+    const tile = new DataTile(
+      assign({
+        tileCoord: [z, x, y], 
+        loader: loader,
+        width: width,
+        height: height
+      }, this.tileOptions)
+    );
+>>>>>>> REPLACE
+```
+
+This change ensures that the DataTile is created with the correct width and height dimensions from the tile grid for the specific zoom level. This way, when WebGL tries to use the tile as a texture, it will have the correct dimensions and enough data will be available for rendering.
+
+The fix addresses the root cause of the issue by properly communicating the expected tile dimensions from the tile grid to the DataTile, which should resolve the WebGL warning and allow the tiles to render correctly.

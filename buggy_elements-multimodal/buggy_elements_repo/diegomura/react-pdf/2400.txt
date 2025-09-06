@@ -1,0 +1,53 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when using both `fixed` and `minPresenceAhead` on a header component, the `minPresenceAhead` rule is not obeyed. The header appears on a page by itself, which is not the expected behavior. The header should only appear if there is enough content to accompany it on the same page.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how the `fixed` and `minPresenceAhead` properties are handled in the layout algorithm. When a component is marked as `fixed`, it may be prioritized for placement at the top of each page without considering the `minPresenceAhead` constraint. This could mean that the layout engine is not properly integrating the `minPresenceAhead` logic when a component is also `fixed`.
+
+### 3. Examine Each File One by One
+
+#### --- packages/layout/src/node/shouldBreak.js ---
+```
+packages/layout/src/node/shouldBreak.js
+function: function_6
+```
+The `function_6` (or `shouldBreak`) function is crucial for determining whether a layout break should occur. It checks conditions like `minPresenceAhead` and `futureHeight`, which are relevant to the issue. The function might need to be adjusted to properly handle the `fixed` property in conjunction with `minPresenceAhead`.
+
+#### --- packages/layout/src/page/getContentArea.js ---
+```
+This file contains no relevant functions/classes.
+```
+This file is primarily concerned with calculating the content area of a page based on padding and height, which is not directly related to the `fixed` and `minPresenceAhead` properties.
+
+#### --- packages/layout/src/steps/resolvePagePaddings.js ---
+```
+This file contains no relevant functions/classes.
+```
+This file deals with resolving padding values and converting percentage-based paddings to fixed values, which is not directly related to the issue.
+
+#### --- packages/layout/src/steps/resolvePageSizes.js ---
+```
+This file contains no relevant functions/classes.
+```
+This file is about resolving page sizes and merging them into the page's style, which is not directly related to the issue.
+
+#### --- packages/layout/src/steps/resolvePagination.js ---
+```
+packages/layout/src/steps/resolvePagination.js
+function: function_13
+function: function_14
+```
+The `function_13` and `function_14` (or `splitPage`) functions are involved in splitting pages and handling dynamic content. These functions might need to be adjusted to ensure that `fixed` components respect the `minPresenceAhead` constraint when being split across pages.
+
+### Summary of Relevant Locations
+
+```
+packages/layout/src/node/shouldBreak.js
+function: function_6
+
+packages/layout/src/steps/resolvePagination.js
+function: function_13
+function: function_14
+```

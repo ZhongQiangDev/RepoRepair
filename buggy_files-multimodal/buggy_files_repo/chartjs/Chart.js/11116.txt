@@ -1,0 +1,30 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When `includeBounds=false` and `min`/`max` axis limits are defined, a tick is sometimes rendered outside the defined `max` axis limit
+- This is particularly noticeable with small axis limits (e.g., min: 2.404e-8, max: 2.4141e-8)
+- The issue creates unwanted space next to eye diagrams as shown in the left image
+
+2. Cause Analysis:
+- The issue appears to be related to tick generation and boundary handling in linear scales
+- When `includeBounds=false`, the scale should not generate ticks at the exact boundary values
+- However, the current implementation seems to be generating an extra tick beyond the max limit
+- This suggests an issue with either the tick generation algorithm or the boundary enforcement logic in the linear scale implementation
+
+3. Most Related Files:
+```
+src/scales/scale.linearbase.js
+src/scales/scale.linear.js
+src/core/core.scale.js
+src/core/core.scale.autoskip.js
+src/core/core.ticks.js
+```
+
+These files are ordered by importance because:
+- `scale.linearbase.js` contains the core tick generation logic and boundary handling for linear scales
+- `scale.linear.js` extends the linear base scale and handles value-to-pixel conversions
+- `core.scale.js` provides fundamental scale functionality and coordinate transformations
+- `core.scale.autoskip.js` manages tick skipping and density
+- `core.ticks.js` handles tick formatting and general tick utilities
+
+The fix would likely need to be implemented in `scale.linearbase.js` where the tick generation and boundary handling logic resides.

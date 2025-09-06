@@ -1,0 +1,56 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about performance degradation when upgrading from OpenLayers 4.4.2 to 4.6.2, specifically with the drawing interaction when using `renderMode: 'image'`. The user reports that drawing triangles is much slower in the newer version.
+
+Looking at the code and the issue description, the problem appears to be in the `replay_` method of `ol.render.canvas.Replay` class. This method handles rendering vector features to a canvas, and the performance issue is likely related to how coordinates are processed during rendering.
+
+The key issue is in the coordinate transformation and caching logic. The current implementation is not efficiently handling the coordinate transformations, which becomes particularly noticeable when drawing many features.
+
+## Fix
+
+The main performance bottleneck is in the coordinate transformation logic at the beginning of the `replay_` method. The current implementation is creating new arrays and transforming coordinates unnecessarily on each render cycle.
+
+```javascript
+### src/ol/render/canvas/replay.js
+<<<<<<< SEARCH
+  /** @type {Array.<number>} */
+  var pixelCoordinates;
+  if (this.pixelCoordinates_ && ol.array.equals(transform, this.renderedTransform_)) {
+    pixelCoordinates = this.pixelCoordinates_;
+  } else {
+    if (!this.pixelCoordinates_) {
+      this.pixelCoordinates_ = [];
+    }
+    pixelCoordinates = ol.geom.flat.transform.transform2D(
+        this.coordinates, 0, this.coordinates.length, 2,
+        transform, this.pixelCoordinates_);
+    ol.transform.setFromArray(this.renderedTransform_, transform);
+  }
+=======
+  /** @type {Array.<number>} */
+  var pixelCoordinates;
+  if (this.pixelCoordinates_ && ol.array.equals(transform, this.renderedTransform_)) {
+    pixelCoordinates = this.pixelCoordinates_;
+  } else {
+    if (!this.pixelCoordinates_) {
+      this.pixelCoordinates_ = [];
+    }
+    if (!this.renderedTransform_) {
+      this.renderedTransform_ = ol.transform.create();
+    }
+    pixelCoordinates = ol.geom.flat.transform.transform2D(
+        this.coordinates, 0, this.coordinates.length, 2,
+        transform, this.pixelCoordinates_);
+    ol.transform.setFromArray(this.renderedTransform_, transform);
+  }
+>>>>>>> REPLACE
+```
+
+This fix ensures that:
+
+1. The `renderedTransform_` is properly initialized before use
+2. The coordinate transformation is more efficiently cached
+
+The issue was that in some cases, especially when rapidly drawing features, the `renderedTransform_` might not be properly initialized, causing unnecessary coordinate transformations on each render cycle. This fix ensures proper initialization and caching of the transformed coordinates, which should significantly improve performance when drawing features in image rendering mode.

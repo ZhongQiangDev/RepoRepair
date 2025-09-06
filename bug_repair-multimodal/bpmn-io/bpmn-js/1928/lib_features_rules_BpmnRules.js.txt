@@ -1,0 +1,44 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that an empty pool (a participant with no lanes or elements) should have a fixed height and not be resizable vertically using the space tool. Currently, the space tool is allowing vertical resizing of empty pools, which is not the expected behavior.
+
+Looking at the code, the problem is in the `canResize` function in `lib/features/rules/BpmnRules.js`. This function determines whether an element can be resized, but it doesn't have any special handling for empty pools.
+
+The function currently checks if the shape is a Participant and only enforces minimum dimensions, but doesn't distinguish between empty and non-empty pools.
+
+## Fix
+
+We need to modify the `canResize` function to prevent vertical resizing of empty pools. We'll need to:
+
+1. Detect if a pool is empty
+2. For empty pools, only allow horizontal resizing (width changes) but not vertical resizing (height changes)
+
+Here's the fix:
+
+```javascript
+### lib/features/rules/BpmnRules.js
+<<<<<<< SEARCH
+  if (is(shape, 'bpmn:Participant')) {
+    return !newBounds || (newBounds.width >= 250 && newBounds.height >= 50);
+  }
+=======
+  if (is(shape, 'bpmn:Participant')) {
+    // Check if participant is empty (has no children)
+    const hasChildElements = shape.children && shape.children.length > 0;
+    
+    // For empty pools, only allow horizontal resizing
+    if (!hasChildElements && newBounds) {
+      // If height is changing, prevent resize
+      if (newBounds.height !== shape.height) {
+        return false;
+      }
+    }
+    
+    return !newBounds || (newBounds.width >= 250 && newBounds.height >= 50);
+  }
+>>>>>>> REPLACE
+```
+
+This change checks if a participant (pool) has any child elements. If it doesn't (empty pool) and the height is being changed, it prevents the resize operation. However, it still allows horizontal resizing of empty pools and any type of resizing for non-empty pools, as long as the minimum dimensions are respected.

@@ -1,0 +1,28 @@
+From the issue description, the bug occurs in the `is_upper()` method when checking if a matrix is upper triangular. The problem is that the method tries to access indices beyond the matrix dimensions for tall matrices (more rows than columns).
+
+The issue occurs because the code iterates over `range(i)` for each row `i`, but for tall matrices this can exceed the number of columns. For example, with a 4x2 matrix, when i=3 it tries to access column index 2 which is out of bounds.
+
+The fix is to limit the inner loop to only iterate up to the minimum of i and the number of columns. Here's the edit:
+
+```python
+### sympy/matrices/matrices.py
+<<<<<<< SEARCH
+        return all(self[i, j].is_zero
+                   for i in range(1, self.rows)
+                   for j in range(i))
+=======
+        return all(self[i, j].is_zero
+                   for i in range(1, self.rows)
+                   for j in range(min(i, self.cols)))
+>>>>>>> REPLACE
+```
+
+This fix ensures that we never try to access column indices beyond the matrix dimensions. For a 4x2 matrix:
+
+- When i=1: j ranges from 0 to min(1,2)=1 
+- When i=2: j ranges from 0 to min(2,2)=2
+- When i=3: j ranges from 0 to min(3,2)=2
+
+So it will properly check all elements below the diagonal without trying to access invalid indices.
+
+The fix maintains the original behavior for square matrices while properly handling tall matrices by limiting the column indices to valid values.

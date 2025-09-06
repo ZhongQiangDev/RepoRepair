@@ -1,0 +1,26 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When saving a figure with PostScript backend, a TypeError occurs if there's a text label or title containing an empty line (line break with no content)
+- The specific error is "TypeError: cannot unpack non-iterable NoneType object"
+- This only happens with PostScript (.eps) backend, not with other backends like PNG, PDF, SVG, Qt
+
+2. Cause Analysis:
+- The error occurs in backend_ps.py when trying to unpack values from a stream
+- Based on the traceback, the issue is in the text rendering code where it tries to process text with empty lines
+- The stream returns None for empty lines, but the code attempts to unpack values from it without checking if it's None
+- The suggested fix of adding `if curr_stream:` check indicates this is a missing null check issue
+
+3. Most Related Files:
+```
+lib/matplotlib/backends/backend_ps.py
+lib/matplotlib/text.py
+lib/matplotlib/pyplot.py
+```
+
+These files are chosen because:
+1. backend_ps.py is the most critical as it contains the PostScript backend code where the error occurs
+2. text.py handles text rendering and is in the error traceback
+3. pyplot.py provides the high-level interface and contains text-related functions that could be affected
+
+The other files in the repository information don't appear to be directly related to this PostScript text rendering issue.

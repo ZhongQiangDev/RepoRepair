@@ -1,0 +1,57 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is with the `ExpandableTile` component in the Carbon Design System. There are two main problems:
+
+1. When the tile contains a `StructuredList` (which has roles), and the tile is rendered as a button, it causes accessibility issues because buttons can't have children with roles.
+
+2. When using the "interactive" version of the tile (which renders the tile as a div with a separate button for expanding/collapsing), there's an accessibility error related to the `aria-expanded` attribute.
+
+Looking at the code, I can see that in the interactive version of the tile, the `aria-expanded` attribute is being applied to both the parent div and the button element. This is causing the accessibility error because the attribute should only be on the interactive element (the button) that controls the expansion.
+
+## Solution
+
+We need to remove the `aria-expanded` attribute from the parent div in the interactive version of the tile, keeping it only on the button element that actually controls the expansion.
+
+```typescript
+### packages/react/src/components/Tile/Tile.tsx
+<<<<<<< SEARCH
+  return interactive ? (
+    <div
+      // @ts-expect-error: Needlesly strict & deep typing for the element type
+      ref={ref}
+      className={interactiveClassNames}
+      aria-expanded={isExpanded}
+      {...rest}>
+      <div ref={tileContent}>
+        <div ref={aboveTheFold} className={`${prefix}--tile-content`}>
+          {childrenAsArray[0]}
+        </div>
+        <button
+          type="button"
+          aria-expanded={isExpanded}
+          onKeyUp={composeEventHandlers([onKeyUp, handleKeyUp])}
+
+          className={chevronInteractiveClassNames}>
+=======
+  return interactive ? (
+    <div
+      // @ts-expect-error: Needlesly strict & deep typing for the element type
+      ref={ref}
+      className={interactiveClassNames}
+      {...rest}>
+      <div ref={tileContent}>
+        <div ref={aboveTheFold} className={`${prefix}--tile-content`}>
+          {childrenAsArray[0]}
+        </div>
+        <button
+          type="button"
+          aria-expanded={isExpanded}
+          onKeyUp={composeEventHandlers([onKeyUp, handleKeyUp])}
+          onClick={composeEventHandlers([onClick, handleClick])}
+          className={chevronInteractiveClassNames}>
+>>>>>>> REPLACE
+```
+
+This change removes the `aria-expanded` attribute from the parent div in the interactive version of the tile, keeping it only on the button element that controls the expansion. I also added the `onClick` handler to the button in the interactive version, which was missing and needed for proper functionality.

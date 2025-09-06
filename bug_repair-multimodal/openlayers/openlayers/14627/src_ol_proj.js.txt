@@ -1,0 +1,57 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is in the OpenLayers library, specifically with the `applyTransform` function when used with an empty extent and a transform from EPSG:4326 to EPSG:3857.
+
+When an empty extent is created with `createEmpty()`, it's initialized with `[Infinity, Infinity, -Infinity, -Infinity]`. When this empty extent is transformed using `applyTransform` with the EPSG:4326 to EPSG:3857 transform, it results in NaN values because the transform function (`fromEPSG4326`) uses `Math.tan()` which returns NaN when given Infinity.
+
+The issue is in the `fromEPSG4326` function in the `proj/epsg3857.js` file, which is imported and used in the `getTransform` function in `proj.js`.
+
+## Fix
+
+We need to modify the `fromEPSG4326` function to handle Infinity values properly. Since we don't have direct access to that file in the provided code, we'll need to modify the `getTransform` function in `proj.js` to handle empty extents specially.
+
+```javascript
+### src/ol/proj.js
+<<<<<<< SEARCH
+export function getTransform(source, destination) {
+  const sourceProjection = get(source);
+  const destinationProjection = get(destination);
+  return getTransformFromProjections(sourceProjection, destinationProjection);
+}
+=======
+export function getTransform(source, destination) {
+  const sourceProjection = get(source);
+  const destinationProjection = get(destination);
+  const transformFn = getTransformFromProjections(sourceProjection, destinationProjection);
+  
+  // Special handling for EPSG:4326 to EPSG:3857 transform with empty extents
+  if (sourceProjection.getCode() === 'EPSG:4326' && 
+      destinationProjection.getCode() === 'EPSG:3857') {
+    return function(input, output, dimension) {
+      // Check if this is an empty extent [Infinity, Infinity, -Infinity, -Infinity]
+      if (input.length === 4 && 
+          input[0] === Infinity && 
+          input[1] === Infinity && 
+          input[2] === -Infinity && 
+          input[3] === -Infinity) {
+        // Return a valid empty extent in the target projection
+        const result = output || [Infinity, Infinity, -Infinity, -Infinity];
+        result[0] = Infinity;
+        result[1] = Infinity;
+        result[2] = -Infinity;
+        result[3] = -Infinity;
+        return result;
+      }
+      // Otherwise use the normal transform
+      return transformFn(input, output, dimension);
+    };
+  }
+  
+  return transformFn;
+}
+>>>>>>> REPLACE
+```
+
+This fix adds special handling for the EPSG:4326 to EPSG:3857 transform when dealing with empty extents. When an empty extent is detected (identified by its characteristic values), it returns a new empty extent in the target projection instead of trying to transform the Infinity values, which would result in NaN.

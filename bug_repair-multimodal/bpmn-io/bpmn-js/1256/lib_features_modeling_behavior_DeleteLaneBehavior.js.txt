@@ -1,0 +1,168 @@
+I'll analyze the issue and provide a fix for the lane deletion problem in the BPMN diagram editor.
+
+## Bug Analysis
+
+The issue occurs when removing a child lane from a parent lane in the BPMN diagram. After removal, the diagram becomes deformed and sometimes unusable. The bug is in the `DeleteLaneBehavior.js` file, specifically in the `compensateLaneDelete` function.
+
+Looking at the code, I can see that when a lane is deleted, the function tries to compensate by adjusting the positions of other lanes. The problem appears to be in how it calculates and applies the space adjustments.
+
+The key issue is that when a lane is deleted, the code is not properly handling the space redistribution among the remaining lanes. The current implementation divides lanes into "topAffected" and "bottomAffected" groups based on their y-coordinate relative to the deleted lane, but the space adjustment logic has a flaw.
+
+## Fix
+
+The bug is in how the offset is calculated and applied. When there are both top and bottom affected lanes, the code divides the deleted lane's height by 2, which can lead to incorrect spacing. Instead, we need to ensure that the total space of the deleted lane is properly distributed.
+
+Here's the fix:
+
+```javascript
+### lib/features/modeling/behavior/DeleteLaneBehavior.js
+<<<<<<< SEARCH
+  function compensateLaneDelete(shape, oldParent) {
+
+    var siblings = getChildLanes(oldParent);
+
+    var topAffected = [];
+    var bottomAffected = [];
+
+    eachElement(siblings, function(element) {
+
+      if (element.y > shape.y) {
+        bottomAffected.push(element);
+      } else {
+        topAffected.push(element);
+      }
+
+      return element.children;
+    });
+
+    if (!siblings.length) {
+      return;
+    }
+
+    var offset;
+
+    if (bottomAffected.length && topAffected.length) {
+      offset = shape.height / 2;
+    } else {
+      offset = shape.height;
+    }
+
+    var topAdjustments,
+        bottomAdjustments;
+
+    if (topAffected.length) {
+      topAdjustments = spaceTool.calculateAdjustments(
+        topAffected, 'y', offset, shape.y - 10);
+
+      spaceTool.makeSpace(
+        topAdjustments.movingShapes,
+        topAdjustments.resizingShapes,
+        { x: 0, y: offset }, 's');
+    }
+
+    if (bottomAffected.length) {
+      bottomAdjustments = spaceTool.calculateAdjustments(
+        bottomAffected, 'y', -offset, shape.y + shape.height + 10);
+
+      spaceTool.makeSpace(
+        bottomAdjustments.movingShapes,
+        bottomAdjustments.resizingShapes,
+        { x: 0, y: -offset }, 'n');
+    }
+=======
+  function compensateLaneDelete(shape, oldParent) {
+
+    var siblings = getChildLanes(oldParent);
+
+    var topAffected = [];
+    var bottomAffected = [];
+
+    eachElement(siblings, function(element) {
+
+      if (element.y > shape.y) {
+        bottomAffected.push(element);
+      } else {
+        topAffected.push(element);
+      }
+
+      return element.children;
+    });
+
+    if (!siblings.length) {
+      return;
+    }
+
+    // Resize the parent to compensate for the deleted lane
+    modeling.resizeShape(oldParent, {
+      width: oldParent.width,
+      height: oldParent.height - shape.height
+    });
+
+    // Calculate how much space to give to top and bottom lanes
+    var topOffset = 0;
+    var bottomOffset = 0;
+    
+    if (bottomAffected.length && topAffected.length) {
+      // Distribute space proportionally between top and bottom
+      var totalHeight = 0;
+      
+      topAffected.forEach(function(lane) {
+        totalHeight += lane.height;
+      });
+      
+      bottomAffected.forEach(function(lane) {
+        totalHeight += lane.height;
+      });
+      
+      if (totalHeight > 0) {
+        var topRatio = 0;
+        
+        topAffected.forEach(function(lane) {
+          topRatio += lane.height / totalHeight;
+        });
+        
+        topOffset = Math.round(shape.height * topRatio);
+        bottomOffset = shape.height - topOffset;
+      } else {
+        topOffset = shape.height / 2;
+        bottomOffset = shape.height / 2;
+      }
+    } else if (topAffected.length) {
+      topOffset = shape.height;
+    } else if (bottomAffected.length) {
+      bottomOffset = shape.height;
+    }
+
+    var topAdjustments,
+        bottomAdjustments;
+
+    if (topAffected.length && topOffset > 0) {
+      topAdjustments = spaceTool.calculateAdjustments(
+        topAffected, 'y', topOffset, shape.y - 10);
+
+      spaceTool.makeSpace(
+        topAdjustments.movingShapes,
+        topAdjustments.resizingShapes,
+        { x: 0, y: topOffset }, 's');
+    }
+
+    if (bottomAffected.length && bottomOffset > 0) {
+      bottomAdjustments = spaceTool.calculateAdjustments(
+        bottomAffected, 'y', -bottomOffset, shape.y + shape.height + 10);
+
+      spaceTool.makeSpace(
+        bottomAdjustments.movingShapes,
+        bottomAdjustments.resizingShapes,
+        { x: 0, y: -bottomOffset }, 'n');
+    }
+>>>>>>> REPLACE
+```
+
+This fix makes several important changes:
+
+1. It explicitly resizes the parent container to account for the deleted lane
+2. It calculates a more proportional distribution of space between top and bottom lanes based on their current heights
+3. It ensures that the total space of the deleted lane is fully accounted for
+4. It only applies space adjustments when there's actual space to distribute (topOffset > 0 or bottomOffset > 0)
+
+These changes should prevent the diagram deformation that occurs when removing child lanes, making the diagram remain properly structured and editable after lane deletion.

@@ -1,0 +1,55 @@
+Based on the issue description, the bug is in the `itermonomials` function in `sympy/polys/monomials.py`. The issue occurs when using the `min_degrees` argument - it's not correctly generating all monomials of a given total degree.
+
+The bug is in the logic for total degree case. Currently, it only yields monomials where any individual variable's power is >= min_degree. However, it should yield monomials where the sum of all powers (total degree) is >= min_degree.
+
+Here's the fix:
+
+```python
+### sympy/polys/monomials.py
+<<<<<<< SEARCH
+                for variable in item:
+                    if variable != 1:
+                        powers[variable] += 1
+                if max(powers.values()) >= min_degree:
+                    monomials_list_comm.append(Mul(*item))
+            yield from set(monomials_list_comm)
+        else:
+            monomials_list_non_comm = []
+            for item in product(variables, repeat=max_degree):
+                powers = dict()
+                for variable in variables:
+                    powers[variable] = 0
+                for variable in item:
+                    if variable != 1:
+                        powers[variable] += 1
+                if max(powers.values()) >= min_degree:
+                    monomials_list_non_comm.append(Mul(*item))
+=======
+                for variable in item:
+                    if variable != 1:
+                        powers[variable] += 1
+                total_deg = sum(powers.values())
+                if min_degree <= total_deg <= max_degree:
+                    monomials_list_comm.append(Mul(*item))
+            yield from set(monomials_list_comm)
+        else:
+            monomials_list_non_comm = []
+            for item in product(variables, repeat=max_degree):
+                powers = dict()
+                for variable in variables:
+                    powers[variable] = 0
+                for variable in item:
+                    if variable != 1:
+                        powers[variable] += 1
+                total_deg = sum(powers.values())
+                if min_degree <= total_deg <= max_degree:
+                    monomials_list_non_comm.append(Mul(*item))
+>>>>>>> REPLACE
+```
+
+The key changes are:
+1. Changed the condition from checking `max(powers.values()) >= min_degree` to checking `min_degree <= sum(powers.values()) <= max_degree`
+2. Added the same fix for both commutative and non-commutative cases
+3. Added total degree calculation and proper bounds checking
+
+This fix ensures that all monomials with total degree between min_degree and max_degree are included, which matches the documented behavior. For example, with min_degree=3 and max_degree=3, it will now correctly include terms like x1*x2*x3, x1*x2^2, etc., as long as their total degree equals 3.

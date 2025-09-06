@@ -1,0 +1,123 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about inconsistent behavior when adding, undoing, and redoing the first participant in a BPMN model:
+
+1. When adding the first participant, the process ID is preserved (Process_1)
+2. When undoing this action, the participant is removed and the process ID remains the same
+3. When redoing the action, the participant is re-added but the process gets a new ID instead of keeping the original one
+
+The root cause appears to be in the `CreateParticipantBehavior.js` file. When a participant is created, the code saves the old process reference in `context.oldProcessRef` and assigns the process's business object to the participant's processRef. However, when redoing this action, the context doesn't properly restore the original process reference.
+
+## Fix
+
+The issue is in the `execute` and `revert` handlers for `shape.create`. We need to modify the code to properly handle the redo operation by ensuring the process reference is correctly preserved and restored.
+
+```javascript
+### lib/features/modeling/behavior/CreateParticipantBehavior.js
+<<<<<<< SEARCH
+  this.execute('shape.create', function(context) {
+    var process = context.process,
+        shape = context.shape;
+
+    if (process) {
+      context.oldProcessRef = shape.businessObject.processRef;
+
+      // re-use process when creating first participant
+      shape.businessObject.processRef = process.businessObject;
+    }
+  }, true);
+
+  this.revert('shape.create', function(context) {
+    var process = context.process,
+        shape = context.shape;
+
+    if (process) {
+
+      // re-use process when creating first participant
+      shape.businessObject.processRef = context.oldProcessRef;
+    }
+  }, true);
+=======
+  this.execute('shape.create', function(context) {
+    var process = context.process,
+        shape = context.shape;
+
+    if (process) {
+      // Store the original process reference if not already stored
+      if (!context.oldProcessRef) {
+        context.oldProcessRef = shape.businessObject.processRef;
+      }
+
+      // re-use process when creating first participant
+      shape.businessObject.processRef = process.businessObject;
+    }
+  }, true);
+
+  this.revert('shape.create', function(context) {
+    var process = context.process,
+        shape = context.shape;
+
+    if (process) {
+      // re-use process when creating first participant
+      shape.businessObject.processRef = context.oldProcessRef;
+    }
+  }, true);
+>>>>>>> REPLACE
+```
+
+Similarly, we need to fix the same issue in the `elements.create` handlers:
+
+```javascript
+### lib/features/modeling/behavior/CreateParticipantBehavior.js
+<<<<<<< SEARCH
+  this.preExecute('elements.create', HIGH_PRIORITY, function(context) {
+    var elements = context.elements,
+        parent = context.parent,
+        participant;
+
+    var hasParticipants = findParticipant(elements);
+
+    if (hasParticipants && is(parent, 'bpmn:Process')) {
+      ensureCollaboration(context);
+
+      participant = findParticipant(elements);
+
+      context.oldProcessRef = participant.businessObject.processRef;
+
+      // re-use process when creating first participant
+      participant.businessObject.processRef = parent.businessObject;
+    }
+  }, true);
+=======
+  this.preExecute('elements.create', HIGH_PRIORITY, function(context) {
+    var elements = context.elements,
+        parent = context.parent,
+        participant;
+
+    var hasParticipants = findParticipant(elements);
+
+    if (hasParticipants && is(parent, 'bpmn:Process')) {
+      ensureCollaboration(context);
+
+      participant = findParticipant(elements);
+
+      // Store the original process reference if not already stored
+      if (!context.oldProcessRef) {
+        context.oldProcessRef = participant.businessObject.processRef;
+      }
+
+      // re-use process when creating first participant
+      participant.businessObject.processRef = parent.businessObject;
+    }
+  }, true);
+>>>>>>> REPLACE
+```
+
+These changes ensure that:
+1. We only store the original process reference once (not overwriting it on redo)
+2. We properly restore the process reference on undo
+3. We maintain the same process ID when redoing the participant creation
+
+This should fix both the inconsistent redo behavior and the duplicate process ID issue when copying pools.

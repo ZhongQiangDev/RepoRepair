@@ -1,0 +1,56 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that icons are distorted on the `WebGLPoints` layer when `icon-rotate-with-view: true` is used with a non-square viewport. The expected behavior is that the icons should be displayed without distortion.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The distortion likely occurs due to incorrect handling of the aspect ratio when rotating the icons with the view. When the viewport is non-square, the aspect ratio of the viewport affects how the coordinates are transformed during rendering. If the rotation transformation does not account for this aspect ratio, it can lead to distortion of the icons.
+
+### 3. Examine Each File One by One
+
+#### `src/ol/layer/WebGLPoints.js`
+```
+src/ol/layer/WebGLPoints.js
+class: WebGLPointsLayer
+```
+The `WebGLPointsLayer` class is responsible for rendering points using WebGL. The issue might be related to how the layer handles the rotation of icons with the view, especially when the viewport is non-square. The `parseResult_` property and the `createRenderer` method might be relevant as they configure the shaders and rendering parameters.
+
+#### `src/ol/render/webgl/MixedGeometryBatch.js`
+```
+This file contains no relevant functions/classes.
+```
+The `MixedGeometryBatch` class manages rendering of mixed geometry types but does not directly handle the rotation of icons or viewport aspect ratio issues.
+
+#### `src/ol/renderer/webgl/PointsLayer.js`
+```
+src/ol/renderer/webgl/PointsLayer.js
+class: WebGLPointsLayerRenderer
+```
+The `WebGLPointsLayerRenderer` class is responsible for rendering points using WebGL shaders. The issue might be related to how the renderer handles the transformation and rotation of points. The `currentTransform_` and `renderTransform_` properties, along with the `renderFrame` method, might be relevant as they manage the transformations applied during rendering.
+
+#### `src/ol/style/expressions.js`
+```
+This file contains no relevant functions/classes.
+```
+The functions in this file are related to expression parsing and type checking but do not directly handle the rendering or transformation of icons.
+
+#### `src/ol/webgl/ShaderBuilder.js`
+```
+src/ol/webgl/ShaderBuilder.js
+function: parseLiteralStyle
+class: ShaderBuilder
+```
+The `parseLiteralStyle` function and the `ShaderBuilder` class are responsible for generating shader code based on the style definitions. The issue might be related to how the shader expressions for rotation and size are generated, especially when the viewport is non-square. The `rotationExpression` and `sizeExpression` properties, along with the `parseLiteralStyle` function, might be relevant as they configure the shader expressions for rotation and size.
+
+### Summary of Relevant Locations
+```
+src/ol/layer/WebGLPoints.js
+class: WebGLPointsLayer
+
+src/ol/renderer/webgl/PointsLayer.js
+class: WebGLPointsLayerRenderer
+
+src/ol/webgl/ShaderBuilder.js
+function: parseLiteralStyle
+class: ShaderBuilder
+```

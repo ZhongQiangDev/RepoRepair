@@ -1,0 +1,76 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when a user drops an intermediate event on a sequence flow that has a condition expression, and then changes that event to a "Timer Intermediate Catch Event", the condition expression is removed from the sequence flow.
+
+Looking at the code, the problem is likely in the `updateConnection` method of `BpmnUpdater.js`. When updating a connection, it's setting the source and target references but not preserving other properties of the sequence flow, such as the condition expression.
+
+When an intermediate event is placed on a sequence flow, the modeler splits the sequence flow into two parts. The issue occurs during this process - the condition expression from the original sequence flow is not being preserved in the new sequence flows.
+
+## Fix
+
+We need to modify the `updateConnection` method to preserve the condition expression when updating sequence flows:
+
+```javascript
+### lib/features/modeling/BpmnUpdater.js
+<<<<<<< SEARCH
+    if (businessObject.sourceRef !== newSource) {
+      if (inverseSet) {
+        collectionRemove(businessObject.sourceRef && businessObject.sourceRef.get('outgoing'), businessObject);
+
+        if (newSource && newSource.get('outgoing')) {
+          newSource.get('outgoing').push(businessObject);
+        }
+      }
+
+      businessObject.sourceRef = newSource;
+    }
+
+    if (businessObject.targetRef !== newTarget) {
+      if (inverseSet) {
+        collectionRemove(businessObject.targetRef && businessObject.targetRef.get('incoming'), businessObject);
+
+        if (newTarget && newTarget.get('incoming')) {
+          newTarget.get('incoming').push(businessObject);
+        }
+      }
+
+      businessObject.targetRef = newTarget;
+    }
+=======
+    // preserve the condition expression when updating source/target
+    var conditionExpression = businessObject.conditionExpression;
+
+    if (businessObject.sourceRef !== newSource) {
+      if (inverseSet) {
+        collectionRemove(businessObject.sourceRef && businessObject.sourceRef.get('outgoing'), businessObject);
+
+        if (newSource && newSource.get('outgoing')) {
+          newSource.get('outgoing').push(businessObject);
+        }
+      }
+
+      businessObject.sourceRef = newSource;
+    }
+
+    if (businessObject.targetRef !== newTarget) {
+      if (inverseSet) {
+        collectionRemove(businessObject.targetRef && businessObject.targetRef.get('incoming'), businessObject);
+
+        if (newTarget && newTarget.get('incoming')) {
+          newTarget.get('incoming').push(businessObject);
+        }
+      }
+
+      businessObject.targetRef = newTarget;
+    }
+
+    // restore condition expression if it was present
+    if (conditionExpression && !businessObject.conditionExpression) {
+      businessObject.conditionExpression = conditionExpression;
+    }
+>>>>>>> REPLACE
+```
+
+This fix preserves the condition expression by storing it before updating the source and target references, and then restoring it afterward if it was lost during the update process. This ensures that when a sequence flow is split by adding an intermediate event, the condition expression is maintained.

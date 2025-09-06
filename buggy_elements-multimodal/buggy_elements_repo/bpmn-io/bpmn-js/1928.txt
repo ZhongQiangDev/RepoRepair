@@ -1,0 +1,63 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that an empty pool in a BPMN diagram is being resized vertically when the space tool is used, despite the expectation that it should not be resized. The empty pool has a fixed height shape to distinguish it from lanes or expanded pools, but the space tool allows it to be resized, which is not the intended behavior.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely lies in the resizing logic for empty pools. The space tool is not correctly identifying the empty pool as a shape that should not be resized vertically. This could be due to a lack of specific constraints or checks in the resizing behavior for empty pools.
+
+### 3. Examine Each File One by One and Determine Relevant Functions/Classes
+
+#### --- lib/features/modeling/behavior/ResizeBehavior.js ---
+```
+lib/features/modeling/behavior/ResizeBehavior.js
+function: ResizeBehavior
+```
+The `ResizeBehavior` function is responsible for enforcing minimum size constraints and specific resize rules for different types of BPMN elements. It listens to the `resize.start` event and sets resize constraints based on the type of shape. However, it does not specifically handle empty pools, which may be the cause of the issue.
+
+#### --- lib/features/modeling/behavior/ResizeLaneBehavior.js ---
+```
+lib/features/modeling/behavior/ResizeLaneBehavior.js
+function: ResizeLaneBehavior
+```
+The `ResizeLaneBehavior` function handles the resizing of Lane or Participant shapes. It listens to `resize.start` and `resize.end` events and performs resizing operations. This function may need to be modified to handle empty pools correctly.
+
+#### --- lib/features/modeling/cmd/ResizeLaneHandler.js ---
+```
+lib/features/modeling/cmd/ResizeLaneHandler.js
+function: ResizeLaneHandler
+```
+The `ResizeLaneHandler` function is responsible for resizing lanes and adjusting other elements to make space. It contains methods like `resizeBalanced` and `resizeSpace`, which may need to be adjusted to handle empty pools correctly.
+
+#### --- lib/features/rules/BpmnRules.js ---
+```
+lib/features/rules/BpmnRules.js
+function: canResize
+```
+The `canResize` function checks if a given BPMN shape can be resized based on its type and new dimensions. It may need to be updated to include specific checks for empty pools to prevent vertical resizing.
+
+#### --- lib/features/space-tool/BpmnSpaceTool.js ---
+```
+lib/features/space-tool/BpmnSpaceTool.js
+function: function_2
+```
+The `function_2` function extends the `calculateAdjustments` method to customize resizing behavior for BPMN diagrams. It filters out text annotations but may need to include logic to handle empty pools correctly.
+
+### Summary of Relevant Locations
+
+```
+lib/features/modeling/behavior/ResizeBehavior.js
+function: ResizeBehavior
+
+lib/features/modeling/behavior/ResizeLaneBehavior.js
+function: ResizeLaneBehavior
+
+lib/features/modeling/cmd/ResizeLaneHandler.js
+function: ResizeLaneHandler
+
+lib/features/rules/BpmnRules.js
+function: canResize
+
+lib/features/space-tool/BpmnSpaceTool.js
+function: function_2
+```

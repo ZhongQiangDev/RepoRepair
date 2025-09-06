@@ -1,0 +1,79 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is about slider monitors in Scratch 3.0. In Scratch 2.0, users could right-click on a slider monitor to change its minimum and maximum values, but this functionality is missing in Scratch 3.0. Currently, the min/max values are fixed at 0-100 for monitors created in 3.0, although the custom range is imported from 2.0 projects.
+
+Looking at the code, I can see that the `MonitorComponent` renders a context menu for monitors, but there are no options to change the min/max values for slider monitors. The context menu only allows switching between different monitor modes (normal readout, large readout, slider) and import/export for list monitors.
+
+## Solution
+
+We need to add menu items to the context menu that allow users to change the minimum and maximum values of a slider monitor. These menu items should only appear when the monitor is in slider mode.
+
+Here's the fix:
+
+```javascript
+### src/components/monitor/monitor.jsx
+<<<<<<< SEARCH
+                {props.onExport &&
+                    <MenuItem onClick={props.onExport}>
+                        <FormattedMessage
+                            defaultMessage="export"
+                            description="Menu item to export from list monitors"
+                            id="gui.monitor.contextMenu.export"
+                        />
+                    </MenuItem>}
+            </ContextMenu>
+=======
+                {props.onExport &&
+                    <MenuItem onClick={props.onExport}>
+                        <FormattedMessage
+                            defaultMessage="export"
+                            description="Menu item to export from list monitors"
+                            id="gui.monitor.contextMenu.export"
+                        />
+                    </MenuItem>}
+                {props.mode === 'slider' && props.onSetSliderMin &&
+                    <MenuItem onClick={props.onSetSliderMin}>
+                        <FormattedMessage
+                            defaultMessage="change minimum"
+                            description="Menu item to change the minimum value of a slider"
+                            id="gui.monitor.contextMenu.sliderMin"
+                        />
+                    </MenuItem>}
+                {props.mode === 'slider' && props.onSetSliderMax &&
+                    <MenuItem onClick={props.onSetSliderMax}>
+                        <FormattedMessage
+                            defaultMessage="change maximum"
+                            description="Menu item to change the maximum value of a slider"
+                            id="gui.monitor.contextMenu.sliderMax"
+                        />
+                    </MenuItem>}
+            </ContextMenu>
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/components/monitor/monitor.jsx
+<<<<<<< SEARCH
+    onSetModeToDefault: PropTypes.func,
+    onSetModeToLarge: PropTypes.func,
+    onSetModeToSlider: PropTypes.func
+=======
+    onSetModeToDefault: PropTypes.func,
+    onSetModeToLarge: PropTypes.func,
+    onSetModeToSlider: PropTypes.func,
+    onSetSliderMin: PropTypes.func,
+    onSetSliderMax: PropTypes.func
+>>>>>>> REPLACE
+```
+
+These changes add two new menu items to the context menu for slider monitors:
+1. "change minimum" - to change the minimum value of the slider
+2. "change maximum" - to change the maximum value of the slider
+
+The menu items are only shown when the monitor is in slider mode, and they call the `onSetSliderMin` and `onSetSliderMax` functions respectively, which would need to be implemented in the container component that uses this `MonitorComponent`.
+
+The PropTypes are also updated to include these new function props.
+
+Note: This fix only adds the UI elements to the context menu. The actual implementation of the `onSetSliderMin` and `onSetSliderMax` functions would need to be added to the container component that uses this `MonitorComponent`, and the slider component would need to be updated to use the custom min/max values. Those changes would be in other files not provided in the code segments.

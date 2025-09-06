@@ -1,0 +1,40 @@
+Based on the issue description, the bug is in the `slugify()` function where it doesn't properly strip leading/trailing dashes and underscores. The current implementation only handles spaces and hyphens in the final regex substitution, but doesn't specifically handle leading/trailing underscores.
+
+To fix this, we need to modify the `slugify()` function to:
+1. Strip leading/trailing dashes and underscores after the initial normalization
+2. Then proceed with the existing hyphen normalization
+
+Here's the fix:
+
+```python
+### django/utils/text.py
+<<<<<<< SEARCH
+    value = str(value)
+    if allow_unicode:
+        value = unicodedata.normalize('NFKC', value)
+    else:
+        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+    value = re.sub(r'[^\w\s-]', '', value.lower()).strip()
+    return re.sub(r'[-\s]+', '-', value)
+=======
+    value = str(value)
+    if allow_unicode:
+        value = unicodedata.normalize('NFKC', value)
+    else:
+        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+    value = re.sub(r'[^\w\s-]', '', value.lower()).strip()
+    value = re.sub(r'^[-_]+|[-_]+$', '', value)  # Remove leading/trailing dashes and underscores
+    return re.sub(r'[-\s]+', '-', value)
+>>>>>>> REPLACE
+```
+
+This change adds a new regex substitution step that:
+1. Uses `^[-_]+` to match one or more dashes/underscores at the start of the string
+2. Uses `[-_]+$` to match one or more dashes/underscores at the end of the string
+3. Replaces both with empty strings
+4. Does this before the final hyphen normalization step
+
+This will fix the example case:
+```python
+text.slugify("___This is a test ---")  # Now returns "this-is-a-test"
+```

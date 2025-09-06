@@ -1,0 +1,42 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about font-display audit warnings for iframes. The error messages show that Lighthouse is unable to automatically check the font-display value for fonts loaded within iframes.
+
+Looking at the code, the problem is in the `findFontDisplayDeclarations` method. Currently, it only processes stylesheets from the main frame (artifacts.CSSUsage.stylesheets), but it doesn't handle stylesheets from iframes. This is why Lighthouse can't check font-display values for fonts loaded in iframes.
+
+The issue mentions that "the CSSUsage artifact doesn't have any stylesheets referencing these fonts" - this is because the CSSUsage artifact only contains stylesheets from the main frame, not from iframes.
+
+## Fix
+
+We need to modify the `findFontDisplayDeclarations` method to also process stylesheets from iframes. The CSSUsage artifact should have an `allStylesheets` property that includes stylesheets from both the main frame and iframes.
+
+```javascript
+### lighthouse-core/audits/font-display.js
+<<<<<<< SEARCH
+  static findFontDisplayDeclarations(artifacts) {
+    /** @type {Set<string>} */
+    const passingURLs = new Set();
+    /** @type {Set<string>} */
+    const failingURLs = new Set();
+
+    // Go through all the stylesheets to find all @font-face declarations
+    for (const stylesheet of artifacts.CSSUsage.stylesheets) {
+=======
+  static findFontDisplayDeclarations(artifacts) {
+    /** @type {Set<string>} */
+    const passingURLs = new Set();
+    /** @type {Set<string>} */
+    const failingURLs = new Set();
+
+    // Use allStylesheets if available (includes stylesheets from iframes)
+    // Otherwise fall back to stylesheets (main frame only)
+    const stylesheets = artifacts.CSSUsage.allStylesheets || artifacts.CSSUsage.stylesheets;
+
+    // Go through all the stylesheets to find all @font-face declarations
+    for (const stylesheet of stylesheets) {
+>>>>>>> REPLACE
+```
+
+This change checks if `allStylesheets` exists in the CSSUsage artifact and uses it if available, otherwise falls back to the original `stylesheets` property. This ensures that we process stylesheets from both the main frame and iframes, which should resolve the issue with font-display warnings for fonts loaded in iframes.

@@ -1,0 +1,28 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- Signal.send_robust() doesn't log exceptions raised in receivers
+- This means errors occurring in signal handlers are silently ignored without any logging, making it difficult to track and debug issues
+
+2. Cause Analysis:
+- The send_robust() method in Django's Signal class is designed to continue executing all receivers even if some raise exceptions
+- However, it currently doesn't include any logging mechanism for these caught exceptions
+- This differs from Django's approach in other areas (like template variables) where exceptions are logged
+
+3. Most Related Files (ordered by importance):
+```
+django/dispatch/dispatcher.py
+django/core/signals.py
+django/db/models/signals.py
+django/utils/log.py
+django/core/exceptions.py
+```
+
+Reasoning for file selection:
+- dispatcher.py: Contains the core Signal class implementation including send_robust()
+- core/signals.py: Defines core Django signals and their handling
+- models/signals.py: Contains model-specific signal implementations
+- log.py: Handles Django's logging configuration and utilities
+- exceptions.py: Contains Django's exception hierarchy and handling
+
+The primary fix would need to be in dispatcher.py where send_robust() is implemented, with potential changes to logging configuration in log.py.

@@ -1,0 +1,29 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about the dependency between `scale` and `displacement` in `ol.style.Icon`. When the scale of an icon is changed, the Y position of the icon also changes, which is unexpected. The user expects icons with different scales to maintain the same Y position at their bottom.
+
+Looking at the code, I found the issue in the `getAnchor()` method. Currently, the displacement is applied to the anchor point, but it doesn't take into account the scale of the icon. The displacement should be scaled according to the icon's scale to maintain consistent positioning.
+
+## Fix
+
+```javascript
+### src/ol/style/Icon.js
+<<<<<<< SEARCH
+    const displacement = this.getDisplacement();
+    return [anchor[0] - displacement[0], anchor[1] + displacement[1]];
+=======
+    const displacement = this.getDisplacement();
+    const scale = this.getScale();
+    const scaleArray = Array.isArray(scale) ? scale : [scale, scale];
+    return [
+      anchor[0] - displacement[0] * scaleArray[0], 
+      anchor[1] + displacement[1] * scaleArray[1]
+    ];
+>>>>>>> REPLACE
+```
+
+This fix applies the scale to the displacement values before they're used to adjust the anchor position. This ensures that when the scale changes, the displacement is proportionally adjusted, maintaining the expected positioning of the icons.
+
+The fix handles both cases where scale is a single number or an array (for different x and y scaling). When scale is a number, it's converted to an array with the same value for both dimensions.

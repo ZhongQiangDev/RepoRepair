@@ -1,0 +1,53 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that the `stroke` function in WebGL mode does not interpolate colors between vertices when drawing lines. Instead, it only uses the color from the last call to `stroke` for the entire line. The desired behavior is to interpolate the stroke color between vertices, similar to how `fill` interpolates colors for shapes.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this behavior is that the current implementation of the `stroke` function in WebGL mode does not store or pass vertex-specific stroke colors to the shaders. Instead, it uses a single stroke color for the entire line. To achieve the desired behavior, the stroke color for each vertex needs to be stored and passed to the shaders, where it can be interpolated during rendering.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### --- src/webgl/p5.Geometry.js ---
+```
+src/webgl/p5.Geometry.js
+function: _edgesToVertices
+```
+The `_edgesToVertices` function is relevant because it is responsible for generating vertices and normals for rendering stroke lines. To support vertex-wise stroke colors, this function needs to be modified to include stroke color information for each vertex.
+
+#### --- src/webgl/p5.RenderBuffer.js ---
+```
+src/webgl/p5.RenderBuffer.js
+function: function_1
+```
+The `p5.RenderBuffer` function is relevant because it initializes a new `p5.RenderBuffer` object. To support vertex-wise stroke colors, a new render buffer for stroke colors needs to be created and managed.
+
+#### --- src/webgl/p5.RendererGL.Immediate.js ---
+```
+src/webgl/p5.RendererGL.Immediate.js
+function: function_10
+```
+The `_drawImmediateStroke` function is relevant because it manages the rendering of stroke geometry in immediate mode. It needs to be modified to handle vertex-wise stroke colors and pass them to the shaders.
+
+#### --- src/webgl/p5.RendererGL.js ---
+```
+src/webgl/p5.RendererGL.js
+function: function_48
+function: function_49
+```
+The `_setStrokeUniforms` and `_setFillUniforms` functions are relevant because they set uniform variables for stroke and fill shaders, respectively. To support vertex-wise stroke colors, the stroke shader needs to be modified to accept and interpolate vertex colors, and the uniform setting logic needs to be updated accordingly.
+
+#### --- src/webgl/p5.Shader.js ---
+```
+src/webgl/p5.Shader.js
+function: function_13
+function: function_18
+```
+The `isLightShader` and `isStrokeShader` functions are relevant because they determine the capabilities of the shader. The stroke shader needs to be modified to handle vertex-wise stroke colors, and these functions may need to be updated to reflect the new shader capabilities.
+
+### Summary of Relevant Locations
+- `src/webgl/p5.Geometry.js`: `_edgesToVertices`
+- `src/webgl/p5.RenderBuffer.js`: `function_1`
+- `src/webgl/p5.RendererGL.Immediate.js`: `function_10`
+- `src/webgl/p5.RendererGL.js`: `function_48`, `function_49`
+- `src/webgl/p5.Shader.js`: `function_13`, `function_18`

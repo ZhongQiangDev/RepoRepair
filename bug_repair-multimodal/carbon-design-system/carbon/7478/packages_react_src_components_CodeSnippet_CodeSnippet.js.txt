@@ -1,0 +1,207 @@
+I'll analyze the issue and provide a solution to add a disabled state to the CodeSnippet component.
+
+## Issue Analysis
+
+The issue requests adding a disabled state for CodeSnippets to show a placeholder when the value isn't available yet. This requires:
+1. Adding a `disabled` prop to the component
+2. Applying appropriate styling when disabled
+3. Handling keyboard focus properly (removing focus when disabled)
+4. Disabling the copy functionality when in disabled state
+
+## Solution
+
+I'll add the `disabled` prop to the CodeSnippet component and implement the necessary changes:
+
+```javascript
+### packages/react/src/components/CodeSnippet/CodeSnippet.js
+<<<<<<< SEARCH
+function CodeSnippet({
+  className,
+  type,
+  children,
+  feedback,
+  onClick,
+  ariaLabel,
+  copyLabel, //TODO: Merge this prop to `ariaLabel` in `v11`
+  copyButtonDescription,
+  light,
+  showMoreText,
+  showLessText,
+  hideCopyButton,
+  wrapText,
+  ...rest
+}) {
+=======
+function CodeSnippet({
+  className,
+  type,
+  children,
+  feedback,
+  onClick,
+  ariaLabel,
+  copyLabel, //TODO: Merge this prop to `ariaLabel` in `v11`
+  copyButtonDescription,
+  light,
+  showMoreText,
+  showLessText,
+  hideCopyButton,
+  wrapText,
+  disabled,
+  ...rest
+}) {
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/CodeSnippet/CodeSnippet.js
+<<<<<<< SEARCH
+  const codeSnippetClasses = classNames(className, `${prefix}--snippet`, {
+    [`${prefix}--snippet--${type}`]: type,
+    [`${prefix}--snippet--expand`]: expandedCode,
+    [`${prefix}--snippet--light`]: light,
+    [`${prefix}--snippet--no-copy`]: hideCopyButton,
+    [`${prefix}--snippet--wraptext`]: wrapText,
+  });
+=======
+  const codeSnippetClasses = classNames(className, `${prefix}--snippet`, {
+    [`${prefix}--snippet--${type}`]: type,
+    [`${prefix}--snippet--expand`]: expandedCode,
+    [`${prefix}--snippet--light`]: light,
+    [`${prefix}--snippet--no-copy`]: hideCopyButton,
+    [`${prefix}--snippet--wraptext`]: wrapText,
+    [`${prefix}--snippet--disabled`]: disabled,
+  });
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/CodeSnippet/CodeSnippet.js
+<<<<<<< SEARCH
+  return (
+    <div {...rest} className={codeSnippetClasses}>
+      <div
+        ref={codeContainerRef}
+        role={type === 'single' ? 'textbox' : null}
+        tabIndex={type === 'single' ? 0 : null}
+        className={`${prefix}--snippet-container`}
+        aria-label={ariaLabel || copyLabel || 'code-snippet'}
+        onScroll={(type === 'single' && handleScroll) || null}>
+=======
+  return (
+    <div {...rest} className={codeSnippetClasses}>
+      <div
+        ref={codeContainerRef}
+        role={type === 'single' ? 'textbox' : null}
+        tabIndex={type === 'single' && !disabled ? 0 : -1}
+        className={`${prefix}--snippet-container`}
+        aria-label={ariaLabel || copyLabel || 'code-snippet'}
+        aria-disabled={disabled}
+        onScroll={(type === 'single' && handleScroll) || null}>
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/CodeSnippet/CodeSnippet.js
+<<<<<<< SEARCH
+      {!hideCopyButton && (
+        <CopyButton
+          onClick={onClick}
+          feedback={feedback}
+          iconDescription={copyButtonDescription}
+        />
+      )}
+=======
+      {!hideCopyButton && (
+        <CopyButton
+          onClick={disabled ? undefined : onClick}
+          feedback={feedback}
+          iconDescription={copyButtonDescription}
+          disabled={disabled}
+        />
+      )}
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/CodeSnippet/CodeSnippet.js
+<<<<<<< SEARCH
+      {shouldShowMoreLessBtn && (
+        <Button
+          kind="ghost"
+          size="field"
+          className={`${prefix}--snippet-btn--expand`}
+          onClick={() => setExpandedCode(!expandedCode)}>
+=======
+      {shouldShowMoreLessBtn && (
+        <Button
+          kind="ghost"
+          size="field"
+          className={`${prefix}--snippet-btn--expand`}
+          onClick={() => setExpandedCode(!expandedCode)}
+          disabled={disabled}>
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/CodeSnippet/CodeSnippet.js
+<<<<<<< SEARCH
+CodeSnippet.propTypes = {
+  /**
+   * Specify a label to be read by screen readers on the containing <textbox>
+   * node
+   */
+  ariaLabel: PropTypes.string,
+
+  /**
+   * Provide the content of your CodeSnippet as a string
+   */
+  children: PropTypes.string,
+=======
+CodeSnippet.propTypes = {
+  /**
+   * Specify a label to be read by screen readers on the containing <textbox>
+   * node
+   */
+  ariaLabel: PropTypes.string,
+
+  /**
+   * Provide the content of your CodeSnippet as a string
+   */
+  children: PropTypes.string,
+
+  /**
+   * Specify whether the CodeSnippet should be disabled
+   */
+  disabled: PropTypes.bool,
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/CodeSnippet/CodeSnippet.js
+<<<<<<< SEARCH
+CodeSnippet.defaultProps = {
+  type: 'single',
+  showMoreText: 'Show more',
+  showLessText: 'Show less',
+  wrapText: false,
+};
+=======
+CodeSnippet.defaultProps = {
+  type: 'single',
+  showMoreText: 'Show more',
+  showLessText: 'Show less',
+  wrapText: false,
+  disabled: false,
+};
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Add a `disabled` prop to the component with default value `false`
+2. Add a CSS class for styling when disabled
+3. Set `tabIndex` to -1 when disabled to prevent keyboard focus
+4. Add `aria-disabled` attribute for accessibility
+5. Disable the copy button and expand/collapse button when the snippet is disabled
+6. Update PropTypes to document the new prop
+
+With these changes, the CodeSnippet component will properly support a disabled state as requested in the issue.

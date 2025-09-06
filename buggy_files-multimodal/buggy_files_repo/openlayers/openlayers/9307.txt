@@ -1,0 +1,29 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue with gaps between two-line text in OpenLayers labels.
+
+## 1. Identifying the Wrong Behavior
+The issue is that there's an unwanted space/gap between lines when using multi-line text in OpenLayers labels. The user demonstrates this with a simple example:
+```
+text: new ol.style.Text({ 
+    text: 3.5 +'\nbar' 
+})
+```
+The screenshot shows a visible gap between the "3.5" and "bar" text lines, which the user notes wasn't present in OpenLayers v2.13 but exists in v4.6.4 and later.
+
+## 2. Analyzing the Cause
+The issue is likely in the text rendering code of OpenLayers, specifically in how the `ol.style.Text` class handles multi-line text. When text contains newline characters (`\n`), the renderer is adding extra vertical spacing between the lines. This is probably happening in either:
+- The `Text` style class that defines text properties
+- The canvas rendering code that draws the text
+- The text measurement/layout utilities
+
+## 3. Files Most Related to the Cause
+After analyzing the repository information, these are the most relevant files that would need to be edited to fix the issue:
+
+```
+src/ol/style/Text.js
+src/ol/render/canvas/TextBuilder.js
+src/ol/render/canvas/Immediate.js
+src/ol/render/canvas.js
+src/ol/render/canvas/Executor.js
+```
+
+The `src/ol/style/Text.js` file is most important as it defines the core text styling properties. The issue is likely in how line spacing is handled when rendering multi-line text, which would be implemented in the canvas rendering files, particularly in `TextBuilder.js` and `Executor.js` which handle the actual drawing of text on the canvas. The `render/canvas.js` file contains utilities for text measurement and rendering, while `Immediate.js` handles immediate mode rendering of text.

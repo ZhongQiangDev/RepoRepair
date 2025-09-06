@@ -1,0 +1,71 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about a conflict between the `aside` class and `r-stretch` class in RevealJS slides. When a slide has both a single figure and an `aside` element, the figure gets stretched too much, causing the `aside` content to overlap with the figure or its caption.
+
+Looking at the code, the problem is in the `applyStretch` function. Currently, when a slide has a single image, the function applies the `r-stretch` class to the image and moves it directly under the slide section, but it doesn't account for the presence of an `aside` element. The image is being stretched to fill the entire slide height, not leaving space for the `aside` content.
+
+## Fix
+
+We need to modify the `applyStretch` function to check for the presence of an `aside` element and adjust the stretching behavior accordingly. When an `aside` is present, we should add a special class or style to ensure the image only stretches to the available space above the `aside`.
+
+```typescript
+### src/format/reveal/format-reveal.ts
+<<<<<<< SEARCH
+        // add stretch class if not already when auto-stretch is set
+        if (
+          autoStretch === true &&
+          !hasStretchClass(imageEl) &&
+          // if height is already set, we do nothing
+          !imageEl.getAttribute("style")?.match("height:") &&
+          !imageEl.hasAttribute("height")
+        ) {
+          imageEl.classList.add("r-stretch");
+        }
+=======
+        // add stretch class if not already when auto-stretch is set
+        if (
+          autoStretch === true &&
+          !hasStretchClass(imageEl) &&
+          // if height is already set, we do nothing
+          !imageEl.getAttribute("style")?.match("height:") &&
+          !imageEl.hasAttribute("height")
+        ) {
+          // Check if slide has an aside element
+          const hasAside = slideEl.querySelector("aside:not(.notes)") || 
+                          slideEl.querySelector("div.aside") ||
+                          slideEl.querySelector('a[role="doc-noteref"]');
+          
+          if (hasAside) {
+            // Add a special class for images in slides with asides
+            imageEl.classList.add("r-stretch-with-aside");
+            // Add a style to the slide to handle the layout
+            const style = doc.createElement("style");
+            style.innerHTML = `
+              .r-stretch-with-aside {
+                max-height: calc(100% - 150px) !important;
+                height: auto !important;
+                width: auto !important;
+                margin-bottom: 20px !important;
+              }
+              section .caption {
+                margin-top: 5px;
+                margin-bottom: 20px;
+              }
+            `;
+            slideEl.appendChild(style);
+          } else {
+            imageEl.classList.add("r-stretch");
+          }
+        }
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Checks if the slide has an `aside` element
+2. If it does, applies a special class `r-stretch-with-aside` instead of the regular `r-stretch`
+3. Adds inline CSS to limit the height of the image, leaving space for the `aside` content
+4. Adds margin to ensure proper spacing between the image, caption, and aside content
+
+The CSS limits the image height to leave approximately 150px for the aside content at the bottom, which should prevent overlap while still allowing the image to be as large as possible in the remaining space.

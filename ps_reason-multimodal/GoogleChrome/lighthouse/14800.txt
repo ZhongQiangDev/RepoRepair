@@ -1,0 +1,21 @@
+Let me analyze the GitHub issue and break down the problems and causes:
+
+### Answer 1
+**Wrong Behavior**: Lighthouse returns an error "Unable to determine tid for renderer process"
+**Cause**: The "FrameCommittedInBrowser" event contains a `processPseudoId` instead of the expected `processId`, leading to undefined values in `mainFramePids`
+
+### Answer 2
+**Wrong Behavior**: Process identification mechanism failure
+**Cause**: The Chrome DevTools Protocol appears to be returning a different identifier format than what Lighthouse expects (pseudoId vs regular processId), suggesting a potential protocol mismatch or change in Chrome's behavior
+
+### Answer 3
+**Wrong Behavior**: Inconsistent process ID handling across Chrome versions
+**Cause**: The issue occurs across multiple Chrome versions (including Canary 112.0.5597.0), indicating this might be a broader change in how Chrome handles process IDs rather than a version-specific bug
+
+### Conclusion
+**Summary**: The core issue stems from a mismatch between Lighthouse's expected process identification mechanism and what Chrome is actually providing. The main technical problem is that Chrome is sending `processPseudoId` instead of `processId` in the "FrameCommittedInBrowser" event, which breaks Lighthouse's ability to track renderer processes. This appears to be a systematic issue affecting multiple Chrome versions, suggesting either a change in Chrome's architecture or a need for Lighthouse to update its process identification handling to accommodate both types of IDs.
+
+The fix would likely require either:
+1. Updating Lighthouse to handle both `processPseudoId` and `processId`
+2. Understanding why Chrome is sending `processPseudoId` and potentially requesting a fix from the Chrome team
+3. Implementing a fallback mechanism in Lighthouse for cases where `processId` is not available

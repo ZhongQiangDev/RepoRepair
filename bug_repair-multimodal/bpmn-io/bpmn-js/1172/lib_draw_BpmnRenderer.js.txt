@@ -1,0 +1,55 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that associations on boundary events can be created but aren't rendered after loading a diagram. Looking at the provided screenshots:
+1. In the first image, there's a task with a boundary event that has an association to a data object
+2. After saving and reloading, the association is missing in the second image
+
+The problem is likely in the `BpmnRenderer.js` file, which handles rendering BPMN elements. The issue specifically mentions boundary events, which are a type of event attached to activities.
+
+Looking at the code, I notice that while there are handlers for drawing shapes and connections, the issue might be related to how boundary events and their associations are handled during rendering.
+
+## Solution
+
+The issue is likely that the renderer doesn't properly handle associations connected to boundary events. The `drawConnection` method calls a handler based on the connection type, but there might be an issue with how boundary event associations are processed.
+
+Since we don't see the full implementation of the handlers in the provided code, I'll need to make an educated guess. The most likely issue is that boundary events need special handling for their connections, which isn't currently implemented.
+
+Let's add a fix to ensure boundary event associations are properly rendered:
+
+```javascript
+### lib/draw/BpmnRenderer.js
+<<<<<<< SEARCH
+BpmnRenderer.prototype.drawConnection = function(parentGfx, element) {
+  var type = element.type;
+  var h = this.handlers[type];
+
+  /* jshint -W040 */
+  return h(parentGfx, element);
+};
+=======
+BpmnRenderer.prototype.drawConnection = function(parentGfx, element) {
+  var type = element.type;
+  var h = this.handlers[type];
+
+  /* jshint -W040 */
+  return h(parentGfx, element);
+};
+
+BpmnRenderer.prototype.getConnectionPath = function(connection) {
+  var waypoints = connection.waypoints;
+
+  // ensure waypoints for boundary event connections
+  if (connection.source && is(connection.source, 'bpmn:BoundaryEvent') && !waypoints) {
+    return this.connectionPathMap.getPath(connection);
+  }
+
+  return createLine(waypoints);
+};
+>>>>>>> REPLACE
+```
+
+This fix adds a `getConnectionPath` method to handle connections specifically for boundary events. It checks if the source of the connection is a boundary event and ensures that waypoints are properly generated for rendering.
+
+However, this is just a partial solution based on the limited code provided. The actual issue might be more complex and could involve other parts of the codebase that handle connection rendering or waypoint calculation. A more comprehensive fix would require examining how associations are stored and loaded, particularly for boundary events.

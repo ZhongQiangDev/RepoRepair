@@ -1,0 +1,95 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue occurs when:
+1. An icon style has a custom color
+2. The icon style has an offset and size
+3. The screen pixel ratio is > 1
+
+The problem appears to be related to how the icon's origin is calculated when a color is applied. When a color is applied, the icon is redrawn on a canvas, but the offset calculation doesn't properly account for the pixel ratio in this case.
+
+Looking at the code, the issue is in the `getOrigin()` method of the `Icon` class. When calculating the origin (offset) for the icon, it doesn't take into account the pixel ratio when a color is applied.
+
+The issue was introduced in OpenLayers 6.4.0 by PR #11277, which likely changed how colored icons are handled.
+
+## Fix
+
+The solution is to adjust the `getOrigin()` method to properly account for the pixel ratio when a color is applied:
+
+```javascript
+### src/ol/style/Icon.js
+<<<<<<< SEARCH
+  getOrigin() {
+    if (this.origin_) {
+      return this.origin_;
+    }
+    let offset = this.offset_;
+
+    if (this.offsetOrigin_ != IconOrigin.TOP_LEFT) {
+      const size = this.getSize();
+      const iconImageSize = this.iconImage_.getSize();
+      if (!size || !iconImageSize) {
+        return null;
+      }
+      offset = offset.slice();
+      if (
+        this.offsetOrigin_ == IconOrigin.TOP_RIGHT ||
+        this.offsetOrigin_ == IconOrigin.BOTTOM_RIGHT
+      ) {
+        offset[0] = iconImageSize[0] - size[0] - offset[0];
+      }
+      if (
+        this.offsetOrigin_ == IconOrigin.BOTTOM_LEFT ||
+        this.offsetOrigin_ == IconOrigin.BOTTOM_RIGHT
+      ) {
+        offset[1] = iconImageSize[1] - size[1] - offset[1];
+      }
+    }
+    this.origin_ = offset;
+    return this.origin_;
+  }
+=======
+  getOrigin() {
+    if (this.origin_) {
+      return this.origin_;
+    }
+    let offset = this.offset_;
+
+    if (this.offsetOrigin_ != IconOrigin.TOP_LEFT) {
+      const size = this.getSize();
+      const iconImageSize = this.iconImage_.getSize();
+      if (!size || !iconImageSize) {
+        return null;
+      }
+      offset = offset.slice();
+      if (
+        this.offsetOrigin_ == IconOrigin.TOP_RIGHT ||
+        this.offsetOrigin_ == IconOrigin.BOTTOM_RIGHT
+      ) {
+        offset[0] = iconImageSize[0] - size[0] - offset[0];
+      }
+      if (
+        this.offsetOrigin_ == IconOrigin.BOTTOM_LEFT ||
+        this.offsetOrigin_ == IconOrigin.BOTTOM_RIGHT
+      ) {
+        offset[1] = iconImageSize[1] - size[1] - offset[1];
+      }
+    }
+    
+    // When a color is applied, we need to account for the pixel ratio
+    // since the icon is redrawn on a canvas
+    if (this.color_ && this.iconImage_.getPixelRatio) {
+      const pixelRatio = this.iconImage_.getPixelRatio(1);
+      offset = offset.slice();
+      offset[0] *= pixelRatio;
+      offset[1] *= pixelRatio;
+    }
+    
+    this.origin_ = offset;
+    return this.origin_;
+  }
+>>>>>>> REPLACE
+```
+
+This fix ensures that when a color is applied to the icon, the offset is properly scaled by the pixel ratio, which will make the icon appear in the correct position regardless of the screen's pixel ratio.

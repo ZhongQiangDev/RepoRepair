@@ -1,0 +1,180 @@
+I'll analyze the issue and provide a solution to add a "Select all" button to the `TableBatchActions` component.
+
+Based on the issue description, we need to add an optional "Select all" button next to the total selected items text in the batch actions bar. This feature would allow users to select all items across all pages, not just the current page.
+
+Here's my solution:
+
+```javascript
+### packages/react/src/components/DataTable/TableBatchActions.js
+<<<<<<< SEARCH
+const translationKeys = {
+  'carbon.table.batch.cancel': 'Cancel',
+  'carbon.table.batch.items.selected': 'items selected',
+  'carbon.table.batch.item.selected': 'item selected',
+};
+
+=======
+const translationKeys = {
+  'carbon.table.batch.cancel': 'Cancel',
+  'carbon.table.batch.items.selected': 'items selected',
+  'carbon.table.batch.item.selected': 'item selected',
+  'carbon.table.batch.select.all': 'Select all',
+};
+
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/DataTable/TableBatchActions.js
+<<<<<<< SEARCH
+const TableBatchActions = ({
+  className,
+  children,
+  shouldShowBatchActions,
+  totalSelected,
+  onCancel,
+  translateWithId: t,
+  ...rest
+}) => {
+=======
+const TableBatchActions = ({
+  className,
+  children,
+  shouldShowBatchActions,
+  totalSelected,
+  onCancel,
+  translateWithId: t,
+  onSelectAll,
+  hasSelectAll,
+  ...rest
+}) => {
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/DataTable/TableBatchActions.js
+<<<<<<< SEARCH
+        <p className={`${prefix}--batch-summary__para`}>
+          <Text as="span">
+            {totalSelected > 1 || totalSelected === 0
+              ? t('carbon.table.batch.items.selected', { totalSelected })
+              : t('carbon.table.batch.item.selected', { totalSelected })}
+          </Text>
+        </p>
+=======
+        <p className={`${prefix}--batch-summary__para`}>
+          <Text as="span">
+            {totalSelected > 1 || totalSelected === 0
+              ? t('carbon.table.batch.items.selected', { totalSelected })
+              : t('carbon.table.batch.item.selected', { totalSelected })}
+          </Text>
+          {hasSelectAll && (
+            <Button
+              kind="ghost"
+              size="small"
+              className={`${prefix}--batch-summary__select-all`}
+              onClick={onSelectAll}>
+              {t('carbon.table.batch.select.all')}
+            </Button>
+          )}
+        </p>
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/DataTable/TableBatchActions.js
+<<<<<<< SEARCH
+TableBatchActions.propTypes = {
+  children: PropTypes.node,
+  className: PropTypes.string,
+
+  /**
+   * Hook required to listen for when the user initiates a cancel request
+   * through this component
+   */
+  onCancel: PropTypes.func.isRequired,
+
+  /**
+   * Boolean specifier for whether or not the batch action bar should be
+   * displayed
+   */
+  shouldShowBatchActions: PropTypes.bool,
+
+  /**
+   * Numeric representation of the total number of items selected in a table.
+   * This number is used to derive the selection message
+   */
+  totalSelected: PropTypes.number.isRequired,
+
+  /**
+   * Supply a method to translate internal strings with your i18n tool of
+   * choice. Translation keys are available on the `translationKeys` field for
+   * this component.
+   */
+  translateWithId: PropTypes.func,
+};
+=======
+TableBatchActions.propTypes = {
+  children: PropTypes.node,
+  className: PropTypes.string,
+
+  /**
+   * Boolean to determine whether to show the "Select all" button
+   */
+  hasSelectAll: PropTypes.bool,
+
+  /**
+   * Hook required to listen for when the user initiates a cancel request
+   * through this component
+   */
+  onCancel: PropTypes.func.isRequired,
+
+  /**
+   * Hook required to listen for when the user clicks the "Select all" button
+   */
+  onSelectAll: PropTypes.func,
+
+  /**
+   * Boolean specifier for whether or not the batch action bar should be
+   * displayed
+   */
+  shouldShowBatchActions: PropTypes.bool,
+
+  /**
+   * Numeric representation of the total number of items selected in a table.
+   * This number is used to derive the selection message
+   */
+  totalSelected: PropTypes.number.isRequired,
+
+  /**
+   * Supply a method to translate internal strings with your i18n tool of
+   * choice. Translation keys are available on the `translationKeys` field for
+   * this component.
+   */
+  translateWithId: PropTypes.func,
+};
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/DataTable/TableBatchActions.js
+<<<<<<< SEARCH
+TableBatchActions.defaultProps = {
+  translateWithId,
+};
+=======
+TableBatchActions.defaultProps = {
+  translateWithId,
+  hasSelectAll: false,
+};
+>>>>>>> REPLACE
+```
+
+These changes:
+1. Add a new translation key for "Select all"
+2. Add new props `hasSelectAll` and `onSelectAll` to the component
+3. Render a "Select all" button next to the selected items text when `hasSelectAll` is true
+4. Update PropTypes to include the new props with appropriate documentation
+5. Set a default value for `hasSelectAll` to false to maintain backward compatibility
+
+This implementation makes the "Select all" button optional, so existing implementations won't be affected unless they explicitly opt-in to the new feature.

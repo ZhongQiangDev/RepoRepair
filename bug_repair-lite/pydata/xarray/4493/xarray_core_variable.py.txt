@@ -1,0 +1,86 @@
+I've analyzed the issue and found the bug. The problem occurs when using `DataSet.update` with a chunked dask DataArray. The update operation is causing the chunked DataArray to be evaluated eagerly, losing its chunked nature.
+
+The issue is in the `as_variable` function in `xarray/core/variable.py`. When a DataArray is passed to `as_variable`, it extracts the variable with `obj = obj.variable`, but this doesn't preserve the chunking information when the variable is later used in an update operation.
+
+Here's my fix:
+
+```python
+### xarray/core/variable.py
+<<<<<<< SEARCH
+def as_variable(obj, name=None) -> "Union[Variable, IndexVariable]":
+    """Convert an object into a Variable.
+
+    Parameters
+    ----------
+    obj : object
+        Object to convert into a Variable.
+
+        - If the object is already a Variable, return a shallow copy.
+        - Otherwise, if the object has 'dims' and 'data' attributes, convert
+          it into a new Variable.
+        - If all else fails, attempt to convert the object into a Variable by
+          unpacking it into the arguments for creating a new Variable.
+    name : str, optional
+        If provided:
+
+        - `obj` can be a 1D array, which is assumed to label coordinate values
+          along a dimension of this given name.
+        - Variables with name matching one of their dimensions are converted
+          into `IndexVariable` objects.
+
+    Returns
+    -------
+    var : Variable
+        The newly created variable.
+
+    """
+    from .dataarray import DataArray
+
+    # TODO: consider extending this method to automatically handle Iris and
+    if isinstance(obj, DataArray):
+        # extract the primary Variable from DataArrays
+        obj = obj.variable
+
+    if isinstance(obj, Variable):
+        obj = obj.copy(deep=False)
+=======
+def as_variable(obj, name=None) -> "Union[Variable, IndexVariable]":
+    """Convert an object into a Variable.
+
+    Parameters
+    ----------
+    obj : object
+        Object to convert into a Variable.
+
+        - If the object is already a Variable, return a shallow copy.
+        - Otherwise, if the object has 'dims' and 'data' attributes, convert
+          it into a new Variable.
+        - If all else fails, attempt to convert the object into a Variable by
+          unpacking it into the arguments for creating a new Variable.
+    name : str, optional
+        If provided:
+
+        - `obj` can be a 1D array, which is assumed to label coordinate values
+          along a dimension of this given name.
+        - Variables with name matching one of their dimensions are converted
+          into `IndexVariable` objects.
+
+    Returns
+    -------
+    var : Variable
+        The newly created variable.
+
+    """
+    from .dataarray import DataArray
+
+    # TODO: consider extending this method to automatically handle Iris and
+    if isinstance(obj, DataArray):
+        # extract the primary Variable from DataArrays, preserving chunking
+        obj = obj.variable.copy(deep=False)
+
+    if isinstance(obj, Variable):
+        obj = obj.copy(deep=False)
+>>>>>>> REPLACE
+```
+
+This fix ensures that when a DataArray is converted to a Variable, we explicitly make a shallow copy of the variable, which preserves the chunking information. The original code was extracting the variable but not explicitly copying it, which could lead to the chunking information being lost during subsequent operations.

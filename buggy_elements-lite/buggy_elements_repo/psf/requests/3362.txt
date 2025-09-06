@@ -1,0 +1,48 @@
+Let me analyze this step by step.
+
+1. Identify the wrong behavior:
+The user is experiencing unexpected behavior where `iter_content(decode_unicode=True)` returns bytes instead of unicode strings, while `r.text` returns unicode as expected. The user expected both methods to return unicode when decode_unicode=True.
+
+2. Analyze the cause:
+The issue likely stems from how the response content decoding is handled differently between direct text access and iterative content reading. The `text` property probably handles encoding detection and conversion in one go, while `iter_content` might have a different decoding pathway that's not working as expected with the decode_unicode parameter.
+
+3. Examining relevant files:
+
+requests/models.py:
+```
+requests/models.py
+class: Response
+```
+This is the main class responsible for handling HTTP responses and content decoding. It contains both the `text` property and `iter_content` method that are central to this issue.
+
+requests/utils.py:
+```
+requests/utils.py
+function: get_encoding_from_headers
+function: get_encodings_from_content
+function: stream_decode_response_unicode
+```
+These functions are relevant as they handle encoding detection and unicode decoding of response content, which are directly related to the text decoding issue.
+
+requests/packages/chardet/sbcharsetprober.py:
+```
+requests/packages/chardet/sbcharsetprober.py
+class: SingleByteCharSetProber
+```
+This class is relevant as it's part of the character encoding detection system that might be used when determining how to decode response content.
+
+requests/packages/chardet/utf8prober.py:
+```
+requests/packages/chardet/utf8prober.py
+class: UTF8Prober
+```
+This class is also relevant as it specifically handles UTF-8 encoding detection, which is commonly used in HTTP responses.
+
+requests/packages/urllib3/response.py:
+```
+requests/packages/urllib3/response.py
+class: HTTPResponse
+```
+This class is relevant as it's the underlying response handler that provides the raw content reading capabilities that `Response` builds upon.
+
+The other files contain no relevant functions/classes.

@@ -1,0 +1,46 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The migration auth.0011_update_proxy_permissions is failing with a database integrity error due to duplicate permission entries. Specifically, it's trying to create permission entries that already exist in the auth_permission table, causing a unique constraint violation on (content_type_id, codename).
+
+2. Cause Analysis:
+The issue appears to be related to proxy models and permission handling during migrations. When a model is recreated as a proxy model, the migration system is attempting to create new permissions for it without properly checking if these permissions already exist for the original model. This is particularly problematic during the auth.0011_update_proxy_permissions migration, which is meant to update proxy model permissions in Django 2.2.
+
+3. Relevant Files Analysis:
+
+django/contrib/auth/checks.py:
+```
+django/contrib/auth/checks.py
+function: check_models_permissions
+```
+This function is relevant as it handles permission validation for models, including proxy models.
+
+django/core/management/commands/migrate.py:
+```
+django/core/management/commands/migrate.py
+class: Command
+```
+This class is relevant as it handles the migration process and could be involved in how permissions are handled during migrations.
+
+django/db/migrations/executor.py:
+```
+django/db/migrations/executor.py
+class: MigrationExecutor
+```
+This class is relevant as it's responsible for executing migrations and could be involved in how model permissions are processed during migration.
+
+django/db/migrations/migration.py:
+```
+django/db/migrations/migration.py:
+class: Migration
+```
+This class is relevant as it defines how migrations are structured and executed, including how model changes are processed.
+
+django/db/migrations/recorder.py:
+```
+django/db/migrations/recorder.py
+class: MigrationRecorder
+```
+This class is relevant as it tracks which migrations have been applied and could be involved in the duplicate permission issue when handling proxy model migrations.
+
+The issue likely stems from an interaction between these components, where the permission creation process during migration doesn't properly account for existing permissions when dealing with proxy models. The migration executor and recorder should be checking for existing permissions before attempting to create new ones for proxy models.

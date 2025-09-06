@@ -1,0 +1,41 @@
+Based on the issue description, the bug is in the `ModelChoiceIteratorValue` class which is not hashable, causing errors when used as a dictionary key in `value in self.show_fields`. In Python, to make an object hashable, we need to implement the `__hash__` method.
+
+Here's the fix:
+
+```python
+### django/forms/models.py
+<<<<<<< SEARCH
+class ModelChoiceIteratorValue:
+    def __init__(self, value, instance):
+        self.value = value
+        self.instance = instance
+
+    def __str__(self):
+        return str(self.value)
+
+    def __eq__(self, other):
+        if isinstance(other, ModelChoiceIteratorValue):
+            other = other.value
+        return self.value == other
+=======
+class ModelChoiceIteratorValue:
+    def __init__(self, value, instance):
+        self.value = value
+        self.instance = instance
+
+    def __str__(self):
+        return str(self.value)
+
+    def __eq__(self, other):
+        if isinstance(other, ModelChoiceIteratorValue):
+            other = other.value
+        return self.value == other
+
+    def __hash__(self):
+        return hash(self.value)
+>>>>>>> REPLACE
+```
+
+This fix adds the `__hash__` method to the `ModelChoiceIteratorValue` class, making it hashable. The hash is based on the `value` attribute, which is consistent with the equality comparison in `__eq__`. This allows `ModelChoiceIteratorValue` instances to be used as dictionary keys or in set operations.
+
+The fix ensures that when checking `if value in self.show_fields`, Python can properly hash the `ModelChoiceIteratorValue` object to perform the dictionary lookup. This maintains consistency with the class's equality behavior while adding the required hashability.

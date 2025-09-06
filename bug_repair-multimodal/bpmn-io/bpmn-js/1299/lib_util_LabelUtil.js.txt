@@ -1,0 +1,51 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue has two related problems:
+
+1. When selecting events or gateways, they become smaller or disappear
+2. Completing direct editing with an empty label resizes elements to minimum bounds
+
+Looking at the code and the issue description, the problem appears to be in the `getExternalLabelBounds` function in `lib/util/LabelUtil.js`. The issue was introduced in commit e4e789b, which likely changed how label sizes are calculated.
+
+The problem occurs because when a label is empty, the code is not maintaining a minimum size for the label bounds, causing elements to shrink or disappear when selected.
+
+## Fix
+
+```javascript
+### lib/util/LabelUtil.js
+<<<<<<< SEARCH
+  if (label && label.bounds) {
+    bounds = label.bounds;
+
+    size = {
+      width: Math.max(DEFAULT_LABEL_SIZE.width, bounds.width),
+      height: bounds.height
+    };
+
+    mid = {
+      x: bounds.x + bounds.width / 2,
+      y: bounds.y + bounds.height / 2
+    };
+  } else {
+=======
+  if (label && label.bounds) {
+    bounds = label.bounds;
+
+    size = {
+      width: Math.max(DEFAULT_LABEL_SIZE.width, bounds.width),
+      height: Math.max(DEFAULT_LABEL_SIZE.height, bounds.height)
+    };
+
+    mid = {
+      x: bounds.x + bounds.width / 2,
+      y: bounds.y + bounds.height / 2
+    };
+  } else {
+>>>>>>> REPLACE
+```
+
+This fix ensures that both the width AND height of the label have minimum values based on the `DEFAULT_LABEL_SIZE` constants. The original code was only enforcing a minimum width but not a minimum height, which caused elements to shrink or disappear when their labels were empty.
+
+By enforcing a minimum height as well, we ensure that even when a label is empty, the element maintains a reasonable size and remains visible and clickable.

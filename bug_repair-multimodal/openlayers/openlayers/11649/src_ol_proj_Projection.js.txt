@@ -1,0 +1,95 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is related to how OpenLayers handles projections when using proj4js definitions. Specifically:
+
+1. When using geographic coordinate reference systems (CRS) with proj4js, the units are not properly set in the OpenLayers projection.
+2. The axis orientation is incorrectly defaulting to 'enu' when it should be 'neu' for geographic projections.
+
+The problem occurs in the `Projection` class where:
+- When a projection is created from a proj4js definition, it doesn't properly detect that geographic projections (like EPSG:4258) should have 'degrees' as units
+- It doesn't correctly set the axis orientation for geographic projections
+
+## Fix
+
+We need to modify the `Projection` constructor to:
+1. Set the units to 'degrees' when the projection is a geographic projection (longitude/latitude)
+2. Set the axis orientation to 'neu' for geographic projections
+
+Here's the fix:
+
+```javascript
+### src/ol/proj/Projection.js
+<<<<<<< SEARCH
+    /**
+     * Units of projected coordinates. When set to `TILE_PIXELS`, a
+     * `this.extent_` and `this.worldExtent_` must be configured properly for each
+     * tile.
+     * @private
+     * @type {import("./Units.js").default}
+     */
+    this.units_ = /** @type {import("./Units.js").default} */ (options.units);
+
+    /**
+     * Validity extent of the projection in projected coordinates. For projections
+     * with `TILE_PIXELS` units, this is the extent of the tile in
+     * tile pixel space.
+     * @private
+     * @type {import("../extent.js").Extent}
+     */
+    this.extent_ = options.extent !== undefined ? options.extent : null;
+=======
+    /**
+     * Units of projected coordinates. When set to `TILE_PIXELS`, a
+     * `this.extent_` and `this.worldExtent_` must be configured properly for each
+     * tile.
+     * @private
+     * @type {import("./Units.js").default}
+     */
+    this.units_ = /** @type {import("./Units.js").default} */ (options.units);
+
+    // If the projection is geographic (proj=longlat) and units aren't specified,
+    // default to 'degrees'
+    if (this.units_ === undefined && options.code.includes('longlat')) {
+      this.units_ = 'degrees';
+    }
+
+    /**
+     * Validity extent of the projection in projected coordinates. For projections
+     * with `TILE_PIXELS` units, this is the extent of the tile in
+     * tile pixel space.
+     * @private
+     * @type {import("../extent.js").Extent}
+     */
+    this.extent_ = options.extent !== undefined ? options.extent : null;
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/proj/Projection.js
+<<<<<<< SEARCH
+    /**
+     * @private
+     * @type {string}
+     */
+    this.axisOrientation_ =
+      options.axisOrientation !== undefined ? options.axisOrientation : 'enu';
+=======
+    /**
+     * @private
+     * @type {string}
+     */
+    this.axisOrientation_ =
+      options.axisOrientation !== undefined ? options.axisOrientation : 
+      // For geographic projections (longitude/latitude), use 'neu' axis orientation
+      (this.units_ === 'degrees' || options.code.includes('longlat')) ? 'neu' : 'enu';
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Check if the projection is a geographic projection by looking for 'longlat' in the code
+2. Set the units to 'degrees' for geographic projections if not specified
+3. Set the axis orientation to 'neu' for geographic projections instead of the default 'enu'
+
+This should fix the issue with broken projections when using proj4js definitions for geographic coordinate systems.

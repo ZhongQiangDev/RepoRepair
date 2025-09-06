@@ -1,0 +1,30 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when an Intermediate Event is copied and pasted as a Boundary Event, it loses its properties. Based on the GIF in the issue, properties like "Async Continuations" and "Job Configurations" are not being preserved during the copy-paste operation.
+
+Looking at the code, I can see a potential issue in the `copyElement` method of `ModdleCopy.js`. When firing the `moddleCopy.canSetCopiedProperty` event, it's using an undefined variable `parent` instead of `targetElement`. This could cause properties to not be properly copied when pasting as a Boundary Event.
+
+## Fix
+
+```javascript
+### lib/features/copy-paste/ModdleCopy.js
+<<<<<<< SEARCH
+    var canSetProperty = self._eventBus.fire('moddleCopy.canSetCopiedProperty', {
+      parent: parent,
+      property: copiedProperty,
+      propertyName: propertyName
+    });
+=======
+    var canSetProperty = self._eventBus.fire('moddleCopy.canSetCopiedProperty', {
+      parent: targetElement,
+      property: copiedProperty,
+      propertyName: propertyName
+    });
+>>>>>>> REPLACE
+```
+
+This fix changes the `parent` parameter in the event from the undefined variable `parent` to the correct `targetElement` variable. This ensures that when checking if a property can be set, the correct parent element is provided, allowing properties to be properly preserved when copying an Intermediate Event and pasting it as a Boundary Event.
+
+The bug was that the code was referencing a non-existent variable `parent` instead of using the `targetElement` that represents the element being pasted to. This would cause the event to fire with incorrect data, potentially leading to properties being lost during the copy-paste operation.

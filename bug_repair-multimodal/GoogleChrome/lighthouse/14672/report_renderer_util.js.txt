@@ -1,0 +1,37 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that DevTools incorrectly shows "no emulation" for mobile runs. According to the issue description, this happened after a change in `getEmulationDescriptions` to return "no emulation" when `screenEmulation.disabled` is true, which is set for DevTools in `devtools-entry.js`.
+
+Looking at the code in `report/renderer/util.js`, the problem is in the `getEmulationDescriptions` method. Currently, it's checking only `screenEmulation.disabled` to determine if it should return "no emulation", but it should also consider the `formFactor` setting to properly identify mobile emulation even when screen emulation is disabled.
+
+## Fix
+
+```javascript
+### report/renderer/util.js
+<<<<<<< SEARCH
+    let deviceEmulation = Util.i18n.strings.runtimeMobileEmulation;
+    if (settings.screenEmulation.disabled) {
+      deviceEmulation = Util.i18n.strings.runtimeNoEmulation;
+    } else if (!settings.screenEmulation.mobile) {
+      deviceEmulation = Util.i18n.strings.runtimeDesktopEmulation;
+    }
+=======
+    let deviceEmulation = Util.i18n.strings.runtimeMobileEmulation;
+    if (settings.screenEmulation.disabled) {
+      // Even when screenEmulation is disabled, we should still respect the formFactor
+      if (settings.formFactor === 'mobile') {
+        deviceEmulation = Util.i18n.strings.runtimeMobileEmulation;
+      } else if (settings.formFactor === 'desktop') {
+        deviceEmulation = Util.i18n.strings.runtimeDesktopEmulation;
+      } else {
+        deviceEmulation = Util.i18n.strings.runtimeNoEmulation;
+      }
+    } else if (!settings.screenEmulation.mobile) {
+      deviceEmulation = Util.i18n.strings.runtimeDesktopEmulation;
+    }
+>>>>>>> REPLACE
+```
+
+This fix ensures that even when screen emulation is disabled (which happens in DevTools), we still respect the `formFactor` setting to correctly identify if we're emulating a mobile or desktop device. This way, when running in mobile mode in DevTools, it will correctly show "Emulated Moto G4" instead of "No emulation".

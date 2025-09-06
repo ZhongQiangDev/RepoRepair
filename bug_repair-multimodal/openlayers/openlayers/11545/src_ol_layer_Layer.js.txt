@@ -1,0 +1,54 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue states that the `className` setting in `ol.layer.HeatMap` doesn't work. Looking at the provided code from `src/ol/layer/Layer.js`, I can see that the `className` property is defined in the `Options` typedef, but it's not actually being applied to the layer element in the code.
+
+The `BaseLayer` constructor is called with the options, but there's no code that actually applies the `className` to the DOM element. The `className` property is passed to the parent class (`BaseLayer`), but we need to ensure it's properly applied to the rendered element.
+
+## Fix
+
+We need to modify the `render` method to apply the `className` to the target element. Here's the fix:
+
+```javascript
+### src/ol/layer/Layer.js
+<<<<<<< SEARCH
+  /**
+   * In charge to manage the rendering of the layer. One layer type is
+   * bounded with one layer renderer.
+   * @param {?import("../PluggableMap.js").FrameState} frameState Frame state.
+   * @param {HTMLElement} target Target which the renderer may (but need not) use
+   * for rendering its content.
+   * @return {HTMLElement} The rendered element.
+   */
+  render(frameState, target) {
+    const layerRenderer = this.getRenderer();
+
+    if (layerRenderer.prepareFrame(frameState)) {
+      return layerRenderer.renderFrame(frameState, target);
+    }
+  }
+=======
+  /**
+   * In charge to manage the rendering of the layer. One layer type is
+   * bounded with one layer renderer.
+   * @param {?import("../PluggableMap.js").FrameState} frameState Frame state.
+   * @param {HTMLElement} target Target which the renderer may (but need not) use
+   * for rendering its content.
+   * @return {HTMLElement} The rendered element.
+   */
+  render(frameState, target) {
+    const layerRenderer = this.getRenderer();
+
+    if (layerRenderer.prepareFrame(frameState)) {
+      const element = layerRenderer.renderFrame(frameState, target);
+      if (element && this.getClassName()) {
+        element.className = this.getClassName();
+      }
+      return element;
+    }
+  }
+>>>>>>> REPLACE
+```
+
+This fix ensures that when a layer is rendered, the `className` property is applied to the rendered element. The `getClassName()` method is inherited from `BaseLayer` and will return the className property that was set in the options.

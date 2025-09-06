@@ -1,0 +1,27 @@
+Based on the issue description, the bug is in the `delete()` method of the `Collector` class where it handles the deletion counter. The issue is that for models without foreign keys, it includes the model in the counter dictionary with a zero value, while for models with foreign keys, it omits them completely when no objects are deleted.
+
+The fix should make this behavior consistent by either:
+1. Always including models with zero counts, or
+2. Never including models with zero counts
+
+Let's implement option 2 (never including zero counts) since that's more efficient and cleaner. Here's the fix:
+
+```python
+### django/db/models/deletion.py
+<<<<<<< SEARCH
+                count = query.delete_batch(pk_list, self.using)
+                deleted_counter[model._meta.label] += count
+
+                if not model._meta.auto_created:
+=======
+                count = query.delete_batch(pk_list, self.using)
+                if count:  # Only add to counter if objects were actually deleted
+                    deleted_counter[model._meta.label] += count
+
+                if not model._meta.auto_created:
+>>>>>>> REPLACE
+```
+
+This change ensures that we only add entries to the deleted_counter when actual objects were deleted (count > 0). This will make the behavior consistent between models with and without foreign keys - if no objects are deleted, they won't appear in the counter dictionary at all.
+
+The fix is minimal and maintains all the existing functionality while resolving the inconsistency. Now both cases will return `(0, {})` when no objects are deleted, regardless of whether the model has foreign keys or not.

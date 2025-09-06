@@ -1,0 +1,45 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The error message "Uncaught RangeError: Invalid array length" suggests a problem with array allocation. Looking at the issue description, the error occurs when trying to load a GeoJSON file in OpenLayers, but works fine in Leaflet.
+
+This type of error typically happens when trying to create an array with a negative or extremely large length. In the context of GeoJSON processing, this could happen when handling coordinates with extreme values or invalid geometries.
+
+Looking at the code, the most likely place for this issue is in the `wrapAndSliceX` function called in the `getFeaturesInExtent` method. This function is responsible for handling coordinate wrapping around the world when dealing with projections.
+
+## Fix
+
+```javascript
+### src/ol/source/Vector.js
+<<<<<<< SEARCH
+      if (!multiWorld) {
+        return this.featuresRtree_.getInExtent(extent);
+      }
+
+      const extents = wrapAndSliceX(extent, opt_projection);
+
+      return [].concat(
+        ...extents.map((anExtent) => this.featuresRtree_.getInExtent(anExtent))
+      );
+=======
+      if (!multiWorld) {
+        return this.featuresRtree_.getInExtent(extent);
+      }
+
+      try {
+        const extents = wrapAndSliceX(extent, opt_projection);
+        
+        return [].concat(
+          ...extents.map((anExtent) => this.featuresRtree_.getInExtent(anExtent))
+        );
+      } catch (error) {
+        console.warn('Error wrapping extent around world. Using original extent.', error);
+        return this.featuresRtree_.getInExtent(extent);
+      }
+>>>>>>> REPLACE
+```
+
+This fix adds error handling around the `wrapAndSliceX` function call. If the function throws an error (like "Invalid array length"), we catch it, log a warning, and fall back to using the original extent without wrapping. This should prevent the application from crashing when dealing with problematic GeoJSON data.
+
+The issue is likely caused by extreme coordinate values in the GeoJSON file that cause calculation problems when trying to wrap around the world. By catching the error and falling back to a simpler approach, we allow the application to continue functioning even with problematic data.

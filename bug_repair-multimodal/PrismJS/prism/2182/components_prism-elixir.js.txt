@@ -1,0 +1,35 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the problem is that Elixir attributes can end with a question mark (`?`), but the current regex pattern for `attr-name` in the Prism syntax highlighter doesn't account for this.
+
+The issue specifically points to line 40 in the file, which contains:
+```
+'attr-name': /\w+:(?!:)/,
+```
+
+The suggested fix is to change it to:
+```
+'attr-name': /\w+?\?:(?!:)/,
+```
+
+However, this suggested fix isn't quite right. The correct pattern should match attribute names that are composed of word characters and may optionally end with a question mark, followed by a colon (but not a double colon).
+
+Here's the proper fix:
+
+```javascript
+### components/prism-elixir.js
+<<<<<<< SEARCH
+  // Look-ahead prevents bad highlighting of the :: operator
+  'attr-name': /\w+:(?!:)/,
+=======
+  // Look-ahead prevents bad highlighting of the :: operator
+  'attr-name': /\w+\??:(?!:)/,
+>>>>>>> REPLACE
+```
+
+This pattern `\w+\??:(?!:)` matches:
+- `\w+`: One or more word characters
+- `\??`: An optional question mark
+- `:(?!:)`: A colon that is not followed by another colon
+
+This will correctly highlight attribute names in Elixir that may end with a question mark.

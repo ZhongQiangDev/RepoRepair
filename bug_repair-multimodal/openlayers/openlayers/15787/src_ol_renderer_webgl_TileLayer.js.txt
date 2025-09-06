@@ -1,0 +1,64 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that WebGLTileLayers with palette styles stop working after being removed and added back to the map. The error messages indicate a WebGL context problem: `WebGL warning: bindTexture: 'tex' is from a different (or lost) WebGL context` or `WebGL: INVALID_OPERATION: bindTexture: object does not belong to this context`.
+
+Looking at the code, I can see that the palette textures are stored in the renderer, but when the layer is removed and added back, the WebGL context might change or the textures might become invalid. The palette textures need to be recreated when the layer is added back to the map.
+
+The issue is in the `WebGLTileLayerRenderer` class. When the layer is removed and added back, the palette textures are not properly recreated or rebound to the new WebGL context.
+
+## Fix
+
+We need to modify the `reset` method to properly handle palette textures when the layer is re-added to the map:
+
+```javascript
+### src/ol/renderer/webgl/TileLayer.js
+<<<<<<< SEARCH
+  /**
+   * @param {Options} options Options.
+   */
+  reset(options) {
+    super.reset(options);
+
+    this.vertexShader_ = options.vertexShader;
+    this.fragmentShader_ = options.fragmentShader;
+    this.paletteTextures_ = options.paletteTextures || [];
+    if (this.helper) {
+      this.program_ = this.helper.getProgram(
+        this.fragmentShader_,
+        this.vertexShader_,
+      );
+    }
+  }
+=======
+  /**
+   * @param {Options} options Options.
+   */
+  reset(options) {
+    super.reset(options);
+
+    this.vertexShader_ = options.vertexShader;
+    this.fragmentShader_ = options.fragmentShader;
+    
+    // Clear existing palette textures to ensure they're recreated with the current WebGL context
+    this.paletteTextures_ = [];
+    
+    // Add new palette textures
+    if (options.paletteTextures) {
+      this.paletteTextures_ = options.paletteTextures;
+    }
+    
+    if (this.helper) {
+      this.program_ = this.helper.getProgram(
+        this.fragmentShader_,
+        this.vertexShader_,
+      );
+    }
+  }
+>>>>>>> REPLACE
+```
+
+The key change is that we're now explicitly clearing the existing palette textures array before assigning the new ones. This ensures that any old textures from a previous WebGL context are completely removed before new ones are added.
+
+This fix addresses the issue by ensuring that when a layer with palette textures is removed and added back to the map, it doesn't try to reuse textures from a previous WebGL context, which would cause the binding errors we're seeing.

@@ -1,0 +1,33 @@
+Based on the issue description, the bug occurs in the `_sparse_fit` method of `BaseLibSVM` class when handling empty support vectors. The error happens because `dual_coef_indices.size / n_class` is dividing by zero when there are no support vectors.
+
+Here's the fix that handles the empty support vectors case:
+
+```python
+### sklearn/svm/base.py
+<<<<<<< SEARCH
+        dual_coef_indices = np.tile(np.arange(n_SV), n_class)
+        dual_coef_indptr = np.arange(0, dual_coef_indices.size + 1,
+                                     dual_coef_indices.size / n_class)
+        self.dual_coef_ = sp.csr_matrix(
+            (dual_coef_data, dual_coef_indices, dual_coef_indptr),
+            (n_class, n_SV))
+=======
+        if n_SV == 0:
+            # Handle empty support vectors case
+            self.dual_coef_ = sp.csr_matrix((n_class, n_SV))
+        else:
+            dual_coef_indices = np.tile(np.arange(n_SV), n_class)
+            dual_coef_indptr = np.arange(0, dual_coef_indices.size + 1,
+                                       dual_coef_indices.size / n_class)
+            self.dual_coef_ = sp.csr_matrix(
+                (dual_coef_data, dual_coef_indices, dual_coef_indptr),
+                (n_class, n_SV))
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Checks if there are any support vectors (n_SV == 0)
+2. If there are no support vectors, creates an empty sparse matrix with the correct dimensions
+3. Otherwise proceeds with the original logic for non-empty support vectors
+
+The fix prevents the ZeroDivisionError by handling the empty case explicitly, while maintaining the expected behavior of returning an empty sparse matrix when there are no support vectors.

@@ -1,0 +1,31 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## Analysis of the Problem
+
+The issue is that figures from R code blocks don't render if `fig-cap: !expr ...` evaluates to `character(0)`. Specifically:
+
+1. When a code block uses `fig-cap: !expr caption` and `caption` is a non-empty string (like `"hello world"`), the figure renders correctly.
+2. However, when `caption` evaluates to `character(0)` (an empty character vector in R), the figure disappears from the output.
+
+This suggests a bug in how Quarto handles empty or null caption values when they're dynamically generated using the `!expr` syntax. Instead of rendering the figure without a caption, the entire figure is being omitted.
+
+## Cause of the Issue
+
+The issue likely occurs in the rendering pipeline where:
+1. The `!expr` expression is evaluated
+2. When it returns `character(0)`, this is being treated as a signal to omit the figure entirely
+3. Instead, it should be treated as an empty caption (or no caption) while still rendering the figure
+
+## Files Most Related to the Cause
+
+Looking at the repository information, these are the most relevant files that would need to be modified:
+
+```
+src/command/render/filters.ts
+src/core/lib/yaml-validation/errors.ts
+src/core/lib/partition-cell-options.ts
+src/command/render/render-files.ts
+src/core/handlers/base.ts
+```
+
+The issue is most likely in the filter processing code that handles YAML expressions and figure captions. The `filters.ts` file would contain the logic for processing filter parameters including expressions. The YAML validation and partition-cell-options files would handle how cell options (including captions) are processed. The rendering files would control how figures are included or excluded based on these parameters.

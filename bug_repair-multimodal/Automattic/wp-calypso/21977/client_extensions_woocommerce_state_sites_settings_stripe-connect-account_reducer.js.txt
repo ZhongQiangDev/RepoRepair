@@ -1,0 +1,89 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about displaying a green success banner after successfully creating a Stripe Connect account. Based on the issue description, we need to add a success message to the state when a Stripe Connect account is successfully created.
+
+Looking at the code, I can see that there are two functions that handle account creation completion:
+1. `connectAccountCreateComplete` - Handles completion of direct account creation
+2. `connectAccountOAuthConnectComplete` - Handles completion of OAuth-based account connection
+
+Both of these functions need to be modified to include a success message in the state when there's no error.
+
+## Solution
+
+I'll modify both functions to add a `successMessage` property to the state when the account creation/connection is successful (no error).
+
+```javascript
+### client/extensions/woocommerce/state/sites/settings/stripe-connect-account/reducer.js
+<<<<<<< SEARCH
+function connectAccountCreateComplete( state = {}, action ) {
+	return Object.assign( {}, state, {
+		connectedUserID: action.connectedUserID || '',
+		displayName: '',
+		email: action.email || '',
+		error: action.error || '',
+		firstName: '',
+		isActivated: false,
+		isCreating: false,
+		isRequesting: false,
+		lastName: '',
+		logo: '',
+	} );
+}
+=======
+function connectAccountCreateComplete( state = {}, action ) {
+	return Object.assign( {}, state, {
+		connectedUserID: action.connectedUserID || '',
+		displayName: '',
+		email: action.email || '',
+		error: action.error || '',
+		firstName: '',
+		isActivated: false,
+		isCreating: false,
+		isRequesting: false,
+		lastName: '',
+		logo: '',
+		successMessage: ! action.error ? 'Stripe account connected successfully!' : '',
+	} );
+}
+>>>>>>> REPLACE
+```
+
+```javascript
+### client/extensions/woocommerce/state/sites/settings/stripe-connect-account/reducer.js
+<<<<<<< SEARCH
+function connectAccountOAuthConnectComplete( state = {}, action ) {
+	return Object.assign( {}, state, {
+		connectedUserID: action.connectedUserID || '',
+		email: '',
+		error: action.error || '',
+		firstName: '',
+		isActivated: false,
+		isCreating: false,
+		isOAuthConnecting: false,
+		isRequesting: false,
+		lastName: '',
+		logo: '',
+	} );
+}
+=======
+function connectAccountOAuthConnectComplete( state = {}, action ) {
+	return Object.assign( {}, state, {
+		connectedUserID: action.connectedUserID || '',
+		email: '',
+		error: action.error || '',
+		firstName: '',
+		isActivated: false,
+		isCreating: false,
+		isOAuthConnecting: false,
+		isRequesting: false,
+		lastName: '',
+		logo: '',
+		successMessage: ! action.error ? 'Stripe account connected successfully!' : '',
+	} );
+}
+>>>>>>> REPLACE
+```
+
+These changes add a `successMessage` property to the state when there's no error during account creation or OAuth connection. The UI components can then use this property to display the green success banner as requested in the issue.

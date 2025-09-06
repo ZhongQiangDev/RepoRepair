@@ -1,0 +1,47 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that when sorting a DataTable column, items are not re-ordered as expected if an item in the table has the property set to null or undefined. According to the expected behavior, undefined properties should be treated as empty strings.
+
+Looking at the code in `buildState.js`, the problem is in the `filterAndSortData` function. When comparing values during sorting, it doesn't handle null or undefined values properly. When trying to compare these values with strings or other types, JavaScript throws an error because you can't call methods like `localeCompare` on null or undefined.
+
+Here's the fix:
+
+```javascript
+### src/js/components/DataTable/buildState.js
+<<<<<<< SEARCH
+    result.sort((d1, d2) => {
+      const d1Val = datumValue(d1, property);
+      const d2Val = datumValue(d2, property);
+      if (typeof d1Val === 'string' && typeof d2Val === 'string') {
+        const sortResult = d1Val.localeCompare(d2Val, undefined, {
+          sensitivity: 'base',
+        });
+        return sortAsc ? sortResult : -sortResult;
+      }
+      if (d1Val > d2Val) return before;
+      if (d1Val < d2Val) return after;
+      return 0;
+    });
+=======
+    result.sort((d1, d2) => {
+      let d1Val = datumValue(d1, property);
+      let d2Val = datumValue(d2, property);
+      
+      // Handle null or undefined values by treating them as empty strings
+      if (d1Val === null || d1Val === undefined) d1Val = '';
+      if (d2Val === null || d2Val === undefined) d2Val = '';
+      
+      if (typeof d1Val === 'string' && typeof d2Val === 'string') {
+        const sortResult = d1Val.localeCompare(d2Val, undefined, {
+          sensitivity: 'base',
+        });
+        return sortAsc ? sortResult : -sortResult;
+      }
+      if (d1Val > d2Val) return before;
+      if (d1Val < d2Val) return after;
+      return 0;
+    });
+>>>>>>> REPLACE
+```
+
+This fix adds handling for null or undefined values by converting them to empty strings before comparison, which matches the expected behavior described in the issue. This ensures that the sorting will work correctly even when some items have properties that are null or undefined.

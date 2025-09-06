@@ -1,0 +1,57 @@
+I'll analyze the issue and provide the necessary fixes.
+
+## Issue Analysis
+
+The issue is that the pagination component shows plural forms ("items" and "pages") even when there's only one item or page. According to the issue description, this needs to be fixed in two places:
+
+1. Line 148 - related to the `itemRangeText` function in the default props
+2. Line 312 - related to the `pageRangeText` function in the default props
+
+The fix should add conditional logic to use singular forms ("item" and "page") when appropriate.
+
+## Solution
+
+I'll create search/replace edits for both locations:
+
+```javascript
+### packages/react/src/components/Pagination/Pagination.js
+<<<<<<< SEARCH
+  static defaultProps = {
+    backwardText: 'Previous page',
+    itemRangeText: (min, max, total) => `${min}–${max} of ${total} items`,
+    forwardText: 'Next page',
+    itemsPerPageText: 'Items per page:',
+    pageNumberText: 'Page Number',
+    pageRangeText: (current, total) => `of ${total} pages`,
+    disabled: false,
+    page: 1,
+    pagesUnknown: false,
+    isLastPage: false,
+    itemText: (min, max) => `${min}–${max} items`,
+    pageText: (page) => `page ${page}`,
+  };
+=======
+  static defaultProps = {
+    backwardText: 'Previous page',
+    itemRangeText: (min, max, total) => `${min}–${max} of ${total} ${total === 1 ? 'item' : 'items'}`,
+    forwardText: 'Next page',
+    itemsPerPageText: 'Items per page:',
+    pageNumberText: 'Page Number',
+    pageRangeText: (current, total) => `of ${total} ${total === 1 ? 'page' : 'pages'}`,
+    disabled: false,
+    page: 1,
+    pagesUnknown: false,
+    isLastPage: false,
+    itemText: (min, max) => `${min}–${max} ${min === max ? 'item' : 'items'}`,
+    pageText: (page) => `page ${page}`,
+  };
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Updates `itemRangeText` to use "item" when `total === 1` and "items" otherwise
+2. Updates `pageRangeText` to use "page" when `total === 1` and "pages" otherwise
+3. Also updates `itemText` to use "item" when `min === max` (meaning there's only one item) and "items" otherwise
+
+These changes will ensure that the pagination component uses the correct singular or plural form based on the number of items or pages.

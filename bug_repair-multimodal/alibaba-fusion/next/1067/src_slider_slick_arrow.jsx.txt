@@ -1,0 +1,47 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue states: "[Slider]slidesToShow > slidesCount && infinite={false} && defaultActiveIndex !== 0 左箭头被禁用" 
+
+This translates to: "When slidesToShow > slidesCount and infinite=false and defaultActiveIndex is not 0, the left arrow is disabled."
+
+Looking at the code, the problem is in the `isDisabled` method of the `Arrow` component. When `slideCount <= slidesToShow`, the method returns `true` for both arrow types, disabling both arrows. However, when `slidesToShow > slidesCount` and the current slide is not at the beginning, the left arrow should still be enabled to allow navigation back to the first slide.
+
+## Fix
+
+```javascript
+### src/slider/slick/arrow.jsx
+<<<<<<< SEARCH
+        // 下一个 index 大于总数？？
+        if (slideCount <= slidesToShow) {
+            return true;
+        }
+
+        // 向前箭头：当前是第 0 个
+        if (type === 'prev') {
+            return currentSlide <= 0;
+        }
+=======
+        // When slides to show is greater than total slides
+        if (slideCount <= slidesToShow) {
+            // For prev arrow, only disable when we're at the first slide
+            if (type === 'prev') {
+                return currentSlide <= 0;
+            }
+            // For next arrow, always disable as we can show all slides at once
+            return true;
+        }
+
+        // 向前箭头：当前是第 0 个
+        if (type === 'prev') {
+            return currentSlide <= 0;
+        }
+>>>>>>> REPLACE
+```
+
+This fix changes the logic when `slideCount <= slidesToShow`. Instead of disabling both arrows, it now:
+1. Only disables the previous (left) arrow when the current slide is at the beginning (currentSlide <= 0)
+2. Always disables the next (right) arrow since all slides can be shown at once
+
+This way, when the defaultActiveIndex is not 0 (meaning we're not at the first slide), the left arrow will remain enabled, allowing the user to navigate back to the first slide.

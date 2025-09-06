@@ -1,0 +1,57 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about iframes and data URIs being incorrectly considered as critical requests in the Critical Request Chains (CRC) computation. According to the issue:
+
+1. iframes should not be considered critical requests because they are not render-blocking, even though they are fetched at Highest priority.
+2. Data URIs should also be removed from CRC as they aren't actual network requests.
+
+Looking at the code, we need to modify the `isCritical` method in `critical-request-chains.js` to exclude iframes and data URIs from being considered critical.
+
+## Solution
+
+We need to:
+1. Add iframe resource type to the `nonCriticalResourceTypes` array
+2. Add a check to exclude data URIs (which start with "data:")
+
+Here's the fix:
+
+```javascript
+### lighthouse-core/gather/computed/critical-request-chains.js
+<<<<<<< SEARCH
+    // XHRs are fetched at High priority, but we exclude them, as they are unlikely to be critical
+    // Images are also non-critical.
+    // Treat any images missed by category, primarily favicons, as non-critical resources
+    const nonCriticalResourceTypes = [
+      WebInspector.resourceTypes.Image._category,
+      WebInspector.resourceTypes.XHR._category,
+    ];
+    if (nonCriticalResourceTypes.includes(resourceTypeCategory) ||
+        request.mimeType && request.mimeType.startsWith('image/')) {
+      return false;
+    }
+=======
+    // XHRs are fetched at High priority, but we exclude them, as they are unlikely to be critical
+    // Images are also non-critical.
+    // iframes are not render-blocking even though they're high priority
+    // Treat any images missed by category, primarily favicons, as non-critical resources
+    const nonCriticalResourceTypes = [
+      WebInspector.resourceTypes.Image._category,
+      WebInspector.resourceTypes.XHR._category,
+      WebInspector.resourceTypes.Document._category,
+    ];
+    if (nonCriticalResourceTypes.includes(resourceTypeCategory) ||
+        request.mimeType && request.mimeType.startsWith('image/') ||
+        request.url.startsWith('data:')) {
+      return false;
+    }
+>>>>>>> REPLACE
+```
+
+This change:
+1. Adds `WebInspector.resourceTypes.Document._category` to the `nonCriticalResourceTypes` array, which includes iframes
+2. Adds a check for data URIs by testing if the URL starts with "data:"
+3. Updates the comment to explain why iframes are excluded
+
+The fix ensures that both iframes and data URIs are no longer considered critical requests in the Critical Request Chains computation.

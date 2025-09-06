@@ -1,0 +1,194 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that `WebGLPointsLayer` doesn't work correctly with `useGeographic()`. When `useGeographic()` is enabled, the points are plotted at incorrect locations (near Africa).
+
+Looking at the code, the problem is in the `rebuildBuffers_` method of `WebGLPointsLayerRenderer`. When getting coordinates from a feature's geometry, it directly applies the projection transform without considering the feature's original projection. When `useGeographic()` is enabled, the coordinates are already in EPSG:4326 (geographic coordinates), but the renderer treats them as if they were in the view projection (EPSG:3857).
+
+## Fix
+
+We need to modify the `rebuildBuffers_` method to properly handle the feature's coordinates when `useGeographic()` is enabled. The key issue is that we need to transform the coordinates from the feature's projection to the view projection before applying the projection transform.
+
+```javascript
+### src/ol/renderer/webgl/PointsLayer.js
+<<<<<<< SEARCH
+      tmpCoords[0] = geometry.getFlatCoordinates()[0];
+      tmpCoords[1] = geometry.getFlatCoordinates()[1];
+      applyTransform(projectionTransform, tmpCoords);
+=======
+      const flatCoordinates = geometry.getFlatCoordinates();
+      tmpCoords[0] = flatCoordinates[0];
+      tmpCoords[1] = flatCoordinates[1];
+      
+      // When using useGeographic(), we need to transform the coordinates
+      // from EPSG:4326 to the view projection before applying the projection transform
+      const viewState = frameState.viewState;
+      const sourceProj = this.getLayer().getSource().getProjection();
+      if (sourceProj) {
+        // If source has explicit projection, transform from source projection to view projection
+        const transformFn = this.getLayer().getSource().getProjection().getPointResolution ?
+          this.helper.makeProjectionTransform(frameState, createTransform()) :
+          viewState.coordinateToPixelTransform;
+        applyTransform(transformFn, tmpCoords);
+      } else {
+        // Otherwise, apply the projection transform directly
+        applyTransform(projectionTransform, tmpCoords);
+      }
+>>>>>>> REPLACE
+```
+
+This fix checks if the source has an explicit projection. If it does, it transforms the coordinates from the source projection to the view projection before applying the projection transform. If not, it applies the projection transform directly as before.
+
+However, after further analysis, I believe the issue is more fundamental. The problem is that the WebGLPointsLayer doesn't properly handle the feature projection when rendering. Let me provide a more accurate fix:
+
+```javascript
+### src/ol/renderer/webgl/PointsLayer.js
+<<<<<<< SEARCH
+      tmpCoords[0] = geometry.getFlatCoordinates()[0];
+      tmpCoords[1] = geometry.getFlatCoordinates()[1];
+      applyTransform(projectionTransform, tmpCoords);
+=======
+      const flatCoordinates = geometry.getFlatCoordinates();
+      tmpCoords[0] = flatCoordinates[0];
+      tmpCoords[1] = flatCoordinates[1];
+      
+      // Get the source projection
+      const source = this.getLayer().getSource();
+      const sourceProj = source.getProjection();
+      const viewProj = frameState.viewState.projection;
+      
+      // If source has explicit projection and it's different from view projection,
+      // we need to transform coordinates before applying the projection transform
+      if (sourceProj && viewProj && sourceProj !== viewProj) {
+        // Transform from source projection to view projection
+        const transform = this.helper.getCoordinateTransform(frameState, sourceProj);
+        applyTransform(transform, tmpCoords);
+      }
+      
+      // Apply the projection transform to convert from view coordinates to screen coordinates
+      applyTransform(projectionTransform, tmpCoords);
+>>>>>>> REPLACE
+```
+
+After further review, I realize the issue is even more specific. The problem is that when `useGeographic()` is enabled, the view projection is set to EPSG:4326, but the WebGLPointsLayer renderer doesn't properly handle this change. Let me provide a more targeted fix:
+
+```javascript
+### src/ol/renderer/webgl/PointsLayer.js
+<<<<<<< SEARCH
+  rebuildBuffers_(frameState) {
+    // saves the projection transform for the current frame state
+    const projectionTransform = createTransform();
+    this.helper.makeProjectionTransform(frameState, projectionTransform);
+=======
+  rebuildBuffers_(frameState) {
+    // saves the projection transform for the current frame state
+    const projectionTransform = createTransform();
+    this.helper.makeProjectionTransform(frameState, projectionTransform);
+    
+    // Get source and view projections
+    const source = this.getLayer().getSource();
+    const sourceProj = source.getProjection();
+    const viewProj = frameState.viewState.projection;
+>>>>>>> REPLACE
+```
+
+And then modify the coordinate handling:
+
+```javascript
+### src/ol/renderer/webgl/PointsLayer.js
+<<<<<<< SEARCH
+      tmpCoords[0] = geometry.getFlatCoordinates()[0];
+      tmpCoords[1] = geometry.getFlatCoordinates()[1];
+      applyTransform(projectionTransform, tmpCoords);
+=======
+      const flatCoordinates = geometry.getFlatCoordinates();
+      tmpCoords[0] = flatCoordinates[0];
+      tmpCoords[1] = flatCoordinates[1];
+      
+      // If source has explicit projection and it's different from view projection,
+      // transform coordinates before applying the projection transform
+      if (sourceProj && viewProj && sourceProj !== viewProj) {
+        // Transform from source projection to view projection
+        const transformFn = this.helper.getTransform(sourceProj, viewProj);
+        applyTransform(transformFn, tmpCoords);
+      }
+      
+      // Apply the projection transform to convert from view coordinates to screen coordinates
+      applyTransform(projectionTransform, tmpCoords);
+>>>>>>> REPLACE
+```
+
+After further analysis, I believe the issue is that the WebGLPointsLayer doesn't properly handle the feature coordinates when the source projection differs from the view projection. Let me provide a more accurate fix:
+
+```javascript
+### src/ol/renderer/webgl/PointsLayer.js
+<<<<<<< SEARCH
+      tmpCoords[0] = geometry.getFlatCoordinates()[0];
+      tmpCoords[1] = geometry.getFlatCoordinates()[1];
+      applyTransform(projectionTransform, tmpCoords);
+=======
+      const flatCoordinates = geometry.getFlatCoordinates();
+      tmpCoords[0] = flatCoordinates[0];
+      tmpCoords[1] = flatCoordinates[1];
+      
+      // When using useGeographic(), we need to ensure coordinates are correctly transformed
+      // from the source projection to the view projection before applying the screen transform
+      const source = this.getLayer().getSource();
+      const sourceProj = source.getProjection();
+      const viewProj = frameState.viewState.projection;
+      
+      if (sourceProj && viewProj && sourceProj !== viewProj) {
+        // Transform from source projection to view projection
+        const transform = this.helper.getCoordinateTransform(sourceProj, viewProj);
+        if (transform) {
+          applyTransform(transform, tmpCoords);
+        }
+      }
+      
+      // Apply the projection transform to convert from view coordinates to screen coordinates
+      applyTransform(projectionTransform, tmpCoords);
+>>>>>>> REPLACE
+```
+
+After careful review of the OpenLayers codebase and the issue description, I believe the most accurate fix is:
+
+```javascript
+### src/ol/renderer/webgl/PointsLayer.js
+<<<<<<< SEARCH
+      geometry = /** @type {import("../../geom").Point} */ (
+        featureCache.geometry
+      );
+      if (!geometry || geometry.getType() !== 'Point') {
+        continue;
+      }
+      tmpCoords[0] = geometry.getFlatCoordinates()[0];
+      tmpCoords[1] = geometry.getFlatCoordinates()[1];
+      applyTransform(projectionTransform, tmpCoords);
+=======
+      geometry = /** @type {import("../../geom").Point} */ (
+        featureCache.geometry
+      );
+      if (!geometry || geometry.getType() !== 'Point') {
+        continue;
+      }
+      
+      // Get coordinates and handle projection
+      const flatCoordinates = geometry.getFlatCoordinates();
+      tmpCoords[0] = flatCoordinates[0];
+      tmpCoords[1] = flatCoordinates[1];
+      
+      // Transform coordinates from the source projection to the view projection if needed
+      const source = this.getLayer().getSource();
+      const sourceProj = source.getProjection();
+      const viewProj = frameState.viewState.projection;
+      
+      if (sourceProj && viewProj) {
+        // Transform from source projection to view projection before applying screen transform
+        import("../../proj.js").transform(tmpCoords, sourceProj, viewProj);
+      }
+      
+      // Apply the projection transform to convert from view coordinates to screen coordinates
+      applyTransform(projectionTransform, tmpCoords);
+>>>>>>> REPLACE
+```

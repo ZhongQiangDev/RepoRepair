@@ -1,0 +1,52 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that Lighthouse does not wait long enough when `throttlingMethod=simulate`, leading to an inaccurate detection of the Cumulative Layout Shift (CLS) for some pages. This results in a higher CLS score than expected, indicating that the page loads faster than it actually does.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely lies in how Lighthouse simulates the page load under throttling conditions. When `throttlingMethod=simulate`, Lighthouse may not accurately simulate the delays and timing that would occur under real-world network and CPU conditions. This could lead to the simulation finishing too quickly, causing Lighthouse to miss layout shifts that occur later in the page load process.
+
+### 3. Examine Each File One by One
+
+#### lighthouse-core/audits/layout-shift-elements.js
+This file contains no relevant functions/classes.
+
+#### lighthouse-core/audits/metrics/cumulative-layout-shift.js
+```
+lighthouse-core/audits/metrics/cumulative-layout-shift.js
+class: CumulativeLayoutShift
+```
+
+The `CumulativeLayoutShift` class is responsible for evaluating the CLS metric. If the simulation finishes too quickly, this class might not capture all layout shifts, leading to an inaccurate score.
+
+#### lighthouse-core/computed/metrics/lantern-metric.js
+This file contains no relevant functions/classes.
+
+#### lighthouse-core/computed/metrics/metric.js
+```
+lighthouse-core/computed/metrics/metric.js
+class: ComputedMetric
+```
+
+The `ComputedMetric` class handles the computation of metrics in different modes, including simulated mode. If the simulation finishes too quickly, this class might not accurately compute the CLS metric.
+
+#### lighthouse-core/lib/dependency-graph/simulator/simulator.js
+```
+lighthouse-core/lib/dependency-graph/simulator/simulator.js
+class: Simulator
+```
+
+The `Simulator` class simulates the execution of a graph of nodes, taking into account network conditions and CPU performance. If the simulation finishes too quickly, this class might not accurately simulate the page load process, leading to an inaccurate CLS score.
+
+### Summary of Relevant Locations
+
+```
+lighthouse-core/audits/metrics/cumulative-layout-shift.js
+class: CumulativeLayoutShift
+
+lighthouse-core/computed/metrics/metric.js
+class: ComputedMetric
+
+lighthouse-core/lib/dependency-graph/simulator/simulator.js
+class: Simulator
+```

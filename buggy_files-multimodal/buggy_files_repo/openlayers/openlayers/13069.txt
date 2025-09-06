@@ -1,0 +1,25 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the issue.
+
+## 1. Identifying the Wrong Behavior
+
+The problem involves the normalization process in geotiff.js. Currently, when normalizing pixel values from a GeoTIFF, the library doesn't take into account the `STATISTICS_MAXIMUM` and `STATISTICS_MINIMUM` values that are available in the GDAL metadata of some GeoTIFF files. These statistics could provide better default min/max values for normalization than whatever is currently being used.
+
+## 2. Analyzing the Cause
+
+The issue is that while geotiff.js provides a way to extract GDAL metadata using the `getGDALMetadata` method, it doesn't use the `STATISTICS_MAXIMUM` and `STATISTICS_MINIMUM` values from this metadata when performing normalization operations. These statistics would provide more accurate bounds for normalization than arbitrary or hard-coded values.
+
+The normalization process likely happens in the GeoTIFF source code, where pixel values are scaled to a normalized range (typically 0-1 or 0-255). Using the statistics from the metadata would result in more accurate visualization of the data.
+
+## 3. Files Most Related to the Cause
+
+Based on the repository information provided, these are the most relevant files that would need to be edited:
+
+```
+src/ol/source/GeoTIFF.js
+examples/color-manipulation.js
+examples/cog-colors.js
+examples/raster.js
+examples/webgl-shaded-relief.js
+```
+
+The `src/ol/source/GeoTIFF.js` file is the most important as it likely contains the core implementation of the GeoTIFF source that handles loading and processing GeoTIFF data, including normalization. The examples files show how color manipulation and normalization are currently being used, and would need to be updated to demonstrate the new functionality that uses the GDAL statistics for normalization.

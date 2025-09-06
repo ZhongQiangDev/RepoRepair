@@ -1,0 +1,77 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the problem is that code annotations in PDF output don't work correctly because the LaTeX command `\circled` is not defined and the `tikz` package is not included. The code is using `\circled` for code annotations, but this command needs to be defined in the LaTeX preamble.
+
+Looking at the code, I can see that the `codeAnnotationPostProcessor` and `codeListAnnotationPostProcessor` functions both use the `\circled` command, but there's no code that adds the necessary LaTeX definitions to the document.
+
+Here's my fix:
+
+```typescript
+### src/format/pdf/format-pdf.ts
+<<<<<<< SEARCH
+const kEndLongTableSideCap = "}";
+
+=======
+const kEndLongTableSideCap = "}";
+
+// LaTeX definitions for code annotations
+const kCodeAnnotationLatexDefs = `
+\\usepackage{tikz}
+\\newcommand{\\circled}[1]{\\tikz[baseline=(char.base)]{
+  \\node[shape=circle, draw, inner sep=1pt] (char) {#1};}}
+`;
+
+>>>>>>> REPLACE
+```
+
+Now I need to add code to include these definitions in the PDF output. Looking at the file, I notice that there's no complete format definition visible in the provided code. I need to add the LaTeX definitions to the header includes of the PDF format.
+
+Since I don't see the complete format definition in the provided code, I'll need to make an educated guess about where to add this. The most likely place would be in a function that creates or modifies the PDF format configuration:
+
+```typescript
+### src/format/pdf/format-pdf.ts
+<<<<<<< SEARCH
+import { createFormat } from "../formats-shared.ts";
+
+import { RenderedFile, RenderServices } from "../../command/render/types.ts";
+import { ProjectConfig, ProjectContext } from "../../project/types.ts";
+import { BookExtension } from "../../project/types/book/book-shared.ts";
+
+import { readLines } from "io/buffer.ts";
+import { TempContext } from "../../core/temp.ts";
+import { isLatexPdfEngine, pdfEngine } from "../../config/pdf.ts";
+import { formatResourcePath } from "../../core/resources.ts";
+import { kTemplatePartials } from "../../command/render/template.ts";
+import { copyTo } from "../../core/copy.ts";
+=======
+import { createFormat } from "../formats-shared.ts";
+
+import { RenderedFile, RenderServices } from "../../command/render/types.ts";
+import { ProjectConfig, ProjectContext } from "../../project/types.ts";
+import { BookExtension } from "../../project/types/book/book-shared.ts";
+
+import { readLines } from "io/buffer.ts";
+import { TempContext } from "../../core/temp.ts";
+import { isLatexPdfEngine, pdfEngine } from "../../config/pdf.ts";
+import { formatResourcePath } from "../../core/resources.ts";
+import { kTemplatePartials } from "../../command/render/template.ts";
+import { copyTo } from "../../core/copy.ts";
+
+// Create PDF format with necessary LaTeX definitions for code annotations
+export function createPdfFormat(config: Format): Format {
+  // Add code annotation LaTeX definitions to header-includes
+  const headerIncludes = config[kHeaderIncludes] || [];
+  headerIncludes.push(kCodeAnnotationLatexDefs);
+  
+  // Create a new config with the updated header-includes
+  const pdfConfig = {
+    ...config,
+    [kHeaderIncludes]: headerIncludes
+  };
+  
+  return createFormat(pdfConfig);
+}
+>>>>>>> REPLACE
+```
+
+This fix adds the necessary LaTeX definitions for the `\circled` command using the TikZ package, and then ensures these definitions are included in the PDF output by adding them to the header includes of the PDF format configuration.

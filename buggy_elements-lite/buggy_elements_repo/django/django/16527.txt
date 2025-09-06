@@ -1,0 +1,36 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The issue is that users can use the "Save as new" functionality in Django admin even without having the proper add permission. This is a security concern as it allows users to create new objects when they shouldn't have that capability.
+
+2. Cause Analysis:
+The cause appears to be in the template tag logic that determines whether to show the "Save as new" button. Currently, it only checks for:
+- Not being in popup mode
+- Having change permission
+- Being in change mode
+- save_as flag being enabled
+
+It's missing a crucial check for add permission, which should be required since "Save as new" effectively creates a new object.
+
+3. File Analysis:
+
+django/contrib/admin/models.py:
+```
+This file contains no relevant functions/classes.
+```
+
+django/contrib/admin/options.py:
+```
+django/contrib/admin/options.py
+class: ModelAdmin
+```
+This class is relevant because it handles the save_as functionality and permissions in the admin interface.
+
+django/contrib/admin/templatetags/admin_modify.py:
+```
+django/contrib/admin/templatetags/admin_modify.py
+function: submit_row
+```
+This function is directly relevant as it determines which buttons (including "Save as new") should be displayed in the admin interface based on permissions and context.
+
+The core issue lies in the submit_row function in admin_modify.py, which needs to include the additional permission check for "show_save_as_new". The ModelAdmin class is also relevant as it provides the permission checking methods that should be used to determine if a user can perform add operations.

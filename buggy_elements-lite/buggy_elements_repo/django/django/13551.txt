@@ -1,0 +1,35 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The password reset token remains valid even after a user changes their email address. This means someone with access to the old email could still reset the password even though the email is no longer associated with the account.
+
+2. Cause Analysis:
+The issue stems from the password reset token generation not including the user's email address in the hash value. Currently, when a token is generated, it only considers certain user attributes (like password and last login time) but not the email. This means changing the email doesn't invalidate the token as it should.
+
+3. Relevant Files/Functions Analysis:
+
+django/contrib/auth/forms.py:
+```
+django/contrib/auth/forms.py
+class: PasswordResetForm
+```
+This form handles the password reset functionality and sends the reset email.
+
+django/contrib/auth/tokens.py:
+```
+django/contrib/auth/tokens.py
+class: PasswordResetTokenGenerator
+```
+This is the main class responsible for generating and validating password reset tokens. The issue lies in its _make_hash_value method which needs to include the user's email.
+
+django/contrib/auth/views.py:
+```
+django/contrib/auth/views.py
+class: PasswordResetView
+class: PasswordResetConfirmView
+```
+These views handle the password reset workflow and use the token generator for validation.
+
+The remaining files contain no relevant functions/classes.
+
+The core issue is in the PasswordResetTokenGenerator class, which needs to be modified to include the user's email address in the token generation process. This would ensure that any email change invalidates existing password reset tokens.

@@ -1,0 +1,106 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about associations losing their proper parent relationships when moving source/target elements to a new parent. As shown in the GIF, when elements connected by an association are moved out of a subprocess, the association still has the subprocess as its parent. When the subprocess is deleted, the association is also deleted, even though its connected elements still exist.
+
+Looking at the provided code, I notice that `UpdateFlowNodeRefsBehavior.js` handles updating references when elements are moved, but it doesn't handle updating association parents. The code currently only tracks and updates lane references for flow nodes.
+
+We need to add functionality to update the parent of associations when their source or target elements are moved to a new parent.
+
+## Solution
+
+We need to modify the `UpdateFlowNodeRefsBehavior.js` file to also handle associations when elements are moved. Specifically, we need to:
+
+1. Listen for element moves
+2. Check if the moved elements are connected to associations
+3. Update the association's parent to match the new parent of its source/target elements
+
+Here's the fix:
+
+```javascript
+### lib/features/modeling/behavior/UpdateFlowNodeRefsBehavior.js
+<<<<<<< SEARCH
+  this.preExecute([
+    'shape.create',
+    'shape.move',
+    'shape.delete',
+    'shape.resize'
+  ], function(event) {
+
+    var context = event.context,
+        shape = context.shape;
+
+    var updateContext = getContext();
+
+    // no need to update labels
+    if (shape.labelTarget) {
+      return;
+    }
+
+    if (is(shape, 'bpmn:Lane')) {
+      updateContext.addLane(shape);
+    }
+
+    if (is(shape, 'bpmn:FlowNode')) {
+      updateContext.addFlowNode(shape);
+    }
+  });
+=======
+  this.preExecute([
+    'shape.create',
+    'shape.move',
+    'shape.delete',
+    'shape.resize'
+  ], function(event) {
+
+    var context = event.context,
+        shape = context.shape;
+
+    var updateContext = getContext();
+
+    // no need to update labels
+    if (shape.labelTarget) {
+      return;
+    }
+
+    if (is(shape, 'bpmn:Lane')) {
+      updateContext.addLane(shape);
+    }
+
+    if (is(shape, 'bpmn:FlowNode')) {
+      updateContext.addFlowNode(shape);
+    }
+  });
+
+  // Update association parent when source or target is moved
+  this.postExecuted('elements.move', function(event) {
+    var shapes = event.context.shapes,
+        newParent = event.context.newParent;
+
+    shapes.forEach(function(shape) {
+      if (shape.incoming || shape.outgoing) {
+        var connections = [].concat(shape.incoming || [], shape.outgoing || []);
+        
+        connections.forEach(function(connection) {
+          if (is(connection, 'bpmn:Association')) {
+            var sourceParent = connection.source.parent,
+                targetParent = connection.target.parent;
+                
+            // Only update if both source and target have the same parent
+            // and that parent is different from the connection's parent
+            if (sourceParent === targetParent && 
+                connection.parent !== sourceParent) {
+              modeling.updateConnectionParent(connection, sourceParent);
+            }
+          }
+        });
+      }
+    });
+  });
+>>>>>>> REPLACE
+```
+
+This fix adds a new event listener for the 'elements.move' event. When elements are moved, it checks if they have any incoming or outgoing connections. For each connection that is an association, it checks if both the source and target have the same parent. If they do, and that parent is different from the association's parent, it updates the association's parent to match.
+
+The `modeling.updateConnectionParent()` method is used to update the parent of the association. This ensures that when elements connected by an association are moved to a new parent, the association's parent is updated accordingly, preventing the issue shown in the GIF where deleting the subprocess also deletes the association.

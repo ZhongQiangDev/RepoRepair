@@ -1,0 +1,53 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when users extract participant contents into a process diagram (by copying and pasting), the labels get lost. This happens during the copy/paste operation.
+
+Looking at the provided code, I notice that the `ElementFactory.js` file is responsible for creating elements, but there's a problem with how labels are handled. The issue mentions "quirky label handling during copy/paste" which suggests that when elements are copied and pasted, their associated labels aren't properly preserved.
+
+The key issue appears to be in the `ElementFactory.prototype.create` method. When creating elements, it has special handling for labels, but it doesn't properly handle the case where an element with a label is being copied and pasted.
+
+## Fix
+
+The problem is that the `ElementFactory.prototype.create` method doesn't properly handle labels when creating BPMN elements. We need to add code to ensure that labels are properly preserved during the copy/paste operation.
+
+```javascript
+### lib/features/modeling/ElementFactory.js
+<<<<<<< SEARCH
+ElementFactory.prototype.create = function(elementType, attrs) {
+  // no special magic for labels,
+  // we assume their businessObjects have already been created
+  // and wired via attrs
+  if (elementType === 'label') {
+    return this.baseCreate(elementType, assign({ type: 'label' }, DEFAULT_LABEL_SIZE, attrs));
+  }
+
+  return this.createBpmnElement(elementType, attrs);
+};
+=======
+ElementFactory.prototype.create = function(elementType, attrs) {
+  // no special magic for labels,
+  // we assume their businessObjects have already been created
+  // and wired via attrs
+  if (elementType === 'label') {
+    return this.baseCreate(elementType, assign({ type: 'label' }, DEFAULT_LABEL_SIZE, attrs));
+  }
+
+  var element = this.createBpmnElement(elementType, attrs);
+
+  // If we're creating a shape with a label, make sure the label is preserved
+  if (attrs && attrs.labels && attrs.labels.length) {
+    forEach(attrs.labels, function(label) {
+      label.businessObject = attrs.businessObject;
+    });
+  }
+
+  return element;
+};
+>>>>>>> REPLACE
+```
+
+This fix ensures that when an element with labels is being created (which happens during paste operations), the labels are properly associated with the business object of the element. This way, when elements are copied and pasted, their labels will be preserved.
+
+The issue was that during the copy/paste operation, the labels were being created but not properly connected to their parent elements' business objects, causing them to be lost in the process.

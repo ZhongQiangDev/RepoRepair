@@ -1,0 +1,88 @@
+I'll analyze the issue and provide a solution to enable vertex-wise coloring for strokes in p5.js WebGL mode.
+
+## Bug Analysis
+
+The issue is that p5.js currently doesn't support per-vertex coloring for strokes in WebGL mode. When drawing shapes with `beginShape()` and `endShape()`, the stroke color is determined by the last call to `stroke()` rather than interpolating between different stroke colors set before each vertex.
+
+The issue description outlines the necessary changes:
+1. Modify the vertex shader to receive line colors as attributes
+2. Add a flag to determine whether to use per-vertex coloring
+3. Create a new RenderBuffer for line vertex colors
+4. Add a lineVertexColors array to p5.Geometry
+5. Update the _edgesToVertices function to handle per-vertex colors
+
+Looking at the provided file, we need to modify the `_drawImmediateStroke` function to handle per-vertex coloring.
+
+## Solution
+
+```javascript
+### src/webgl/p5.RendererGL.Immediate.js
+<<<<<<< SEARCH
+p5.RendererGL.prototype._drawImmediateStroke = function() {
+  const gl = this.GL;
+  const shader = this._getImmediateStrokeShader();
+  this._setStrokeUniforms(shader);
+  for (const buff of this.immediateMode.buffers.stroke) {
+    buff._prepareBuffer(this.immediateMode.geometry, shader);
+  }
+  this._applyColorBlend(this.curStrokeColor);
+  gl.drawArrays(
+    gl.TRIANGLES,
+    0,
+    this.immediateMode.geometry.lineVertices.length
+  );
+  shader.unbindShader();
+};
+=======
+p5.RendererGL.prototype._drawImmediateStroke = function() {
+  const gl = this.GL;
+  const shader = this._getImmediateStrokeShader();
+  this._setStrokeUniforms(shader);
+  
+  // Check if we have per-vertex line colors
+  const hasLineVertexColors = 
+    this.immediateMode.geometry.lineVertexColors && 
+    this.immediateMode.geometry.lineVertexColors.length > 0;
+  
+  // Set the useLineVertexColor uniform to tell the shader whether to use per-vertex colors
+  if (shader.uniforms.useLineVertexColor !== undefined) {
+    shader.setUniform('useLineVertexColor', hasLineVertexColors);
+  }
+  
+  for (const buff of this.immediateMode.buffers.stroke) {
+    buff._prepareBuffer(this.immediateMode.geometry, shader);
+  }
+  
+  // Only apply the global stroke color if we're not using per-vertex colors
+  if (!hasLineVertexColors) {
+    this._applyColorBlend(this.curStrokeColor);
+  } else {
+    // For per-vertex colors, we still need to set up blending
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  }
+  
+  gl.drawArrays(
+    gl.TRIANGLES,
+    0,
+    this.immediateMode.geometry.lineVertices.length
+  );
+  shader.unbindShader();
+};
+>>>>>>> REPLACE
+```
+
+This change modifies the `_drawImmediateStroke` function to:
+
+1. Check if per-vertex line colors are available in the geometry
+2. Set a uniform flag in the shader to indicate whether to use per-vertex colors
+3. Only apply the global stroke color if not using per-vertex colors
+4. Ensure blending is set up correctly in both cases
+
+Note that this is just one part of the solution. As mentioned in the issue, additional changes would be needed in:
+1. The vertex and fragment shaders to handle per-vertex colors
+2. The Renderer.GL constructor to add the new RenderBuffer for line vertex colors
+3. The p5.Geometry class to add the lineVertexColors array
+4. The _edgesToVertices function to properly handle the per-vertex colors
+
+However, since only this file was provided for review, I've focused on the changes needed in the `_drawImmediateStroke` function to support the new functionality.

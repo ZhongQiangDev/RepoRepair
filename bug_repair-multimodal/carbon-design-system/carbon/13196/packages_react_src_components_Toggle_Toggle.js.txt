@@ -1,0 +1,78 @@
+I'll analyze the issue and provide a solution.
+
+The bug is related to the `hideLabel` prop in the Toggle component. According to the issue:
+
+1. The documentation for `hideLabel` is unclear
+2. Currently, `hideLabel` only fully hides the label when used in conjunction with `aria-labelledby`
+3. The behavior is confusing - setting `hideLabel={true}` moves the label to the side rather than hiding it completely
+
+Looking at the code, I can see that:
+- The `renderSideLabel` variable is only false when both `hideLabel` and `ariaLabelledby` are true
+- The `labelText` prop is missing its PropTypes documentation
+- The documentation for `hideLabel` could be clearer about its behavior
+
+Here are the fixes:
+
+```javascript
+### packages/react/src/components/Toggle/Toggle.js
+<<<<<<< SEARCH
+  /**
+   * If true, the side labels (props.labelA and props.labelB) will be replaced by
+   * props.labelText, so that the toggle doesn't render a top label. In order to fully
+   * hide any labels, you can use props['aria-labelledby'] to refer to another element
+   * that labels the toggle. props.labelText would no longer be required in that case
+   * and can therefore be omitted.
+   */
+  hideLabel: PropTypes.bool,
+=======
+  /**
+   * If true, the side labels (props.labelA and props.labelB) will be replaced by
+   * props.labelText, and the top label will be visually hidden.
+   * 
+   * Note: To completely hide all labels (including the side label), you must:
+   * 1. Set hideLabel={true}
+   * 2. Provide an aria-labelledby prop that references another element
+   * 
+   * Without aria-labelledby, the labelText will still appear as a side label
+   * for accessibility reasons.
+   */
+  hideLabel: PropTypes.bool,
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Toggle/Toggle.js
+<<<<<<< SEARCH
+  /**
+   * Provide the text that will be read by a screen reader when visiting this
+   * control. This is required unless 'aria-labelledby' is provided instead
+   */
+
+=======
+  /**
+   * Provide the text that will be read by a screen reader when visiting this
+   * control. This is required unless 'aria-labelledby' is provided instead.
+   * When hideLabel is true, this text will appear as a side label unless
+   * aria-labelledby is also provided.
+   */
+  labelText: PropTypes.node,
+
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Toggle/Toggle.js
+<<<<<<< SEARCH
+  const renderSideLabel = !(hideLabel && ariaLabelledby);
+=======
+  // Only completely hide the side label when both hideLabel and ariaLabelledby are provided
+  const renderSideLabel = !(hideLabel && ariaLabelledby);
+>>>>>>> REPLACE
+```
+
+These changes:
+1. Improve the documentation for the `hideLabel` prop to clearly explain its behavior and requirements
+2. Add the missing PropTypes documentation for the `labelText` prop
+3. Add a clarifying comment about the side label rendering logic
+
+The changes maintain the current functionality while making the behavior more transparent to developers through improved documentation.

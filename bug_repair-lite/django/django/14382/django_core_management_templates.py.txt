@@ -1,0 +1,24 @@
+Based on the issue description, the bug is in the validation of directory names when there's a trailing slash. The issue occurs in `django/core/management/templates.py` where `os.path.basename()` is called on the target path without handling trailing slashes, causing validation to fail.
+
+The fix requires modifying the validation call to strip any trailing directory separators before getting the basename. Here's the *SEARCH/REPLACE* edit:
+
+```python
+### django/core/management/templates.py
+<<<<<<< SEARCH
+            if app_or_project == 'app':
+                self.validate_name(os.path.basename(target), 'directory')
+            top_dir = os.path.abspath(os.path.expanduser(target))
+=======
+            if app_or_project == 'app':
+                self.validate_name(os.path.basename(target.rstrip(os.sep)), 'directory')
+            top_dir = os.path.abspath(os.path.expanduser(target))
+>>>>>>> REPLACE
+```
+
+This change:
+1. Adds `.rstrip(os.sep)` to remove any trailing directory separators (/ on Unix, \ on Windows) before calling `os.path.basename()`
+2. Maintains proper indentation (12 spaces before the line)
+3. Preserves the surrounding context to ensure correct placement
+4. Fixes the issue where tab-completion adding trailing slashes would cause validation errors
+
+The fix allows the `django-admin startapp` command to work correctly even when the target directory path has trailing slashes.

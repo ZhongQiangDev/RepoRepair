@@ -1,0 +1,33 @@
+I'll analyze the GitHub problem description and identify the files that need to be edited to fix the performance issue.
+
+## 1. Identifying the Wrong Behavior
+
+The problem involves poor performance when using `renderMode: 'image'` in OpenLayers 4.6.2 compared to using `ol.source.ImageVector` in OpenLayers 4.4.2. Specifically, drawing triangles is very slow in the newer version, as demonstrated by the provided CodePen examples.
+
+## 2. Analyzing the Cause
+
+The issue stems from the deprecation of `ol.source.ImageVector` in OpenLayers 4.6.0 and its replacement with `renderMode: 'image'` for vector layers. Based on the repository information, this likely involves inefficiencies in how vector features are rendered to an image canvas in the new implementation.
+
+The performance degradation is specifically related to drawing operations, suggesting issues with the canvas rendering pipeline, vector-to-image conversion, or how drawing interactions are handled in the new implementation.
+
+## 3. Files Most Related to the Cause
+
+```
+src/ol/source/imagevector.js
+src/ol/render/canvas/immediate.js
+src/ol/render/canvas/vectorlayer.js
+src/ol/renderer/canvas/vectorlayer.js
+src/ol/render/canvas/replay.js
+```
+
+These files are most critical to fixing the issue because:
+
+1. `src/ol/source/imagevector.js` - This is the deprecated class that worked well in 4.4.2. Understanding its implementation will help identify what's missing in the new approach.
+
+2. `src/ol/render/canvas/immediate.js` - Handles immediate mode rendering of vector features to canvas, which is likely involved in the new `renderMode: 'image'` implementation.
+
+3. `src/ol/render/canvas/vectorlayer.js` - Contains rendering logic for vector layers, which would be central to the new `renderMode: 'image'` implementation.
+
+4. `src/ol/renderer/canvas/vectorlayer.js` - Implements the canvas renderer for vector layers, including the preparation and composition of frames, which would be critical for the image rendering mode.
+
+5. `src/ol/render/canvas/replay.js` - Manages the core rendering pipeline for canvas, including coordinate transformation and instruction processing, which could be a bottleneck in the new implementation.

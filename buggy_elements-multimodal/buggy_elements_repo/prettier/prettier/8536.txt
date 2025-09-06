@@ -1,0 +1,56 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The wrong behavior described is that when a file contains only a directive (`'use strict';`) followed by a newline and then a comment, Prettier ends the file with two newlines instead of one. The expected behavior is to end the file with a single newline.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The issue likely stems from how Prettier handles the end-of-file (EOF) formatting when there is a directive followed by a comment. The extra newline might be introduced due to the way Prettier processes the comment or the directive, or how it determines the final newline at the end of the file. The problem could be related to how the `printDocToString` function handles the final output or how the `printJSXElement` function processes comments.
+
+### 3. Examine Each File One by One
+
+#### --- src/common/end-of-line.js ---
+This file contains no relevant functions/classes.
+
+#### --- src/document/doc-builders.js ---
+This file contains no relevant functions/classes.
+
+#### --- src/document/doc-printer.js ---
+```
+src/document/doc-printer.js
+function: printDocToString
+```
+
+The `printDocToString` function is responsible for converting the document structure into a formatted string. It might be introducing the extra newline at the end of the file.
+
+#### --- src/language-js/printer-estree.js ---
+```
+src/language-js/printer-estree.js
+function: printComment
+function: printJSXElement
+```
+
+The `printComment` function handles the formatting of comments, and the `printJSXElement` function handles the formatting of JSX elements, which might include directives and comments. These functions could be contributing to the extra newline issue.
+
+#### --- src/main/core.js ---
+```
+src/main/core.js
+function: coreFormat
+function: format
+```
+
+The `coreFormat` function is the main formatting function that processes the input text and returns the formatted result. The `format` function is responsible for resolving the parser and performing the actual formatting. These functions might be involved in determining the final newline at the end of the file.
+
+### Summary of Relevant Functions/Classes
+
+```
+src/document/doc-printer.js
+function: printDocToString
+
+src/language-js/printer-estree.js
+function: printComment
+function: printJSXElement
+
+src/main/core.js
+function: coreFormat
+function: format
+```

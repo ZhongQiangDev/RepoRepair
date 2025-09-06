@@ -1,0 +1,62 @@
+I'll analyze the issue and provide a fix for the bug where removing a child lane causes diagram deformation.
+
+## Bug Analysis
+
+The issue occurs when removing a child lane from a parent lane in a BPMN diagram. After removal, the diagram becomes deformed and sometimes unusable. The bug is in the `lib/features/modeling/util/LaneUtil.js` file.
+
+Looking at the issue description and screenshots, the problem appears to be related to how the layout is recalculated after a lane is removed. The key function involved is `computeLanesResize()`, which calculates how other lanes should be resized when a lane's dimensions change.
+
+The bug is likely in the threshold checks for determining when adjacent lanes should be resized. The current implementation uses fixed values (5 and 10 pixels) to determine if lanes are adjacent, but this approach seems to be causing problems when lanes are removed.
+
+## Fix
+
+The issue is in the `computeLanesResize` function. The problem is that the current implementation doesn't properly handle the case when a lane is removed, causing incorrect resizing of adjacent lanes. The threshold checks for determining adjacency need to be improved.
+
+```javascript
+### lib/features/modeling/util/LaneUtil.js
+<<<<<<< SEARCH
+    if (trblResize.top) {
+      if (abs(otherTrbl.bottom - shapeTrbl.top) < 10) {
+        bottomResize = shapeNewTrbl.top - otherTrbl.bottom;
+      }
+
+      if (abs(otherTrbl.top - shapeTrbl.top) < 5) {
+        topResize = shapeNewTrbl.top - otherTrbl.top;
+      }
+    }
+
+    if (trblResize.bottom) {
+      if (abs(otherTrbl.top - shapeTrbl.bottom) < 10) {
+        topResize = shapeNewTrbl.bottom - otherTrbl.top;
+      }
+
+      if (abs(otherTrbl.bottom - shapeTrbl.bottom) < 5) {
+        bottomResize = shapeNewTrbl.bottom - otherTrbl.bottom;
+      }
+    }
+=======
+    if (trblResize.top) {
+      if (abs(otherTrbl.bottom - shapeTrbl.top) < 10) {
+        bottomResize = shapeNewTrbl.top - otherTrbl.bottom;
+      }
+
+      if (abs(otherTrbl.top - shapeTrbl.top) < 10) {
+        topResize = shapeNewTrbl.top - otherTrbl.top;
+      }
+    }
+
+    if (trblResize.bottom) {
+      if (abs(otherTrbl.top - shapeTrbl.bottom) < 10) {
+        topResize = shapeNewTrbl.bottom - otherTrbl.top;
+      }
+
+      if (abs(otherTrbl.bottom - shapeTrbl.bottom) < 10) {
+        bottomResize = shapeNewTrbl.bottom - otherTrbl.bottom;
+      }
+    }
+>>>>>>> REPLACE
+```
+
+The fix increases the threshold for determining if lanes are adjacent from 5 to 10 pixels. This makes the adjacency detection more consistent and helps prevent the deformation issues when removing child lanes.
+
+The problem was that the thresholds were inconsistent (10px for some checks, 5px for others), which could lead to inconsistent resizing behavior. By making all thresholds 10px, we ensure that the resize operations are applied more consistently across all adjacent lanes, preventing the deformation seen in the issue.

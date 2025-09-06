@@ -1,0 +1,129 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is about using `STATISTICS_MAXIMUM` and `STATISTICS_MINIMUM` values from GeoTIFF metadata for normalization when they're available. Currently, the code doesn't check for these statistics in the metadata when determining min/max values for normalization.
+
+Looking at the code, I can see that in the `loadTile_` method, the normalization process uses `source.min` and `source.max` values, but doesn't check if the GeoTIFF metadata contains `STATISTICS_MINIMUM` and `STATISTICS_MAXIMUM` values that could be used as defaults.
+
+## Solution
+
+We need to modify the code to:
+
+1. Extract the GDAL metadata when loading the images
+2. Use the `STATISTICS_MINIMUM` and `STATISTICS_MAXIMUM` values as defaults for min/max when they're available and when the user hasn't explicitly provided min/max values
+
+Here's the fix:
+
+```javascript
+### src/ol/source/GeoTIFF.js
+<<<<<<< SEARCH
+  configure_(sources) {
+    let extent;
+    let origin;
+    let tileSizes;
+    let resolutions;
+    const samplesPerPixel = new Array(sources.length);
+    const nodataValues = new Array(sources.length);
+    let minZoom = 0;
+
+    const sourceCount = sources.length;
+    for (let sourceIndex = 0; sourceIndex < sourceCount; ++sourceIndex) {
+      const images = sources[sourceIndex];
+      const imageCount = images.length;
+
+      let sourceExtent;
+      let sourceOrigin;
+      const sourceTileSizes = new Array(imageCount);
+      const sourceResolutions = new Array(imageCount);
+
+      nodataValues[sourceIndex] = new Array(imageCount);
+
+      for (let imageIndex = 0; imageIndex < imageCount; ++imageIndex) {
+        const image = images[imageIndex];
+        const nodataValue = image.getGDALNoData();
+        nodataValues[sourceIndex][imageIndex] =
+          nodataValue === null ? NaN : nodataValue;
+
+        const wantedSamples = this.sourceInfo_[sourceIndex].bands;
+        samplesPerPixel[sourceIndex] = wantedSamples
+          ? wantedSamples.length
+          : image.getSamplesPerPixel();
+        const level = imageCount - (imageIndex + 1);
+
+        if (!sourceExtent) {
+          sourceExtent = getBoundingBox(image);
+        }
+
+        if (!sourceOrigin) {
+          sourceOrigin = getOrigin(image);
+        }
+
+        sourceResolutions[level] = getResolution(image, images[0]);
+        sourceTileSizes[level] = [image.getTileWidth(), image.getTileHeight()];
+      }
+=======
+  configure_(sources) {
+    let extent;
+    let origin;
+    let tileSizes;
+    let resolutions;
+    const samplesPerPixel = new Array(sources.length);
+    const nodataValues = new Array(sources.length);
+    let minZoom = 0;
+
+    const sourceCount = sources.length;
+    for (let sourceIndex = 0; sourceIndex < sourceCount; ++sourceIndex) {
+      const images = sources[sourceIndex];
+      const imageCount = images.length;
+
+      let sourceExtent;
+      let sourceOrigin;
+      const sourceTileSizes = new Array(imageCount);
+      const sourceResolutions = new Array(imageCount);
+
+      nodataValues[sourceIndex] = new Array(imageCount);
+
+      // Check for GDAL statistics in the first image (highest resolution)
+      if (images[0] && typeof images[0].getGDALMetadata === 'function') {
+        const metadata = images[0].getGDALMetadata();
+        const sourceInfo = this.sourceInfo_[sourceIndex];
+        
+        // Use STATISTICS_MINIMUM and STATISTICS_MAXIMUM if available and not explicitly set
+        if (metadata && metadata.STATISTICS_MINIMUM !== undefined && sourceInfo.min === undefined) {
+          sourceInfo.min = parseFloat(metadata.STATISTICS_MINIMUM);
+        }
+        if (metadata && metadata.STATISTICS_MAXIMUM !== undefined && sourceInfo.max === undefined) {
+          sourceInfo.max = parseFloat(metadata.STATISTICS_MAXIMUM);
+        }
+      }
+
+      for (let imageIndex = 0; imageIndex < imageCount; ++imageIndex) {
+        const image = images[imageIndex];
+        const nodataValue = image.getGDALNoData();
+        nodataValues[sourceIndex][imageIndex] =
+          nodataValue === null ? NaN : nodataValue;
+
+        const wantedSamples = this.sourceInfo_[sourceIndex].bands;
+        samplesPerPixel[sourceIndex] = wantedSamples
+          ? wantedSamples.length
+          : image.getSamplesPerPixel();
+        const level = imageCount - (imageIndex + 1);
+
+        if (!sourceExtent) {
+          sourceExtent = getBoundingBox(image);
+        }
+
+        if (!sourceOrigin) {
+          sourceOrigin = getOrigin(image);
+        }
+
+        sourceResolutions[level] = getResolution(image, images[0]);
+        sourceTileSizes[level] = [image.getTileWidth(), image.getTileHeight()];
+      }
+>>>>>>> REPLACE
+```
+
+This change adds code to check for GDAL metadata in the first image of each source. If the metadata contains `STATISTICS_MINIMUM` or `STATISTICS_MAXIMUM` values and the user hasn't explicitly set `min` or `max` in the source configuration, we use these statistics values as defaults.
+
+The fix preserves the user's ability to override these values by explicitly setting `min` and `max` in the source configuration, while providing sensible defaults from the GeoTIFF metadata when available.

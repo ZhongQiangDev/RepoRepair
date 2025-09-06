@@ -1,0 +1,29 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+- iframes are being incorrectly considered as "critical" requests in the critical request chains (CRC) tree
+- data URIs are being included in the CRC tree when they shouldn't be since they aren't actual network requests
+
+2. Cause Analysis:
+- The core issue lies in how critical requests are identified and filtered in the dependency graph construction
+- iframes, while loaded with high priority, don't actually block rendering
+- data URIs are internal resources that don't make network requests, so they shouldn't be part of critical request chains
+- The filtering logic in the critical request chains computation needs to be updated to exclude these types of resources
+
+3. Most Related Files:
+```
+lighthouse-core/gather/computed/critical-request-chains.js
+lighthouse-core/lib/dependency-graph/network-node.js
+lighthouse-core/gather/computed/page-dependency-graph.js
+lighthouse-core/report/v2/renderer/crc-details-renderer.js
+lighthouse-core/audits/critical-request-chains.js
+```
+
+These files are ordered by importance because:
+1. `critical-request-chains.js` (computed) contains the core logic for determining what constitutes a critical request
+2. `network-node.js` handles the network request classification and properties
+3. `page-dependency-graph.js` builds the dependency relationships between requests
+4. `crc-details-renderer.js` handles the visualization of the chains
+5. `critical-request-chains.js` (audits) performs the actual audit using the computed chains
+
+The fix would primarily involve modifying the filtering logic in the first file to exclude iframes and data URIs from being considered critical requests.

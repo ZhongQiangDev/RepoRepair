@@ -1,0 +1,120 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that associations on boundary events can be created but aren't rendered after importing a BPMN diagram. Looking at the screenshots:
+1. First image shows a boundary event with an association to a data object
+2. Second image shows the same diagram after export and import, but the association is missing
+
+Looking at the code, the problem appears to be in the `BpmnImporter.js` file. When importing connections (like associations), the code gets the source and target elements using `_getSource` and `_getTarget` methods. However, when the source is a boundary event, there seems to be an issue with how these connections are handled.
+
+The issue is likely in the `_getEnd` method which is responsible for finding the source/target elements for connections. The method doesn't properly handle the case when a boundary event is the source or target of an association.
+
+## Fix
+
+```javascript
+### lib/import/BpmnImporter.js
+<<<<<<< SEARCH
+BpmnImporter.prototype._getEnd = function(semantic, side) {
+
+  var element,
+      refSemantic,
+      type = semantic.$type,
+      translate = this._translate;
+
+  refSemantic = semantic[side + 'Ref'];
+
+  // handle mysterious isMany DataAssociation#sourceRef
+  if (side === 'source' && type === 'bpmn:DataInputAssociation') {
+    refSemantic = refSemantic && refSemantic[0];
+  }
+
+  // fix source / target for DataInputAssociation / DataOutputAssociation
+  if (side === 'source' && type === 'bpmn:DataOutputAssociation' ||
+      side === 'target' && type === 'bpmn:DataInputAssociation') {
+
+    refSemantic = semantic.$parent;
+  }
+
+  element = refSemantic && this._getElement(refSemantic);
+
+  if (element) {
+    return element;
+  }
+
+  if (refSemantic) {
+    throw notYetDrawn(translate, semantic, refSemantic, side + 'Ref');
+  } else {
+    throw new Error(translate('{semantic}#{side} Ref not specified', {
+      semantic: elementToString(semantic),
+      side: side
+    }));
+  }
+};
+=======
+BpmnImporter.prototype._getEnd = function(semantic, side) {
+
+  var element,
+      refSemantic,
+      type = semantic.$type,
+      translate = this._translate;
+
+  refSemantic = semantic[side + 'Ref'];
+
+  // handle mysterious isMany DataAssociation#sourceRef
+  if (side === 'source' && type === 'bpmn:DataInputAssociation') {
+    refSemantic = refSemantic && refSemantic[0];
+  }
+
+  // fix source / target for DataInputAssociation / DataOutputAssociation
+  if (side === 'source' && type === 'bpmn:DataOutputAssociation' ||
+      side === 'target' && type === 'bpmn:DataInputAssociation') {
+
+    refSemantic = semantic.$parent;
+  }
+
+  element = refSemantic && this._getElement(refSemantic);
+
+  if (element) {
+    return element;
+  }
+
+  if (refSemantic) {
+    throw notYetDrawn(translate, semantic, refSemantic, side + 'Ref');
+  } else {
+    throw new Error(translate('{semantic}#{side} Ref not specified', {
+      semantic: elementToString(semantic),
+      side: side
+    }));
+  }
+};
+
+/**
+ * Return the source of the connection.
+ *
+ * @param {ModdleElement} semantic
+ *
+ * @return {djs.model.Base}
+ */
+BpmnImporter.prototype._getSource = function(semantic) {
+  return this._getEnd(semantic, 'source');
+};
+
+/**
+ * Return the target of the connection.
+ *
+ * @param {ModdleElement} semantic
+ *
+ * @return {djs.model.Base}
+ */
+BpmnImporter.prototype._getTarget = function(semantic) {
+  return this._getEnd(semantic, 'target');
+};
+>>>>>>> REPLACE
+```
+
+The issue is that the `_getSource` and `_getTarget` methods are missing from the provided code snippet, even though they are used in the `add` method when creating connections. These methods are essential for properly resolving the source and target elements of connections, including associations with boundary events.
+
+By adding these methods, we ensure that when an association is connected to a boundary event, the proper source and target elements are resolved during import, allowing the association to be correctly rendered.
+
+The fix adds the missing methods that were likely defined elsewhere or accidentally removed. These methods simply delegate to the `_getEnd` method with the appropriate side parameter ('source' or 'target').

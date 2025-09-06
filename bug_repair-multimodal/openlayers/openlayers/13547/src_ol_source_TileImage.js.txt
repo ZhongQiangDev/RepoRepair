@@ -1,0 +1,118 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about adding a "gutter" option to more tile sources in OpenLayers. Currently, only TileWMS supports a gutter option, but other tile sources like Nextzen and Mapbox also provide tiles with buffers/gutters to avoid edge effects when interpolating between tiles.
+
+Looking at the code, I can see that the `TileImage` class has a `getGutter()` method that always returns 0. This method needs to be modified to support a configurable gutter option for all tile sources that extend `TileImage` (like XYZ and DataTile).
+
+## Solution
+
+We need to:
+1. Add a `gutter` option to the `Options` typedef in `TileImage.js`
+2. Store this gutter value as a class property
+3. Update the `getGutter()` method to return this value instead of always returning 0
+
+Here's the fix:
+
+```javascript
+### src/ol/source/TileImage.js
+<<<<<<< SEARCH
+ * @property {number} [transition] Duration of the opacity transition for rendering.
+ * To disable the opacity transition, pass `transition: 0`.
+ * @property {string} [key] Optional tile key for proper cache fetching
+ * @property {number|import("../array.js").NearestDirectionFunction} [zDirection=0]
+ * Choose whether to use tiles with a higher or lower zoom level when between integer
+ * zoom levels. See {@link module:ol/tilegrid/TileGrid~TileGrid#getZForResolution}.
+=======
+ * @property {number} [transition] Duration of the opacity transition for rendering.
+ * To disable the opacity transition, pass `transition: 0`.
+ * @property {string} [key] Optional tile key for proper cache fetching
+ * @property {number} [gutter=0] The size in pixels of the gutter around image tiles to ignore.
+ * This allows artifacts of rendering at tile edges to be ignored.
+ * @property {number|import("../array.js").NearestDirectionFunction} [zDirection=0]
+ * Choose whether to use tiles with a higher or lower zoom level when between integer
+ * zoom levels. See {@link module:ol/tilegrid/TileGrid~TileGrid#getZForResolution}.
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/source/TileImage.js
+<<<<<<< SEARCH
+    super({
+      attributions: options.attributions,
+      cacheSize: options.cacheSize,
+      opaque: options.opaque,
+      projection: options.projection,
+      state: options.state,
+      tileGrid: options.tileGrid,
+      tileLoadFunction: options.tileLoadFunction
+        ? options.tileLoadFunction
+        : defaultTileLoadFunction,
+      tilePixelRatio: options.tilePixelRatio,
+      tileUrlFunction: options.tileUrlFunction,
+      url: options.url,
+      urls: options.urls,
+      wrapX: options.wrapX,
+      transition: options.transition,
+      interpolate: interpolate,
+      key: options.key,
+      attributionsCollapsible: options.attributionsCollapsible,
+      zDirection: options.zDirection,
+    });
+=======
+    super({
+      attributions: options.attributions,
+      cacheSize: options.cacheSize,
+      opaque: options.opaque,
+      projection: options.projection,
+      state: options.state,
+      tileGrid: options.tileGrid,
+      tileLoadFunction: options.tileLoadFunction
+        ? options.tileLoadFunction
+        : defaultTileLoadFunction,
+      tilePixelRatio: options.tilePixelRatio,
+      tileUrlFunction: options.tileUrlFunction,
+      url: options.url,
+      urls: options.urls,
+      wrapX: options.wrapX,
+      transition: options.transition,
+      interpolate: interpolate,
+      key: options.key,
+      attributionsCollapsible: options.attributionsCollapsible,
+      zDirection: options.zDirection,
+    });
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.gutter_ = options.gutter !== undefined ? options.gutter : 0;
+>>>>>>> REPLACE
+```
+
+```javascript
+### src/ol/source/TileImage.js
+<<<<<<< SEARCH
+  /**
+   * @return {number} Gutter.
+   */
+  getGutter() {
+    return 0;
+  }
+=======
+  /**
+   * @return {number} Gutter.
+   */
+  getGutter() {
+    return this.gutter_;
+  }
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Add a `gutter` option to the `Options` typedef with documentation
+2. Store the gutter value as a private property `gutter_` in the class
+3. Update the `getGutter()` method to return this value instead of always returning 0
+
+This will allow all tile sources that extend `TileImage` (including XYZ and DataTile) to use the gutter option, which will help prevent edge effects when interpolating between tiles.

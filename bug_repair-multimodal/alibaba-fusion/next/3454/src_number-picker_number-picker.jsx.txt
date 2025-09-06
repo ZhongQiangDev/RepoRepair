@@ -1,0 +1,99 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue title "[NumberPicker]numberPicker最大值最小值变化没有实时检测到" translates to "[NumberPicker] changes to max and min values are not detected in real-time."
+
+Looking at the code, I can see that in the `getDerivedStateFromProps` method, there's a problem with how max and min values are updated. The current implementation only updates max and min values when the value changes, but it should update them whenever the props change, regardless of whether the value has changed.
+
+The issue is in the `getDerivedStateFromProps` method where it's checking:
+
+```javascript
+if ('value' in nextProps && `${nextProps.value}` !== `${prevState.value}`) {
+    // ...
+    return {
+        value,
+        displayValue: value,
+        max: max !== MAX_SAFE_INTEGER ? max : prevState.max,
+        min: min !== MIN_SAFE_INTEGER ? min : prevState.min,
+    };
+}
+```
+
+This means that if only max or min changes (without value changing), the component won't update its internal state.
+
+## Fix
+
+```javascript
+### src/number-picker/number-picker.jsx
+<<<<<<< SEARCH
+    static getDerivedStateFromProps(nextProps, prevState) {
+        // 用户键入非法值后render逻辑，未触发onChange，业务组件无感知，不强制受控value
+        if (prevState.onlyDisplay) {
+            return {
+                value: prevState.value,
+                displayValue: prevState.displayValue,
+                onlyDisplay: false,
+            };
+        }
+        // 一般受控render逻辑
+        if ('value' in nextProps && `${nextProps.value}` !== `${prevState.value}`) {
+            let { value, max, min, stringMode } = nextProps;
+            value = value === undefined || value === null ? '' : stringMode ? `${value}` : value;
+            return {
+                value,
+                displayValue: value,
+                max: max !== MAX_SAFE_INTEGER ? max : prevState.max,
+                min: min !== MIN_SAFE_INTEGER ? min : prevState.min,
+            };
+        }
+
+        return null;
+    }
+=======
+    static getDerivedStateFromProps(nextProps, prevState) {
+        const newState = {};
+        let needUpdate = false;
+
+        // 用户键入非法值后render逻辑，未触发onChange，业务组件无感知，不强制受控value
+        if (prevState.onlyDisplay) {
+            return {
+                value: prevState.value,
+                displayValue: prevState.displayValue,
+                onlyDisplay: false,
+            };
+        }
+
+        // 检查 max 和 min 是否变化
+        if (nextProps.max !== undefined && nextProps.max !== prevState.max) {
+            newState.max = nextProps.max === MAX_SAFE_INTEGER && nextProps.stringMode ? Infinity : nextProps.max;
+            needUpdate = true;
+        }
+
+        if (nextProps.min !== undefined && nextProps.min !== prevState.min) {
+            newState.min = nextProps.min === MIN_SAFE_INTEGER && nextProps.stringMode ? -Infinity : nextProps.min;
+            needUpdate = true;
+        }
+
+        // 一般受控render逻辑
+        if ('value' in nextProps && `${nextProps.value}` !== `${prevState.value}`) {
+            let value = nextProps.value;
+            value = value === undefined || value === null ? '' : nextProps.stringMode ? `${value}` : value;
+            newState.value = value;
+            newState.displayValue = value;
+            needUpdate = true;
+        }
+
+        return needUpdate ? newState : null;
+    }
+>>>>>>> REPLACE
+```
+
+This fix modifies the `getDerivedStateFromProps` method to:
+
+1. Check if max or min values have changed independently of value changes
+2. Update the state accordingly when any of these props change
+3. Maintain the same behavior for value changes and onlyDisplay state
+4. Return the updated state only when necessary (when any relevant prop has changed)
+
+The fix ensures that the NumberPicker component will properly react to changes in max and min values even when the value itself doesn't change.

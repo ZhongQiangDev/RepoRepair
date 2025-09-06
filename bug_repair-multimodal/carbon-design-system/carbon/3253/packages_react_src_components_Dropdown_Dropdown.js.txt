@@ -1,0 +1,28 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a Dropdown component is disabled, its child ListBox.Field component still has `tabIndex="0"`, which means it can still be focused using the tab key. This is problematic because disabled components should not be focusable.
+
+The bug is in the `Dropdown.js` file where the `tabIndex` attribute is hardcoded to "0" in the ListBox.Field component, regardless of whether the Dropdown is disabled or not.
+
+## Fix
+
+We need to modify the ListBox.Field component to set `tabIndex="-1"` when the Dropdown is disabled. Here's the fix:
+
+```javascript
+### packages/react/src/components/Dropdown/Dropdown.js
+<<<<<<< SEARCH
+              <ListBox.Field
+                id={id}
+                tabIndex="0"
+                {...getButtonProps({ disabled })}>
+=======
+              <ListBox.Field
+                id={id}
+                tabIndex={disabled ? "-1" : "0"}
+                {...getButtonProps({ disabled })}>
+>>>>>>> REPLACE
+```
+
+This change will set the tabIndex to "-1" when the Dropdown is disabled, making it unfocusable via keyboard navigation, which is the expected behavior for disabled components. When the component is not disabled, it will maintain the original tabIndex of "0".

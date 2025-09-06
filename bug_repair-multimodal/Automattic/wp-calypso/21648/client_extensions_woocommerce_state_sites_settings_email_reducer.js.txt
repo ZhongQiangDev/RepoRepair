@@ -1,0 +1,79 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is that when the "From Name" field is cleared in the email settings, it shows an undecoded HTML entity in the placeholder. According to the screenshot, it's showing something like "Allendav&#039;s Store Test" instead of "Allendav's Store Test" with the apostrophe properly decoded.
+
+Looking at the code, I can see that the reducer file is responsible for handling email settings, but the specific part that handles the placeholder value when the field is cleared is not shown in the provided code segment. However, I can infer that the issue is likely related to not properly decoding HTML entities in the placeholder text.
+
+The file already imports a `decodeEntities` function from 'lib/formatting', but it's likely not being applied to the placeholder value.
+
+## Fix
+
+I need to add code to the `WOOCOMMERCE_EMAIL_SETTINGS_REQUEST_SUCCESS` handler in the reducer to decode entities in the site title that's used as the placeholder:
+
+```javascript
+### client/extensions/woocommerce/state/sites/settings/email/reducer.js
+<<<<<<< SEARCH
+export default createReducer( null, {
+	[ WOOCOMMERCE_EMAIL_SETTINGS_REQUEST ]: () => {
+		return LOADING;
+	},
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+} );
+=======
+export default createReducer( null, {
+	[ WOOCOMMERCE_EMAIL_SETTINGS_REQUEST ]: () => {
+		return LOADING;
+	},
+
+	[ WOOCOMMERCE_EMAIL_SETTINGS_REQUEST_SUCCESS ]: ( state, { data } ) => {
+		const options = filter( data, item => 'option' === item.type );
+		if ( isEmpty( options ) ) {
+			return options;
+		}
+
+		// Decode any HTML entities in the options
+		return options.map( option => {
+			if ( option.default ) {
+				return {
+					...option,
+					default: decodeEntities( option.default ),
+				};
+			}
+			return option;
+		} );
+	},
+
+	[ WOOCOMMERCE_EMAIL_SETTINGS_CHANGE ]: ( state, { setting: { option, value } } ) => {
+		if ( ! option ) {
+			return state;
+		}
+
+		const settings = [ ...state ];
+		const settingIndex = settings.findIndex( item => item.id === option );
+		if ( -1 === settingIndex ) {
+			return state;
+		}
+
+		settings[ settingIndex ] = { ...settings[ settingIndex ], value };
+		return settings;
+	},
+} );
+>>>>>>> REPLACE
+```
+
+This fix ensures that when email settings are successfully fetched, any HTML entities in the default values (which would include the site title used as a placeholder) are properly decoded before being stored in the state.

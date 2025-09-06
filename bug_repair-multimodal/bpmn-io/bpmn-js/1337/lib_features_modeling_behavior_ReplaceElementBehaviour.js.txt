@@ -1,0 +1,158 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about disallowing typed start events inside non-event based sub-processes. According to the BPMN specification, typed start events (like timer start events, message start events, etc.) are not allowed inside regular sub-processes - they're only allowed at the process level or in event sub-processes.
+
+The issue requests two specific tasks:
+1. Disallow morphing to typed start event inside sub-process
+2. Drop event type when moving start event to sub-process
+
+Looking at the provided code, I can see that we're looking at the `ReplaceElementBehaviour.js` file, which handles element replacement in the BPMN modeler. However, the current implementation doesn't have any logic to prevent typed start events inside sub-processes or to drop event types when moving start events to sub-processes.
+
+## Solution
+
+We need to modify the `ReplaceElementBehaviour` class to add the missing functionality. The current code doesn't have the necessary checks to enforce these rules. Let's add them:
+
+```javascript
+### lib/features/modeling/behavior/ReplaceElementBehaviour.js
+<<<<<<< SEARCH
+import inherits from 'inherits';
+
+import { forEach } from 'min-dash';
+
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+
+import { isEventSubProcess } from '../../../util/DiUtil';
+
+
+/**
+ * BPMN-specific replace behavior.
+ */
+
+
+inherits(ReplaceElementBehaviour, CommandInterceptor);
+
+ReplaceElementBehaviour.prototype.replaceElements = function(elements, newElements) {
+=======
+import inherits from 'inherits';
+
+import { forEach } from 'min-dash';
+
+import CommandInterceptor from 'diagram-js/lib/command/CommandInterceptor';
+
+import { isEventSubProcess } from '../../../util/DiUtil';
+
+
+/**
+ * BPMN-specific replace behavior.
+ */
+
+
+inherits(ReplaceElementBehaviour, CommandInterceptor);
+
+function ReplaceElementBehaviour(bpmnReplace, bpmnRules, elementRegistry, injector, modeling, selection) {
+  CommandInterceptor.call(this, injector.get('eventBus'));
+
+  this._bpmnReplace = bpmnReplace;
+  this._bpmnRules = bpmnRules;
+  this._elementRegistry = elementRegistry;
+  this._selection = selection;
+  this._modeling = modeling;
+
+  // replace start event when moving into sub process
+  this.postExecuted('elements.move', function(context) {
+    var newParent = context.newParent,
+        elements = context.closure.topLevel;
+
+    if (!newParent) {
+      return;
+    }
+
+    // only handle sub processes
+    if (newParent.type !== 'bpmn:SubProcess' || isEventSubProcess(newParent)) {
+      return;
+    }
+
+    forEach(elements, function(element) {
+      if (element.type === 'bpmn:StartEvent' && element.businessObject.eventDefinitions) {
+        // replace typed start event with normal start event
+        modeling.replaceElement(element, { type: 'bpmn:StartEvent' });
+      }
+    });
+  });
+}
+
+ReplaceElementBehaviour.prototype.replaceElements = function(elements, newElements) {
+>>>>>>> REPLACE
+```
+
+```javascript
+### lib/features/modeling/behavior/ReplaceElementBehaviour.js
+<<<<<<< SEARCH
+ReplaceElementBehaviour.prototype.replaceElements = function(elements, newElements) {
+  var elementRegistry = this._elementRegistry,
+      bpmnReplace = this._bpmnReplace,
+      selection = this._selection;
+
+  forEach(newElements, function(replacement) {
+    var newElement = {
+      type: replacement.newElementType
+    };
+
+    var oldElement = elementRegistry.get(replacement.oldElementId);
+
+    var idx = elements.indexOf(oldElement);
+
+    elements[idx] = bpmnReplace.replaceElement(oldElement, newElement, { select: false });
+  });
+
+  if (newElements) {
+    selection.select(elements);
+  }
+};
+=======
+ReplaceElementBehaviour.prototype.replaceElements = function(elements, newElements) {
+  var elementRegistry = this._elementRegistry,
+      bpmnReplace = this._bpmnReplace,
+      bpmnRules = this._bpmnRules,
+      selection = this._selection;
+
+  forEach(newElements, function(replacement) {
+    var newElement = {
+      type: replacement.newElementType
+    };
+
+    var oldElement = elementRegistry.get(replacement.oldElementId);
+    var parent = oldElement.parent;
+
+    // disallow morphing to typed start event inside non-event sub-process
+    if (parent && 
+        parent.type === 'bpmn:SubProcess' && 
+        !isEventSubProcess(parent) && 
+        oldElement.type === 'bpmn:StartEvent' && 
+        newElement.type !== 'bpmn:StartEvent') {
+      
+      // skip replacement
+      return;
+    }
+
+    var idx = elements.indexOf(oldElement);
+
+    elements[idx] = bpmnReplace.replaceElement(oldElement, newElement, { select: false });
+  });
+
+  if (newElements) {
+    selection.select(elements);
+  }
+};
+>>>>>>> REPLACE
+```
+
+These changes implement both requirements:
+
+1. The first change adds a constructor to the `ReplaceElementBehaviour` class that sets up a post-execution hook for the `elements.move` command. This hook checks if elements are being moved into a non-event sub-process, and if any of those elements are typed start events, it replaces them with untyped start events.
+
+2. The second change modifies the `replaceElements` method to check if we're trying to morph a start event inside a non-event sub-process to a typed start event. If so, it skips the replacement, effectively disallowing the morphing operation.
+
+These changes should satisfy the requirements specified in the issue.

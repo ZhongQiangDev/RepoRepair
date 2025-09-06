@@ -1,0 +1,40 @@
+I'll analyze the issue and provide a fix for the React ComboBox component.
+
+## Issue Analysis
+
+Based on the issue description and screenshots:
+
+1. The ComboBox selection element is showing multiselect styles when it shouldn't
+2. The invalid state selection icon is positioned incorrectly
+
+Looking at the code, I can see that the issue is in the `render` method of the ComboBox component. The problem appears to be with the `ListBox.Selection` component that's being rendered when there's an input value. This component is likely styled for multiselect functionality, but in this case, it should be styled for single selection.
+
+## Fix
+
+```javascript
+### packages/react/src/components/ComboBox/ComboBox.js
+<<<<<<< SEARCH
+              {inputValue && (
+                <ListBox.Selection
+                  clearSelection={clearSelection}
+                  translateWithId={translateWithId}
+                />
+              )}
+=======
+              {inputValue && (
+                <ListBox.Selection
+                  clearSelection={clearSelection}
+                  translateWithId={translateWithId}
+                  disabled={disabled}
+                  selectionCount={1}
+                />
+              )}
+>>>>>>> REPLACE
+```
+
+This fix adds two important props to the `ListBox.Selection` component:
+
+1. `disabled={disabled}` - This ensures the disabled state is properly passed to the selection component
+2. `selectionCount={1}` - This explicitly tells the component that it's dealing with a single selection, not multiple selections, which should fix the styling issues
+
+The invalid icon positioning issue should also be resolved with this change, as the selection component will now render with the correct styles for a single selection.

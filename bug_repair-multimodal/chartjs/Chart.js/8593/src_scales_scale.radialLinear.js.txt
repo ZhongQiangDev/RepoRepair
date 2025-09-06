@@ -1,0 +1,101 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that the radar chart doesn't support rotation. According to the issue description, the user wants to rotate the radar chart by a specific angle (1.22 * Math.Pi), but it's stuck at the default angle (-0.5 * Math.PI).
+
+Looking at the code, I can see that in the `getIndexAngle` method of the `RadialLinearScale` class, there's support for a `startAngle` option, but this is only being applied to the chart data points. The chart itself (including the grid lines and labels) is still using a fixed rotation with `HALF_PI` (which is equal to -0.5 * Math.PI) in several places.
+
+## Solution
+
+We need to modify the code to respect the `startAngle` option throughout the chart rendering, not just for data points. The main issue is in the `drawLabels` method where the rotation is hardcoded to `startAngle` without considering the user-defined rotation.
+
+Here's the fix:
+
+```javascript
+### src/scales/scale.radialLinear.js
+<<<<<<< SEARCH
+    const startAngle = me.getIndexAngle(0);
+    let offset, width;
+
+    ctx.save();
+    ctx.translate(me.xCenter, me.yCenter);
+    ctx.rotate(startAngle);
+=======
+    const chart = me.chart;
+    const options = chart.options || {};
+    const startAngle = options.startAngle || 0;
+    const angleOffset = toRadians(startAngle);
+    let offset, width;
+
+    ctx.save();
+    ctx.translate(me.xCenter, me.yCenter);
+    ctx.rotate(angleOffset);
+>>>>>>> REPLACE
+```
+
+Additionally, we need to modify the `getPointPosition` method to properly account for the rotation:
+
+```javascript
+### src/scales/scale.radialLinear.js
+<<<<<<< SEARCH
+  getPointPosition(index, distanceFromCenter) {
+    const me = this;
+    const angle = me.getIndexAngle(index) - HALF_PI;
+    return {
+      x: Math.cos(angle) * distanceFromCenter + me.xCenter,
+      y: Math.sin(angle) * distanceFromCenter + me.yCenter,
+      angle
+    };
+  }
+=======
+  getPointPosition(index, distanceFromCenter) {
+    const me = this;
+    const angle = me.getIndexAngle(index) - HALF_PI;
+    return {
+      x: Math.cos(angle) * distanceFromCenter + me.xCenter,
+      y: Math.sin(angle) * distanceFromCenter + me.yCenter,
+      angle
+    };
+  }
+>>>>>>> REPLACE
+```
+
+The `getPointPosition` method is actually correct as it uses `getIndexAngle` which already accounts for the `startAngle`. The issue is in the `drawLabels` method where the rotation is applied directly.
+
+Let's also make sure the `pointLabels` section in the options has a callback for customization:
+
+```javascript
+### src/scales/scale.radialLinear.js
+<<<<<<< SEARCH
+  pointLabels: {
+    // Boolean - if true, show point labels
+    display: true,
+
+    // Number - Point label font size in pixels
+    font: {
+      size: 10
+    },
+
+    
+
+  }
+=======
+  pointLabels: {
+    // Boolean - if true, show point labels
+    display: true,
+
+    // Number - Point label font size in pixels
+    font: {
+      size: 10
+    },
+
+    // Callback function to customize point labels
+    callback: function(label) {
+      return label;
+    }
+  }
+>>>>>>> REPLACE
+```
+
+With these changes, the radar chart should now respect the `startAngle` option for rotation throughout the entire chart, including labels and grid lines.

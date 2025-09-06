@@ -1,0 +1,90 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about a COG (Cloud Optimized GeoTIFF) not displaying properly in OpenLayers, where only the upper part is shown. This suggests a problem with how the extent or dimensions of the image are being calculated or handled.
+
+Looking at the code, the issue is likely in the `getIntersection` function in `src/ol/extent.js`. This function calculates the intersection between two extents, which is crucial for determining what part of an image to display.
+
+The problem appears to be in how the intersection is calculated. When dealing with non-square pixels (which is common in geospatial data), the current implementation might not be handling the extent calculation correctly.
+
+## Fix
+
+```javascript
+### src/ol/extent.js
+<<<<<<< SEARCH
+export function getIntersection(extent1, extent2, opt_extent) {
+  const intersection = opt_extent ? opt_extent : createEmpty();
+  if (intersects(extent1, extent2)) {
+    if (extent1[0] > extent2[0]) {
+      intersection[0] = extent1[0];
+    } else {
+      intersection[0] = extent2[0];
+    }
+    if (extent1[1] > extent2[1]) {
+      intersection[1] = extent1[1];
+    } else {
+      intersection[1] = extent2[1];
+    }
+    if (extent1[2] < extent2[2]) {
+      intersection[2] = extent1[2];
+    } else {
+      intersection[2] = extent2[2];
+    }
+    if (extent1[3] < extent2[3]) {
+      intersection[3] = extent1[3];
+    } else {
+      intersection[3] = extent2[3];
+    }
+  } else {
+    createOrUpdateEmpty(intersection);
+  }
+  return intersection;
+}
+=======
+export function getIntersection(extent1, extent2, opt_extent) {
+  const intersection = opt_extent ? opt_extent : createEmpty();
+  if (intersects(extent1, extent2)) {
+    if (extent1[0] > extent2[0]) {
+      intersection[0] = extent1[0];
+    } else {
+      intersection[0] = extent2[0];
+    }
+    if (extent1[1] > extent2[1]) {
+      intersection[1] = extent1[1];
+    } else {
+      intersection[1] = extent2[1];
+    }
+    if (extent1[2] < extent2[2]) {
+      intersection[2] = extent1[2];
+    } else {
+      intersection[2] = extent2[2];
+    }
+    if (extent1[3] < extent2[3]) {
+      intersection[3] = extent1[3];
+    } else {
+      intersection[3] = extent2[3];
+    }
+    
+    // Ensure the intersection is valid (minX <= maxX and minY <= maxY)
+    if (intersection[0] > intersection[2]) {
+      const tmp = intersection[0];
+      intersection[0] = intersection[2];
+      intersection[2] = tmp;
+    }
+    if (intersection[1] > intersection[3]) {
+      const tmp = intersection[1];
+      intersection[1] = intersection[3];
+      intersection[3] = tmp;
+    }
+  } else {
+    createOrUpdateEmpty(intersection);
+  }
+  return intersection;
+}
+>>>>>>> REPLACE
+```
+
+This fix adds validation to ensure that the calculated intersection has valid coordinates where minX <= maxX and minY <= maxY. When dealing with non-square pixels or certain projections, it's possible that the calculation could result in an invalid extent where the min values exceed the max values, which would cause only part of the image to be displayed.
+
+The fix swaps the values if they're in the wrong order, ensuring that the extent is always valid. This should resolve the issue where only the upper part of the COG is being displayed.

@@ -1,0 +1,42 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about RGBA colors not working correctly in the Text component compared to the View component. Looking at the screenshot, it appears that when using RGBA colors, the transparency (alpha channel) is not being properly applied in the Text component.
+
+The problem is in the `applyDefaultStyles.js` file where the default styles are applied to text runs. When setting default values for colors, the code is not preserving the original RGBA color format but instead defaulting to 'black' when no color is provided.
+
+## Fix
+
+The issue is that the `color`, `underlineColor`, and `strikeColor` attributes are being set to 'black' when they're falsy, but this doesn't properly handle the case where the color is set to a valid RGBA value with 0 opacity (which would evaluate as falsy in JavaScript).
+
+Here's the fix:
+
+```javascript
+### packages/textkit/src/layout/applyDefaultStyles.js
+<<<<<<< SEARCH
+    color: a.color || 'black',
+=======
+    color: a.color !== undefined ? a.color : 'black',
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/textkit/src/layout/applyDefaultStyles.js
+<<<<<<< SEARCH
+    underlineColor: a.underlineColor || a.color || 'black',
+=======
+    underlineColor: a.underlineColor !== undefined ? a.underlineColor : (a.color !== undefined ? a.color : 'black'),
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/textkit/src/layout/applyDefaultStyles.js
+<<<<<<< SEARCH
+    strikeColor: a.strikeColor || a.color || 'black',
+=======
+    strikeColor: a.strikeColor !== undefined ? a.strikeColor : (a.color !== undefined ? a.color : 'black'),
+>>>>>>> REPLACE
+```
+
+These changes ensure that RGBA colors with 0 opacity (which would evaluate as falsy) are still properly preserved and not replaced with the default 'black' color. The fix uses explicit checks for `undefined` rather than relying on the truthiness of the color value.

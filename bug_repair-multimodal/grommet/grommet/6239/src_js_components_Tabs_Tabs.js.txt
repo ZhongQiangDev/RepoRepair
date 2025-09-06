@@ -1,0 +1,50 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about tabs underlines not being sticky when tabs are used in a section with fixed height. According to the screenshots, the underline at the bottom of the tabs is not staying fixed at the bottom of the tab header after the PR #6137 was merged.
+
+Looking at the code, I can see that the PR #6137 added scrolling functionality to the tabs component. The issue appears to be related to how the tab header is styled when overflow is enabled. When overflow is true, padding and margin are being applied to the `StyledTabsHeader` component, which is likely causing the underline to not stick properly.
+
+## Fix
+
+The fix involves modifying how padding and margin are applied to the `StyledTabsHeader` component when overflow is enabled. We need to ensure that the underline remains visible and properly positioned at the bottom of the tab header.
+
+```javascript
+### src/js/components/Tabs/Tabs.js
+<<<<<<< SEARCH
+          <StyledTabsHeader
+            ref={headerRef}
+            as={Box}
+            direction="row"
+            justify={justify}
+            alignSelf={alignControls}
+            flex={!!overflow}
+            wrap={false}
+            overflow={overflow ? 'hidden' : 'visible'}
+            background={theme.tabs.header.background}
+            gap={theme.tabs.gap}
+            pad={overflow ? '2px' : undefined}
+            margin={overflow ? '-2px' : undefined}
+          >
+=======
+          <StyledTabsHeader
+            ref={headerRef}
+            as={Box}
+            direction="row"
+            justify={justify}
+            alignSelf={alignControls}
+            flex={!!overflow}
+            wrap={false}
+            overflow={overflow ? 'hidden' : 'visible'}
+            background={theme.tabs.header.background}
+            gap={theme.tabs.gap}
+            pad={overflow ? { horizontal: '2px' } : undefined}
+            margin={overflow ? { horizontal: '-2px' } : undefined}
+          >
+>>>>>>> REPLACE
+```
+
+The fix changes the padding and margin from a simple value of '2px' to an object that only applies to the horizontal direction. This ensures that the vertical spacing (including the bottom border/underline) remains intact while still allowing for the horizontal scrolling functionality to work properly.
+
+By specifying that padding and margin should only be applied horizontally, we preserve the vertical styling that keeps the underline sticky to the bottom of the tab header, which was working correctly before PR #6137.

@@ -1,0 +1,114 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description and screenshot, the Calendar component is broken in IE11. Looking at the provided code snippet, I notice that the actual Calendar component implementation is missing from the file. The file shows imports and exports, but the Calendar class itself is not included in the snippet.
+
+The issue is likely related to IE11 compatibility. Since IE11 has limited support for modern JavaScript features and CSS, we need to ensure the Calendar component works correctly in this browser.
+
+Without seeing the actual Calendar component implementation, I'll make an educated guess based on common IE11 issues:
+
+1. The most likely issue is that the Calendar component is using CSS Grid or Flexbox features that aren't fully supported in IE11.
+2. The screenshot shows that the calendar days are not displaying properly, suggesting a layout issue.
+
+Here's a fix that would address IE11 compatibility issues with CSS Grid or Flexbox:
+
+```javascript
+### src/js/components/Calendar/StyledCalendar.js
+<<<<<<< SEARCH
+import styled from 'styled-components';
+
+import { normalizeColor } from '../../utils';
+
+export const StyledDayContainer = styled.div`
+  flex: 0 0 auto;
+`;
+
+export const StyledDay = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-weight: ${props => (props.selected ? 'bold' : 'normal')};
+  ${props => props.selected && 'font-weight: bold;'}
+  ${props => (props.inRange && !props.selected) && 'background-color: ' + normalizeColor('light-' + props.theme.dark ? '3' : '1', props.theme)};
+  ${props => props.otherMonth && 'opacity: 0.5;'}
+  ${props => props.boundary && 'font-weight: bold;'}
+`;
+
+export const StyledWeek = styled.div`
+  display: flex;
+  flex-direction: row;
+  flex-justify: between;
+`;
+
+export const StyledWeeksContainer = styled.div`
+  overflow: auto;
+`;
+
+export const StyledWeeks = styled.div`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+`;
+=======
+import styled from 'styled-components';
+
+import { normalizeColor } from '../../utils';
+
+export const StyledDayContainer = styled.div`
+  flex: 0 0 auto;
+  display: inline-block; /* For IE11 */
+`;
+
+export const StyledDay = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-weight: ${props => (props.selected ? 'bold' : 'normal')};
+  ${props => props.selected && 'font-weight: bold;'}
+  ${props => (props.inRange && !props.selected) && 'background-color: ' + normalizeColor('light-' + (props.theme.dark ? '3' : '1'), props.theme)};
+  ${props => props.otherMonth && 'opacity: 0.5;'}
+  ${props => props.boundary && 'font-weight: bold;'}
+  /* IE11 Flexbox fixes */
+  text-align: center;
+  display: -ms-flexbox;
+  -ms-flex-pack: center;
+  -ms-flex-align: center;
+`;
+
+export const StyledWeek = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  /* IE11 Flexbox fixes */
+  display: -ms-flexbox;
+  -ms-flex-direction: row;
+  -ms-flex-pack: justify;
+`;
+
+export const StyledWeeksContainer = styled.div`
+  overflow: auto;
+`;
+
+export const StyledWeeks = styled.div`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  /* IE11 Flexbox fixes */
+  display: -ms-flexbox;
+  -ms-flex-direction: column;
+`;
+>>>>>>> REPLACE
+```
+
+This fix adds IE11-specific flexbox prefixes and properties to ensure the calendar layout works correctly in IE11. The main changes are:
+
+1. Added `-ms-flexbox` and related `-ms-` prefixed properties for IE11 flexbox support
+2. Fixed a syntax error in `flex-justify: between` to `justify-content: space-between`
+3. Added `display: inline-block` to StyledDayContainer for better IE11 support
+4. Fixed a parenthesis issue in the ternary operation for background color
+5. Added text-align center to help with alignment in IE11
+
+These changes should address the layout issues visible in the screenshot while maintaining functionality in modern browsers.

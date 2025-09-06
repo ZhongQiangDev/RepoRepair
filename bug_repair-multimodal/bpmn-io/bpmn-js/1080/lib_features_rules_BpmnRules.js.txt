@@ -1,0 +1,61 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about connecting message flows to pool boundaries. When a pool has had more than one lane and then the additional lane is removed, it becomes difficult to connect a message flow to the pool boundary. The message flow can only be connected by dropping the connector at the header of the pool, not inside the single lane of the pool.
+
+Looking at the code, the problem is likely in the `canConnectMessageFlow` function. This function checks if a message flow can be connected between two elements. The issue might be that after removing a lane, the pool's structure changes in a way that affects how message flows can be connected to it.
+
+The current implementation checks if the source is a valid message flow source and if the target is a valid message flow target. However, it doesn't properly handle the case where a pool previously had multiple lanes but now has only one.
+
+Let's look at the `isMessageFlowSource` and `isMessageFlowTarget` functions, which are referenced but not shown in the provided code. The issue is likely that these functions don't properly recognize a pool with a single lane (after having multiple lanes) as a valid message flow target.
+
+Since we don't have the full implementation of these functions, I'll make an educated guess based on the issue description. The problem is likely that when a lane is removed, the pool's structure changes, but the system doesn't update its internal representation correctly.
+
+The fix would be to modify the `canConnectMessageFlow` function to properly handle pools that have had lanes removed.
+
+## Fix
+
+```javascript
+### lib/features/rules/BpmnRules.js
+<<<<<<< SEARCH
+function canConnectMessageFlow(source, target) {
+
+  // handle the case where target does not have a parent,
+  // because it is not dropped within the diagram (bpmn-io/bpmn-js#1033)
+  if (!target.parent) {
+    return false;
+  }
+
+  return (
+    isMessageFlowSource(source) &&
+    isMessageFlowTarget(target) &&
+    !isSameOrganization(source, target)
+  );
+}
+=======
+function canConnectMessageFlow(source, target) {
+
+  // handle the case where target does not have a parent,
+  // because it is not dropped within the diagram (bpmn-io/bpmn-js#1033)
+  if (!target.parent) {
+    return false;
+  }
+
+  // Check if target is a lane with a parent that is a pool
+  if (is(target, 'bpmn:Lane') && is(target.parent, 'bpmn:Participant')) {
+    target = target.parent;
+  }
+
+  return (
+    isMessageFlowSource(source) &&
+    isMessageFlowTarget(target) &&
+    !isSameOrganization(source, target)
+  );
+}
+>>>>>>> REPLACE
+```
+
+This fix adds a check to see if the target is a lane with a parent that is a pool. If so, it sets the target to be the parent pool instead. This ensures that when trying to connect a message flow to a lane within a pool, the connection is properly established to the pool itself, which is what the user expects.
+
+The issue occurs because after removing additional lanes, the system might still be treating the pool differently than a pool that never had lanes. By explicitly handling lanes and redirecting to their parent pools, we ensure consistent behavior regardless of the pool's lane history.

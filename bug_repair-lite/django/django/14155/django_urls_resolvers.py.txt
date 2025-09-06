@@ -1,0 +1,104 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is in the `ResolverMatch` class. When a `functools.partial` function is passed as the view, the `__repr__` method doesn't handle it properly. It just shows "functools.partial" instead of the underlying function and arguments.
+
+The problem is in the `__init__` method of `ResolverMatch`. It doesn't unwrap `functools.partial` objects to extract the original function and its arguments. This affects the `_func_path` attribute which is used in the `__repr__` method.
+
+We can see that the `URLPattern` class already has logic to handle `functools.partial` in its `lookup_str` property, but this logic is missing in `ResolverMatch`.
+
+## Fix
+
+We need to modify the `ResolverMatch.__init__` method to properly handle `functools.partial` objects:
+
+```python
+### django/urls/resolvers.py
+<<<<<<< SEARCH
+    def __init__(self, func, args, kwargs, url_name=None, app_names=None, namespaces=None, route=None, tried=None):
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+        self.url_name = url_name
+        self.route = route
+        self.tried = tried
+
+        # If a URLRegexResolver doesn't have a namespace or app_name, it passes
+        # in an empty value.
+        self.app_names = [x for x in app_names if x] if app_names else []
+        self.app_name = ':'.join(self.app_names)
+        self.namespaces = [x for x in namespaces if x] if namespaces else []
+        self.namespace = ':'.join(self.namespaces)
+
+        if not hasattr(func, '__name__'):
+            # A class-based view
+            self._func_path = func.__class__.__module__ + '.' + func.__class__.__name__
+        else:
+            # A function-based view
+            self._func_path = func.__module__ + '.' + func.__name__
+=======
+    def __init__(self, func, args, kwargs, url_name=None, app_names=None, namespaces=None, route=None, tried=None):
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+        self.url_name = url_name
+        self.route = route
+        self.tried = tried
+
+        # If a URLRegexResolver doesn't have a namespace or app_name, it passes
+        # in an empty value.
+        self.app_names = [x for x in app_names if x] if app_names else []
+        self.app_name = ':'.join(self.app_names)
+        self.namespaces = [x for x in namespaces if x] if namespaces else []
+        self.namespace = ':'.join(self.namespaces)
+
+        # Handle functools.partial objects
+        if isinstance(func, functools.partial):
+            # Save the original arguments from the partial
+            self.partial_args = func.args
+            self.partial_kwargs = func.keywords or {}
+            func = func.func
+        else:
+            self.partial_args = ()
+            self.partial_kwargs = {}
+
+        if not hasattr(func, '__name__'):
+            # A class-based view
+            self._func_path = func.__class__.__module__ + '.' + func.__class__.__name__
+        else:
+            # A function-based view
+            self._func_path = func.__module__ + '.' + func.__name__
+>>>>>>> REPLACE
+```
+
+Now we need to update the `__repr__` method to include the partial arguments:
+
+```python
+### django/urls/resolvers.py
+<<<<<<< SEARCH
+    def __repr__(self):
+        return "ResolverMatch(func=%s, args=%s, kwargs=%s, url_name=%s, app_names=%s, namespaces=%s, route=%s)" % (
+            self._func_path, self.args, self.kwargs, self.url_name,
+            self.app_names, self.namespaces, self.route,
+        )
+=======
+    def __repr__(self):
+        if hasattr(self, 'partial_args') and (self.partial_args or self.partial_kwargs):
+            partial_str = f"functools.partial({self._func_path}, args={self.partial_args}, kwargs={self.partial_kwargs})"
+            return "ResolverMatch(func=%s, args=%s, kwargs=%s, url_name=%s, app_names=%s, namespaces=%s, route=%s)" % (
+                partial_str, self.args, self.kwargs, self.url_name,
+                self.app_names, self.namespaces, self.route,
+            )
+        return "ResolverMatch(func=%s, args=%s, kwargs=%s, url_name=%s, app_names=%s, namespaces=%s, route=%s)" % (
+            self._func_path, self.args, self.kwargs, self.url_name,
+            self.app_names, self.namespaces, self.route,
+        )
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Detect when a `functools.partial` is passed as the view function
+2. Extract and store the original function and its arguments
+3. Update the `__repr__` method to show the partial function details
+
+This solution addresses the issue by providing more helpful information in the `__repr__` output when a partial function is used.

@@ -1,0 +1,42 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that when a standalone image with a hyperlink is placed on a RevealJS slide, the hyperlink is not rendered. This happens only when the image is by itself on the slide. When there's additional text on the slide, the hyperlink works correctly.
+
+Looking at the code, the problem appears to be in the `applyStretch` function in `src/format/reveal/format-reveal.ts`. This function is responsible for handling images in slides, and it's removing the image from its parent and reinserting it directly into the slide section, which is causing the link to be lost.
+
+The issue occurs specifically when:
+1. There's only one image on a slide
+2. The image is wrapped in a link (`[![](image-url)](link-url)`)
+3. The `autoStretch` feature is enabled (which is the default)
+
+## Fix
+
+The fix needs to preserve the anchor tag when moving the image. Instead of extracting just the image element, we need to check if the image is inside an anchor tag and extract the anchor tag instead.
+
+```typescript
+### src/format/reveal/format-reveal.ts
+<<<<<<< SEARCH
+          // Remove image from its parent
+          removeEmpty(imageEl);
+          // insert at target position
+          slideEl.insertBefore(image, nextEl);
+=======
+          // Check if image is inside an anchor tag
+          const parentAnchor = findParent(imageEl, (el: Element) => el.nodeName === "A");
+          if (parentAnchor) {
+            // Remove anchor from its parent
+            removeEmpty(parentAnchor);
+            // insert anchor at target position
+            slideEl.insertBefore(parentAnchor, nextEl);
+          } else {
+            // Remove image from its parent
+            removeEmpty(imageEl);
+            // insert at target position
+            slideEl.insertBefore(image, nextEl);
+          }
+>>>>>>> REPLACE
+```
+
+This change checks if the image is inside an anchor tag. If it is, it moves the entire anchor tag (which contains the image) instead of just the image. This preserves the hyperlink functionality.

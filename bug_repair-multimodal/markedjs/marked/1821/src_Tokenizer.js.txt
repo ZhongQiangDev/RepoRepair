@@ -1,0 +1,39 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description and screenshot, there's a problem with strikeout text rendering in Markdown. The issue shows three examples:
+1. `~~12345~~` - This should render as strikeout text but has an issue
+2. `~~67890~` - Missing closing tildes
+3. `~13579~` - Using single tildes instead of double
+
+Looking at the code in `src/Tokenizer.js`, I need to examine the `del` method which handles strikeout text. The issue appears to be that the regex pattern in the `del` method isn't correctly capturing the text between the double tildes.
+
+Let's fix the issue:
+
+```javascript
+### src/Tokenizer.js
+<<<<<<< SEARCH
+  del(src) {
+    const cap = this.rules.inline.del.exec(src);
+    if (cap) {
+      return {
+        type: 'del',
+        raw: cap[0],
+        text: cap[1]
+      };
+    }
+  }
+=======
+  del(src) {
+    const cap = this.rules.inline.del.exec(src);
+    if (cap) {
+      return {
+        type: 'del',
+        raw: cap[0],
+        text: cap[2]
+      };
+    }
+  }
+>>>>>>> REPLACE
+```
+
+The fix changes `text: cap[1]` to `text: cap[2]`. This suggests that the regex pattern for strikeout text in the rules is capturing the content in the second capture group rather than the first. The first capture group likely contains the entire match including the tildes, while the second capture group contains just the text between the tildes that should be displayed with strikeout formatting.

@@ -1,0 +1,103 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that WebGLTileLayers with palette styles stop working after being removed and added back to the map. The error messages in the console indicate a WebGL context issue: `WebGL warning: bindTexture: 'tex' is from a different (or lost) WebGL context` or `WebGL: INVALID_OPERATION: bindTexture: object does not belong to this context`.
+
+Looking at the code, I can see that the problem is related to palette textures. When a WebGLTileLayer is removed from the map and then added back, the palette textures from the previous WebGL context are being reused, but they're no longer valid in the new context.
+
+The issue is in the `parseStyle` function. When a style with a palette is parsed, the palette textures are created and stored, but when the layer is removed and added back, these textures need to be recreated for the new WebGL context.
+
+## Fix
+
+The solution is to ensure that palette textures are recreated when the layer is added back to the map. We need to modify the `createRenderer` method to always parse the style again, rather than potentially reusing previously parsed palette textures.
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+  createRenderer() {
+    const parsedStyle = parseStyle(this.style_, this.getSourceBandCount_());
+
+    return new WebGLTileLayerRenderer(this, {
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      cacheSize: this.cacheSize_,
+      paletteTextures: parsedStyle.paletteTextures,
+    });
+  }
+=======
+  createRenderer() {
+    // Always parse the style to ensure palette textures are recreated
+    // when the layer is added back to the map
+    const parsedStyle = parseStyle(this.style_, this.getSourceBandCount_());
+
+    return new WebGLTileLayerRenderer(this, {
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      cacheSize: this.cacheSize_,
+      paletteTextures: parsedStyle.paletteTextures,
+    });
+  }
+>>>>>>> REPLACE
+```
+
+This fix doesn't actually change the code logic, but it ensures that the style is always parsed when creating a new renderer, which will create new palette textures for the new WebGL context. The issue is that the palette textures are being created during style parsing but then reused when the layer is added back to the map, even though they're no longer valid in the new WebGL context.
+
+Let me look deeper at the issue. The problem might be that we need to ensure the palette textures are properly recreated when the layer is added back to the map.
+
+```javascript
+### src/ol/layer/WebGLTile.js
+<<<<<<< SEARCH
+  /**
+   * Update the layer style.  The `updateStyleVariables` function is a more efficient
+   * way to update layer rendering.  In cases where the whole style needs to be updated,
+   * this method may be called instead.  Note that calling this method will also replace
+   * any previously set variables, so the new style also needs to include new variables,
+   * if needed.
+   * @param {Style} style The new style.
+   */
+  setStyle(style) {
+    this.styleVariables_ = style.variables || {};
+    this.style_ = style;
+    const parsedStyle = parseStyle(this.style_, this.getSourceBandCount_());
+    const renderer = this.getRenderer();
+    renderer.reset({
+      vertexShader: parsedStyle.vertexShader,
+      fragmentShader: parsedStyle.fragmentShader,
+      uniforms: parsedStyle.uniforms,
+      paletteTextures: parsedStyle.paletteTextures,
+    });
+    this.changed();
+  }
+=======
+  /**
+   * Update the layer style.  The `updateStyleVariables` function is a more efficient
+   * way to update layer rendering.  In cases where the whole style needs to be updated,
+   * this method may be called instead.  Note that calling this method will also replace
+   * any previously set variables, so the new style also needs to include new variables,
+   * if needed.
+   * @param {Style} style The new style.
+   */
+  setStyle(style) {
+    this.styleVariables_ = style.variables || {};
+    this.style_ = style;
+    
+    if (this.hasRenderer()) {
+      const parsedStyle = parseStyle(this.style_, this.getSourceBandCount_());
+      const renderer = this.getRenderer();
+      renderer.reset({
+        vertexShader: parsedStyle.vertexShader,
+        fragmentShader: parsedStyle.fragmentShader,
+        uniforms: parsedStyle.uniforms,
+        paletteTextures: parsedStyle.paletteTextures,
+      });
+    }
+    
+    this.changed();
+  }
+>>>>>>> REPLACE
+```
+
+The issue is that when a layer is removed from the map and added back, the renderer is recreated, but the palette textures from the previous WebGL context are still being used. By checking if the renderer exists before parsing the style and resetting the renderer, we ensure that we don't try to parse the style and create palette textures until the renderer is actually created.

@@ -1,0 +1,68 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The bug is in the list item handling in the Markdown parser. When a fenced code block follows a list item and contains a blank line, the parser is not correctly handling it as a code block within the list item. This is happening because the parser is incorrectly determining that the list item is "loose" when it encounters blank lines within a code block.
+
+Looking at the code, the issue is in the `list` method of the `Tokenizer` class. The problem occurs in the section that checks for "loose" list items. The parser is checking for multiple line breaks in "space" tokens, but it's not properly handling the case where those line breaks are within a fenced code block.
+
+## Fix
+
+The issue is in the `hasMultipleLineBreaks` check. We need to modify it to not consider spaces that are within code blocks as indicators of a loose list.
+
+```javascript
+### src/Tokenizer.js
+<<<<<<< SEARCH
+        const spacers = list.items[i].tokens.filter(t => t.type === 'space');
+        const hasMultipleLineBreaks = spacers.every(t => {
+          const chars = t.raw.split('');
+          let lineBreaks = 0;
+          for (const char of chars) {
+            if (char === '\n') {
+              lineBreaks += 1;
+            }
+            if (lineBreaks > 1) {
+              return true;
+            }
+          }
+
+          return false;
+        });
+
+        if (!list.loose && spacers.length && hasMultipleLineBreaks) {
+          // Having a single line break doesn't mean a list is loose. A single line break is terminating the last list item
+          list.loose = true;
+          list.items[i].loose = true;
+        }
+=======
+        // Check if this item contains a code block
+        const hasCodeBlock = list.items[i].tokens.some(t => t.type === 'code');
+        
+        // Only check for loose list if there's no code block
+        if (!hasCodeBlock) {
+          const spacers = list.items[i].tokens.filter(t => t.type === 'space');
+          const hasMultipleLineBreaks = spacers.every(t => {
+            const chars = t.raw.split('');
+            let lineBreaks = 0;
+            for (const char of chars) {
+              if (char === '\n') {
+                lineBreaks += 1;
+              }
+              if (lineBreaks > 1) {
+                return true;
+              }
+            }
+
+            return false;
+          });
+
+          if (!list.loose && spacers.length && hasMultipleLineBreaks) {
+            // Having a single line break doesn't mean a list is loose. A single line break is terminating the last list item
+            list.loose = true;
+            list.items[i].loose = true;
+          }
+        }
+>>>>>>> REPLACE
+```
+
+This fix adds a check to see if the list item contains a code block. If it does, we skip the check for multiple line breaks that would mark the list as "loose". This ensures that blank lines within code blocks don't affect the list structure, which matches the expected behavior in CommonMark.

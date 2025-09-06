@@ -1,0 +1,27 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- Lighthouse reports no performance score and shows a NO_TTI_CPU_IDLE_PERIOD error when a page has a slow First Contentful Paint (FCP) but becomes idle immediately after.
+- The error occurs with devtools/provided throttling only.
+- Adding a 400ms loop after setting the body HTML makes the error go away.
+
+2. Cause Analysis:
+- The issue appears to be related to Time to Interactive (TTI) calculation when there's a gap between a slow FCP and immediate CPU idle period.
+- The error suggests the system is failing to properly identify or validate the CPU idle period after FCP.
+- The fact that adding artificial CPU work fixes it indicates there may be an issue with how very short/immediate idle periods are handled in the TTI calculation logic.
+
+3. Most Relevant Files:
+```
+lighthouse-core/audits/metrics/interactive.js
+lighthouse-core/computed/metrics/interactive.js
+lighthouse-core/lib/tracehouse/main-thread-tasks.js
+lighthouse-core/computed/main-thread-tasks.js
+lighthouse-core/computed/metrics/lantern-interactive.js
+```
+
+These files are most relevant because:
+- The Interactive metric files contain the core logic for calculating TTI and identifying CPU idle periods
+- The main-thread-tasks files handle task analysis and idle period detection
+- The lantern-interactive file contains simulation logic that may affect TTI calculation under throttling conditions
+
+The issue likely stems from edge case handling in these files where an immediate idle period after a slow FCP isn't being properly recognized as valid for TTI calculation.

@@ -1,0 +1,108 @@
+I'll analyze the issue and provide a solution.
+
+## Bug Analysis
+
+The issue is that Carbon's OrderedList component is causing Firefox to display ordered lists with incorrect starting numbers. This happens because:
+
+1. Carbon uses a custom counter system with `::before` pseudo-elements instead of native browser list numbering
+2. The specific problem is the `counter-reset: item` CSS property that's being applied
+3. In Firefox specifically, this is causing ordered lists to start at random numbers (like 7) instead of 1
+4. The user needs a way to use native ordered list numbering without Carbon's custom counter system
+
+## Solution
+
+We need to modify the OrderedList component to add an option that allows users to use native browser list numbering instead of Carbon's custom counter system. We'll add a new prop called `native` that, when set to true, will apply a different class that doesn't use the custom counter system.
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/OrderedList/OrderedList.js
+<<<<<<< SEARCH
+import PropTypes from 'prop-types';
+import React from 'react';
+import classnames from 'classnames';
+import { settings } from 'carbon-components';
+
+const { prefix } = settings;
+
+const OrderedList = ({ children, className, nested, ...other }) => {
+  const classNames = classnames(`${prefix}--list--ordered`, className, {
+    [`${prefix}--list--nested`]: nested,
+  });
+=======
+import PropTypes from 'prop-types';
+import React from 'react';
+import classnames from 'classnames';
+import { settings } from 'carbon-components';
+
+const { prefix } = settings;
+
+const OrderedList = ({ children, className, nested, native, ...other }) => {
+  const classNames = classnames(className, {
+    [`${prefix}--list--ordered`]: !native,
+    [`${prefix}--list--ordered--native`]: native,
+    [`${prefix}--list--nested`]: nested,
+  });
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/OrderedList/OrderedList.js
+<<<<<<< SEARCH
+OrderedList.propTypes = {
+  /**
+   * Provide list items to be rendered in the ordered list
+   */
+  children: PropTypes.node,
+
+  /**
+   * Provide an optional className to be applied to the containing <ol> node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify whether this ordered list is nested inside of another nested list
+   */
+  nested: PropTypes.bool,
+};
+
+OrderedList.defaultProps = {
+  nested: false,
+};
+=======
+OrderedList.propTypes = {
+  /**
+   * Provide list items to be rendered in the ordered list
+   */
+  children: PropTypes.node,
+
+  /**
+   * Provide an optional className to be applied to the containing <ol> node
+   */
+  className: PropTypes.string,
+
+  /**
+   * Specify whether this ordered list is nested inside of another nested list
+   */
+  nested: PropTypes.bool,
+
+  /**
+   * Specify whether to use native browser ordered list styling instead of Carbon's custom styling
+   */
+  native: PropTypes.bool,
+};
+
+OrderedList.defaultProps = {
+  nested: false,
+  native: false,
+};
+>>>>>>> REPLACE
+```
+
+This solution:
+
+1. Adds a new `native` prop to the OrderedList component
+2. When `native` is true, applies a new class `bx--list--ordered--native` instead of the default `bx--list--ordered`
+3. The CSS for this new class would need to be added to the Carbon styles, which would not include the problematic `counter-reset: item` property
+
+This allows users to opt-in to native browser ordered list styling when needed, while maintaining the default Carbon styling for backward compatibility.

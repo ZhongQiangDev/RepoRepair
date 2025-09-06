@@ -1,0 +1,93 @@
+### 1. Identify the Wrong Behavior Involved in `GitHub Problem Description`
+
+The problem described involves a WebGLTile layer rendering images outside the original extent of the data. Specifically:
+
+- The WebGLTile layer is displaying a larger area than the actual extent of the GeoTIFF data.
+- The rendered image includes black areas outside the actual data extent, which should not be present.
+- When zooming in, the discrepancy between the rendered extent and the actual extent becomes more noticeable, with the rendered extent narrowing incorrectly.
+
+### 2. Analyze the Cause Behind the Wrong Behavior
+
+The cause of this issue likely stems from one or more of the following:
+
+- **Incorrect Extent Calculation**: The extent of the GeoTIFF data might not be correctly calculated or applied when creating the WebGLTile layer.
+- **Tile Grid Misalignment**: The tile grid used for rendering might not align properly with the data extent, causing tiles to be rendered outside the intended area.
+- **Projection or Coordinate System Issues**: There could be a mismatch between the coordinate systems used by the GeoTIFF data and the WebGLTile layer.
+- **Incorrect Handling of No-Data Values**: If no-data values are not properly handled, the renderer might display areas outside the actual data extent.
+
+### 3. Examine Each File and Determine Relevant Functions/Classes
+
+#### `src/ol/extent.js`
+
+This file contains no relevant functions/classes.
+
+#### `src/ol/tilegrid.js`
+
+```
+src/ol/tilegrid.js
+function: createForExtent
+function: createForProjection
+function: extentFromProjection
+```
+
+These functions are responsible for creating tile grids based on extents and projections. If the tile grid is not correctly aligned with the data extent, it could lead to the issue described.
+
+#### `src/ol/layer/WebGLTile.js`
+
+```
+src/ol/layer/WebGLTile.js
+class: WebGLTileLayer
+```
+
+The `WebGLTileLayer` class manages the rendering of tile layers using WebGL. If the extent or tile grid is not correctly applied, this class could be contributing to the problem.
+
+#### `src/ol/renderer/webgl/TileLayer.js`
+
+```
+src/ol/renderer/webgl/TileLayer.js
+class: WebGLTileLayerRenderer
+```
+
+The `WebGLTileLayerRenderer` class is responsible for rendering tile layers using WebGL. It manages tile textures and rendering states. If there is an issue with how tiles are rendered or how the extent is applied, this class could be relevant.
+
+#### `src/ol/source/DataTile.js`
+
+This file contains no relevant functions/classes.
+
+#### `src/ol/source/Tile.js`
+
+This file contains no relevant functions/classes.
+
+#### `src/ol/source/TileImage.js`
+
+This file contains no relevant functions/classes.
+
+#### `src/ol/tilegrid/TileGrid.js`
+
+```
+src/ol/tilegrid/TileGrid.js
+class: TileGrid
+```
+
+The `TileGrid` class manages the tile grid configuration, including resolutions, origins, and tile sizes. If the tile grid is not correctly configured, it could lead to the issue described.
+
+#### `src/ol/webgl/TileTexture.js`
+
+```
+src/ol/webgl/TileTexture.js
+function: bindAndConfigure
+function: uploadDataTexture
+function: uploadImageTexture
+```
+
+These functions handle the uploading and configuration of tile textures in WebGL. If there is an issue with how textures are uploaded or configured, it could contribute to the problem.
+
+### Summary
+
+The relevant functions and classes that could be contributing to the issue are:
+
+1. `createForExtent`, `createForProjection`, and `extentFromProjection` in `src/ol/tilegrid.js`.
+2. `WebGLTileLayer` class in `src/ol/layer/WebGLTile.js`.
+3. `WebGLTileLayerRenderer` class in `src/ol/renderer/webgl/TileLayer.js`.
+4. `TileGrid` class in `src/ol/tilegrid/TileGrid.js`.
+5. `bindAndConfigure`, `uploadDataTexture`, and `uploadImageTexture` functions in `src/ol/webgl/TileTexture.js`.

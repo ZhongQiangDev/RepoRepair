@@ -1,0 +1,40 @@
+Let me analyze this step by step.
+
+1. Wrong Behavior:
+The issue is that `mutual_info_score` fails with a ValueError when the input array has dtype=object (containing strings 'a' and 'b'), but works (with a warning) when the array has the default string dtype. This is inconsistent behavior, as both cases should work since they contain the same data.
+
+2. Cause Analysis:
+The error suggests that the function is trying to convert string values to float numbers, which indicates there might be an issue in the input validation or type checking logic. The function should be able to handle categorical data (strings) regardless of whether they are stored as object dtype or string dtype arrays.
+
+3. Examining Files for Relevant Functions:
+
+sklearn/base.py:
+```
+This file contains no relevant functions/classes.
+```
+
+sklearn/utils/multiclass.py:
+```
+sklearn/utils/multiclass.py
+function: type_of_target
+function: check_classification_targets
+```
+These functions are relevant because they help determine and validate the type of target variables, which is directly related to handling categorical data.
+
+sklearn/utils/validation.py:
+```
+sklearn/utils/validation.py
+function: check_array
+function: _ensure_no_complex_data
+function: column_or_1d
+```
+These functions are relevant because they handle input validation and array type checking, which is where the inconsistency likely originates. The `check_array` function in particular handles dtype conversion and validation.
+
+sklearn/exceptions.py:
+```
+sklearn/exceptions.py
+class: DataConversionWarning
+```
+This class is relevant as it's likely the warning that's being raised when the array works without the object dtype.
+
+The core issue likely lies in the input validation process, particularly in how `check_array` handles different string dtypes. The function might need to be modified to handle object dtypes containing strings in the same way it handles string dtypes, or to better detect categorical data regardless of the underlying dtype.

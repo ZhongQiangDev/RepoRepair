@@ -1,0 +1,39 @@
+Based on the issue description, the bug is in the pretty printing of `Product` expressions, where there are two main issues:
+1. There is an empty line at the bottom of the ∏ symbol that makes it look asymmetric
+2. The ∏ symbol is too wide
+
+Looking at the code, this is handled in the `_print_Product` method. Let's fix these issues by:
+
+1. Removing the extra empty line by adjusting the sign lines
+2. Making the ∏ symbol thinner by reducing the width calculation
+
+Here's the fix:
+
+```python
+### sympy/printing/pretty/pretty.py
+<<<<<<< SEARCH
+            width = (func_height + 2) * 5 // 3 - 2
+            sign_lines = []
+            sign_lines.append(corner_chr + (horizontal_chr*width) + corner_chr)
+            for i in range(func_height + 1):
+                sign_lines.append(vertical_chr + (' '*width) + vertical_chr)
+
+            pretty_sign = stringPict('')
+            pretty_sign = prettyForm(*pretty_sign.stack(*sign_lines))
+=======
+            width = (func_height + 1) * 3 // 2  # Reduced width ratio
+            sign_lines = []
+            sign_lines.append(corner_chr + (horizontal_chr*width) + corner_chr)
+            for i in range(func_height):  # Removed +1 to eliminate extra line
+                sign_lines.append(vertical_chr + (' '*width) + vertical_chr)
+
+            pretty_sign = stringPict('')
+            pretty_sign = prettyForm(*pretty_sign.stack(*sign_lines))
+>>>>>>> REPLACE
+```
+
+This change:
+1. Reduces the width calculation from `(func_height + 2) * 5 // 3 - 2` to `(func_height + 1) * 3 // 2` to make the ∏ symbol thinner
+2. Changes `range(func_height + 1)` to `range(func_height)` to remove the extra empty line at the bottom
+
+The result will be a more compact and symmetric product symbol that better matches the style of other mathematical notations.

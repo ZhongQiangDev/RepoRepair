@@ -1,0 +1,65 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about bar charts not having 100% width when `categoryPercentage: 1` and `barPercentage: 1` are set. The user wants to create a histogram with connected bars without any space between them.
+
+Looking at the code, the problem appears to be in the `getBarBounds` function in `src/elements/element.bar.js`. When calculating the left and right bounds of a bar, it's using `half = width / 2` and then setting `left = x - half` and `right = x + half`. This creates bars centered at position `x` with width equal to the bar's width property.
+
+However, for histograms where bars should touch each other without gaps, the bars should be positioned differently. The issue is that the current implementation always centers the bars at their x-coordinate, which doesn't allow for perfect alignment when trying to create connected bars.
+
+## Fix
+
+```javascript
+### src/elements/element.bar.js
+<<<<<<< SEARCH
+function getBarBounds(bar, useFinalPosition) {
+  const {x, y, base, width, height} = bar.getProps(['x', 'y', 'base', 'width', 'height'], useFinalPosition);
+
+  let left, right, top, bottom, half;
+
+  if (bar.horizontal) {
+    half = height / 2;
+    left = Math.min(x, base);
+    right = Math.max(x, base);
+    top = y - half;
+    bottom = y + half;
+  } else {
+    half = width / 2;
+    left = x - half;
+    right = x + half;
+    top = Math.min(y, base);
+    bottom = Math.max(y, base);
+  }
+
+  return {left, top, right, bottom};
+}
+=======
+function getBarBounds(bar, useFinalPosition) {
+  const {x, y, base, width, height} = bar.getProps(['x', 'y', 'base', 'width', 'height'], useFinalPosition);
+
+  let left, right, top, bottom, half;
+
+  if (bar.horizontal) {
+    half = height / 2;
+    left = Math.min(x, base);
+    right = Math.max(x, base);
+    top = y - half;
+    bottom = y + half;
+  } else {
+    // For vertical bars, use the exact x position without centering
+    // This allows bars to be positioned next to each other without gaps
+    left = x;
+    right = x + width;
+    top = Math.min(y, base);
+    bottom = Math.max(y, base);
+  }
+
+  return {left, top, right, bottom};
+}
+>>>>>>> REPLACE
+```
+
+This change modifies the `getBarBounds` function to position vertical bars at their exact x-coordinate instead of centering them. This allows bars to be positioned next to each other without gaps when `categoryPercentage: 1` and `barPercentage: 1` are set.
+
+The fix changes how the left and right bounds are calculated for vertical bars. Instead of centering the bar at position x with width/2 on each side, it now positions the left edge of the bar at x and the right edge at x + width. This should allow bars to touch each other without any gaps, creating the histogram effect the user is looking for.

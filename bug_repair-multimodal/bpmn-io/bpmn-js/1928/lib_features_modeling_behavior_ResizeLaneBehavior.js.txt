@@ -1,0 +1,69 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that an empty pool (a participant with no lanes or elements) can be resized vertically using the space tool, but it should maintain a fixed height. Looking at the code, I can see that the `ResizeLaneBehavior.js` file handles resizing of lanes and participants, but it doesn't have any special handling for empty pools.
+
+The problem occurs because the current code treats all participants the same way, regardless of whether they're empty or not. We need to modify the behavior to prevent vertical resizing of empty pools.
+
+## Solution
+
+We need to modify the `resize.end` event handler in `ResizeLaneBehavior.js` to check if the participant is empty, and if so, preserve its original height when resizing. Here's the fix:
+
+```javascript
+### lib/features/modeling/behavior/ResizeLaneBehavior.js
+<<<<<<< SEARCH
+  eventBus.on('resize.end', SLIGHTLY_HIGHER_PRIORITY, function(event) {
+    var context = event.context,
+        shape = context.shape,
+        canExecute = context.canExecute,
+        newBounds = context.newBounds;
+
+    if (is(shape, 'bpmn:Lane') || is(shape, 'bpmn:Participant')) {
+
+      if (canExecute) {
+
+        // ensure we have actual pixel values for new bounds
+        // (important when zoom level was > 1 during move)
+        newBounds = roundBounds(newBounds);
+
+        // perform the actual resize
+        modeling.resizeLane(shape, newBounds, context.balanced);
+      }
+
+      // stop propagation
+      return false;
+    }
+=======
+  eventBus.on('resize.end', SLIGHTLY_HIGHER_PRIORITY, function(event) {
+    var context = event.context,
+        shape = context.shape,
+        canExecute = context.canExecute,
+        newBounds = context.newBounds,
+        oldBounds = context.oldBounds;
+
+    if (is(shape, 'bpmn:Lane') || is(shape, 'bpmn:Participant')) {
+
+      if (canExecute) {
+
+        // ensure we have actual pixel values for new bounds
+        // (important when zoom level was > 1 during move)
+        newBounds = roundBounds(newBounds);
+
+        // preserve height for empty pools (participants with no children)
+        if (is(shape, 'bpmn:Participant') && (!shape.children || !shape.children.length)) {
+          newBounds.height = oldBounds.height;
+          newBounds.y = oldBounds.y;
+        }
+
+        // perform the actual resize
+        modeling.resizeLane(shape, newBounds, context.balanced);
+      }
+
+      // stop propagation
+      return false;
+    }
+>>>>>>> REPLACE
+```
+
+This fix adds a check to see if the shape is a participant and has no children. If it's an empty pool, we preserve its original height and y-position while still allowing horizontal resizing.

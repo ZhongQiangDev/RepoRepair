@@ -1,0 +1,106 @@
+Based on the issue description, the bug is that there is no `draggable` parameter in the `Legend` class's `__init__` method to allow making a legend draggable at creation time. Currently, dragging can only be enabled after creation by calling `set_draggable()`.
+
+Here's the fix to add the `draggable` parameter to the `__init__` method:
+
+```python
+### lib/matplotlib/legend.py
+<<<<<<< SEARCH
+    def __init__(
+        self, parent, handles, labels,
+        loc=None,
+        numpoints=None,      # number of points in the legend line
+        markerscale=None,    # relative size of legend markers vs. original
+        markerfirst=True,    # left/right ordering of legend marker and label
+        scatterpoints=None,  # number of scatter points
+        scatteryoffsets=None,
+        prop=None,           # properties for the legend texts
+        fontsize=None,       # keyword to set font size directly
+        labelcolor=None,     # keyword to set the text color
+
+        # spacing & pad defined as a fraction of the font-size
+        borderpad=None,      # whitespace inside the legend border
+        labelspacing=None,   # vertical space between the legend entries
+        handlelength=None,   # length of the legend handles
+        handleheight=None,   # height of the legend handles
+        handletextpad=None,  # pad between the legend handle and text
+        borderaxespad=None,  # pad between the axes and legend border
+        columnspacing=None,  # spacing between columns
+
+        ncols=1,     # number of columns
+        mode=None,  # horizontal distribution of columns: None or "expand"
+
+        fancybox=None,  # True: fancy box, False: rounded box, None: rcParam
+        shadow=None,
+        title=None,           # legend title
+        title_fontsize=None,  # legend title font size
+        framealpha=None,      # set frame alpha
+        edgecolor=None,       # frame patch edgecolor
+        facecolor=None,       # frame patch facecolor
+
+        bbox_to_anchor=None,  # bbox to which the legend will be anchored
+        bbox_transform=None,  # transform for the bbox
+        frameon=None,         # draw frame
+        handler_map=None,
+        title_fontproperties=None,  # properties for the legend title
+        alignment="center",       # control the alignment within the legend box
+        *,
+        ncol=1  # synonym for ncols (backward compatibility)
+=======
+    def __init__(
+        self, parent, handles, labels,
+        loc=None,
+        numpoints=None,      # number of points in the legend line
+        markerscale=None,    # relative size of legend markers vs. original
+        markerfirst=True,    # left/right ordering of legend marker and label
+        scatterpoints=None,  # number of scatter points
+        scatteryoffsets=None,
+        prop=None,           # properties for the legend texts
+        fontsize=None,       # keyword to set font size directly
+        labelcolor=None,     # keyword to set the text color
+
+        # spacing & pad defined as a fraction of the font-size
+        borderpad=None,      # whitespace inside the legend border
+        labelspacing=None,   # vertical space between the legend entries
+        handlelength=None,   # length of the legend handles
+        handleheight=None,   # height of the legend handles
+        handletextpad=None,  # pad between the legend handle and text
+        borderaxespad=None,  # pad between the axes and legend border
+        columnspacing=None,  # spacing between columns
+
+        ncols=1,     # number of columns
+        mode=None,  # horizontal distribution of columns: None or "expand"
+
+        fancybox=None,  # True: fancy box, False: rounded box, None: rcParam
+        shadow=None,
+        title=None,           # legend title
+        title_fontsize=None,  # legend title font size
+        framealpha=None,      # set frame alpha
+        edgecolor=None,       # frame patch edgecolor
+        facecolor=None,       # frame patch facecolor
+
+        bbox_to_anchor=None,  # bbox to which the legend will be anchored
+        bbox_transform=None,  # transform for the bbox
+        frameon=None,         # draw frame
+        handler_map=None,
+        title_fontproperties=None,  # properties for the legend title
+        alignment="center",       # control the alignment within the legend box
+        draggable=False,      # whether the legend can be dragged by mouse
+        *,
+        ncol=1  # synonym for ncols (backward compatibility)
+>>>>>>> REPLACE
+```
+
+And we need to add the code to enable dragging in the initialization:
+
+```python
+### lib/matplotlib/legend.py
+<<<<<<< SEARCH
+        self._draggable = None
+=======
+        self._draggable = None
+        if draggable:
+            self.set_draggable(True)
+>>>>>>> REPLACE
+```
+
+This change allows users to make a legend draggable at creation time by passing `draggable=True` to the constructor, rather than having to call `set_draggable()` after creation. The default value is `False` to maintain backward compatibility.

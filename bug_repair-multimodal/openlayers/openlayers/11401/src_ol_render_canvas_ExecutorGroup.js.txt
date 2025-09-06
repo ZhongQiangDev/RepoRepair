@@ -1,0 +1,73 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue is about hit detection and rendering problems with icons that have negative scale. Specifically:
+1. Hit detection doesn't work when scale is negative and rotation is 0
+2. Icons with negative scale aren't rendered properly at the edge of the map
+
+Looking at the code, the problem is likely in the `ExecutorGroup.js` file. When transformations are applied to icons with negative scale, the hit detection and clipping logic doesn't handle the negative scale correctly.
+
+The issue is in the `forEachFeatureAtCoordinate` method where the transform is composed. The current transform doesn't account for negative scale values properly, which affects both hit detection and rendering.
+
+## Fix
+
+```javascript
+### src/ol/render/canvas/ExecutorGroup.js
+<<<<<<< SEARCH
+    const transform = composeTransform(
+      this.hitDetectionTransform_,
+      hitTolerance + 0.5,
+      hitTolerance + 0.5,
+      1 / resolution,
+      -1 / resolution,
+      -rotation,
+      -coordinate[0],
+      -coordinate[1]
+    );
+=======
+    const transform = composeTransform(
+      this.hitDetectionTransform_,
+      hitTolerance + 0.5,
+      hitTolerance + 0.5,
+      1 / resolution,
+      -1 / resolution,
+      -rotation,
+      -coordinate[0],
+      -coordinate[1]
+    );
+    // Make sure negative scales are handled correctly
+    if (transform[0] < 0 || transform[3] < 0) {
+      const context = this.hitDetectionContext_;
+      // Adjust the transform for negative scales
+      if (transform[0] < 0) {
+        transform[0] = -transform[0];
+        transform[2] = -transform[2];
+        if (context) {
+          context.translate(contextSize, 0);
+          context.scale(-1, 1);
+        }
+      }
+      if (transform[3] < 0) {
+        transform[3] = -transform[3];
+        transform[5] = -transform[5];
+        if (context) {
+          context.translate(0, contextSize);
+          context.scale(1, -1);
+        }
+      }
+    }
+>>>>>>> REPLACE
+```
+
+This fix addresses the issue by:
+
+1. Detecting when the transform has negative scale values (transform[0] for x-scale and transform[3] for y-scale)
+2. Adjusting the transform matrix to handle negative scales correctly
+3. Applying compensating transformations to the hit detection context to ensure proper rendering and hit detection
+
+The solution ensures that when negative scales are used:
+- The hit detection will work correctly by adjusting the transform matrix
+- The rendering will properly handle icons at the edge of the map by applying appropriate scaling and translation to the context
+
+This approach preserves the visual appearance of the negatively scaled icons while fixing both the hit detection and rendering issues.

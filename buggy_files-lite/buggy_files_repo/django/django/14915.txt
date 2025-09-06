@@ -1,0 +1,27 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When using `value in self.show_fields` where `value` is a `ModelChoiceIteratorValue` and `self.show_fields` is a dictionary, a TypeError is raised indicating that `ModelChoiceIteratorValue` is not hashable.
+- This breaks custom data-* attributes being added to select widget options.
+
+2. Cause Analysis:
+- The issue appears after upgrading from Django 3.0 to 3.1
+- In Django 3.1, the ModelChoiceIterator was modified to return ModelChoiceIteratorValue objects instead of raw values
+- These ModelChoiceIteratorValue objects are not hashable by default, which causes issues when used as dictionary keys or in set operations
+- The problem occurs specifically in form widgets dealing with model choices and custom attributes
+
+3. Most Related Files:
+```
+django/forms/models.py
+django/forms/widgets.py
+django/db/models/fields/mixins.py
+django/db/models/query.py
+django/forms/fields.py
+```
+
+These files are ordered by importance because:
+1. `forms/models.py` contains ModelChoiceField and ModelChoiceIterator implementations which are directly related to the ModelChoiceIteratorValue issue
+2. `forms/widgets.py` handles the widget rendering and option creation where the custom data-* attributes are being added
+3. `models/fields/mixins.py` contains field-related functionality that affects how values are processed
+4. `models/query.py` handles the queryset operations that feed into the ModelChoiceField
+5. `forms/fields.py` contains base field implementations that ModelChoiceField builds upon

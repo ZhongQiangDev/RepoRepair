@@ -1,0 +1,244 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about incorrectly rendered pool/lane labels in vertical collaboration diagrams. When a pool is marked as vertical (`isHorizontal="false"`), the labels are not properly positioned. The problem is in the label behavior code that doesn't account for the orientation of pools when positioning labels.
+
+Looking at the provided code, I notice that the `LabelBehavior.js` file is incomplete, and the specific functions for handling vertical pools are missing. The issue is likely in how the label positions are calculated without considering the pool orientation.
+
+Since the issue specifically mentions that the problem is with rendering pool/lane labels when the pool is vertical, we need to modify the label behavior to check for the pool orientation and adjust the label positioning accordingly.
+
+## Solution
+
+We need to add code to check if a pool is horizontal or vertical and adjust the label positioning accordingly. Let's create a search/replace edit to fix this issue:
+
+```javascript
+### lib/features/modeling/behavior/LabelBehavior.js
+<<<<<<< SEARCH
+import {
+  is,
+  getBusinessObject
+} from '../../../util/ModelUtil';
+
+import {
+  isLabelExternal,
+  getLabel,
+  hasExternalLabel,
+  isLabel
+} from '../../../util/LabelUtil';
+=======
+import {
+  is,
+  getBusinessObject
+} from '../../../util/ModelUtil';
+
+import {
+  isLabelExternal,
+  getLabel,
+  hasExternalLabel,
+  isLabel
+} from '../../../util/LabelUtil';
+
+import {
+  isHorizontal
+} from '../../../util/DiUtil';
+>>>>>>> REPLACE
+```
+
+Now, let's add a function to handle the label adjustment based on pool orientation:
+
+```javascript
+### lib/features/modeling/behavior/LabelBehavior.js
+<<<<<<< SEARCH
+/**
+ * Convert the given bounds to a lines array containing all edges
+ *
+ * @param {Rect|Point} bounds
+ *
+ * @return {Line[]}
+ */
+
+
+/**
+ * Returns the nearest line for a given point by distance
+ * @param {Point} point
+ * @param {Line[]} lines
+ *
+ * @return {Line}
+ */
+
+=======
+/**
+ * Convert the given bounds to a lines array containing all edges
+ *
+ * @param {Rect|Point} bounds
+ *
+ * @return {Line[]}
+ */
+export function getBoundaryLines(bounds) {
+  // If bounds is a point, return empty lines array
+  if (!bounds.width && !bounds.height) {
+    return [];
+  }
+
+  var x = bounds.x,
+      y = bounds.y,
+      width = bounds.width,
+      height = bounds.height;
+
+  var top = [ { x: x, y: y }, { x: x + width, y: y } ],
+      right = [ { x: x + width, y: y }, { x: x + width, y: y + height } ],
+      bottom = [ { x: x, y: y + height }, { x: x + width, y: y + height } ],
+      left = [ { x: x, y: y }, { x: x, y: y + height } ];
+
+  return [ top, right, bottom, left ];
+}
+
+/**
+ * Returns the nearest line for a given point by distance
+ * @param {Point} point
+ * @param {Line[]} lines
+ *
+ * @return {Line}
+ */
+export function getNearestLine(point, lines) {
+  var nearestLine,
+      minDistance = Infinity;
+
+  lines.forEach(function(line) {
+    var distance = getDistancePointLine(point, line);
+
+    if (distance < minDistance) {
+      nearestLine = line;
+      minDistance = distance;
+    }
+  });
+
+  return nearestLine;
+}
+
+/**
+ * Adjusts the label position based on the element's orientation
+ * 
+ * @param {Object} element
+ * @param {Object} label
+ * @param {Object} labelAdjustment
+ * 
+ * @return {Object} adjusted label position
+ */
+export function adjustLabelPosition(element, label, labelAdjustment) {
+  // Check if the element is a pool or lane
+  if (is(element, 'bpmn:Participant') || is(element, 'bpmn:Lane')) {
+    // Check if the pool/lane is vertical
+    if (!isHorizontal(element)) {
+      // Adjust label position for vertical pool/lane
+      // For vertical pools, we need to rotate the adjustment
+      return {
+        x: labelAdjustment.y,
+        y: -labelAdjustment.x
+      };
+    }
+  }
+  
+  // Default horizontal adjustment
+  return labelAdjustment;
+}
+
+>>>>>>> REPLACE
+```
+
+Let's also create a DiUtil.js file to add the isHorizontal function:
+
+```javascript
+### lib/util/DiUtil.js
+<<<<<<< SEARCH
+=======
+/**
+ * Check if an element is horizontal.
+ * Default is true.
+ *
+ * @param {djs.model.Base} element
+ *
+ * @return {boolean}
+ */
+export function isHorizontal(element) {
+  try {
+    // Default to true for most elements
+    return element.di && element.di.isHorizontal === undefined || element.di.isHorizontal;
+  } catch (e) {
+    return true;
+  }
+}
+>>>>>>> REPLACE
+```
+
+Now, let's modify the LabelBehavior constructor to use our new function:
+
+```javascript
+### lib/features/modeling/behavior/LabelBehavior.js
+<<<<<<< SEARCH
+export function LabelBehavior(
+    eventBus, modeling, bpmnFactory,
+    textRenderer) {
+
+  CommandInterceptor.call(this, eventBus);
+
+  // update label if name property was updated
+  this.postExecute('element.updateProperties', function(e) {
+    var context = e.context,
+        element = context.element,
+        properties = context.properties;
+
+    if (NAME_PROPERTY in properties) {
+      modeling.updateLabel(element, properties[NAME_PROPERTY]);
+    }
+  });
+=======
+export function LabelBehavior(
+    eventBus, modeling, bpmnFactory,
+    textRenderer) {
+
+  CommandInterceptor.call(this, eventBus);
+
+  // update label if name property was updated
+  this.postExecute('element.updateProperties', function(e) {
+    var context = e.context,
+        element = context.element,
+        properties = context.properties;
+
+    if (NAME_PROPERTY in properties) {
+      modeling.updateLabel(element, properties[NAME_PROPERTY]);
+    }
+  });
+  
+  // adjust label position for vertical pools/lanes
+  this.postExecute(['shape.create', 'shape.move'], function(event) {
+    var context = event.context,
+        element = context.shape;
+        
+    if ((is(element, 'bpmn:Participant') || is(element, 'bpmn:Lane')) && 
+        !isHorizontal(element) && 
+        hasExternalLabel(element)) {
+      
+      var label = element.label;
+      
+      // Get the standard label adjustment
+      var standardAdjustment = getLabelAdjustment(element, label);
+      
+      // Apply orientation-specific adjustment
+      var adjustment = adjustLabelPosition(element, label, standardAdjustment);
+      
+      // Update the label position
+      modeling.moveShape(label, adjustment);
+    }
+  });
+>>>>>>> REPLACE
+```
+
+These changes will:
+
+1. Add a utility function to check if an element is horizontal or vertical
+2. Add a function to adjust label positions based on the element's orientation
+3. Add event handlers to properly position labels for vertical pools/lanes
+
+This solution addresses the issue by properly handling the label positioning for vertical pools, ensuring they are correctly rendered in vertical collaboration diagrams.

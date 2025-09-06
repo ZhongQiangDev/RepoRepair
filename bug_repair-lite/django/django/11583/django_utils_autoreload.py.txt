@@ -1,0 +1,46 @@
+Based on the issue description, the bug appears to be in the `iter_modules_and_files()` function where `Path.resolve()` is encountering embedded null bytes when resolving paths. The issue specifically mentions problems with pathlib's handling of certain paths, particularly around system paths like `/Users`.
+
+The fix should handle potential null bytes more gracefully by using `os.path` operations instead of `pathlib` for critical path resolution. Here's the proposed fix:
+
+```python
+### django/utils/autoreload.py
+<<<<<<< SEARCH
+    results = set()
+    for filename in itertools.chain(sys_file_paths, extra_files):
+        if not filename:
+            continue
+        path = Path(filename)
+        try:
+            resolved_path = path.resolve(strict=True).absolute()
+        except FileNotFoundError:
+            # The module could have been removed, don't fail loudly if this
+            # is the case.
+            continue
+        results.add(resolved_path)
+    return frozenset(results)
+=======
+    results = set()
+    for filename in itertools.chain(sys_file_paths, extra_files):
+        if not filename:
+            continue
+        try:
+            # Use os.path instead of pathlib to avoid null byte issues
+            real_path = os.path.realpath(filename)
+            abs_path = os.path.abspath(real_path)
+            # Convert back to Path object only after resolving
+            resolved_path = Path(abs_path)
+        except (FileNotFoundError, ValueError):
+            # Handle both missing files and invalid paths (including null bytes)
+            continue
+        results.add(resolved_path)
+    return frozenset(results)
+>>>>>>> REPLACE
+```
+
+This fix:
+1. Replaces `Path.resolve()` with `os.path.realpath()` and `os.path.abspath()` which are more robust against path issues
+2. Only converts to a Path object after resolving the path using os.path functions
+3. Catches ValueError in addition to FileNotFoundError to handle null byte errors
+4. Maintains the same interface by returning Path objects in the results set
+
+The change should resolve the intermittent "ValueError: embedded null byte" errors while maintaining compatibility with the rest of the autoreloader code that expects Path objects.

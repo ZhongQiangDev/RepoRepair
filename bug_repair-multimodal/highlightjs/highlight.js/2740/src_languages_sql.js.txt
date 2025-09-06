@@ -1,0 +1,42 @@
+I'll analyze the issue and provide a fix.
+
+The issue is related to SQL syntax highlighting in highlight.js. The problem occurs when there are escape sequences in SQL strings, particularly when there are nested quotes. In the example, the highlighting breaks after a string escape sequence at the end of dynamic SQL.
+
+Looking at the code, I can see that the SQL language definition has string handling, but it doesn't properly handle escape sequences for quotes within strings. The current implementation only handles doubled quotes as escape sequences (like `''` or `""`), but doesn't handle other escape patterns that might be used in SQL strings.
+
+Here's my fix:
+
+```javascript
+### src/languages/sql.js
+<<<<<<< SEARCH
+          {
+            className: 'string',
+            begin: '\'', end: '\'',
+            contains: [{begin: '\'\''}]
+          },
+          {
+            className: 'string',
+            begin: '"', end: '"',
+            contains: [{begin: '""'}]
+          },
+=======
+          {
+            className: 'string',
+            begin: '\'', end: '\'',
+            contains: [
+              {begin: '\'\''},
+              {begin: '\\\\\''}
+            ]
+          },
+          {
+            className: 'string',
+            begin: '"', end: '"',
+            contains: [
+              {begin: '""'},
+              {begin: '\\\\"'}
+            ]
+          },
+>>>>>>> REPLACE
+```
+
+This fix adds support for backslash-escaped quotes (`\'` and `\"`) within string literals, which is what's causing the highlighting to break in the example. The SQL language definition now recognizes both doubled quotes (`''` or `""`) and backslash-escaped quotes (`\'` or `\"`) as valid escape sequences within strings.

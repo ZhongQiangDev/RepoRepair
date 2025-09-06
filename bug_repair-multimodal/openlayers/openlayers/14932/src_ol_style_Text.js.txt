@@ -1,0 +1,45 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is about a regression in the `textAlign` property of the `Text` style, specifically with the values 'start' and 'end'. According to the issue, text with 'start' and 'end' alignment is being aligned at the wrong end.
+
+Looking at the code, I don't see any specific handling for 'start' and 'end' text alignment values. The `textAlign_` property is set directly from the options without any transformation. In left-to-right languages, 'start' should behave like 'left' and 'end' should behave like 'right', but in right-to-left languages, it would be the opposite.
+
+The issue is likely that the code is not properly handling these direction-aware alignment values.
+
+## Fix
+
+I'll create a search/replace edit to fix this issue:
+
+```javascript
+### src/ol/style/Text.js
+<<<<<<< SEARCH
+  /**
+   * Get the text alignment.
+   * @return {CanvasTextAlign|undefined} Text align.
+   * @api
+   */
+  getTextAlign() {
+    return this.textAlign_;
+  }
+=======
+  /**
+   * Get the text alignment.
+   * @return {CanvasTextAlign|undefined} Text align.
+   * @api
+   */
+  getTextAlign() {
+    // Backwards compatibility for older versions
+    const textAlign = this.textAlign_;
+    if (textAlign === 'start') {
+      return 'left';
+    } else if (textAlign === 'end') {
+      return 'right';
+    }
+    return textAlign;
+  }
+>>>>>>> REPLACE
+```
+
+This fix transforms 'start' to 'left' and 'end' to 'right' when getting the text alignment, which should resolve the issue with text being aligned at the wrong end. This approach maintains backward compatibility while fixing the regression.

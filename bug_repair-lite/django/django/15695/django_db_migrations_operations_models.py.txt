@@ -1,0 +1,85 @@
+Based on the issue description, the bug occurs in `RenameIndex` when handling unnamed indexes moving backward and forward. The issue is that when doing `database_backwards()` followed by `database_forwards()`, the operation crashes because it doesn't properly handle the state transitions for unnamed indexes.
+
+The key problem is in the `database_backwards()` method - it's not properly handling the case of unnamed indexes (when `old_fields` is set). The current implementation just returns early for unnamed indexes, which means the state doesn't get properly updated.
+
+Here's the fix:
+
+```python
+### django/db/migrations/operations/models.py
+<<<<<<< SEARCH
+    def database_backwards(self, app_label, schema_editor, from_state, to_state):
+        if self.old_fields:
+            # Backward operation with unnamed index is a no-op.
+            return
+
+        self.new_name_lower, self.old_name_lower = (
+            self.old_name_lower,
+            self.new_name_lower,
+        )
+        self.new_name, self.old_name = self.old_name, self.new_name
+
+        self.database_forwards(app_label, schema_editor, from_state, to_state)
+
+        self.new_name_lower, self.old_name_lower = (
+            self.old_name_lower,
+            self.new_name_lower,
+        )
+        self.new_name, self.old_name = self.old_name, self.new_name
+=======
+    def database_backwards(self, app_label, schema_editor, from_state, to_state):
+        model = from_state.apps.get_model(app_label, self.model_name)
+        if not self.allow_migrate_model(schema_editor.connection.alias, model):
+            return
+
+        if self.old_fields:
+            # For unnamed indexes, we need to find the auto-generated name
+            columns = [
+                model._meta.get_field(field).column for field in self.old_fields
+            ]
+            matching_index_name = schema_editor._constraint_names(
+                model, column_names=columns, index=True
+            )
+            if len(matching_index_name) != 1:
+                raise ValueError(
+                    "Found wrong number (%s) of indexes for %s(%s)."
+                    % (
+                        len(matching_index_name),
+                        model._meta.db_table,
+                        ", ".join(columns),
+                    )
+                )
+            old_index = models.Index(
+                fields=self.old_fields,
+                name=self.new_name,
+            )
+            new_index = models.Index(
+                fields=self.old_fields,
+                name=matching_index_name[0],
+            )
+            schema_editor.rename_index(model, old_index, new_index)
+        else:
+            # For named indexes, swap names and use forwards logic
+            self.new_name_lower, self.old_name_lower = (
+                self.old_name_lower,
+                self.new_name_lower,
+            )
+            self.new_name, self.old_name = self.old_name, self.new_name
+
+            self.database_forwards(app_label, schema_editor, from_state, to_state)
+
+            self.new_name_lower, self.old_name_lower = (
+                self.old_name_lower,
+                self.new_name_lower,
+            )
+            self.new_name, self.old_name = self.old_name, self.new_name
+>>>>>>> REPLACE
+```
+
+This fix:
+
+1. Properly handles unnamed indexes in `database_backwards()` instead of just returning early
+2. For unnamed indexes, finds the auto-generated name and renames the index back to that name
+3. Maintains the existing behavior for named indexes
+4. Ensures proper state transitions when moving both backwards and forwards
+
+The fix allows the index to be properly renamed back to its auto-generated name when moving backward, and then correctly renamed to the new name when moving forward again, preventing the "relation already exists" error.

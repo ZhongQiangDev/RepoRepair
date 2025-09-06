@@ -1,0 +1,63 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that empty pools (participants without lanes) are being resized vertically when using the space tool, but they should maintain a fixed height. Looking at the code, I can see that:
+
+1. The `ResizeBehavior` class handles resize constraints for various BPMN elements
+2. There's logic for participants and lanes, but no specific handling for empty pools
+3. We need to add a check to prevent vertical resizing of empty pools
+
+The key problem is that while the code sets minimum dimensions for participants, it doesn't prevent vertical resizing for empty pools specifically. We need to modify the resize constraints for participants that don't have lanes.
+
+## Solution
+
+We need to modify the `getParticipantResizeConstraints` function to handle empty pools differently. Since this function isn't fully shown in the provided code, I'll need to add a condition in the `resize.start` event handler to detect empty pools and prevent vertical resizing.
+
+```javascript
+### lib/features/modeling/behavior/ResizeBehavior.js
+<<<<<<< SEARCH
+  eventBus.on('resize.start', HIGH_PRIORITY, function(event) {
+    var context = event.context,
+        shape = context.shape,
+        direction = context.direction,
+        balanced = context.balanced;
+
+    if (is(shape, 'bpmn:Lane') || is(shape, 'bpmn:Participant')) {
+      context.resizeConstraints = getParticipantResizeConstraints(shape, direction, balanced);
+    }
+
+    if (is(shape, 'bpmn:Participant')) {
+      context.minDimensions = PARTICIPANT_MIN_DIMENSIONS;
+    }
+=======
+  eventBus.on('resize.start', HIGH_PRIORITY, function(event) {
+    var context = event.context,
+        shape = context.shape,
+        direction = context.direction,
+        balanced = context.balanced;
+
+    if (is(shape, 'bpmn:Lane') || is(shape, 'bpmn:Participant')) {
+      context.resizeConstraints = getParticipantResizeConstraints(shape, direction, balanced);
+    }
+
+    if (is(shape, 'bpmn:Participant')) {
+      context.minDimensions = PARTICIPANT_MIN_DIMENSIONS;
+      
+      // Prevent vertical resizing for empty pools (participants without lanes)
+      if (!shape.children || !shape.children.some(function(child) { return is(child, 'bpmn:Lane'); })) {
+        if (direction === 'n' || direction === 's' || direction === 'ns') {
+          context.resizeConstraints = context.resizeConstraints || {};
+          context.resizeConstraints.min = context.resizeConstraints.min || {};
+          context.resizeConstraints.max = context.resizeConstraints.max || {};
+          
+          // Lock the height by setting min and max to current height
+          context.resizeConstraints.min.height = shape.height;
+          context.resizeConstraints.max.height = shape.height;
+        }
+      }
+    }
+>>>>>>> REPLACE
+```
+
+This solution adds a check to determine if a participant is an empty pool (has no lane children). If it is an empty pool and the resize direction involves vertical resizing ('n', 's', or 'ns'), it locks the height by setting both the minimum and maximum height constraints to the current height of the pool.

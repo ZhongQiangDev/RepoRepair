@@ -1,0 +1,39 @@
+Let me analyze this step by step:
+
+1. Wrong Behavior:
+- When making HTTP requests, the method parameter (e.g., 'GET') is being converted from a binary string (b'GET') to a literal string "b'GET'"
+- This incorrect conversion causes 404 Not Found responses
+- The issue occurs in Python 3.4 but not in Python 2.6
+
+2. Cause Analysis:
+- The root cause appears to be in the string encoding/decoding process
+- neutronclient uses `utils.safe_encode_list()` which converts values to binary strings
+- requests library's `builtin_str(method)` is converting the binary string to a literal string representation
+- This creates a method string with the 'b' prefix included, making it an invalid HTTP method
+
+3. Relevant Files/Functions Analysis:
+
+```
+requests/api.py
+function: request
+```
+This is relevant as it's the main entry point for making HTTP requests and handles the method parameter.
+
+```
+requests/models.py
+class: Request
+```
+This class is relevant as it processes the HTTP method and constructs the actual request.
+
+```
+requests/sessions.py
+class: Session
+```
+This is relevant as it handles the request processing and method handling at the session level.
+
+The issue likely needs to be fixed in how the method parameter is processed, either by:
+1. Properly decoding the binary string before using it
+2. Handling binary string methods directly
+3. Modifying how `builtin_str()` handles binary strings in this context
+
+The other files and functions don't appear to be directly related to the method string handling issue.

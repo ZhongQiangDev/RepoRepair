@@ -1,0 +1,53 @@
+I'll analyze the issue and provide a fix.
+
+The issue is that PHP arrow functions (introduced in PHP 7.4) with the syntax `fn($x) => $x + $y` are not being highlighted correctly. The highlighter is treating the variable after the arrow as a title, which is incorrect. This happens because the current implementation doesn't properly handle the arrow function syntax.
+
+Looking at the code, the issue is in the function definition section. The current implementation has a rule for functions that includes both traditional functions and arrow functions, but it doesn't properly handle the case where an arrow function doesn't have a block (curly braces).
+
+Here's the fix:
+
+```javascript
+### src/languages/php.js
+<<<<<<< SEARCH
+      {
+        className: 'function',
+        relevance: 0,
+        beginKeywords: 'fn function', end: /[;{]/, excludeEnd: true,
+        illegal: '[$%\\[]',
+        contains: [
+          hljs.UNDERSCORE_TITLE_MODE,
+          {
+            begin: '=>' // No markup, just a relevance booster
+          },
+=======
+      {
+        className: 'function',
+        relevance: 0,
+        beginKeywords: 'fn function', end: /[;{]/, excludeEnd: true,
+        illegal: '[$%\\[]',
+        contains: [
+          {
+            // For arrow functions, only highlight the function keyword, not the name
+            className: 'title',
+            begin: /[a-zA-Z_]\w*/,
+            starts: {
+              // Don't include the title in the function if it's an arrow function
+              endsWithParent: true,
+              excludeEnd: true,
+              contains: [
+                {
+                  begin: '=>',
+                  relevance: 10
+                }
+              ]
+            },
+            relevance: 0,
+            variants: [
+              { begin: 'fn(?=\\s*\\()', relevance: 0 }, // Don't match title for arrow functions
+              { begin: 'function' }
+            ]
+          },
+>>>>>>> REPLACE
+```
+
+This fix changes how function titles are handled. For traditional functions, it still highlights the function name as a title. For arrow functions (starting with `fn`), it doesn't treat the following code as a title, which prevents the incorrect highlighting of variables after the arrow (`=>`) as titles.

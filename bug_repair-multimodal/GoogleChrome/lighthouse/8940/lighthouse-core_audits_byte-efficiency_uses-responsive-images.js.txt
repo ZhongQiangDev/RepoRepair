@@ -1,0 +1,45 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue is about Lighthouse reporting that an image (`spritesheet2.png`) could potentially save 53KB, even though the total size of the image is only 54KB. This suggests there's a bug in how the "Properly Size Images" audit calculates potential savings.
+
+Looking at the code in `uses-responsive-images.js`, the issue appears to be in the `computeWaste` function. The function calculates waste based on the ratio of displayed pixels to actual pixels, but it doesn't account for cases where this calculation might result in nearly 100% waste (which would be impossible if the image is actually being used).
+
+The problem is that the calculation doesn't have an upper bound on the waste percentage. If an image is displayed at a much smaller size than its natural dimensions, the calculation could suggest that almost all of the image's bytes are wasted, which isn't realistic.
+
+## Solution
+
+We need to modify the `computeWaste` function to ensure that the calculated waste doesn't exceed a reasonable percentage of the total image size. Since the image is actually being used on the page, it's unreasonable to suggest that nearly 100% of its bytes could be saved.
+
+```javascript
+### lighthouse-core/audits/byte-efficiency/uses-responsive-images.js
+<<<<<<< SEARCH
+    const wastedRatio = 1 - (usedPixels / actualPixels);
+    const totalBytes = image.resourceSize;
+    const wastedBytes = Math.round(totalBytes * wastedRatio);
+
+    // If the image has 0 dimensions, it's probably hidden/offscreen, so let the offscreen-images
+    // audit handle it instead.
+    if (!usedPixels) {
+      return null;
+    }
+=======
+    const wastedRatio = 1 - (usedPixels / actualPixels);
+    const totalBytes = image.resourceSize;
+    // Cap waste at 85% of the resource size to avoid suggesting impossible savings
+    // This prevents cases where an image is technically very oversized but is still needed
+    const cappedWastedRatio = Math.min(wastedRatio, 0.85);
+    const wastedBytes = Math.round(totalBytes * cappedWastedRatio);
+
+    // If the image has 0 dimensions, it's probably hidden/offscreen, so let the offscreen-images
+    // audit handle it instead.
+    if (!usedPixels) {
+      return null;
+    }
+>>>>>>> REPLACE
+```
+
+This change caps the waste ratio at 85%, which means that no matter how much an image is resized, the audit will never suggest that more than 85% of the image's bytes could be saved. This is a reasonable limit since any image being used on the page will need some minimum amount of data to be displayed properly.
+
+The 85% cap is a reasonable value that allows the audit to still flag significantly oversized images while avoiding the unrealistic suggestion that nearly 100% of an image's bytes could be saved.

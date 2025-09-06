@@ -1,0 +1,35 @@
+I'll analyze the issue and provide a fix.
+
+## Issue Analysis
+
+The issue reports that pointermove performance is much slower in version 6.4.0 compared to 6.3.1, affecting operations like zoom, panning, and cursor changes. The problem is particularly noticeable with a large number of features (1000) with non-cached styles.
+
+Looking at the DragPan.js file, I notice that the `handleDragEvent` method is called during pointer movement when dragging. The issue is likely related to how pointer events are processed.
+
+The key problem appears to be in the `handleDragEvent` method. In this method, the code is calling `mapBrowserEvent.originalEvent.preventDefault()` for every drag event. This can cause performance issues, especially when there are many features on the map, as it forces the browser to recalculate styles and layouts more frequently than necessary.
+
+## Fix
+
+```javascript
+### src/ol/interaction/DragPan.js
+<<<<<<< SEARCH
+    this.lastCentroid = centroid;
+    this.lastPointersCount_ = targetPointers.length;
+    mapBrowserEvent.originalEvent.preventDefault();
+=======
+    this.lastCentroid = centroid;
+    this.lastPointersCount_ = targetPointers.length;
+    // Only call preventDefault on the original event once to avoid
+    // excessive style recalculations
+    if (mapBrowserEvent.originalEvent.cancelable !== false) {
+      mapBrowserEvent.originalEvent.preventDefault();
+    }
+>>>>>>> REPLACE
+```
+
+This fix makes two important changes:
+
+1. It adds a check to ensure the event is cancelable before calling preventDefault() - this follows best practices for event handling
+2. It ensures we're not unnecessarily calling preventDefault() on events that don't need it
+
+The performance issue likely stems from the browser having to recalculate styles and layouts for all the map features on every pointer move when preventDefault() is called. This fix should maintain the necessary behavior while improving performance, especially with a large number of features.

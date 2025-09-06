@@ -1,0 +1,128 @@
+I'll analyze the issue and provide a solution.
+
+## Issue Analysis
+
+The issue states that the `ContentSwitcher` component doesn't contrast well on `ui-01` backgrounds. The suggestion is to add a `light` prop/variant similar to what exists in the `TextInput` component.
+
+Looking at the provided code, the `ContentSwitcher` component doesn't currently have a `light` prop. We need to:
+
+1. Add a `light` prop to the component's PropTypes
+2. Add it to defaultProps (defaulting to false)
+3. Pass the prop to the component's className to enable styling
+
+## Solution
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/ContentSwitcher/ContentSwitcher.js
+<<<<<<< SEARCH
+  static propTypes = {
+    /**
+     * Pass in Switch components to be rendered in the ContentSwitcher
+     */
+    children: PropTypes.node,
+
+    /**
+     * Specify an optional className to be added to the container node
+     */
+    className: PropTypes.string,
+
+    /**
+     * Specify an `onChange` handler that is called whenever the ContentSwitcher
+     * changes which item is selected
+     */
+    onChange: PropTypes.func.isRequired,
+
+    /**
+     * Specify a selected index for the initially selected content
+     */
+    selectedIndex: PropTypes.number,
+
+    /**
+     * Choose whether or not to automatically change selection on focus
+     */
+    selectionMode: PropTypes.oneOf(['automatic', 'manual']),
+  };
+
+  static defaultProps = {
+    selectedIndex: 0,
+    selectionMode: 'automatic',
+  };
+=======
+  static propTypes = {
+    /**
+     * Pass in Switch components to be rendered in the ContentSwitcher
+     */
+    children: PropTypes.node,
+
+    /**
+     * Specify an optional className to be added to the container node
+     */
+    className: PropTypes.string,
+
+    /**
+     * Specify whether you want the light version of the ContentSwitcher
+     */
+    light: PropTypes.bool,
+
+    /**
+     * Specify an `onChange` handler that is called whenever the ContentSwitcher
+     * changes which item is selected
+     */
+    onChange: PropTypes.func.isRequired,
+
+    /**
+     * Specify a selected index for the initially selected content
+     */
+    selectedIndex: PropTypes.number,
+
+    /**
+     * Choose whether or not to automatically change selection on focus
+     */
+    selectionMode: PropTypes.oneOf(['automatic', 'manual']),
+  };
+
+  static defaultProps = {
+    selectedIndex: 0,
+    selectionMode: 'automatic',
+    light: false,
+  };
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/ContentSwitcher/ContentSwitcher.js
+<<<<<<< SEARCH
+    const {
+      children,
+      className,
+      selectedIndex, // eslint-disable-line no-unused-vars
+      selectionMode, // eslint-disable-line no-unused-vars
+      ...other
+    } = this.props;
+
+    const classes = classNames(`${prefix}--content-switcher`, className);
+=======
+    const {
+      children,
+      className,
+      selectedIndex, // eslint-disable-line no-unused-vars
+      selectionMode, // eslint-disable-line no-unused-vars
+      light,
+      ...other
+    } = this.props;
+
+    const classes = classNames(`${prefix}--content-switcher`, className, {
+      [`${prefix}--content-switcher--light`]: light,
+    });
+>>>>>>> REPLACE
+```
+
+These changes:
+1. Add a `light` prop to the component's PropTypes with appropriate documentation
+2. Set the default value of `light` to `false` in defaultProps
+3. Extract the `light` prop from this.props in the render method
+4. Add a conditional class name `${prefix}--content-switcher--light` when the `light` prop is true
+
+With these changes, users can now use the ContentSwitcher with better contrast on ui-01 backgrounds by adding the `light` prop: `<ContentSwitcher light>...</ContentSwitcher>`.

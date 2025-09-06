@@ -1,0 +1,37 @@
+Based on the issue, the bug appears to be in the Domain class's preprocess method in `sympy/polys/polyoptions.py`. The error occurs when trying to use `RR[y,z]` as a domain specification, but the code doesn't properly handle real field polynomial rings.
+
+Looking at the regular expressions and domain handling code, we need to add support for real field polynomial rings similar to how `Z[y,z]` and `Q[y,z]` are handled. We should modify the `_re_polynomial` pattern and the corresponding handling code.
+
+Here's the fix:
+
+```python
+### sympy/polys/polyoptions.py
+<<<<<<< SEARCH
+    _re_polynomial = re.compile(r"^(Z|ZZ|Q|QQ)\[(.+)\]$")
+=======
+    _re_polynomial = re.compile(r"^(Z|ZZ|Q|QQ|R|RR)\[(.+)\]$")
+>>>>>>> REPLACE
+```
+
+```python
+### sympy/polys/polyoptions.py
+<<<<<<< SEARCH
+                if ground in ['Z', 'ZZ']:
+                    return sympy.polys.domains.ZZ.poly_ring(*gens)
+                else:
+                    return sympy.polys.domains.QQ.poly_ring(*gens)
+=======
+                if ground in ['Z', 'ZZ']:
+                    return sympy.polys.domains.ZZ.poly_ring(*gens)
+                elif ground in ['R', 'RR']:
+                    return sympy.polys.domains.RR.poly_ring(*gens)
+                else:
+                    return sympy.polys.domains.QQ.poly_ring(*gens)
+>>>>>>> REPLACE
+```
+
+These changes:
+1. Add 'R' and 'RR' to the polynomial domain regex pattern
+2. Add handling for real field polynomial rings using RR domain
+
+This will allow expressions like `Poly(1.2*x*y*z, x, domain='RR[y,z]')` to work properly by creating a polynomial ring over the real field.

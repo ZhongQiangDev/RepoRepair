@@ -1,0 +1,16 @@
+Let me analyze the GitHub problem description and break down the issues:
+
+### Answer 1
+**Wrong Behavior**: The JSON syntax highlighting is broken when the JSON contains a string value with "/*"
+**Cause**: Prism's tokenizer appears to be incorrectly interpreting the "/*" string value as the start of a multi-line comment, even though comments are not valid in JSON. This suggests the tokenizer is applying JavaScript/C-style comment rules to JSON content.
+
+### Answer 2
+**Wrong Behavior**: The rest of the JSON structure after "/*" is not properly highlighted
+**Cause**: Once the tokenizer mistakenly identifies "/*" as a comment start, it continues treating the following content as part of the comment until it finds a matching "*/", which doesn't exist in this case. This causes the tokenizer to fail to properly recognize the remaining valid JSON syntax.
+
+### Answer 3
+**Wrong Behavior**: The issue is specifically triggered when using the HTTP header `Accept: */*`
+**Cause**: The presence of this header in the server response logging scenario suggests that the content type detection or language grammar selection might be affected by the HTTP headers, causing Prism to potentially apply incorrect tokenization rules.
+
+### Conclusion
+**Summary**: The core issue stems from Prism's JSON tokenizer incorrectly handling comment syntax that shouldn't exist in JSON. When encountering the string "/*", it wrongly applies JavaScript/C-style comment tokenization rules, which breaks the highlighting of both the current token and all subsequent JSON content. This is particularly problematic in server response logging scenarios with specific HTTP headers. The tokenizer needs to be modified to treat "/*" as a literal string value in JSON context, rather than as the start of a comment.

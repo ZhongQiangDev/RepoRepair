@@ -1,0 +1,96 @@
+I'll analyze the issue and provide a fix.
+
+## Bug Analysis
+
+The issue is that the `ActionableNotification` component has a `caption` prop defined in its PropTypes, but the component doesn't actually implement or render this prop. This means users can pass a caption prop, but it won't be displayed anywhere in the component.
+
+Looking at the code, I can see that:
+1. `caption` is defined in `ActionableNotification.propTypes`
+2. `caption` is not destructured from props in the component function parameters
+3. There's no rendering logic for the caption in the component
+
+## Fix
+
+I need to modify the `ActionableNotification` component to:
+1. Destructure the `caption` prop from the component props
+2. Add rendering logic for the caption, similar to how it's done in other notification components
+
+Here's the fix:
+
+```javascript
+### packages/react/src/components/Notification/Notification.js
+<<<<<<< SEARCH
+export function ActionableNotification({
+  actionButtonLabel,
+  ariaLabel,
+  children,
+  role,
+  onActionButtonClick,
+  onClose,
+  onCloseButtonClick,
+  statusIconDescription,
+  className,
+  inline,
+  kind,
+  lowContrast,
+  hideCloseButton,
+  hasFocus,
+  closeOnEscape,
+  title,
+  subtitle,
+  ...rest
+}) {
+=======
+export function ActionableNotification({
+  actionButtonLabel,
+  ariaLabel,
+  caption,
+  children,
+  role,
+  onActionButtonClick,
+  onClose,
+  onCloseButtonClick,
+  statusIconDescription,
+  className,
+  inline,
+  kind,
+  lowContrast,
+  hideCloseButton,
+  hasFocus,
+  closeOnEscape,
+  title,
+  subtitle,
+  ...rest
+}) {
+>>>>>>> REPLACE
+```
+
+```javascript
+### packages/react/src/components/Notification/Notification.js
+<<<<<<< SEARCH
+            {subtitle && (
+              <div className={`${prefix}--actionable-notification__subtitle`}>
+                {subtitle}
+              </div>
+            )}
+            {children}
+=======
+            {subtitle && (
+              <div className={`${prefix}--actionable-notification__subtitle`}>
+                {subtitle}
+              </div>
+            )}
+            {caption && (
+              <div className={`${prefix}--actionable-notification__caption`}>
+                {caption}
+              </div>
+            )}
+            {children}
+>>>>>>> REPLACE
+```
+
+These changes will:
+1. Add the `caption` prop to the destructured props in the component function parameters
+2. Add rendering logic for the caption, displaying it in a div with the appropriate class name when it's provided
+
+This implementation follows the pattern used for other text elements in the component (like title and subtitle) and will allow users to pass a caption that will be properly displayed in the notification.

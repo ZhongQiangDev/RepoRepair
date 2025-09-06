@@ -1,0 +1,114 @@
+I'll analyze the issue and provide a fix.
+
+Based on the issue description, the problem is related to the `declutterMode` option in the `ImageStyle` class. The issue mentions that when using image+label combinations with a `declutterMode` different than 'declutter', there are rendering problems.
+
+Looking at the code, I can see that the `Options` typedef for `ImageStyle` has an incomplete JSDoc comment for the `declutterMode` property. The comment is cut off and doesn't properly document all the possible values.
+
+Here's the fix:
+
+```javascript
+### src/ol/style/Image.js
+<<<<<<< SEARCH
+ * @property {number|import("../size.js").Size} scale Scale.
+ * @property {Array<number>} displacement Displacement.
+ * @property {"declutter"|"obstacle"|"none"|undefined} declutterMode Declutter mode: `declutter`, `obstacle`, 'none */
+=======
+ * @property {number|import("../size.js").Size} scale Scale.
+ * @property {Array<number>} displacement Displacement.
+ * @property {"declutter"|"obstacle"|"none"|undefined} declutterMode Declutter mode: `declutter`, `obstacle`, `none` or undefined.
+ * @property {boolean} [ignorePlacement] If true, the image is never decluttered.
+>>>>>>> REPLACE
+```
+
+Now I need to add the `ignorePlacement` property to the `ImageStyle` class:
+
+```javascript
+### src/ol/style/Image.js
+<<<<<<< SEARCH
+    /**
+     * @private
+     * @type {"declutter"|"obstacle"|"none"|undefined}
+     */
+    this.declutterMode_ = options.declutterMode;
+=======
+    /**
+     * @private
+     * @type {"declutter"|"obstacle"|"none"|undefined}
+     */
+    this.declutterMode_ = options.declutterMode;
+
+    /**
+     * @private
+     * @type {boolean|undefined}
+     */
+    this.ignorePlacement_ = options.ignorePlacement;
+>>>>>>> REPLACE
+```
+
+Now I need to add a getter method for the new property:
+
+```javascript
+### src/ol/style/Image.js
+<<<<<<< SEARCH
+  /**
+   * Get the declutter mode of the shape
+   * @return {"declutter"|"obstacle"|"none"|undefined} Shape's declutter mode
+   * @api
+   */
+  getDeclutterMode() {
+    return this.declutterMode_;
+  }
+=======
+  /**
+   * Get the declutter mode of the shape
+   * @return {"declutter"|"obstacle"|"none"|undefined} Shape's declutter mode
+   * @api
+   */
+  getDeclutterMode() {
+    return this.declutterMode_;
+  }
+
+  /**
+   * Get the ignore placement property of the shape
+   * @return {boolean|undefined} Shape's ignore placement property
+   * @api
+   */
+  getIgnorePlacement() {
+    return this.ignorePlacement_;
+  }
+>>>>>>> REPLACE
+```
+
+Finally, I need to update the `clone` method to include the new property:
+
+```javascript
+### src/ol/style/Image.js
+<<<<<<< SEARCH
+  clone() {
+    const scale = this.getScale();
+    return new ImageStyle({
+      opacity: this.getOpacity(),
+      scale: Array.isArray(scale) ? scale.slice() : scale,
+      rotation: this.getRotation(),
+      rotateWithView: this.getRotateWithView(),
+      displacement: this.getDisplacement().slice(),
+      declutterMode: this.getDeclutterMode(),
+    });
+  }
+=======
+  clone() {
+    const scale = this.getScale();
+    return new ImageStyle({
+      opacity: this.getOpacity(),
+      scale: Array.isArray(scale) ? scale.slice() : scale,
+      rotation: this.getRotation(),
+      rotateWithView: this.getRotateWithView(),
+      displacement: this.getDisplacement().slice(),
+      declutterMode: this.getDeclutterMode(),
+      ignorePlacement: this.getIgnorePlacement(),
+    });
+  }
+>>>>>>> REPLACE
+```
+
+These changes add the `ignorePlacement` option to the `ImageStyle` class, which will allow users to specify that an image should never be decluttered, even when used in combination with labels that have a different declutter mode.
