@@ -24,6 +24,7 @@ RepoRepair is a novel documentation-driven approach for repository-level automat
 | Avg. Cost/Repair (Lite)           | \$0.38     | \$0.21*        | -           |
 | Avg. Cost/Repair (Multimodal)     | \$0.55     | \$0.38*        | -           |
 
+_\*Agentless Lite uses different model configurations across benchmarks_
 
 ## Installation
 
