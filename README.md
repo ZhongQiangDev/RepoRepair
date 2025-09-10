@@ -2,7 +2,7 @@
 
 RepoRepair is a novel documentation-driven approach for repository-level automated program repair, which leverages hierarchically generated code documentation to achieve precise fault localization and cost-effective patch generation across diverse programming languages. Evaluated on both SWE-bench Lite and SWE-bench Multimodal benchmarks, it achieves state-of-the-art repair rates (52.33% and 40.23%, respectively) while maintaining high cost efficiency.
 
-![RepoRepair](images/your-image.png)
+![RepoRepair](Figure/RepoRepair-1.png)
 
 ## Key Features
 
