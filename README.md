@@ -43,14 +43,9 @@ python issue_diff_download.py
 
 python issue_repo_download.py
 python unzip.py
-
-# Process visual data
-python issue_ps_pic_download.py
-python gif_slice.py  # Uses scikit-image for keyframe extraction
 ```
 
-* Use **Selenium** to fetch the repository's compressed file from Github.
-* Use **scikit-image** to extract key frames from dynamic images (.gif).
+* Use **Selenium** to fetch the repository's compressed file from GitHub.
 
 ### 2. Repository Parsing
 
@@ -69,7 +64,7 @@ python generate_document_func.py  # Output: repo_document_func/
 python generate_document_file.py  # Output: repo_document_file/
 ```
 
-* Cloud resources will be released post-publication.
+* Cloud resources are released in Google Drive: https://drive.google.com/file/d/1jAWcQy3HM-Fu37r1CAoBO5MerSGFluRp/view?usp=sharing, https://drive.google.com/file/d/1rAiVn4o5FK-OHqPoGoc-GoDWXxJqQp5I/view?usp=sharing.
 
 ### 4. File Retrieval
 ```bash
